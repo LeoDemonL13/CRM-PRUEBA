@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#060814">
+<link rel="stylesheet" href="interfaz.css">
+<script src="navegacion-suave.js?v=9"></script>
+<title>Skilled - Registrar Movimiento</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="skilled-supabase.js?v=11"></script>
+<script src="auth-guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="AL.ordenes-compra.js"></script>
+    <script src="AL.ticket-materiales.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #060814;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .lista-scroll::-webkit-scrollbar { inline-size: 6px; }
+        .lista-scroll::-webkit-scrollbar-thumb { background: #1b2642; border-radius: 8px; }
+        .lista-scroll::-webkit-scrollbar-track { background: transparent; }
+        @keyframes fadeInRow { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .fila-nueva { animation: fadeInRow .25s ease-out; }
+
+        
+        body.tema-claro { background-color: #f2f4f9; }
+
+        body.tema-claro .bg-\[\#060814\] { background-color: #f2f4f9 !important; }
+        body.tema-claro .bg-\[\#090d1a\] { background-color: #ffffff !important; }
+        body.tema-claro .bg-\[\#080d1a\] { background-color: #ffffff !important; }
+        body.tema-claro .bg-\[\#0a1122\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#060a14\] { background-color: #f2f4f9 !important; }
+        body.tema-claro .bg-\[\#0d1425\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#0d1325\] { background-color: #e9ecf5 !important; }
+        body.tema-claro .bg-\[\#070b16\] { background-color: #f2f4f9 !important; }
+        body.tema-claro .bg-\[\#101626\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#10172a\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#11182c\] { background-color: #e5e9f4 !important; }
+        body.tema-claro .bg-\[\#141d34\] { background-color: #dde5fb !important; }
+        body.tema-claro .bg-\[\#151c35\] { background-color: #e3e8f3 !important; }
+        body.tema-claro .bg-\[\#161f37\] { background-color: #e5e9f4 !important; }
+        body.tema-claro .bg-\[\#161f38\] { background-color: #e5e9f4 !important; }
+        body.tema-claro .bg-\[\#1b253c\] { background-color: #dbe3f5 !important; }
+
+        body.tema-claro .hover\:bg-\[\#0d1425\]:hover { background-color: #eef1f8 !important; }
+        body.tema-claro .hover\:bg-\[\#11182c\]:hover { background-color: #e5e9f4 !important; }
+        body.tema-claro .hover\:bg-\[\#151c35\]:hover { background-color: #e3e8f3 !important; }
+        body.tema-claro .hover\:bg-\[\#161f37\]:hover { background-color: #e5e9f4 !important; }
+        body.tema-claro .hover\:bg-\[\#161f38\]:hover { background-color: #e5e9f4 !important; }
+
+        body.tema-claro .border-\[\#161f38\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#1b2642\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#1d2949\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#1f2c4e\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#232f4e\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#243257\] { border-color: #dfe4ef !important; }
+
+        body.tema-claro .text-gray-200 { color: #1f2937 !important; }
+        body.tema-claro .text-gray-300 { color: #1f2937 !important; }
+        body.tema-claro .text-gray-400 { color: #52596b !important; }
+        body.tema-claro .text-gray-500 { color: #6b7280 !important; }
+        body.tema-claro .text-gray-600 { color: #9199a8 !important; }
+        body.tema-claro .text-white { color: #0f172a !important; }
+
+        body.tema-claro .lista-scroll::-webkit-scrollbar-thumb { background: #d3d9e6; }
+
+        body.tema-claro input::placeholder,
+        body.tema-claro textarea::placeholder { color: #9199a8; opacity: 1; }
+
+        body.tema-claro input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
+        #scanner-reader video { border-radius: 10px; object-fit: cover; }
+        #scanner-reader { min-height: 260px; }
+        .scanner-pulse { animation: scannerPulse .35s ease-out; }
+        @keyframes scannerPulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.5); } 100% { box-shadow: 0 0 0 18px rgba(52,211,153,0); } }
+    </style>
+    <script src="skilled-sidebar.js?v=21" defer></script>
+    
+</head>
+<script>console.info('SKILLED CRM: Supabase Only v6');</script>
+<body class="text-gray-300 min-h-screen flex overflow-x-hidden">
+    <script>
+        
+        (function () {
+            if (localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen') === 'claro') {
+                document.body.classList.add('tema-claro');
+            }
+        })();
+        function alternarTema() {
+            const esClaroAhora = document.body.classList.toggle('tema-claro');
+            localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen', esClaroAhora ? 'claro' : 'oscuro');
+        }
+    </script>
+
+    <aside class="w-[260px] h-screen sticky top-0 bg-[#090d1a] border-r border-[#161f38] flex-col justify-between hidden lg:flex shrink-0">
+        <div class="overflow-y-auto flex-1 lista-scroll">
+            <div class="p-6 border-b border-[#161f38] flex items-center justify-between">
+                <a href="AL.inicio.html" title="Ir al inicio">
+                    <img src="logo-reporte.png" alt="Skilled Logo" class="h-9 w-auto object-contain">
+                </a>
+            </div>
+            <nav class="p-4 space-y-6 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
+                <div>
+            <span class="px-3 block mb-2">Cuenta</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.inicio.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Inicio</span>
+        </a>
+    </li>
+<li>
+        <a href="perfil.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Mi perfil</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Materiales</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.catalogo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Catálogo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.bajo-minimo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Bajo mínimo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.almacenes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            <span>Almacenes</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.etiquetas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 7h.01M3 11l8.586-8.586A2 2 0 0113 2h5a2 2 0 012 2v5a2 2 0 01-.586 1.414L10.828 19a2 2 0 01-2.828 0l-5-5a2 2 0 010-2.828z"/></svg>
+            <span>Etiquetas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Movimientos</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#141d34] border-l-2 border-blue-500 text-white font-semibold">
+            <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            <span>Registrar movimiento</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.historial-movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <span>Historial movimientos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.tomas-fisicas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Tomas físicas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Compras y Solicitudes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.entrega-directa.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Entrega directa</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.solicitudes-material.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Solicitudes de material</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.ordenes-compra.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Solicitudes de compra</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Proyectos y Reportes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.proyectos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            <span>Proyectos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.reportes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <span>Reportes</span>
+        </a>
+    </li>
+            </ul>
+        </div>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-[#161f38] bg-[#070b16]">
+            <a href="login.html" class="w-full flex items-center justify-center gap-2 bg-[#10172a] hover:bg-red-950/20 border border-[#232f4e] text-red-400 hover:text-red-300 py-2.5 rounded-lg text-xs font-semibold transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Cerrar sesión
+            </a>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-w-0">
+
+        <header class="h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a]">
+            <div class="flex items-center gap-4 w-full max-w-md">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" placeholder="Buscar productos, solicitudes, empleados..." class="w-full bg-[#0d1425] text-xs text-gray-300 rounded-lg pl-9 pr-14 py-2 border border-[#1b2642] focus:outline-none focus:border-blue-500 transition">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-gray-500 bg-[#161f38] px-1.5 py-0.5 rounded border border-[#243257]">⌘ k</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-5">
+                <button onclick="location.reload()" title="Actualizar" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15.19M9 5.513a11.59 11.59 0 002.358-.513V4"/></svg>
+                </button>
+                <button onclick="alternarTema()" title="Cambiar tema" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </button>
+
+                <div class="flex items-center gap-3 border-l border-[#161f38] pl-5">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-xs font-bold text-white">Almacen</div>
+                        <div class="text-[10px] text-gray-500 font-medium">Inventario</div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 text-white flex items-center justify-center font-bold text-sm">
+                        A
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 md:p-8 overflow-y-auto max-w-[1500px] mx-auto w-full">
+
+            <nav class="text-[11px] font-medium text-gray-500 mb-2 flex items-center gap-2">
+                <a href="AL.inicio.html" class="inline-flex items-center text-gray-500 hover:text-blue-400 transition" title="Inicio" aria-label="Inicio">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path>
+                    </svg>
+                </a>
+                <span>&rsaquo;</span>
+                <span>Inventario</span>
+                <span>&rsaquo;</span>
+                <span>Historial movimientos</span>
+                <span>&rsaquo;</span>
+                <span class="text-gray-300 font-semibold">Registrar movimiento</span>
+            </nav>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 bg-[#0a1122] border border-[#1d2949] rounded-xl flex items-center justify-center text-blue-400 shadow-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white tracking-tight">Registrar movimiento</h1>
+                        <p class="text-xs text-gray-500 mt-0.5">Captura entradas, salidas, ajustes, traspasos y préstamos de material.</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                    <button type="button" onclick="abrirEscaner()" class="text-xs text-blue-300 hover:text-white flex items-center gap-2 bg-blue-950/20 border border-blue-500/30 px-4 py-2 rounded-lg transition font-semibold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10M7 9v6M10 9v6M14 9v6M17 9v6"/></svg>
+                        Escanear productos
+                    </button>
+                    <a href="AL.historial-movimientos.html" class="text-xs text-gray-400 hover:text-white flex items-center gap-1.5 bg-[#0a1122] border border-[#1d2949] px-4 py-2 rounded-lg transition font-semibold">
+                        <span class="text-base leading-none">&lsaquo;</span> Volver al historial
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+                <div class="lg:col-span-2 bg-[#090d1a] border border-[#161f38] rounded-xl p-6 shadow-2xl">
+                    <form id="movimientoForm" class="space-y-6" novalidate>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Tipo de movimiento</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                                <button type="button" onclick="cambiarTipo('entrada')" id="btn-entrada" class="flex items-center justify-between px-3 py-3.5 rounded-lg border bg-[#060a14] text-xs font-semibold transition-all text-emerald-400 border-emerald-500/50 bg-emerald-950/10 shadow-[0_0_12px_rgba(16,185,129,0.08)]">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+                                        Entrada
+                                    </span>
+                                    <span class="text-[11px] text-emerald-500/60">+</span>
+                                </button>
+                                <button type="button" onclick="cambiarTipo('salida')" id="btn-salida" class="flex items-center justify-between px-3 py-3.5 rounded-lg border bg-[#060a14] border-[#161f38] text-gray-400 text-xs font-semibold hover:border-rose-500/30 hover:text-rose-400 transition-all">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 7l6 6 4-4 8 8"/><path d="M14 17h7v-7"/></svg>
+                                        Salida
+                                    </span>
+                                    <span class="text-[11px] text-gray-600">-</span>
+                                </button>
+                                <button type="button" onclick="cambiarTipo('ajuste')" id="btn-ajuste" class="flex items-center justify-between px-3 py-3.5 rounded-lg border bg-[#060a14] border-[#161f38] text-gray-400 text-xs font-semibold hover:border-amber-500/30 hover:text-amber-400 transition-all">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+                                        Ajuste
+                                    </span>
+                                    <span class="text-[11px] text-gray-600">±</span>
+                                </button>
+                                <button type="button" onclick="cambiarTipo('traspaso')" id="btn-traspaso" class="flex items-center justify-between px-3 py-3.5 rounded-lg border bg-[#060a14] border-[#161f38] text-gray-400 text-xs font-semibold hover:border-blue-500/30 hover:text-blue-400 transition-all">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4m14 4H3"/></svg>
+                                        Traspaso
+                                    </span>
+                                    <span class="text-[11px] text-gray-600">&rarr;</span>
+                                </button>
+                            </div>
+                            <input type="hidden" id="tipo_movimiento_val" value="entrada">
+                        </div>
+
+                        <div id="wrapper-proyecto-movimiento">
+                            <label id="proyecto-label" class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Proyecto (opcional)</label>
+                            <select id="proyecto_val" onchange="manejarCambioProyecto(this.value)" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg px-4 py-3 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 transition">
+                                <option value="">Cargando proyectos...</option>
+                            </select>
+                            <p id="proyecto-ayuda" class="mt-1.5 text-[10px] text-gray-600">Puedes asociar el movimiento a un proyecto existente.</p>
+                        </div>
+
+                        <div id="panel-materiales-proyecto" class="hidden rounded-xl border border-rose-500/20 bg-rose-950/5 overflow-hidden">
+                            <div class="px-4 py-3 border-b border-[#1b2642] flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-rose-300">Materiales del proyecto</p>
+                                    <p id="resumen-plan-proyecto" class="text-[10px] text-gray-500 mt-0.5">Selecciona un proyecto para consultar su plan.</p>
+                                </div>
+                                <button type="button" onclick="recargarPlanEntregaProyecto()" class="text-[10px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.34 5.66M20 4v7h-7"/></svg>
+                                    Actualizar
+                                </button>
+                            </div>
+                            <div id="lista-plan-proyecto" class="max-h-72 overflow-y-auto lista-scroll divide-y divide-[#1b2642]">
+                                <div class="px-4 py-8 text-center text-xs text-gray-500">Selecciona un proyecto para ver los materiales pendientes.</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Producto</label>
+
+                            <div id="producto-chip" class="hidden items-center justify-between bg-emerald-950/10 border border-emerald-500/30 rounded-lg px-4 py-3 mb-2">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span id="producto-chip-imagen" class="w-9 h-9 rounded-md bg-[#060a14] border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 overflow-hidden">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p id="producto-chip-nombre" class="text-xs font-semibold text-white truncate"></p>
+                                        <p id="producto-chip-codigo" class="text-[10px] text-gray-500"></p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="quitarProducto()" class="text-gray-500 hover:text-rose-400 transition shrink-0 pl-3">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+
+                            <div id="producto-buscador-wrap" class="relative">
+                                <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                </span>
+                                <input type="text" id="producto_search" autocomplete="off" placeholder="Cargando catálogo..." disabled class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg pl-9 pr-9 py-3 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 transition disabled:opacity-50"
+                                    oninput="buscarProducto(this.value)" onfocus="buscarProducto(this.value)">
+                                <button type="button" onclick="limpiarBusquedaProducto()" class="absolute inset-y-0 right-3 flex items-center text-gray-600 hover:text-gray-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+
+                                <div id="producto_dropdown" class="hidden absolute z-20 mt-1.5 w-full bg-[#0d1425] border border-[#1b2642] rounded-lg shadow-2xl max-h-56 overflow-y-auto lista-scroll"></div>
+                            </div>
+                            <p id="producto-sin-resultados" class="hidden text-[11px] text-gray-500 mt-1.5">No se encontraron productos con ese criterio.</p>
+                            <p id="producto-cargando" class="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1.5">
+                                <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v2m0 12v2m8-8h-2M6 12H4m14.14 6.14l-1.41-1.41M7.27 7.27L5.86 5.86m12.28 0l-1.41 1.41M7.27 16.73l-1.41 1.41"/></svg>
+                                Cargando catálogo desde Supabase...
+                            </p>
+                            <p id="producto-error" class="hidden text-[11px] text-rose-400 mt-1.5 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.3 2.9L1.8 17a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 2.9a2 2 0 00-3.4 0z"/><path d="M12 9v4m0 4h.01"/></svg> No se pudo cargar el catálogo.
+                                <button type="button" onclick="cargarCatalogo()" class="underline hover:text-rose-300">Reintentar</button>
+                            </p>
+                            <button id="btn-material-no-listado" type="button" onclick="abrirMaterialNoListadoMovimiento()" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-950/10 px-4 py-2.5 text-xs font-semibold text-amber-300 hover:text-white hover:border-amber-400 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><path d="M4 4h16v16H4z"/></svg>
+                                Añadir material no enlistado
+                            </button>
+                            <p id="ayuda-material-no-listado" class="mt-1.5 text-[10px] text-gray-600">Se registrará en el historial, pero no modificará las existencias del catálogo.</p>
+                        </div>
+
+                        <div id="seccion-ajuste-stock" class="hidden space-y-2.5">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">¿Qué pasó con el stock?</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" onclick="cambiarAjusteAccion('Aumentar')" id="btn-adj-aumentar" class="py-2.5 rounded-lg border border-emerald-500/50 bg-[#060a14] text-emerald-400 text-xs font-semibold transition">
+                                    + Aumentar
+                                </button>
+                                <button type="button" onclick="cambiarAjusteAccion('Disminuir')" id="btn-adj-disminuir" class="py-2.5 rounded-lg border border-[#161f38] bg-[#060a14] text-gray-400 text-xs font-semibold transition">
+                                    - Disminuir
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-gray-500 italic">* Ej. encontraste 5 piezas extra al hacer conteo, te las regresaron, etc.</p>
+                            <input type="hidden" id="ajuste_accion_val" value="Aumentar">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Cantidad</label>
+                            <div class="flex items-center justify-between bg-[#060a14] border border-[#161f38] rounded-lg p-1.5 max-w-full">
+                                <button type="button" onclick="modificarCantidad(-1)" class="w-10 h-10 bg-[#0d1325] hover:bg-[#151c35] text-gray-400 hover:text-white rounded-md flex items-center justify-center font-bold text-lg transition">-</button>
+                                <input type="number" id="cantidad_val" value="0" min="0" class="bg-transparent text-center text-xl font-bold text-white focus:outline-none w-28">
+                                <button type="button" onclick="modificarCantidad(1)" class="w-10 h-10 bg-[#0d1325] hover:bg-[#151c35] text-gray-400 hover:text-white rounded-md flex items-center justify-center font-bold text-lg transition">+</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Datos complementarios</label>
+                            <div>
+                                <label class="block text-[9px] font-semibold text-gray-600 uppercase tracking-widest mb-1.5">Orden de compra</label>
+                                <input type="text" id="orden_compra_val" placeholder="Ej. OC-4567" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg px-3 py-2.5 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 transition">
+                            </div>
+                        </div>
+
+                        <div id="grid-bodegas" class="grid grid-cols-1 gap-4">
+                            <div id="wrapper-bodega-origen" class="hidden">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Bodega origen *</label>
+                                <div class="relative">
+                                    <select id="bodega_origen_val" onchange="manejarCambioBodegaMovimiento('origen')" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg px-4 py-3 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 appearance-none">
+                                        <option value="">Cargando almacenes...</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-500 text-xs">&darr;</span>
+                                </div>
+                            </div>
+                            <div id="wrapper-ubicacion-origen" class="hidden">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Ubicación de origen</label>
+                                <div class="relative">
+                                    <select id="ubicacion_origen_val" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg px-4 py-3 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 appearance-none">
+                                        <option value="">Selecciona primero la bodega de origen...</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-500 text-xs">&darr;</span>
+                                </div>
+                            </div>
+                            <div id="wrapper-bodega-destino">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Bodega destino *</label>
+                                <div class="relative">
+                                    <select id="bodega_destino_val" onchange="manejarCambioBodegaMovimiento('destino')" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg px-4 py-3 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 appearance-none">
+                                        <option value="">Cargando almacenes...</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-500 text-xs">&darr;</span>
+                                </div>
+                            </div>
+                            <div id="wrapper-ubicacion-destino">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Ubicación de destino</label>
+                                <div class="relative">
+                                    <select id="ubicacion_destino_val" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg px-4 py-3 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 appearance-none">
+                                        <option value="">Selecciona primero la bodega de destino...</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-500 text-xs">&darr;</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="wrapper-recibe" class="hidden">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Quién recibe el material *</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM5 21a7 7 0 0114 0"/></svg>
+                                </span>
+                                <input type="text" id="recibe_nombre_val" placeholder="Nombre completo de quien recibe" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg pl-9 pr-3 py-3 border border-[#161f38] focus:outline-none focus:border-rose-500/50 transition">
+                            </div>
+                            <p class="text-[10px] text-gray-600 mt-1.5">Este nombre aparecerá en el ticket y debajo de la línea de firma.</p>
+                        </div>
+
+                        <button type="button" id="btn-agregar" onclick="agregarProducto()" class="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-dashed border-emerald-500/40 text-emerald-400 hover:bg-emerald-950/10 text-xs font-bold tracking-wide transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                            Agregar producto a la lista
+                        </button>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Motivo o notas <span id="motivo-obligatorio" class="text-rose-500 hidden">*</span></label>
+                            <textarea id="motivo_val" rows="3" placeholder="Ej. Compra a proveedor X, factura 4567" class="w-full bg-[#060a14] text-xs text-gray-300 rounded-lg p-4 border border-[#161f38] focus:outline-none focus:border-emerald-500/50 transition"></textarea>
+                            <p id="error-motivo-ajuste" class="text-rose-400 text-[10px] mt-1.5 hidden flex items-center gap-1">
+                                <span>⚠️</span> Para ajustes el motivo es obligatorio (trazabilidad de auditoría).
+                            </p>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4 border-t border-[#161f38]">
+                            <button type="button" onclick="cancelarTodo()" class="px-5 py-2.5 rounded-lg bg-[#101626] border border-[#1f2c4e] hover:bg-[#161f37] text-gray-300 text-xs font-semibold transition">Cancelar</button>
+                            <button type="submit" id="btn-submit" class="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-[0_4px_12px_rgba(16,185,129,0.2)]">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                                Registrar entrada
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden shadow-2xl h-fit lg:sticky lg:top-6">
+                    <div id="preview-header" class="px-5 py-4 border-b border-[#161f38] bg-emerald-950/20">
+                        <div class="flex items-center justify-between">
+                            <span id="preview-tipo-titulo" class="text-[11px] font-bold text-emerald-400 tracking-widest uppercase flex items-center gap-2">
+                                <span id="preview-color-indicator" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                Entrada
+                            </span>
+                            <span id="preview-status-extra" class="text-[10px] text-emerald-400 font-bold bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">0 productos</span>
+                        </div>
+                    </div>
+
+                    <div id="lista-vacia" class="flex flex-col items-center justify-center py-16 px-6 text-center">
+                        <div class="w-14 h-14 bg-[#060a14] border border-[#161f38] rounded-full flex items-center justify-center text-gray-500 mb-3 shadow-inner">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+                        </div>
+                        <p class="text-xs text-gray-500 font-semibold tracking-wide">Aún no agregas productos</p>
+                        <p class="text-[10px] text-gray-600 mt-1">Busca un producto y usa "Agregar" para sumarlo a la lista.</p>
+                    </div>
+
+                    <div id="lista-productos" class="hidden divide-y divide-[#161f38] max-h-[520px] overflow-y-auto lista-scroll"></div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+
+    <div id="modal-no-listado-movimiento" class="hidden fixed inset-0 z-[85] bg-black/75 items-center justify-center p-4">
+        <div class="w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
+                <div><h2 class="text-sm font-bold text-white">Material no enlistado</h2><p class="text-[10px] text-gray-500 mt-1">Se guardará como movimiento manual sin afectar el stock del catálogo.</p></div>
+                <button type="button" onclick="cerrarMaterialNoListadoMovimiento()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2"><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Descripción *</label><input id="mov-nl-descripcion" type="text" placeholder="Ej. Tornillo especial suministrado en obra" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código o referencia</label><input id="mov-nl-codigo" type="text" placeholder="Se genera si lo dejas vacío" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label><input id="mov-nl-categoria" type="text" placeholder="Ej. Misceláneos" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Unidad *</label><input id="mov-nl-unidad" type="text" placeholder="PIEZA, METRO, LOTE..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Precio unitario</label><input id="mov-nl-precio" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+            </div>
+            <div class="px-6 py-4 border-t border-[#161f38] flex justify-end gap-3"><button type="button" onclick="cerrarMaterialNoListadoMovimiento()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button type="button" onclick="usarMaterialNoListadoMovimiento()" class="px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold">Usar material</button></div>
+        </div>
+    </div>
+
+    <div id="modal-scanner" class="hidden fixed inset-0 z-[80] bg-black/75 items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-[#090d1a] border border-[#243257] rounded-2xl shadow-2xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-[#161f38] flex items-center justify-between">
+                <div><h2 class="text-base font-bold text-white">Escanear productos</h2><p class="text-[11px] text-gray-500 mt-0.5">Usa la cámara o un lector USB/Bluetooth. Cada lectura suma una unidad.</p></div>
+                <button type="button" onclick="cerrarEscaner()" class="text-gray-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="p-5">
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button id="tab-camera" type="button" onclick="cambiarModoEscaner('camera')" class="py-2.5 rounded-lg border border-blue-500/50 bg-blue-950/10 text-blue-400 text-xs font-semibold flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 17a4 4 0 100-8 4 4 0 000 8z"/></svg>Cámara</button>
+                    <button id="tab-reader" type="button" onclick="cambiarModoEscaner('reader')" class="py-2.5 rounded-lg border border-[#161f38] bg-[#060a14] text-gray-400 text-xs font-semibold flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/></svg>Lector físico</button>
+                </div>
+                <div id="scanner-camera-panel">
+                    <div id="scanner-reader" class="rounded-xl bg-black border border-[#243257] overflow-hidden"></div>
+                    <p id="scanner-camera-status" class="text-[11px] text-gray-500 mt-2">Presiona iniciar para solicitar permiso de cámara.</p>
+                    <button id="btn-iniciar-camera" type="button" onclick="iniciarCamara()" class="mt-3 w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">Iniciar cámara</button>
+                </div>
+                <div id="scanner-reader-panel" class="hidden">
+                    <div class="rounded-xl border border-[#243257] bg-[#060a14] p-5 text-center">
+                        <svg class="w-9 h-9 mx-auto text-blue-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/></svg>
+                        <p class="text-sm font-semibold text-white mt-3">Escanea y termina con Enter</p>
+                        <p class="text-[11px] text-gray-500 mt-1">La mayoría de lectores USB y Bluetooth se comportan como un teclado.</p>
+                        <input id="scanner-hardware-input" type="text" autocomplete="off" placeholder="El código aparecerá aquí..." class="mt-4 w-full bg-[#0d1425] text-center text-sm font-mono rounded-lg px-3 py-3 border border-[#1b2642] focus:outline-none focus:border-blue-500" onkeydown="procesarEntradaLector(event)">
+                    </div>
+                </div>
+                <div id="scanner-resultado" class="mt-4 rounded-lg border border-[#1f2c4e] bg-[#060a14] px-4 py-3 text-xs text-gray-400">Sin lecturas todavía.</div>
+                <div class="mt-4 flex items-center justify-between gap-3"><span class="text-[10px] text-gray-600">Admite QR, CODE128, CODE39, EAN y UPC.</span><button type="button" onclick="cerrarEscaner()" class="px-4 py-2 rounded-lg border border-[#1f2c4e] bg-[#101626] text-xs font-semibold">Terminar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        let catalogoProductos = [];
+        let almacenesDisponibles = [];
+        let ubicacionesAlmacenDisponibles = [];
+
+        let currentType = 'entrada';
+        let stockAdj = 'Aumentar';
+        let productoSeleccionado = null;
+        let itemsAgregados = [];
+        let scannerInstance = null;
+        let scannerActivo = false;
+        let ultimoCodigoEscaneado = '';
+        let ultimaLecturaMs = 0;
+        let proyectosDisponibles = [];
+        let planEntregaProyecto = [];
+        let proyectoAnterior = '';
+        let cargandoPlanEntrega = false;
+
+        function escapeHTML(valor) {
+            return String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        const iconosMovimiento = {
+            entrada: `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>`,
+            salida: `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 7l6 6 4-4 8 8"/><path d="M14 17h7v-7"/></svg>`,
+            ajuste: `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>`,
+            traspaso: `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4m14 4H3"/></svg>`
+        };
+
+        const configTipos = {
+            entrada: { color: 'emerald', borderColor: 'border-emerald-500/50', shadowColor: 'rgba(16,185,129,0.08)', btnBg: 'bg-emerald-950/10', text: 'Registrar entrada', placeholder: 'Ej. Compra a proveedor X, factura 4567', title: 'Entrada', icon: iconosMovimiento.entrada },
+            salida:  { color: 'rose',    borderColor: 'border-rose-500/50',    shadowColor: 'rgba(244,63,94,0.08)',  btnBg: 'bg-rose-950/10',    text: 'Registrar salida',  placeholder: 'Ej. Salida a obra Norte, orden 123', title: 'Salida', icon: iconosMovimiento.salida },
+            ajuste:  { color: 'amber',   borderColor: 'border-amber-500/50',   shadowColor: 'rgba(245,158,11,0.08)', btnBg: 'bg-amber-950/10',   text: 'Registrar ajuste',  placeholder: 'Ej. Conteo físico, faltante por merma', title: 'Ajuste', icon: iconosMovimiento.ajuste },
+            traspaso:{ color: 'blue',    borderColor: 'border-blue-500/50',    shadowColor: 'rgba(59,130,246,0.08)', btnBg: 'bg-blue-950/10',    text: 'Registrar traspaso', placeholder: 'Ej. Traspaso de material por sobre stock de bodega', title: 'Traspaso', icon: iconosMovimiento.traspaso }
+        };
+
+        function imagenProductoHTML(producto, clases = 'w-9 h-9') {
+            const url = String(producto?.imagen || producto?.imagen_url || producto?.urlImagen || '').trim();
+            if (url) {
+                return `<span class="${clases} rounded-lg bg-white border border-[#243257] overflow-hidden flex items-center justify-center shrink-0"><img src="${url.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" alt="" class="w-full h-full object-contain" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')"><svg class="hidden w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg></span>`;
+            }
+            return `<span class="${clases} rounded-lg bg-[#060a14] border border-[#243257] flex items-center justify-center text-gray-500 shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg></span>`;
+        }
+
+        function codigoNormalizado(valor) {
+            return String(valor || '').trim().toLocaleLowerCase('es-MX');
+        }
+
+        function proyectoSeleccionadoActual() {
+            return document.getElementById('proyecto_val').value.trim();
+        }
+
+        function cantidadEnListaDelProyecto(codigo) {
+            const proyecto = proyectoSeleccionadoActual();
+            return itemsAgregados
+                .filter(item =>
+                    item.tipo === 'salida' &&
+                    String(item.proyecto || proyecto) === proyecto &&
+                    codigoNormalizado(item.producto?.codigo) === codigoNormalizado(codigo)
+                )
+                .reduce((total, item) => total + Number(item.cantidad || 0), 0);
+        }
+
+        function lineaPlanPorCodigo(codigo) {
+            return planEntregaProyecto.find(linea =>
+                codigoNormalizado(linea.codigo) === codigoNormalizado(codigo)
+            ) || null;
+        }
+
+        function pendienteDisponibleProyecto(linea) {
+            if (!linea) return 0;
+            return Math.max(0, Number(linea.pendiente || 0) - cantidadEnListaDelProyecto(linea.codigo));
+        }
+
+        function productoDesdeLineaProyecto(linea) {
+            const material = linea?.material || {};
+            return {
+                ...material,
+                codigo: String(linea.codigo || material.codigo || '').trim(),
+                desc: String(material.desc || material.descripcion || linea.descripcion || linea.codigo || '').trim(),
+                descripcion: String(material.descripcion || material.desc || linea.descripcion || linea.codigo || '').trim(),
+                categoria: String(material.categoria || linea.categoria || '').trim(),
+                unidad: String(linea.unidad || material.unidad || '').trim(),
+                precio: Number(linea.precioUnitario ?? material.precio ?? 0) || 0,
+                esNoListado: Boolean(linea.esNoListado),
+                es_no_listado: Boolean(linea.esNoListado),
+                _planEntrega: linea
+            };
+        }
+
+        function actualizarModoBusquedaProducto() {
+            const input = document.getElementById('producto_search');
+            if (!input) return;
+            if (currentType === 'salida') {
+                const proyecto = proyectoSeleccionadoActual();
+                if (!proyecto) {
+                    input.disabled = true;
+                    input.placeholder = 'Selecciona primero el proyecto de entrega...';
+                    return;
+                }
+                if (cargandoPlanEntrega) {
+                    input.disabled = true;
+                    input.placeholder = 'Cargando materiales solicitados...';
+                    return;
+                }
+                const pendientes = planEntregaProyecto.filter(linea => pendienteDisponibleProyecto(linea) > 0);
+                input.disabled = pendientes.length === 0;
+                input.placeholder = pendientes.length
+                    ? 'Busca dentro de los materiales solicitados...'
+                    : 'El proyecto no tiene materiales pendientes de entrega';
+                return;
+            }
+            input.disabled = catalogoProductos.length === 0;
+            input.placeholder = catalogoProductos.length
+                ? 'Busca por código, descripción o modismo...'
+                : 'Cargando catálogo desde Supabase...';
+        }
+
+        function renderPlanEntregaProyecto() {
+            const panel = document.getElementById('panel-materiales-proyecto');
+            const lista = document.getElementById('lista-plan-proyecto');
+            const resumen = document.getElementById('resumen-plan-proyecto');
+            if (!panel || !lista || !resumen) return;
+
+            panel.classList.toggle('hidden', currentType !== 'salida');
+            if (currentType !== 'salida') return;
+
+            const proyecto = proyectoSeleccionadoActual();
+            if (!proyecto) {
+                resumen.textContent = 'Selecciona un proyecto para consultar los materiales solicitados.';
+                lista.innerHTML = '<div class="px-4 py-8 text-center text-xs text-gray-500">Selecciona un proyecto para ver los materiales pendientes.</div>';
+                actualizarModoBusquedaProducto();
+                return;
+            }
+
+            if (cargandoPlanEntrega) {
+                resumen.textContent = 'Consultando plan y entregas parciales...';
+                lista.innerHTML = '<div class="px-4 py-8 text-center text-xs text-gray-500 flex items-center justify-center gap-2"><svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v2m0 12v2m8-8h-2M6 12H4m14.14 6.14l-1.41-1.41M7.27 7.27L5.86 5.86m12.28 0l-1.41 1.41M7.27 16.73l-1.41 1.41"/></svg>Cargando materiales del proyecto...</div>';
+                actualizarModoBusquedaProducto();
+                return;
+            }
+
+            if (!planEntregaProyecto.length) {
+                resumen.textContent = 'Este proyecto todavía no tiene materiales en su plan.';
+                lista.innerHTML = '<div class="px-4 py-8 text-center text-xs text-amber-300">No hay materiales solicitados en el plan de este proyecto.</div>';
+                actualizarModoBusquedaProducto();
+                return;
+            }
+
+            const totalPlaneado = planEntregaProyecto.reduce((s, l) => s + Number(l.planeado || 0), 0);
+            const totalEntregado = planEntregaProyecto.reduce((s, l) => s + Number(l.entregado || 0), 0);
+            const totalPendiente = planEntregaProyecto.reduce((s, l) => s + Math.max(0, Number(l.pendiente || 0)), 0);
+            resumen.textContent = `${planEntregaProyecto.length} materiales · Planeado ${totalPlaneado} · Entregado ${totalEntregado} · Pendiente ${totalPendiente}`;
+
+            const almacen = document.getElementById('bodega_origen_val').value;
+            lista.innerHTML = planEntregaProyecto.map(linea => {
+                const producto = productoDesdeLineaProyecto(linea);
+                const pendiente = pendienteDisponibleProyecto(linea);
+                const stock = linea.esNoListado ? null : stockDisponibleEnAlmacen(producto, almacen);
+                const completo = pendiente <= 0;
+                const sinStock = !linea.esNoListado && stock <= 0;
+                const deshabilitado = completo || sinStock || !almacen;
+                let estado = '';
+                if (!almacen && !linea.esNoListado) estado = 'Selecciona bodega';
+                else if (completo) estado = 'Entregado completo';
+                else if (sinStock) estado = 'Sin stock';
+                else estado = 'Agregar';
+
+                return `<div class="px-4 py-3 flex items-center gap-3">
+                    ${imagenProductoHTML(producto, 'w-10 h-10')}
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <p class="text-xs font-semibold text-white truncate">${escapeHTML(producto.desc)}</p>
+                            ${linea.esNoListado ? '<span class="px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}
+                        </div>
+                        <p class="text-[9px] text-gray-500 font-mono mt-0.5">${escapeHTML(producto.codigo)} · ${escapeHTML(producto.unidad || '')}</p>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5">
+                            <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/20 border border-blue-500/20 text-blue-300">Planeado: ${Number(linea.planeado || 0)}</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/20 text-emerald-300">Entregado: ${Number(linea.entregado || 0)}</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-950/20 border border-rose-500/20 text-rose-300">Pendiente: ${pendiente}</span>
+                            ${linea.esNoListado ? '' : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-[#141d34] border border-[#243257] text-gray-300">Stock: ${Number(stock || 0)}</span>`}
+                        </div>
+                    </div>
+                    <button type="button" ${deshabilitado ? 'disabled' : `onclick="seleccionarProductoProyecto('${String(producto.codigo).replace(/'/g, "\\'")}')"`}
+                        class="shrink-0 px-3 py-2 rounded-lg text-[10px] font-semibold border ${deshabilitado ? 'border-[#243257] text-gray-600 cursor-not-allowed' : 'border-rose-500/30 bg-rose-950/10 text-rose-300 hover:text-white hover:border-rose-400'}">
+                        ${estado}
+                    </button>
+                </div>`;
+            }).join('');
+            actualizarModoBusquedaProducto();
+        }
+
+        async function cargarPlanEntregaProyecto(proyecto) {
+            planEntregaProyecto = [];
+            cargandoPlanEntrega = true;
+            renderPlanEntregaProyecto();
+            if (!proyecto || currentType !== 'salida') {
+                cargandoPlanEntrega = false;
+                renderPlanEntregaProyecto();
+                return;
+            }
+            try {
+                if (typeof SkilledDB.listProjectDeliveryPlan === 'function') {
+                    planEntregaProyecto = await SkilledDB.listProjectDeliveryPlan(proyecto);
+                } else {
+                    const [plan, movimientos] = await Promise.all([
+                        SkilledDB.listProjectPlan(proyecto),
+                        SkilledDB.listMovements({ project: proyecto })
+                    ]);
+                    const entregadoPorCodigo = new Map();
+                    movimientos
+                        .filter(m => String(m.tipo || '').toLowerCase() === 'salida')
+                        .forEach(m => {
+                            const key = codigoNormalizado(m.codigo);
+                            entregadoPorCodigo.set(key, (entregadoPorCodigo.get(key) || 0) + Number(m.cantidad || 0));
+                        });
+                    planEntregaProyecto = plan.map(linea => {
+                        const planeado = Number(linea.cantidadPlaneada || 0);
+                        const entregado = entregadoPorCodigo.get(codigoNormalizado(linea.codigo)) || 0;
+                        return {
+                            ...linea,
+                            planeado,
+                            entregado,
+                            pendiente: Math.max(0, planeado - entregado)
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error('No se pudo cargar el plan de entrega:', error);
+                document.getElementById('resumen-plan-proyecto').textContent = 'No se pudo consultar el plan del proyecto.';
+                document.getElementById('lista-plan-proyecto').innerHTML = `<div class="px-4 py-8 text-center text-xs text-rose-400">${escapeHTML(error.message)}</div>`;
+            } finally {
+                cargandoPlanEntrega = false;
+                renderPlanEntregaProyecto();
+            }
+        }
+
+        async function recargarPlanEntregaProyecto() {
+            await cargarPlanEntregaProyecto(proyectoSeleccionadoActual());
+            actualizarDisponibilidadSeleccionada();
+        }
+
+        async function manejarCambioProyecto(nuevoProyecto) {
+            const select = document.getElementById('proyecto_val');
+            if (currentType === 'salida' && proyectoAnterior && nuevoProyecto !== proyectoAnterior && itemsAgregados.some(item => item.tipo === 'salida')) {
+                const aceptar = confirm('Cambiar de proyecto eliminará los materiales que ya agregaste a esta entrega. ¿Continuar?');
+                if (!aceptar) {
+                    select.value = proyectoAnterior;
+                    return;
+                }
+                itemsAgregados = itemsAgregados.filter(item => item.tipo !== 'salida');
+                renderLista();
+                actualizarPreviewHeader();
+            }
+            proyectoAnterior = nuevoProyecto;
+            quitarProducto();
+            if (currentType === 'salida') {
+                await cargarPlanEntregaProyecto(nuevoProyecto);
+            }
+            actualizarModoBusquedaProducto();
+        }
+
+        function seleccionarProductoProyecto(codigo) {
+            const linea = lineaPlanPorCodigo(codigo);
+            if (!linea) {
+                alert('Este material ya no forma parte del plan del proyecto.');
+                return;
+            }
+            const pendiente = pendienteDisponibleProyecto(linea);
+            if (pendiente <= 0) {
+                alert('Este material ya fue entregado completamente.');
+                return;
+            }
+            const producto = productoDesdeLineaProyecto(linea);
+            if (!validarDisponibilidad(producto, 0)) return;
+            mostrarProductoSeleccionado(producto);
+            const inputCantidad = document.getElementById('cantidad_val');
+            inputCantidad.value = Math.min(1, pendiente);
+            inputCantidad.max = String(pendiente);
+        }
+
+        function requiereControlDeStock() {
+            return currentType === 'salida' || currentType === 'traspaso' ||
+                (currentType === 'ajuste' && String(stockAdj).toLowerCase() === 'disminuir');
+        }
+
+        function nombreAlmacenControlStock() {
+            if (currentType === 'salida' || currentType === 'traspaso') {
+                return document.getElementById('bodega_origen_val').value;
+            }
+            if (currentType === 'ajuste' && String(stockAdj).toLowerCase() === 'disminuir') {
+                return document.getElementById('bodega_destino_val').value;
+            }
+            return '';
+        }
+
+        function stockDisponibleEnAlmacen(producto, nombreAlmacen) {
+            if (!producto || producto.esNoListado) return null;
+            const inventarios = Array.isArray(producto.almacenes) ? producto.almacenes : [];
+            const nombre = String(nombreAlmacen || '').toLowerCase();
+            const inventario = inventarios.find(item => String(item.nombre || '').toLowerCase() === nombre);
+            const stockAsignado = inventarios.reduce((total, item) => total + Number(item.stock || 0), 0);
+            const stockCatalogo = Number(producto.stockCatalogo ?? producto.stock_catalogo ?? producto.stock ?? 0);
+            const diferencia = Math.max(0, stockCatalogo - stockAsignado);
+            const base = inventario ? Number(inventario.stock || 0) : 0;
+            if (diferencia > 0 && (nombre === 'bodega central' || inventarios.length <= 1)) return base + diferencia;
+            if (inventario) return base;
+            if (!inventarios.length) return stockCatalogo;
+            return 0;
+        }
+
+        function cantidadYaAgregada(codigo, almacen) {
+            return itemsAgregados
+                .filter(item => item.producto && item.producto.codigo === codigo &&
+                    String(item.bodegaOrigen || item.bodegaDestino || '') === String(almacen || ''))
+                .reduce((total, item) => total + Number(item.cantidad || 0), 0);
+        }
+
+        function validarDisponibilidad(producto, cantidad, mostrarMensaje = true) {
+            if (!producto) return false;
+            if (currentType === 'salida') {
+                const proyecto = proyectoSeleccionadoActual();
+                if (!proyecto) {
+                    if (mostrarMensaje) alert('Selecciona primero el proyecto de entrega.');
+                    return false;
+                }
+                const linea = producto._planEntrega || lineaPlanPorCodigo(producto.codigo);
+                if (!linea) {
+                    if (mostrarMensaje) alert('Este material no fue solicitado en el plan del proyecto seleccionado.');
+                    return false;
+                }
+                const pendiente = pendienteDisponibleProyecto(linea);
+                const solicitado = Number(cantidad || 0);
+                if (pendiente <= 0) {
+                    if (mostrarMensaje) alert(`El material ${producto.codigo} ya fue entregado completamente.`);
+                    return false;
+                }
+                if (solicitado > pendiente) {
+                    if (mostrarMensaje) alert(`Solo quedan ${pendiente} ${producto.unidad || ''} pendientes de entregar de ${producto.codigo}.`);
+                    return false;
+                }
+            }
+            if (!requiereControlDeStock() || producto.esNoListado) return true;
+            const almacen = nombreAlmacenControlStock();
+            if (!almacen) {
+                if (mostrarMensaje) alert('Selecciona primero el almacén del que se descontará el material.');
+                return false;
+            }
+            const disponible = stockDisponibleEnAlmacen(producto, almacen);
+            const solicitado = Number(cantidad || 0) + cantidadYaAgregada(producto.codigo, almacen);
+            if (disponible <= 0) {
+                if (mostrarMensaje) alert(`El material ${producto.codigo} está agotado en ${almacen}. Aparece en el apartado Bajo mínimo y no puede despacharse.`);
+                return false;
+            }
+            if (solicitado > disponible) {
+                if (mostrarMensaje) alert(`Stock insuficiente de ${producto.codigo} en ${almacen}. Disponible: ${disponible} ${producto.unidad || ''}.`);
+                return false;
+            }
+            return true;
+        }
+
+        function actualizarDisponibilidadSeleccionada() {
+            if (productoSeleccionado) {
+                mostrarProductoSeleccionado(productoSeleccionado);
+            }
+            renderPlanEntregaProyecto();
+            const busqueda = document.getElementById('producto_search').value;
+            if (busqueda) buscarProducto(busqueda);
+        }
+
+        function buscarProducto(query) {
+            const dropdown = document.getElementById('producto_dropdown');
+            const sinResultados = document.getElementById('producto-sin-resultados');
+            const q = query.trim().toLowerCase();
+            if (!q) {
+                dropdown.classList.add('hidden');
+                sinResultados.classList.add('hidden');
+                return;
+            }
+
+            const almacen = nombreAlmacenControlStock();
+            if (currentType === 'salida') {
+                const proyecto = proyectoSeleccionadoActual();
+                if (!proyecto) {
+                    dropdown.classList.add('hidden');
+                    sinResultados.textContent = 'Selecciona primero el proyecto de entrega.';
+                    sinResultados.classList.remove('hidden');
+                    return;
+                }
+                const resultados = planEntregaProyecto.filter(linea => {
+                    const producto = productoDesdeLineaProyecto(linea);
+                    return [producto.codigo, producto.desc, producto.categoria]
+                        .some(valor => String(valor || '').toLowerCase().includes(q)) || SkilledDB.matchesMaterial(producto, q);
+                }).slice(0, 20);
+
+                if (!resultados.length) {
+                    dropdown.classList.add('hidden');
+                    sinResultados.textContent = 'No se encontraron materiales solicitados con ese criterio.';
+                    sinResultados.classList.remove('hidden');
+                    return;
+                }
+
+                sinResultados.classList.add('hidden');
+                dropdown.innerHTML = resultados.map(linea => {
+                    const p = productoDesdeLineaProyecto(linea);
+                    const pendiente = pendienteDisponibleProyecto(linea);
+                    const stock = linea.esNoListado ? null : stockDisponibleEnAlmacen(p, almacen);
+                    const completo = pendiente <= 0;
+                    const sinStock = !linea.esNoListado && stock <= 0;
+                    const deshabilitado = completo || sinStock || (!almacen && !linea.esNoListado);
+                    return `<button type="button" ${deshabilitado ? 'disabled' : `onclick="seleccionarProductoProyecto('${String(p.codigo).replace(/'/g, "\\'")}')"`}
+                        class="w-full text-left px-3 py-2.5 transition flex items-center gap-3 ${deshabilitado ? 'opacity-45 cursor-not-allowed bg-rose-950/10' : 'hover:bg-[#161f38]'}">
+                        ${imagenProductoHTML(p)}
+                        <div class="min-w-0 flex-1">
+                            <span class="text-xs text-gray-200 truncate block font-semibold">${escapeHTML(p.desc)}</span>
+                            <span class="text-[9px] text-gray-500">${escapeHTML(p.codigo)}${p.categoria ? ' · ' + escapeHTML(p.categoria) : ''}</span>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="block text-[9px] ${completo || sinStock ? 'text-rose-400 font-bold' : 'text-gray-300'}">${completo ? 'COMPLETO' : sinStock ? 'SIN STOCK' : `PEND. ${pendiente}`}</span>
+                            ${linea.esNoListado ? '' : `<span class="block text-[8px] text-gray-600">Stock ${Number(stock || 0)}</span>`}
+                        </div>
+                    </button>`;
+                }).join('');
+                dropdown.classList.remove('hidden');
+                return;
+            }
+
+            const resultados = catalogoProductos.filter(p =>
+                SkilledDB.matchesMaterial(p, q)
+            ).slice(0, 12);
+
+            if (!resultados.length) {
+                dropdown.classList.add('hidden');
+                sinResultados.textContent = 'No se encontraron productos con ese criterio.';
+                sinResultados.classList.remove('hidden');
+                return;
+            }
+
+            sinResultados.classList.add('hidden');
+            dropdown.innerHTML = resultados.map(p => {
+                const disponible = requiereControlDeStock() ? stockDisponibleEnAlmacen(p, almacen) : Number(p.stock || 0);
+                const agotado = requiereControlDeStock() && !p.esNoListado && disponible <= 0;
+                return `
+                <button type="button" ${agotado ? 'disabled' : `onclick="seleccionarProducto('${String(p.codigo).replace(/'/g, "\\'")}')"`}
+                    class="w-full text-left px-3 py-2.5 transition flex items-center gap-3 ${agotado ? 'opacity-45 cursor-not-allowed bg-rose-950/10' : 'hover:bg-[#161f38]'}">
+                    ${imagenProductoHTML(p)}
+                    <div class="min-w-0 flex-1">
+                        <span class="text-xs text-gray-200 truncate block font-semibold">${escapeHTML(p.desc)}</span>
+                        <span class="text-[9px] text-gray-500">${escapeHTML(p.codigo)}${p.categoria ? ' · ' + escapeHTML(p.categoria) : ''}</span>
+                    </div>
+                    <span class="text-[9px] shrink-0 ${agotado ? 'text-rose-400 font-bold' : 'text-gray-500'}">${agotado ? 'AGOTADO' : `${disponible} ${escapeHTML(p.unidad || '')}`}</span>
+                </button>`;
+            }).join('');
+            dropdown.classList.remove('hidden');
+        }
+        function almacenMovimientoPorNombre(nombre) {
+            return almacenesDisponibles.find(item => String(item.nombre || '').toLowerCase() === String(nombre || '').toLowerCase()) || null;
+        }
+
+        async function cargarUbicacionesDeAlmacen(nombreAlmacen, selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            const almacen = almacenMovimientoPorNombre(nombreAlmacen);
+            if (!almacen) {
+                select.innerHTML = '<option value="">Selecciona primero el almacén...</option>';
+                select.disabled = true;
+                return;
+            }
+            select.disabled = true;
+            select.innerHTML = '<option value="">Cargando ubicaciones...</option>';
+            try {
+                const ubicaciones = await SkilledDB.listWarehouseLocations({ almacenId: almacen.id, activeOnly: true });
+                ubicacionesAlmacenDisponibles = [
+                    ...ubicacionesAlmacenDisponibles.filter(item => Number(item.almacenId) !== Number(almacen.id)),
+                    ...ubicaciones
+                ];
+                select.innerHTML = '<option value="">Sin ubicación específica</option>' + ubicaciones
+                    .map(item => `<option value="${escapeHTML(item.nombre)}">${escapeHTML(item.codigo ? item.codigo + ' — ' + item.nombre : item.nombre)}</option>`)
+                    .join('');
+                select.disabled = false;
+            } catch (error) {
+                console.error('Error cargando ubicaciones:', error);
+                select.innerHTML = '<option value="">No se pudieron cargar las ubicaciones</option>';
+                select.disabled = false;
+            }
+        }
+
+        async function manejarCambioBodegaMovimiento(lado) {
+            if (lado === 'origen') {
+                await cargarUbicacionesDeAlmacen(document.getElementById('bodega_origen_val').value, 'ubicacion_origen_val');
+            } else {
+                await cargarUbicacionesDeAlmacen(document.getElementById('bodega_destino_val').value, 'ubicacion_destino_val');
+            }
+            actualizarDisponibilidadSeleccionada();
+        }
+
+        function ubicacionMovimientoTexto() {
+            const origen = document.getElementById('ubicacion_origen_val')?.value || '';
+            const destino = document.getElementById('ubicacion_destino_val')?.value || '';
+            if (currentType === 'salida') return origen;
+            if (currentType === 'entrada' || currentType === 'ajuste') return destino;
+            if (currentType === 'traspaso') {
+                if (origen && destino) return `${origen} → ${destino}`;
+                return origen || destino;
+            }
+            return destino || origen;
+        }
+
+        async function cargarAlmacenesMovimiento() {
+            const origen = document.getElementById('bodega_origen_val');
+            const destino = document.getElementById('bodega_destino_val');
+            try {
+                almacenesDisponibles = await SkilledDB.listWarehouses({ activeOnly: true });
+                const options = '<option value="">Selecciona almacén...</option>' + almacenesDisponibles
+                    .map(a => `<option value="${escapeHTML(a.nombre)}">${escapeHTML(a.nombre)}</option>`)
+                    .join('');
+                origen.innerHTML = options;
+                destino.innerHTML = options;
+                const central = almacenesDisponibles.find(a => a.nombre === 'Bodega Central') || almacenesDisponibles[0];
+                if (central) {
+                    origen.value = central.nombre;
+                    destino.value = central.nombre;
+                }
+                await manejarCambioBodegaMovimiento('origen');
+                await manejarCambioBodegaMovimiento('destino');
+                renderPlanEntregaProyecto();
+            } catch (error) {
+                origen.innerHTML = '<option value="">No se pudieron cargar</option>';
+                destino.innerHTML = '<option value="">No se pudieron cargar</option>';
+                console.error('Error cargando almacenes:', error);
+            }
+        }
+
+        async function cargarCatalogo() {
+            const input = document.getElementById('producto_search');
+            const cargando = document.getElementById('producto-cargando');
+            const error = document.getElementById('producto-error');
+
+            input.disabled = true;
+            input.placeholder = 'Cargando catálogo desde Supabase...';
+            cargando.classList.remove('hidden');
+            error.classList.add('hidden');
+
+            try {
+                catalogoProductos = await SkilledDB.listMaterials();
+                cargando.classList.add('hidden');
+                actualizarModoBusquedaProducto();
+            } catch (err) {
+                console.error('Error cargando catálogo desde Supabase:', err);
+                cargando.classList.add('hidden');
+                error.classList.remove('hidden');
+                error.innerHTML = '<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.3 2.9L1.8 17a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 2.9a2 2 0 00-3.4 0z"/><path d="M12 9v4m0 4h.01"/></svg> No se pudo cargar el catálogo desde Supabase. <button type="button" onclick="cargarCatalogo()" class="underline hover:text-rose-300">Reintentar</button>';
+                input.placeholder = 'No se pudo cargar el catálogo';
+            }
+        }
+
+        function mostrarProductoSeleccionado(p) {
+            productoSeleccionado = p;
+            document.getElementById('producto-chip').classList.remove('hidden');
+            document.getElementById('producto-chip').classList.add('flex');
+            document.getElementById('producto-chip-imagen').outerHTML = imagenProductoHTML(p, 'w-9 h-9').replace('<span ', '<span id="producto-chip-imagen" ');
+            document.getElementById('producto-chip-nombre').textContent = p.desc;
+            const almacen = nombreAlmacenControlStock();
+            const stock = p.esNoListado ? null : (requiereControlDeStock() ? stockDisponibleEnAlmacen(p, almacen) : p.stock);
+            const linea = p._planEntrega || lineaPlanPorCodigo(p.codigo);
+            const pendiente = currentType === 'salida' && linea ? pendienteDisponibleProyecto(linea) : null;
+            const partes = [p.codigo];
+            if (pendiente !== null) partes.push(`Pendiente ${pendiente}`);
+            if (stock !== null && stock !== undefined) partes.push(`Stock ${stock || 0}${almacen ? ' en ' + almacen : ''}`);
+            if (p.unidad) partes.push(p.unidad);
+            document.getElementById('producto-chip-codigo').textContent = partes.join(' · ');
+            document.getElementById('producto-buscador-wrap').classList.add('hidden');
+            document.getElementById('producto_dropdown').classList.add('hidden');
+            document.getElementById('producto-sin-resultados').classList.add('hidden');
+            document.getElementById('producto_search').value = '';
+        }
+
+        function seleccionarProducto(codigo) {
+            if (currentType === 'salida') {
+                seleccionarProductoProyecto(codigo);
+                return;
+            }
+            const p = catalogoProductos.find(x => x.codigo === codigo);
+            if (!p) return;
+            if (!validarDisponibilidad(p, 0)) return;
+            mostrarProductoSeleccionado(p);
+        }
+
+        function quitarProducto() {
+            productoSeleccionado = null;
+            document.getElementById('producto-chip').classList.add('hidden');
+            document.getElementById('producto-chip').classList.remove('flex');
+            document.getElementById('producto-buscador-wrap').classList.remove('hidden');
+            document.getElementById('producto_search').value = '';
+            document.getElementById('producto_search').focus();
+        }
+
+        function limpiarBusquedaProducto() {
+            document.getElementById('producto_search').value = '';
+            document.getElementById('producto_dropdown').classList.add('hidden');
+            document.getElementById('producto-sin-resultados').classList.add('hidden');
+        }
+
+        document.addEventListener('click', function(e) {
+            const wrap = document.getElementById('producto-buscador-wrap');
+            if (wrap && !wrap.contains(e.target)) {
+                document.getElementById('producto_dropdown').classList.add('hidden');
+            }
+        });
+
+        function generarCodigoNoListadoMovimiento() {
+            return `NL-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+        }
+
+        function abrirMaterialNoListadoMovimiento() {
+            ['mov-nl-descripcion', 'mov-nl-codigo', 'mov-nl-categoria', 'mov-nl-unidad'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('mov-nl-precio').value = '0';
+            const modal = document.getElementById('modal-no-listado-movimiento');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('mov-nl-descripcion').focus(), 80);
+        }
+
+        function cerrarMaterialNoListadoMovimiento() {
+            const modal = document.getElementById('modal-no-listado-movimiento');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function usarMaterialNoListadoMovimiento() {
+            const descripcion = document.getElementById('mov-nl-descripcion').value.trim();
+            const unidad = document.getElementById('mov-nl-unidad').value.trim();
+            const codigo = document.getElementById('mov-nl-codigo').value.trim() || generarCodigoNoListadoMovimiento();
+            const categoria = document.getElementById('mov-nl-categoria').value.trim();
+            const precio = Math.max(0, Number(document.getElementById('mov-nl-precio').value) || 0);
+            if (!descripcion) { alert('Escribe la descripción del material.'); return; }
+            if (!unidad) { alert('Escribe la unidad del material.'); return; }
+
+            productoSeleccionado = {
+                codigo,
+                desc: descripcion,
+                descripcion,
+                categoria,
+                unidad,
+                precio,
+                stock: 0,
+                imagen: '',
+                esNoListado: true,
+                es_no_listado: true
+            };
+            const chip = document.getElementById('producto-chip');
+            chip.classList.remove('hidden');
+            chip.classList.add('flex');
+            document.getElementById('producto-chip-imagen').outerHTML = imagenProductoHTML(productoSeleccionado, 'w-9 h-9').replace('<span ', '<span id="producto-chip-imagen" ');
+            document.getElementById('producto-chip-nombre').innerHTML = `${escapeHTML(descripcion)} <span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>`;
+            document.getElementById('producto-chip-codigo').textContent = `${codigo} · ${unidad}`;
+            document.getElementById('producto-buscador-wrap').classList.add('hidden');
+            document.getElementById('producto_dropdown').classList.add('hidden');
+            cerrarMaterialNoListadoMovimiento();
+        }
+
+        function cambiarTipo(tipo) {
+            currentType = tipo;
+            document.getElementById('tipo_movimiento_val').value = tipo;
+
+            ['entrada', 'salida', 'ajuste', 'traspaso'].forEach(t => {
+                const btn = document.getElementById(`btn-${t}`);
+                btn.className = "flex items-center justify-between px-3 py-3.5 rounded-lg border bg-[#060a14] border-[#161f38] text-gray-400 text-xs font-semibold hover:border-blue-500/30 hover:text-blue-400 transition-all";
+            });
+
+            const conf = configTipos[tipo];
+            const activeBtn = document.getElementById(`btn-${tipo}`);
+            activeBtn.className = `flex items-center justify-between px-3 py-3.5 rounded-lg border bg-[#060a14] text-xs font-semibold transition-all text-${conf.color}-400 ${conf.borderColor} ${conf.btnBg} shadow-[0_0_12px_${conf.shadowColor}]`;
+
+            const wOrigen = document.getElementById('wrapper-bodega-origen');
+            const wDestino = document.getElementById('wrapper-bodega-destino');
+            const gridBodegas = document.getElementById('grid-bodegas');
+            const secAjuste = document.getElementById('seccion-ajuste-stock');
+            const motivoOblig = document.getElementById('motivo-obligatorio');
+            const errorAjuste = document.getElementById('error-motivo-ajuste');
+            const wrapperRecibe = document.getElementById('wrapper-recibe');
+
+            if (tipo === 'entrada') {
+                wOrigen.classList.add('hidden'); wDestino.classList.remove('hidden');
+                gridBodegas.className = "grid grid-cols-1 gap-4";
+                secAjuste.classList.add('hidden'); motivoOblig.classList.add('hidden'); errorAjuste.classList.add('hidden');
+            } else if (tipo === 'salida') {
+                wOrigen.classList.remove('hidden'); wDestino.classList.add('hidden');
+                gridBodegas.className = "grid grid-cols-1 gap-4";
+                secAjuste.classList.add('hidden'); motivoOblig.classList.add('hidden'); errorAjuste.classList.add('hidden');
+            } else if (tipo === 'ajuste') {
+                wOrigen.classList.add('hidden'); wDestino.classList.remove('hidden');
+                gridBodegas.className = "grid grid-cols-1 gap-4";
+                secAjuste.classList.remove('hidden'); motivoOblig.classList.remove('hidden'); errorAjuste.classList.remove('hidden');
+                actualizarPreviewHeader();
+            } else if (tipo === 'traspaso') {
+                wOrigen.classList.remove('hidden'); wDestino.classList.remove('hidden');
+                gridBodegas.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+                secAjuste.classList.add('hidden'); motivoOblig.classList.add('hidden'); errorAjuste.classList.add('hidden');
+            }
+
+            wrapperRecibe.classList.toggle('hidden', tipo !== 'salida');
+            const wrapperUbicacionOrigen = document.getElementById('wrapper-ubicacion-origen');
+            const wrapperUbicacionDestino = document.getElementById('wrapper-ubicacion-destino');
+            wrapperUbicacionOrigen.classList.toggle('hidden', !(tipo === 'salida' || tipo === 'traspaso'));
+            wrapperUbicacionDestino.classList.toggle('hidden', !(tipo === 'entrada' || tipo === 'ajuste' || tipo === 'traspaso'));
+            manejarCambioBodegaMovimiento('origen');
+            manejarCambioBodegaMovimiento('destino');
+            const proyectoLabel = document.getElementById('proyecto-label');
+            const proyectoAyuda = document.getElementById('proyecto-ayuda');
+            const btnNoListado = document.getElementById('btn-material-no-listado');
+            const ayudaNoListado = document.getElementById('ayuda-material-no-listado');
+            proyectoLabel.textContent = 'Proyecto (opcional)';
+            proyectoAyuda.textContent = tipo === 'salida'
+                ? 'Selecciona un proyecto para usar su plan o deja “Sin proyecto asignado” para retirar directamente del catálogo.'
+                : 'Puedes asociar el movimiento a un proyecto existente o dejarlo sin proyecto.';
+            btnNoListado.classList.remove('hidden');
+            ayudaNoListado.classList.remove('hidden');
+            renderPlanEntregaProyecto();
+            if (tipo === 'salida') {
+                cargarPlanEntregaProyecto(proyectoSeleccionadoActual());
+            } else {
+                planEntregaProyecto = [];
+                actualizarModoBusquedaProducto();
+            }
+
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> ${conf.text}`;
+            btnSubmit.className = `px-5 py-2.5 rounded-lg text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-lg bg-${conf.color}-600 hover:bg-${conf.color}-500`;
+            document.getElementById('motivo_val').placeholder = conf.placeholder;
+
+            actualizarPreviewHeader();
+            actualizarDisponibilidadSeleccionada();
+        }
+
+        function cambiarAjusteAccion(accion) {
+            stockAdj = accion;
+            document.getElementById('ajuste_accion_val').value = accion;
+            const btnAum = document.getElementById('btn-adj-aumentar');
+            const btnDis = document.getElementById('btn-adj-disminuir');
+            if (accion === 'Aumentar') {
+                btnAum.className = "py-2.5 rounded-lg border border-emerald-500/50 bg-[#060a14] text-emerald-400 text-xs font-semibold transition";
+                btnDis.className = "py-2.5 rounded-lg border border-[#161f38] bg-[#060a14] text-gray-400 text-xs font-semibold transition";
+            } else {
+                btnAum.className = "py-2.5 rounded-lg border border-[#161f38] bg-[#060a14] text-gray-400 text-xs font-semibold transition";
+                btnDis.className = "py-2.5 rounded-lg border border-rose-500/50 bg-[#060a14] text-rose-400 text-xs font-semibold transition";
+            }
+            actualizarDisponibilidadSeleccionada();
+        }
+
+        function modificarCantidad(valor) {
+            const input = document.getElementById('cantidad_val');
+            let actual = parseInt(input.value) || 0;
+            actual = Math.max(0, actual + valor);
+            if (productoSeleccionado) {
+                let maximo = Number.POSITIVE_INFINITY;
+                if (currentType === 'salida' && proyectoSeleccionadoActual()) {
+                    const linea = productoSeleccionado._planEntrega || lineaPlanPorCodigo(productoSeleccionado.codigo);
+                    if (linea) maximo = Math.min(maximo, pendienteDisponibleProyecto(linea));
+                }
+                if (requiereControlDeStock() && !productoSeleccionado.esNoListado) {
+                    const almacen = nombreAlmacenControlStock();
+                    const stock = stockDisponibleEnAlmacen(productoSeleccionado, almacen);
+                    maximo = Math.min(maximo, Math.max(0, stock - cantidadYaAgregada(productoSeleccionado.codigo, almacen)));
+                }
+                if (Number.isFinite(maximo)) actual = Math.min(actual, maximo);
+            }
+            input.value = actual;
+        }
+
+        function actualizarPreviewHeader() {
+            const conf = configTipos[currentType];
+            const previewHeader = document.getElementById('preview-header');
+            const previewTitle = document.getElementById('preview-tipo-titulo');
+            const previewExtra = document.getElementById('preview-status-extra');
+
+            previewHeader.className = `px-5 py-4 border-b border-[#161f38] bg-${conf.color}-950/20`;
+            previewTitle.className = `text-[11px] font-bold text-${conf.color}-400 tracking-widest uppercase flex items-center gap-2`;
+            previewTitle.innerHTML = `${conf.icon}<span>${conf.title}</span>`;
+            previewExtra.className = `text-[10px] text-${conf.color}-400 font-bold bg-${conf.color}-950/40 px-2 py-0.5 rounded border border-${conf.color}-500/30`;
+
+            const totalCant = itemsAgregados.reduce((acc, it) => acc + it.cantidad, 0);
+            previewExtra.textContent = `${itemsAgregados.length} producto${itemsAgregados.length === 1 ? '' : 's'} · ${totalCant} pza${totalCant === 1 ? '' : 's'}`;
+        }
+
+        function agregarProducto() {
+            if (!productoSeleccionado) {
+                alert('Primero busca y selecciona un producto.');
+                return;
+            }
+            const cantidad = parseInt(document.getElementById('cantidad_val').value) || 0;
+            if (cantidad <= 0) {
+                alert('La cantidad debe ser mayor a 0.');
+                return;
+            }
+            if (!validarDisponibilidad(productoSeleccionado, cantidad)) return;
+
+            const bodegaOrigen = document.getElementById('bodega_origen_val').value;
+            const bodegaDestino = document.getElementById('bodega_destino_val').value;
+
+            if ((currentType === 'salida' || currentType === 'traspaso') && !bodegaOrigen) {
+                alert('Selecciona la bodega origen.');
+                return;
+            }
+            if ((currentType === 'entrada' || currentType === 'ajuste' || currentType === 'traspaso') && !bodegaDestino) {
+                alert('Selecciona la bodega destino.');
+                return;
+            }
+
+            const proyecto = proyectoSeleccionadoActual();
+            const lineaPlan = currentType === 'salida'
+                ? (productoSeleccionado._planEntrega || lineaPlanPorCodigo(productoSeleccionado.codigo))
+                : null;
+            const existente = itemsAgregados.find(item =>
+                item.tipo === currentType &&
+                item.proyecto === proyecto &&
+                codigoNormalizado(item.producto?.codigo) === codigoNormalizado(productoSeleccionado.codigo) &&
+                String(item.bodegaOrigen || '') === String(bodegaOrigen || '') &&
+                String(item.bodegaDestino || '') === String(bodegaDestino || '') &&
+                String(item.ubicacion || '') === String(ubicacionMovimientoTexto() || '')
+            );
+
+            if (existente) {
+                existente.cantidad += cantidad;
+            } else {
+                itemsAgregados.push({
+                    id: Date.now() + Math.random().toString(36).slice(2, 6),
+                    tipo: currentType,
+                    ajusteAccion: currentType === 'ajuste' ? stockAdj : null,
+                    producto: productoSeleccionado,
+                    cantidad,
+                    proyecto,
+                    ubicacion: ubicacionMovimientoTexto(),
+                    ubicacionOrigen: document.getElementById('ubicacion_origen_val')?.value || '',
+                    ubicacionDestino: document.getElementById('ubicacion_destino_val')?.value || '',
+                    ordenCompra: document.getElementById('orden_compra_val').value.trim(),
+                    bodegaOrigen,
+                    bodegaDestino,
+                    recibeNombre: document.getElementById('recibe_nombre_val').value.trim(),
+                    recibeTipo: 'persona',
+                    esNoListado: Boolean(productoSeleccionado.esNoListado),
+                    es_no_listado: Boolean(productoSeleccionado.esNoListado),
+                    cantidadPlaneadaProyecto: Number(lineaPlan?.planeado || 0),
+                    cantidadEntregadaProyecto: Number(lineaPlan?.entregado || 0),
+                    pendienteProyecto: Number(lineaPlan?.pendiente || 0)
+                });
+            }
+
+            renderLista();
+            actualizarPreviewHeader();
+            renderPlanEntregaProyecto();
+            quitarProducto();
+            document.getElementById('cantidad_val').value = '0';
+        }
+
+        function eliminarItem(id) {
+            itemsAgregados = itemsAgregados.filter(it => it.id !== id);
+            renderLista();
+            actualizarPreviewHeader();
+            renderPlanEntregaProyecto();
+        }
+
+        function renderLista() {
+            const vacio = document.getElementById('lista-vacia');
+            const lista = document.getElementById('lista-productos');
+
+            if (itemsAgregados.length === 0) {
+                vacio.classList.remove('hidden');
+                lista.classList.add('hidden');
+                lista.innerHTML = '';
+                return;
+            }
+
+            vacio.classList.add('hidden');
+            lista.classList.remove('hidden');
+
+            lista.innerHTML = itemsAgregados.map(it => {
+                const conf = configTipos[it.tipo];
+                const etiquetas = [it.proyecto, it.ubicacion, it.ordenCompra].filter(Boolean);
+                return `
+                <div class="fila-nueva px-5 py-3.5 flex items-start justify-between gap-3 hover:bg-[#0d1425] transition">
+                    <div class="min-w-0 flex items-start gap-3">
+                        ${imagenProductoHTML(it.producto)}
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 text-${conf.color}-400">
+                                ${conf.icon}
+                                <p class="text-xs font-semibold text-white truncate">${escapeHTML(it.producto.desc)} ${it.esNoListado ? '<span class="ml-1 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</p>
+                            </div>
+                            <p class="text-[10px] text-gray-500 font-mono mt-0.5">${it.producto.codigo}</p>
+                            ${etiquetas.length ? `<div class="flex flex-wrap gap-1 mt-1.5">${etiquetas.map(e => `<span class="text-[9px] text-gray-400 bg-[#141d34] border border-[#232f4e] px-1.5 py-0.5 rounded">${e}</span>`).join('')}</div>` : ''}
+                            ${it.tipo === 'salida' && it.pendienteProyecto ? `<p class="text-[9px] text-rose-300 mt-1">Pendiente antes de esta entrega: ${it.pendienteProyecto} ${escapeHTML(it.producto.unidad || '')}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-[10px] font-bold text-${conf.color}-400 bg-${conf.color}-950/30 border border-${conf.color}-500/30 px-2 py-1 rounded">${it.cantidad} ${escapeHTML(it.producto.unidad || 'pz')}</span>
+                        <button type="button" onclick="eliminarItem('${it.id}')" class="text-gray-600 hover:text-rose-400 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+
+        function abrirEscaner() {
+            const modal = document.getElementById('modal-scanner');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            cambiarModoEscaner(window.isSecureContext || ['localhost', '127.0.0.1'].includes(location.hostname) ? 'camera' : 'reader');
+        }
+
+        async function cerrarEscaner() {
+            await detenerCamara();
+            const modal = document.getElementById('modal-scanner');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function cambiarModoEscaner(modo) {
+            const cameraPanel = document.getElementById('scanner-camera-panel');
+            const readerPanel = document.getElementById('scanner-reader-panel');
+            const tabCamera = document.getElementById('tab-camera');
+            const tabReader = document.getElementById('tab-reader');
+            const activo = 'py-2.5 rounded-lg border border-blue-500/50 bg-blue-950/10 text-blue-400 text-xs font-semibold flex items-center justify-center gap-2';
+            const inactivo = 'py-2.5 rounded-lg border border-[#161f38] bg-[#060a14] text-gray-400 text-xs font-semibold flex items-center justify-center gap-2';
+            cameraPanel.classList.toggle('hidden', modo !== 'camera');
+            readerPanel.classList.toggle('hidden', modo !== 'reader');
+            tabCamera.className = modo === 'camera' ? activo : inactivo;
+            tabReader.className = modo === 'reader' ? activo : inactivo;
+            if (modo === 'reader') {
+                detenerCamara();
+                setTimeout(() => document.getElementById('scanner-hardware-input').focus(), 80);
+            }
+        }
+
+        async function iniciarCamara() {
+            const status = document.getElementById('scanner-camera-status');
+            const boton = document.getElementById('btn-iniciar-camera');
+            if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(location.hostname)) {
+                status.innerHTML = '<span class="text-amber-400">La cámara necesita HTTPS. En una red local por HTTP usa el lector físico o publica el CRM con HTTPS.</span>';
+                return;
+            }
+            if (typeof Html5Qrcode !== 'function') {
+                status.innerHTML = '<span class="text-rose-400">No se cargó la librería del escáner.</span>';
+                return;
+            }
+            if (scannerActivo) return;
+            boton.disabled = true;
+            boton.textContent = 'Iniciando cámara...';
+            status.textContent = 'Solicitando permiso de cámara...';
+            try {
+                scannerInstance = scannerInstance || new Html5Qrcode('scanner-reader', {
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ]
+                });
+                await scannerInstance.start(
+                    { facingMode: 'environment' },
+                    {
+                        fps: 12,
+                        qrbox: (w, h) => ({ width: Math.min(w * .88, 440), height: Math.min(h * .42, 190) }),
+                        aspectRatio: 1.777778,
+                        disableFlip: false
+                    },
+                    codigo => procesarCodigoEscaneado(codigo, 'cámara'),
+                    () => {}
+                );
+                scannerActivo = true;
+                status.textContent = 'Cámara activa. Centra el QR o código de barras dentro del recuadro.';
+                boton.textContent = 'Cámara activa';
+            } catch (error) {
+                console.error(error);
+                status.innerHTML = `<span class="text-rose-400">No se pudo iniciar la cámara: ${escapeHTML(error.message || error)}</span>`;
+                boton.disabled = false;
+                boton.textContent = 'Reintentar cámara';
+            }
+        }
+
+        async function detenerCamara() {
+            if (!scannerInstance || !scannerActivo) return;
+            try { await scannerInstance.stop(); } catch (error) { console.warn(error); }
+            scannerActivo = false;
+            const boton = document.getElementById('btn-iniciar-camera');
+            if (boton) { boton.disabled = false; boton.textContent = 'Iniciar cámara'; }
+        }
+
+        function procesarEntradaLector(event) {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            const input = event.currentTarget;
+            const valor = input.value.trim();
+            input.value = '';
+            if (valor) procesarCodigoEscaneado(valor, 'lector');
+        }
+
+        function extraerCodigoMaterial(valor) {
+            const limpio = String(valor || '').trim();
+            if (!limpio) return { tipo: 'vacio', valor: '' };
+            try {
+                const json = JSON.parse(limpio);
+                if (json && json.codigo) return { tipo: 'material', valor: String(json.codigo).trim() };
+            } catch (_) {}
+            if (/^MAT:/i.test(limpio)) return { tipo: 'material', valor: limpio.slice(4).trim() };
+            if (/^CAT:/i.test(limpio)) return { tipo: 'categoria', valor: limpio.slice(4).trim() };
+            const skilled = limpio.match(/^SKILLED\|MATERIAL\|(.+)$/i);
+            if (skilled) return { tipo: 'material', valor: skilled[1].trim() };
+            return { tipo: 'material', valor: limpio };
+        }
+
+        function procesarCodigoEscaneado(valor, origen) {
+            const ahora = Date.now();
+            if (valor === ultimoCodigoEscaneado && ahora - ultimaLecturaMs < 1100) return;
+            ultimoCodigoEscaneado = valor;
+            ultimaLecturaMs = ahora;
+            const lectura = extraerCodigoMaterial(valor);
+            const resultado = document.getElementById('scanner-resultado');
+            if (lectura.tipo === 'categoria') {
+                document.getElementById('producto_search').value = lectura.valor;
+                buscarProducto(lectura.valor);
+                resultado.innerHTML = `<span class="text-blue-400 font-semibold">Categoría detectada:</span> ${escapeHTML(lectura.valor)}. Se filtró el buscador; selecciona un material.`;
+                sonarEscaneo(true);
+                return;
+            }
+            if (currentType === 'salida' && !proyectoSeleccionadoActual()) {
+                resultado.innerHTML = '<span class="text-rose-400 font-semibold">Selecciona un proyecto:</span> antes de escanear una entrega.';
+                sonarEscaneo(false);
+                return;
+            }
+            const lineaProyecto = currentType === 'salida' ? lineaPlanPorCodigo(lectura.valor) : null;
+            const producto = currentType === 'salida'
+                ? (lineaProyecto ? productoDesdeLineaProyecto(lineaProyecto) : null)
+                : catalogoProductos.find(p => String(p.codigo).toLowerCase() === lectura.valor.toLowerCase());
+            if (!producto) {
+                resultado.innerHTML = currentType === 'salida'
+                    ? `<span class="text-rose-400 font-semibold">No solicitado:</span> ${escapeHTML(lectura.valor)} no forma parte del plan del proyecto seleccionado.`
+                    : `<span class="text-rose-400 font-semibold">No encontrado:</span> ${escapeHTML(lectura.valor)}. Revisa que el código exista en Supabase.`;
+                sonarEscaneo(false);
+                return;
+            }
+            if (!validarDisponibilidad(producto, 1, false)) {
+                const almacen = nombreAlmacenControlStock();
+                resultado.innerHTML = `<span class="text-rose-400 font-semibold">No disponible:</span> ${escapeHTML(producto.codigo)} está agotado o no tiene cantidad suficiente en ${escapeHTML(almacen || 'el almacén seleccionado')}.`;
+                sonarEscaneo(false);
+                return;
+            }
+            agregarProductoEscaneado(producto);
+            resultado.classList.add('scanner-pulse');
+            setTimeout(() => resultado.classList.remove('scanner-pulse'), 380);
+            resultado.innerHTML = `<span class="text-emerald-400 font-semibold">Agregado desde ${escapeHTML(origen)}:</span> ${escapeHTML(producto.codigo)} — ${escapeHTML(producto.desc)}. Cantidad en lista: ${itemsAgregados.filter(i => i.producto.codigo === producto.codigo).reduce((a, i) => a + i.cantidad, 0)}.`;
+            sonarEscaneo(true);
+        }
+
+        function agregarProductoEscaneado(producto) {
+            const proyecto = proyectoSeleccionadoActual();
+            const existente = itemsAgregados.find(item =>
+                item.tipo === currentType &&
+                item.proyecto === proyecto &&
+                codigoNormalizado(item.producto?.codigo) === codigoNormalizado(producto.codigo)
+            );
+            if (!validarDisponibilidad(producto, 1)) return;
+            const lineaPlan = currentType === 'salida'
+                ? (producto._planEntrega || lineaPlanPorCodigo(producto.codigo))
+                : null;
+            if (existente) {
+                existente.cantidad += 1;
+            } else {
+                itemsAgregados.push({
+                    id: Date.now() + Math.random().toString(36).slice(2, 6),
+                    tipo: currentType,
+                    ajusteAccion: currentType === 'ajuste' ? stockAdj : null,
+                    producto,
+                    cantidad: 1,
+                    proyecto,
+                    ubicacion: ubicacionMovimientoTexto(),
+                    ubicacionOrigen: document.getElementById('ubicacion_origen_val')?.value || '',
+                    ubicacionDestino: document.getElementById('ubicacion_destino_val')?.value || '',
+                    ordenCompra: document.getElementById('orden_compra_val').value.trim(),
+                    bodegaOrigen: document.getElementById('bodega_origen_val').value,
+                    bodegaDestino: document.getElementById('bodega_destino_val').value,
+                    recibeNombre: document.getElementById('recibe_nombre_val').value.trim(),
+                    recibeTipo: 'persona',
+                    esNoListado: Boolean(producto.esNoListado),
+                    es_no_listado: Boolean(producto.esNoListado),
+                    cantidadPlaneadaProyecto: Number(lineaPlan?.planeado || 0),
+                    cantidadEntregadaProyecto: Number(lineaPlan?.entregado || 0),
+                    pendienteProyecto: Number(lineaPlan?.pendiente || 0)
+                });
+            }
+            renderLista();
+            actualizarPreviewHeader();
+            renderPlanEntregaProyecto();
+        }
+
+        function sonarEscaneo(correcto) {
+            if (navigator.vibrate) navigator.vibrate(correcto ? 70 : [60, 60, 60]);
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.value = correcto ? 880 : 220;
+                gain.gain.value = .08;
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + (correcto ? .08 : .18));
+            } catch (_) {}
+        }
+
+        function cancelarTodo() {
+            if (itemsAgregados.length > 0 && !confirm('Se perderá la lista de productos agregados. ¿Continuar?')) {
+                return;
+            }
+            itemsAgregados = [];
+            quitarProducto();
+            document.getElementById('movimientoForm').reset();
+            document.getElementById('cantidad_val').value = "0";
+            document.getElementById('motivo_val').value = "";
+            renderLista();
+            cambiarTipo('entrada');
+        }
+
+        function crearRequestId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+        async function cargarProyectosDisponibles() {
+            const select = document.getElementById('proyecto_val');
+            try {
+                proyectosDisponibles = await SkilledDB.listProjectOptions();
+                select.innerHTML = '<option value="">Sin proyecto asignado</option>' + proyectosDisponibles
+                    .filter(item => item.proyecto)
+                    .map(item => `<option value="${escapeHTML(item.proyecto)}">${escapeHTML(item.proyecto)}${item.nombreProyecto ? ' — ' + escapeHTML(item.nombreProyecto) : ''}</option>`)
+                    .join('');
+                proyectoAnterior = select.value;
+                actualizarModoBusquedaProducto();
+            } catch (error) {
+                select.innerHTML = '<option value="">No se pudieron cargar los proyectos</option>';
+                console.warn('No se pudo cargar la lista de proyectos desde Supabase:', error);
+            }
+        }
+
+        async function validarListaAntesDeGuardar() {
+            const entregasPorProyecto = itemsAgregados.filter(item => item.tipo === 'salida' && item.proyecto);
+            if (entregasPorProyecto.length) {
+                const proyectos = [...new Set(entregasPorProyecto.map(item => item.proyecto))];
+                for (const proyecto of proyectos) {
+                    let planActual;
+                    if (typeof SkilledDB.listProjectDeliveryPlan === 'function') {
+                        planActual = await SkilledDB.listProjectDeliveryPlan(proyecto);
+                    } else {
+                        const [planBase, movimientosProyecto] = await Promise.all([
+                            SkilledDB.listProjectPlan(proyecto),
+                            SkilledDB.listMovements({ project: proyecto })
+                        ]);
+                        const entregadoPorCodigo = new Map();
+                        movimientosProyecto
+                            .filter(m => String(m.tipo || '').toLowerCase() === 'salida')
+                            .forEach(m => {
+                                const key = codigoNormalizado(m.codigo);
+                                entregadoPorCodigo.set(key, (entregadoPorCodigo.get(key) || 0) + Number(m.cantidad || 0));
+                            });
+                        planActual = planBase.map(linea => {
+                            const planeado = Number(linea.cantidadPlaneada || 0);
+                            const entregado = entregadoPorCodigo.get(codigoNormalizado(linea.codigo)) || 0;
+                            return { ...linea, planeado, entregado, pendiente: Math.max(0, planeado - entregado) };
+                        });
+                    }
+                    const mapaPlan = new Map(planActual.map(linea => [codigoNormalizado(linea.codigo), linea]));
+                    const acumulado = new Map();
+                    for (const item of entregasPorProyecto.filter(fila => fila.proyecto === proyecto)) {
+                        const key = codigoNormalizado(item.producto.codigo);
+                        const linea = mapaPlan.get(key);
+                        if (!linea) throw new Error(`${item.producto.codigo} ya no forma parte del plan del proyecto ${proyecto}.`);
+                        const pendiente = Number(linea.pendiente ?? linea.cantidadPlaneada ?? 0);
+                        const nuevoTotal = (acumulado.get(key) || 0) + Number(item.cantidad || 0);
+                        acumulado.set(key, nuevoTotal);
+                        if (nuevoTotal > pendiente) {
+                            throw new Error(`La entrega de ${item.producto.codigo} supera lo pendiente del proyecto ${proyecto}. Pendiente: ${pendiente}.`);
+                        }
+                    }
+                }
+            }
+            if (!itemsAgregados.some(item => !item.esNoListado &&
+                (item.tipo === 'salida' || (item.tipo === 'traspaso' && !(item.proyecto && item.traspasoModo)) ||
+                 (item.tipo === 'ajuste' && String(item.ajusteAccion).toLowerCase() === 'disminuir')))) return true;
+            const actualizados = await SkilledDB.listMaterials();
+            const mapa = new Map(actualizados.map(item => [item.codigo, item]));
+            const acumulados = new Map();
+            for (const item of itemsAgregados) {
+                if (item.esNoListado) continue;
+                const descuenta = item.tipo === 'salida' || (item.tipo === 'traspaso' && !(item.proyecto && item.traspasoModo)) ||
+                    (item.tipo === 'ajuste' && String(item.ajusteAccion).toLowerCase() === 'disminuir');
+                if (!descuenta) continue;
+                const almacen = item.tipo === 'ajuste' ? item.bodegaDestino : item.bodegaOrigen;
+                const material = mapa.get(item.producto.codigo);
+                const disponible = stockDisponibleEnAlmacen(material, almacen);
+                const key = `${item.producto.codigo}__${almacen}`;
+                const solicitado = (acumulados.get(key) || 0) + Number(item.cantidad || 0);
+                acumulados.set(key, solicitado);
+                if (disponible <= 0) throw new Error(`${item.producto.codigo} está agotado en ${almacen}.`);
+                if (solicitado > disponible) throw new Error(`Stock insuficiente de ${item.producto.codigo} en ${almacen}. Disponible: ${disponible}.`);
+            }
+            catalogoProductos = actualizados;
+            return true;
+        }
+
+        document.getElementById('movimientoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (itemsAgregados.length === 0) {
+                alert('Agrega al menos un producto a la lista antes de registrar el movimiento.');
+                return;
+            }
+
+            if (currentType === 'ajuste' && document.getElementById('motivo_val').value.trim() === '') {
+                alert('Por favor describe los motivos para la auditoría de ajuste.');
+                return;
+            }
+
+            const recibeNombre = document.getElementById('recibe_nombre_val').value.trim();
+            if (currentType === 'salida' && !recibeNombre) {
+                alert('Escribe el nombre de quien recibe el material para generar el ticket.');
+                document.getElementById('recibe_nombre_val').focus();
+                return;
+            }
+
+            const bodegaOrigenActual = document.getElementById('bodega_origen_val').value;
+            const bodegaDestinoActual = document.getElementById('bodega_destino_val').value;
+            const proyectoOrigenTraspaso = currentType === 'traspaso' ? document.getElementById('proyecto_val').value.trim() : '';
+            const itemTraspaso = currentType === 'traspaso' ? itemsAgregados.find(item => item.tipo === 'traspaso') : null;
+            const modoTraspaso = itemTraspaso?.traspasoModo || itemTraspaso?.traspaso_modo || '';
+            const proyectoDestinoTraspaso = itemTraspaso?.proyectoDestino || itemTraspaso?.proyecto_destino || '';
+            const esTraspasoProyecto = Boolean(proyectoOrigenTraspaso && modoTraspaso);
+            if (currentType === 'salida' && !bodegaOrigenActual) {
+                alert('Selecciona la bodega origen antes de guardar.');
+                return;
+            }
+            if (currentType === 'traspaso' && !esTraspasoProyecto && !bodegaOrigenActual) {
+                alert('Selecciona la bodega origen antes de guardar.');
+                return;
+            }
+            if ((currentType === 'entrada' || currentType === 'ajuste' || (currentType === 'traspaso' && !esTraspasoProyecto)) && !bodegaDestinoActual) {
+                alert('Selecciona la bodega destino antes de guardar.');
+                return;
+            }
+            if (esTraspasoProyecto && modoTraspaso === 'almacen' && !bodegaDestinoActual) {
+                alert('Selecciona el almacén donde quedarán los materiales.');
+                return;
+            }
+            if (esTraspasoProyecto && modoTraspaso === 'proyecto' && !proyectoDestinoTraspaso) {
+                alert('Selecciona el proyecto de destino.');
+                return;
+            }
+
+            try {
+                await validarListaAntesDeGuardar();
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
+
+            itemsAgregados = itemsAgregados.map(item => {
+                const traspasoProyecto = item.tipo === 'traspaso' && item.proyecto && (item.traspasoModo || item.traspaso_modo);
+                return {
+                    ...item,
+                    proyecto: item.proyecto || document.getElementById('proyecto_val').value.trim(),
+                    ubicacion: traspasoProyecto ? '' : (item.ubicacion || ubicacionMovimientoTexto()),
+                    ubicacionOrigen: traspasoProyecto ? '' : (item.ubicacionOrigen || document.getElementById('ubicacion_origen_val')?.value || ''),
+                    ubicacionDestino: traspasoProyecto ? '' : (item.ubicacionDestino || document.getElementById('ubicacion_destino_val')?.value || ''),
+                    ordenCompra: item.ordenCompra || document.getElementById('orden_compra_val').value.trim(),
+                    bodegaOrigen: traspasoProyecto ? '' : (item.bodegaOrigen || bodegaOrigenActual),
+                    bodegaDestino: traspasoProyecto && (item.traspasoModo || item.traspaso_modo) === 'proyecto' ? '' : (item.bodegaDestino || bodegaDestinoActual),
+                    recibeNombre: recibeNombre || item.recibeNombre || '',
+                    recibeTipo: 'persona'
+                };
+            });
+
+            const referenciaMovimiento = document.getElementById('referencia_movimiento_val')?.value.trim() || '';
+            const fechaOrdenCompraMovimiento = document.getElementById('fecha_orden_compra_val')?.value || '';
+            const dataObj = {
+                accion: 'registrar_movimiento',
+                requestId: crearRequestId(),
+                tipo_movimiento: currentType,
+                motivo: document.getElementById('motivo_val').value.trim(),
+                fecha: new Date().toISOString(),
+                referencia: referenciaMovimiento,
+                fechaOrdenCompra: fechaOrdenCompraMovimiento,
+                productos: itemsAgregados
+            };
+
+
+            const btnSubmit = document.getElementById('btn-submit');
+            const originalText = btnSubmit.innerHTML;
+
+            btnSubmit.innerHTML = 'Guardando...';
+            btnSubmit.disabled = true;
+
+            try {
+                const resultado = esTraspasoProyecto
+                    ? await SkilledDB.transferProjectMaterials({
+                        requestId: dataObj.requestId,
+                        proyectoOrigen: proyectoOrigenTraspaso,
+                        modo: modoTraspaso,
+                        proyectoDestino: proyectoDestinoTraspaso,
+                        almacenDestino: bodegaDestinoActual,
+                        motivo: dataObj.motivo,
+                        productos: itemsAgregados
+                    })
+                    : await SkilledDB.registerMovement(dataObj);
+                const registrados = Number(resultado.registrados) || itemsAgregados.length;
+
+                const productosTicket = itemsAgregados.map(item => ({
+                    ...item,
+                    producto: { ...item.producto, unidad: item.producto.unidad || '' }
+                }));
+                if (window.SkilledTickets) {
+                    const titulos = {
+                        entrada: 'Comprobante de entrada de material',
+                        salida: 'Comprobante de salida de material',
+                        ajuste: 'Comprobante de ajuste de material',
+                        traspaso: 'Comprobante de traspaso de material',
+                        reingreso: 'Comprobante de reingreso de material'
+                    };
+                    SkilledTickets.mostrarListo({
+                        titulo: titulos[currentType] || 'Comprobante de movimiento de material',
+                        folio: referenciaMovimiento || resultado.requestId || dataObj.requestId,
+                        requestId: resultado.requestId || dataObj.requestId,
+                        referencia: referenciaMovimiento,
+                        fecha: dataObj.fecha,
+                        proyecto: document.getElementById('proyecto_val').value.trim(),
+                        proyectoDestino: esTraspasoProyecto && modoTraspaso === 'proyecto' ? proyectoDestinoTraspaso : '',
+                        bodegaOrigen: esTraspasoProyecto ? `Proyecto ${proyectoOrigenTraspaso}` : bodegaOrigenActual,
+                        bodegaDestino: esTraspasoProyecto && modoTraspaso === 'proyecto' ? `Proyecto ${proyectoDestinoTraspaso}` : bodegaDestinoActual,
+                        ubicacion: esTraspasoProyecto ? '' : ubicacionMovimientoTexto(),
+                        recibeNombre,
+                        recibeTipo: recibeNombre ? 'persona' : '',
+                        notas: dataObj.motivo,
+                        productos: productosTicket
+                    });
+                } else {
+                    alert(`Movimiento guardado correctamente. Registros creados: ${registrados}`);
+                }
+                if (esTraspasoProyecto && modoTraspaso === 'almacen') {
+                    setTimeout(() => alert(`El sobrante entregado regresó a ${bodegaDestinoActual}. Quedó registrado como sobrante del proyecto y se creó una tarea pendiente para asignarle un estante o ubicación específica dentro del almacén.`), 150);
+                }
+                if (esTraspasoProyecto && modoTraspaso === 'proyecto') {
+                    setTimeout(() => alert(`El sobrante se registró en el proyecto ${proyectoOrigenTraspaso} y quedó entregado al proyecto ${proyectoDestinoTraspaso}.`), 150);
+                }
+                const proyectoGuardado = document.getElementById('proyecto_val').value.trim();
+                const tipoGuardado = currentType;
+                itemsAgregados = [];
+                document.getElementById('movimientoForm').reset();
+                document.getElementById('cantidad_val').value = '0';
+                document.getElementById('motivo_val').value = '';
+                renderLista();
+                await cargarCatalogo();
+                cambiarTipo(tipoGuardado);
+                document.getElementById('bodega_origen_val').value = bodegaOrigenActual;
+                document.getElementById('bodega_destino_val').value = bodegaDestinoActual;
+                await manejarCambioBodegaMovimiento('origen');
+                await manejarCambioBodegaMovimiento('destino');
+                document.getElementById('proyecto_val').value = proyectoGuardado;
+                proyectoAnterior = proyectoGuardado;
+                if (proyectoGuardado) {
+                    await manejarCambioProyecto(proyectoGuardado);
+                } else {
+                    planEntregaProyecto = [];
+                    renderPlanEntregaProyecto();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`No se pudo guardar el movimiento: ${error.message}`);
+            } finally {
+                btnSubmit.disabled = false;
+                const confFinal = configTipos[currentType];
+                btnSubmit.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> ${confFinal.text}`;
+                btnSubmit.className = `px-5 py-2.5 rounded-lg text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-lg bg-${confFinal.color}-600 hover:bg-${confFinal.color}-500`;
+            }
+        });
+
+        renderLista();
+        actualizarPreviewHeader();
+        cargarAlmacenesMovimiento();
+        cargarCatalogo();
+        cargarProyectosDisponibles();
+    </script>
+<script src="AL.stock-proyectos.js"></script>
+<script src="AL.movimientos.js"></script>
+<script src="skilled-sky.js?v=21" defer></script>
+</body>
+</html>

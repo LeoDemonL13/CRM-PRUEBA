@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060814">
+<link rel="stylesheet" href="interfaz.css">
+<script src="navegacion-suave.js?v=9"></script>
+<title>Skilled - Centro de reportes</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="skilled-supabase.js?v=11"></script>
+<script src="auth-guard.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{box-sizing:border-box}body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#060814;color:#d7deeb}.lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.card{background:#090d1a;border:1px solid #161f38;border-radius:14px}.input{width:100%;background:#060a14;border:1px solid #243257;border-radius:9px;padding:10px 12px;color:#e5e7eb;font-size:12px}.input:focus{outline:none;border-color:#3b82f6}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:700;transition:.18s}.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}.btn-secondary{background:#10172a;border:1px solid #243257;color:#d7deeb}.btn-secondary:hover{background:#151f36}.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}.btn:disabled{opacity:.42;cursor:not-allowed}.notice{display:none;margin-bottom:16px;border:1px solid rgba(59,130,246,.35);background:rgba(30,64,175,.12);color:#bfdbfe;border-radius:10px;padding:10px 12px;font-size:11px}.notice.error{border-color:rgba(244,63,94,.35);background:rgba(136,19,55,.15);color:#fecdd3}.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:999px;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}body.tema-claro{background:#f2f4f9;color:#111827}body.tema-claro .card,body.tema-claro header,body.tema-claro aside{background:#fff!important;border-color:#d7dfeb!important}body.tema-claro .input{background:#fff;border-color:#cdd7e6;color:#111827}body.tema-claro .text-white{color:#111827!important}body.tema-claro .text-gray-400,body.tema-claro .text-gray-500{color:#64748b!important}
+</style>
+<script src="skilled-sidebar.js?v=21" defer></script>
+</head>
+<body class="min-h-screen flex overflow-x-hidden">
+<aside class="w-[260px] h-screen sticky top-0 bg-[#090d1a] border-r border-[#161f38] flex-col justify-between hidden lg:flex shrink-0">
+        <div class="overflow-y-auto flex-1 lista-scroll">
+            <div class="p-6 border-b border-[#161f38] flex items-center justify-between">
+                <a href="AL.inicio.html" title="Ir al inicio">
+                    <img src="logo-reporte.png" alt="Skilled Logo" class="h-9 w-auto object-contain">
+                </a>
+            </div>
+            <nav class="p-4 space-y-6 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
+                <div>
+            <span class="px-3 block mb-2">Cuenta</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.inicio.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Inicio</span>
+        </a>
+    </li>
+<li>
+        <a href="perfil.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Mi perfil</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Materiales</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.catalogo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Catálogo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.bajo-minimo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Bajo mínimo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.almacenes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            <span>Almacenes</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.etiquetas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 7h.01M3 11l8.586-8.586A2 2 0 0113 2h5a2 2 0 012 2v5a2 2 0 01-.586 1.414L10.828 19a2 2 0 01-2.828 0l-5-5a2 2 0 010-2.828z"/></svg>
+            <span>Etiquetas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Movimientos</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            <span>Registrar movimiento</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.historial-movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <span>Historial movimientos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.tomas-fisicas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Tomas físicas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Compras y Solicitudes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.entrega-directa.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Entrega directa</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.solicitudes-material.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Solicitudes de material</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.ordenes-compra.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Solicitudes de compra</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Proyectos y Reportes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.proyectos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            <span>Proyectos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.reportes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#141d34] border-l-2 border-blue-500 text-white font-semibold">
+            <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <span>Reportes</span>
+        </a>
+    </li>
+            </ul>
+        </div>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-[#161f38] bg-[#070b16]">
+            <a href="login.html" class="w-full flex items-center justify-center gap-2 bg-[#10172a] hover:bg-red-950/20 border border-[#232f4e] text-red-400 hover:text-red-300 py-2.5 rounded-lg text-xs font-semibold transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Cerrar sesión
+            </a>
+        </div>
+    </aside>
+<div class="flex-1 min-w-0 flex flex-col min-h-screen">
+<header class="h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a] sticky top-0 z-30">
+  <div class="flex items-center gap-4 w-full max-w-xl"><div class="relative w-full"><span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span><input id="busquedaGlobal" type="search" placeholder="Buscar proyecto, material o referencia..." class="w-full bg-[#0d1425] text-xs text-gray-300 rounded-lg pl-9 pr-4 py-2 border border-[#1b2642] focus:outline-none focus:border-blue-500 transition"></div></div>
+  <div class="flex items-center gap-5 ml-5"><button id="btnActualizarTop" type="button" title="Actualizar" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg></button><button type="button" onclick="alternarTema()" title="Cambiar tema" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z"/></svg></button><div class="flex items-center gap-3 border-l border-[#161f38] pl-5"><div class="text-right hidden sm:block"><div class="text-xs font-bold text-white">Almacen</div><div class="text-[10px] text-gray-500 font-medium">Inventario</div></div><div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 text-white flex items-center justify-center font-bold text-sm">A</div></div></div>
+</header>
+<main class="flex-1 p-6 md:p-8 max-w-[1500px] mx-auto w-full">
+  <nav class="text-[11px] text-gray-500 mb-3 flex gap-2"><a href="AL.inicio.html">Inicio</a><span>›</span><span>Proyectos y reportes</span><span>›</span><span class="text-gray-300 font-semibold">Reportes</span></nav>
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl border border-blue-500/30 bg-blue-950/20 text-blue-400 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div><div><h1 class="text-2xl font-bold text-white">Centro de reportes</h1><p class="text-xs text-gray-500 mt-1">Descarga información de Supabase y genera documentos con el diseño institucional del reporte de alcance.</p></div></div><button id="btnActualizar" class="btn btn-secondary">Actualizar datos</button></div>
+  <div id="notice" class="notice"></div>
+  <section class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5"><article class="card p-5"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Materiales</p><strong id="kpiMateriales" class="block mt-2 text-2xl text-white">—</strong><span class="text-[10px] text-gray-500">Productos del catálogo</span></article><article class="card p-5"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Bajo mínimo</p><strong id="kpiBajo" class="block mt-2 text-2xl text-rose-400">—</strong><span class="text-[10px] text-gray-500">Registros críticos</span></article><article class="card p-5"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Movimientos</p><strong id="kpiMovimientos" class="block mt-2 text-2xl text-emerald-400">—</strong><span class="text-[10px] text-gray-500">Operaciones registradas</span></article><article class="card p-5"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Proyectos</p><strong id="kpiProyectos" class="block mt-2 text-2xl text-amber-300">—</strong><span class="text-[10px] text-gray-500">Proyectos disponibles</span></article></section>
+  <section class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+    <article class="card p-5"><div class="flex items-start justify-between gap-3"><div><h2 class="text-sm font-bold text-white">Catálogo de materiales</h2><p class="text-[10px] text-gray-500 mt-1">Descarga todos los materiales o limita por categoría, almacén y bajo mínimo.</p></div><span class="w-9 h-9 rounded-lg bg-blue-950/20 border border-blue-500/20 text-blue-300 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span></div><div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-5"><div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Categoría</label><select id="repCategoria" class="input"><option value="">Todas las categorías</option></select></div><div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Almacén</label><select id="repAlmacen" class="input"><option value="">Todos los almacenes</option></select></div></div><label class="mt-4 flex items-center gap-2 text-[11px] text-gray-400"><input id="repSoloBajo" type="checkbox" class="accent-blue-600"> Solo productos agotados o bajo mínimo</label><button id="btnCatalogoExcel" class="btn btn-primary w-full mt-5">Descargar Excel del catálogo</button></article>
+    <article class="card p-5"><div class="flex items-start justify-between gap-3"><div><h2 class="text-sm font-bold text-white">Historial de movimientos</h2><p class="text-[10px] text-gray-500 mt-1">Filtra por fecha, tipo, almacén o proyecto.</p></div><span class="w-9 h-9 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-emerald-300 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9.8 9.8 0 00-6.9 2.9L3 8m0-5v5h5M12 7v5l3 2"/></svg></span></div><div class="grid grid-cols-2 gap-3 mt-5"><div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Desde</label><input id="movDesde" type="date" class="input"></div><div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Hasta</label><input id="movHasta" type="date" class="input"></div><div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Tipo</label><select id="movTipo" class="input"><option value="">Todos los tipos</option><option value="entrada">Entrada</option><option value="salida">Salida</option><option value="ajuste">Ajuste</option><option value="traspaso">Traspaso</option></select></div><div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Almacén</label><select id="movAlmacen" class="input"><option value="">Todos los almacenes</option></select></div></div><div class="mt-3"><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Proyecto</label><select id="movProyecto" class="input"><option value="">Todos los proyectos</option></select></div><button id="btnMovimientosExcel" class="btn btn-primary w-full mt-5">Descargar Excel del historial</button></article>
+    <article class="card p-5 xl:col-span-2"><div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><h2 class="text-sm font-bold text-white">Reporte de proyecto</h2><p class="text-[10px] text-gray-500 mt-1">El PDF y la impresión utilizan el logo del reporte de alcance y su composición profesional.</p></div><div class="w-full lg:w-[480px]"><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Proyecto</label><select id="repProyecto" class="input"><option value="">Selecciona un proyecto</option></select></div></div><div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-5"><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><span class="text-[9px] uppercase tracking-widest text-gray-500">Planeado</span><strong id="prPlaneado" class="block mt-2 text-xl text-white">—</strong></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><span class="text-[9px] uppercase tracking-widest text-gray-500">Entregado</span><strong id="prConsumido" class="block mt-2 text-xl text-emerald-300">—</strong></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><span class="text-[9px] uppercase tracking-widest text-gray-500">Costo planeado</span><strong id="prCostoPlan" class="block mt-2 text-xl text-white">—</strong></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><span class="text-[9px] uppercase tracking-widest text-gray-500">Costo real</span><strong id="prCostoReal" class="block mt-2 text-xl text-emerald-300">—</strong></div></div><div class="flex flex-wrap justify-end gap-2 mt-5"><button id="btnProyectoExcel" class="btn btn-secondary" disabled>Descargar Excel</button><button id="btnProyectoPdf" class="btn btn-primary" disabled>Descargar PDF</button><button id="btnProyectoImprimir" class="btn btn-success" disabled>Imprimir en carta</button></div></article>
+  </section>
+</main>
+</div>
+<script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
+<script src="AL.reportes.js"></script>
+
+<script src="skilled-sky.js?v=21" defer></script>
+</body>
+</html>

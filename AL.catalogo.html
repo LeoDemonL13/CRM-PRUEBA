@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<!-- Catálogo visual por categorías -->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skilled - Catálogo de Productos</title>
+    <link rel="stylesheet" href="interfaz.css">
+    <script src="navegacion-suave.js?v=9"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="skilled-supabase.js?v=11"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#060814}
+        .lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.lista-scroll::-webkit-scrollbar-track{background:transparent}
+        body.tema-claro{background:#f2f4f9}body.tema-claro .bg-\[\#090d1a\],body.tema-claro .bg-\[\#080d1a\]{background:#fff!important}body.tema-claro .bg-\[\#060814\]{background:#f2f4f9!important}body.tema-claro .bg-\[\#060a14\],body.tema-claro .bg-\[\#0a1122\],body.tema-claro .bg-\[\#0d1425\],body.tema-claro .bg-\[\#101626\],body.tema-claro .bg-\[\#10172a\]{background:#eef1f8!important}body.tema-claro .bg-\[\#11182c\],body.tema-claro .bg-\[\#141d34\]{background:#e3e8f3!important}body.tema-claro .border-\[\#161f38\],body.tema-claro .border-\[\#1b2642\],body.tema-claro .border-\[\#1d2949\],body.tema-claro .border-\[\#243257\]{border-color:#dfe4ef!important}body.tema-claro .text-white,body.tema-claro .text-gray-200,body.tema-claro .text-gray-300{color:#111827!important}body.tema-claro .text-gray-400{color:#52596b!important}body.tema-claro .text-gray-500{color:#6b7280!important}
+        .fade{animation:fade .2s ease-out}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+        .form-section{border:1px solid #243257;background:#0c1324;border-radius:14px;padding:16px}
+        .form-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#60a5fa;font-weight:800;margin-bottom:14px}
+        .product-input{margin-top:8px;width:100%;background:#060a14;border:1px solid #243257;border-radius:9px;padding:10px 12px;color:#e5e7eb;outline:none}
+        .product-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.08)}
+        body.tema-claro .form-section{background:#f7f9fc;border-color:#dfe4ef}
+        body.tema-claro .product-input{background:#fff;border-color:#cbd5e1;color:#111827}
+    </style>
+</head>
+<body class="text-gray-300 min-h-screen flex overflow-x-hidden">
+<aside></aside>
+<div class="flex-1 min-w-0 flex flex-col min-h-screen">
+    <header class="h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-20">
+        <div class="relative w-full max-w-md"><svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input id="busqueda-global" type="search" placeholder="Buscar por código, descripción, marca, proveedor o categoría..." class="w-full bg-[#0d1425] border border-[#1b2642] rounded-lg pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-blue-500"></div>
+        <div class="flex items-center gap-4 ml-4"><button type="button" onclick="location.reload()" title="Actualizar" class="text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg></button><button type="button" onclick="alternarTema()" title="Cambiar tema" class="text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><div class="border-l border-[#161f38] pl-4 flex items-center gap-3"><div class="hidden sm:block text-right"><div class="text-xs font-bold text-white">Almacén</div><div class="text-[10px] text-gray-500">Inventario</div></div><div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 flex items-center justify-center font-bold">A</div></div></div>
+    </header>
+
+    <main class="flex-1 p-6 md:p-8 max-w-[1500px] mx-auto w-full">
+        <nav class="text-[11px] text-gray-500 mb-3 flex items-center gap-2"><a href="AL.inicio.html" title="Inicio"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10.5V20h13v-9.5M9.5 20v-6h5v6"/></svg></a><span>›</span><span class="text-gray-300 font-semibold">Catálogo</span></nav>
+        <section class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
+            <div class="flex gap-3"><div class="w-11 h-11 rounded-xl bg-[#0a1122] border border-[#1d2949] text-blue-400 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4-8-4m16 0v10l-8 4-8-4V7m8 4v10"/></svg></div><div><h1 class="text-2xl font-bold text-white">Catálogo de Productos</h1><p class="text-sm text-gray-500 mt-1">Gestión del catálogo maestro de inventario.</p></div></div>
+            <div class="flex flex-wrap gap-2"><button type="button" onclick="abrirCategoria()" class="px-4 py-2.5 text-xs font-semibold hover:text-white">+ Nueva categoría</button><a href="AL.importar-materiales.html" class="px-4 py-2.5 rounded-lg bg-[#10172a] border border-[#243257] text-xs font-semibold flex gap-2 items-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 15v4a1 1 0 001 1h14a1 1 0 001-1v-4"/></svg>Importar Excel</a><button type="button" onclick="abrirProducto()" class="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">+ Nuevo producto</button></div>
+        </section>
+
+        <section class="bg-[#090d1a] border border-[#161f38] rounded-xl p-3 mb-6 flex flex-col md:flex-row gap-3"><div class="relative flex-1"><svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input id="cat-search" type="search" placeholder="Buscar por código, descripción, marca, proveedor o categoría..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:border-blue-500"></div><select id="cat-filter" class="md:w-64 bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs focus:outline-none"><option value="">Todas las categorías</option></select><button type="button" onclick="aplicarFiltros()" class="px-4 py-2.5 bg-[#10172a] border border-[#243257] rounded-lg text-xs font-semibold flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros</button></section>
+
+        <div id="estado-carga" class="py-20 text-center text-sm text-gray-500">Cargando catálogo desde Supabase...</div>
+        <section id="vista-categorias" class="hidden fade">
+            <div class="flex items-center justify-between mb-4"><div><h2 class="text-base font-bold text-white">Categorías</h2><p class="text-xs text-gray-500">Explora por categoría o revisa el catálogo completo.</p></div><button type="button" onclick="abrirMateriales('')" class="px-4 py-2.5 rounded-lg bg-[#10172a] border border-[#243257] text-xs font-semibold flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>Ver todos los materiales</button></div>
+            <div id="grid-categorias" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+        </section>
+
+        <section id="vista-materiales" class="hidden fade">
+            <div class="flex items-end justify-between mb-5"><div><button type="button" onclick="volverCategorias()" class="mb-4 px-3 py-2 rounded-lg bg-[#10172a] border border-[#243257] text-xs font-semibold">‹ Volver a categorías</button><h2 id="titulo-materiales" class="text-base font-bold text-white">Todos los materiales</h2><p id="contador-materiales" class="text-xs text-gray-500 mt-1"></p></div><div class="flex rounded-lg border border-[#243257] overflow-hidden"><button id="btn-galeria" type="button" onclick="cambiarVista('galeria')" class="px-3 py-2 text-xs font-semibold bg-blue-600 text-white">▦ Galería</button><button id="btn-tabla" type="button" onclick="cambiarVista('tabla')" class="px-3 py-2 text-xs font-semibold bg-[#10172a]">☷ Tabla</button></div></div>
+            <div id="materiales-vacio" class="hidden py-16 text-center text-sm text-gray-500 bg-[#090d1a] border border-[#161f38] rounded-xl">No se encontraron materiales.</div>
+            <div id="grid-materiales" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"></div>
+            <div id="tabla-materiales" class="hidden bg-[#090d1a] border border-[#161f38] rounded-xl overflow-x-auto"><table class="w-full text-xs"><thead><tr class="border-b border-[#161f38] text-[10px] uppercase tracking-wider text-gray-500"><th class="px-4 py-3 text-left">Foto</th><th class="px-4 py-3 text-left">Código</th><th class="px-4 py-3 text-left">Descripción</th><th class="px-4 py-3 text-left">Categoría</th><th class="px-4 py-3 text-left">Marca / proveedor</th><th class="px-4 py-3 text-left">Stock</th><th class="px-4 py-3 text-right">Precio</th><th class="px-4 py-3 text-right">Acciones</th></tr></thead><tbody id="tbody-materiales"></tbody></table></div>
+        </section>
+    </main>
+</div>
+
+<div id="modal-categoria" class="hidden fixed inset-0 z-50 bg-black/70 items-center justify-center p-4"><div class="w-full max-w-md bg-[#10172a] border border-[#243257] rounded-2xl overflow-hidden"><div class="p-5 border-b border-[#243257] flex justify-between"><h3 id="categoria-titulo" class="font-bold text-white">Nueva categoría</h3><button onclick="cerrarCategoria()">✕</button></div><div class="p-5 space-y-4"><div><label class="text-xs font-semibold">Nombre *</label><input id="categoria-nombre" class="mt-2 w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-sm"></div><div><label class="text-xs font-semibold">Imagen (URL — opcional)</label><input id="categoria-imagen" oninput="previewCategoria()" class="mt-2 w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-sm" placeholder="https://..."></div><div id="categoria-preview" class="h-36 bg-[#060a14] border border-[#243257] rounded-lg flex items-center justify-center text-gray-600">Vista previa</div><button id="quitar-imagen-categoria" type="button" onclick="quitarImagenCategoria()" class="hidden text-xs text-rose-400">Quitar imagen</button><div><label class="text-xs font-semibold">Descripción</label><textarea id="categoria-descripcion" rows="2" class="mt-2 w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-sm"></textarea></div></div><div class="p-4 border-t border-[#243257] flex items-center gap-2"><button id="btn-eliminar-categoria" type="button" onclick="eliminarCategoriaActual()" class="hidden px-4 py-2.5 rounded-lg bg-rose-950/30 border border-rose-500/30 text-rose-300 text-sm font-semibold hover:bg-rose-950/50">Eliminar categoría y materiales</button><div class="ml-auto flex gap-2"><button onclick="cerrarCategoria()" class="px-4 py-2.5 rounded-lg bg-[#1b253c] text-sm">Cancelar</button><button onclick="guardarCategoria()" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold">Guardar</button></div></div></div></div>
+
+<div id="modal-producto" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm items-center justify-center p-4"><div class="w-full max-w-5xl max-h-[94vh] overflow-y-auto lista-scroll bg-[#10172a] border border-[#243257] rounded-2xl shadow-2xl"><div class="sticky top-0 z-10 p-5 border-b border-[#243257] bg-[#10172a] flex items-start justify-between"><div><h3 id="producto-titulo" class="font-bold text-white text-lg">Nuevo producto</h3><p class="mt-1 text-xs text-gray-500">Información general, datos comerciales y existencias del material.</p></div><button onclick="cerrarProducto()" class="text-xl text-gray-500 hover:text-white">×</button></div><div class="p-5 space-y-5"><section class="form-section"><div class="form-section-title">Información general</div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="text-xs font-semibold">Código *</label><input id="p-codigo" class="product-input"></div><div><label class="text-xs font-semibold">Descripción *</label><input id="p-descripcion" class="product-input"></div><div class="sm:col-span-2"><label class="text-xs font-semibold">Modismos / otros nombres</label><textarea id="p-modismos" rows="2" placeholder="Ej. cincho, cinturón plástico, amarre..." class="product-input"></textarea><p class="mt-1 text-[10px] text-gray-500">Separa cada nombre con coma, punto y coma o salto de línea.</p></div><div><label class="text-xs font-semibold">Categoría *</label><input id="p-categoria" list="catalogo-categorias-v125" placeholder="Selecciona o escribe una categoría" class="product-input"><datalist id="catalogo-categorias-v125"></datalist></div><div><label class="text-xs font-semibold">Unidad *</label><input id="p-unidad" placeholder="PIEZA, METRO..." class="product-input"></div><div><label class="text-xs font-semibold">Tipo de cable</label><input id="p-tipo" class="product-input"></div><div><label class="text-xs font-semibold">Tamaño mm²/AWG</label><input id="p-tamano" class="product-input"></div></div></section><section class="form-section"><div class="form-section-title">Información comercial</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Marca</label><input id="p-marca" class="product-input" placeholder="Marca o fabricante"></div><div><label class="text-xs font-semibold">Proveedor</label><input id="p-proveedor" class="product-input" placeholder="Proveedor principal"></div><div><label class="text-xs font-semibold">Contacto del proveedor</label><input id="p-contacto-proveedor" class="product-input" placeholder="Nombre, teléfono o correo"></div><div><label class="text-xs font-semibold">Precio unitario</label><input id="p-precio" type="number" min="0" step="0.01" class="product-input"></div></div></section><section class="form-section"><div class="form-section-title">Existencia y ubicación</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Almacén</label><select id="p-almacen" onchange="cambiarAlmacenProducto()" class="product-input"></select></div><div><label class="text-xs font-semibold">Stock en almacén</label><input id="p-stock" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock mínimo</label><input id="p-minimo" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock medio</label><input id="p-medio" type="number" min="0" step="0.01" class="product-input" placeholder="Se calcula automáticamente"></div><div><label class="text-xs font-semibold">Stock máximo</label><input id="p-maximo" type="number" min="0" step="0.01" class="product-input" placeholder="Por defecto: 2 × mínimo"></div></div><p class="mt-3 text-[10px] text-gray-500">El nivel medio y el máximo pueden editarse. Si quedan vacíos o en cero, el CRM calcula el máximo como dos veces el mínimo y el medio como el punto intermedio.</p></section><section class="form-section"><div class="form-section-title">Imagen del material</div><div class="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4 items-start"><div><label class="text-xs font-semibold">URL de imagen</label><input id="p-imagen" oninput="previewProducto()" class="product-input" placeholder="https://..."></div><div id="p-preview" class="h-40 bg-white rounded-xl flex items-center justify-center text-gray-500 overflow-hidden">Vista previa</div></div></section></div><div class="sticky bottom-0 p-4 border-t border-[#243257] bg-[#10172a] flex justify-end gap-2"><button onclick="cerrarProducto()" class="px-4 py-2.5 rounded-lg bg-[#1b253c]">Cancelar</button><button onclick="guardarProducto()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">Guardar producto</button></div></div></div>
+
+<script src="skilled-sidebar.js?v=21" defer></script>
+<script>
+(function () {
+    if (localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen') === 'claro') {
+        document.body.classList.add('tema-claro');
+    }
+})();
+
+function alternarTema() {
+    const claro = document.body.classList.toggle('tema-claro');
+    localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen', claro ? 'claro' : 'oscuro');
+}
+
+let materiales = [];
+let categorias = [];
+let almacenes = [];
+let categoriasVista = [];
+let materialesVista = [];
+let categoriaActual = '';
+let vistaActual = 'galeria';
+let editandoProducto = '';
+let editandoCategoria = '';
+
+const $ = id => document.getElementById(id);
+
+function esc(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function imagenHTML(url, alt, classes = 'w-full h-full object-contain') {
+    if (!url) {
+        return '<svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4-8-4m16 0v10l-8 4-8-4V7m8 4v10"/></svg>';
+    }
+    return `<img src="${esc(url)}" alt="${esc(alt)}" class="${classes}" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')"><span class="hidden text-gray-500">Sin imagen</span>`;
+}
+
+async function cargarCatalogoVisual() {
+    try {
+        [materiales, categorias, almacenes] = await Promise.all([
+            SkilledDB.listMaterials(),
+            SkilledDB.listCategories(),
+            SkilledDB.listWarehouses({ activeOnly: true })
+        ]);
+        sincronizarCategoriasLocales();
+        llenarSelectores();
+        $('estado-carga').classList.add('hidden');
+        $('vista-categorias').classList.remove('hidden');
+        renderCategorias();
+    } catch (error) {
+        $('estado-carga').innerHTML = `<span class="text-rose-400">No se pudo cargar el catálogo: ${esc(error.message)}</span>`;
+    }
+}
+
+function sincronizarCategoriasLocales() {
+    const existentes = new Set(categorias.map(c => c.nombre));
+    materiales.forEach(material => {
+        if (material.categoria && !existentes.has(material.categoria)) {
+            categorias.push({ nombre: material.categoria, imagen: '', descripcion: '', activo: true });
+            existentes.add(material.categoria);
+        }
+    });
+    categorias.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+function llenarSelectores() {
+    const opcionesCategorias = categorias.map(c => `<option value="${esc(c.nombre)}">${esc(c.nombre)}</option>`).join('');
+    $('catalogo-categorias-v125').innerHTML = opcionesCategorias;
+    $('cat-filter').innerHTML = '<option value="">Todas las categorías</option>' + opcionesCategorias;
+    $('p-almacen').innerHTML = '<option value="">Selecciona almacén...</option>' + almacenes
+        .map(a => `<option value="${a.id}">${esc(a.nombre)}</option>`)
+        .join('');
+}
+
+function textoFiltro() {
+    return ($('cat-search').value || $('busqueda-global').value || '').trim().toLowerCase();
+}
+
+function materialesFiltrados() {
+    const query = textoFiltro();
+    const categoria = $('cat-filter').value || categoriaActual;
+    return materiales.filter(material => {
+        if (categoria && material.categoria !== categoria) return false;
+        if (!query) return true;
+        return SkilledDB.matchesMaterial(material, query);
+    });
+}
+
+function renderCategorias() {
+    const query = textoFiltro();
+    categoriasVista = categorias.filter(categoria => {
+        if (!query) return true;
+        if (categoria.nombre.toLowerCase().includes(query)) return true;
+        return materiales.some(material =>
+            material.categoria === categoria.nombre &&
+            SkilledDB.matchesMaterial(material, query)
+        );
+    });
+
+    $('grid-categorias').innerHTML = categoriasVista.map((categoria, index) => {
+        const items = materiales.filter(material => material.categoria === categoria.nombre);
+        const bajos = items.filter(material =>
+            Number(material.stock) <= Number(material.stockMinimo) || Number(material.stock) <= 0
+        ).length;
+        return `
+            <article class="relative bg-[#10172a] border border-[#243257] rounded-xl p-5 hover:border-blue-500/40 transition">
+                <button type="button" onclick="editarCategoriaIndice(${index})" title="Editar imagen de categoría" class="absolute right-3 top-3 z-10 w-8 h-8 rounded-lg bg-black/45 text-white hover:bg-blue-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L8 18l-4 1 1-4z"/></svg>
+                </button>
+                <button type="button" onclick="abrirCategoriaIndice(${index})" class="w-full text-left">
+                    <div class="h-40 bg-[#0d1425] rounded-lg overflow-hidden flex items-center justify-center">
+                        ${imagenHTML(categoria.imagen, categoria.nombre, 'w-full h-full object-cover')}
+                    </div>
+                    <div class="mt-4 flex justify-between gap-3">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-white truncate">${esc(categoria.nombre)}</h3>
+                            <p class="text-xs text-gray-500 mt-1">${items.length} materiales</p>
+                        </div>
+                        <span class="w-8 h-8 rounded-full bg-[#1b253c] flex items-center justify-center">›</span>
+                    </div>
+                    ${bajos ? `<span class="absolute left-8 top-[145px] px-2 py-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">● ${bajos} stock bajo</span>` : ''}
+                </button>
+            </article>`;
+    }).join('') || '<div class="col-span-full py-12 text-center text-gray-500">No hay categorías con esos filtros.</div>';
+}
+
+function abrirCategoriaIndice(index) {
+    const categoria = categoriasVista[index];
+    if (categoria) abrirMateriales(categoria.nombre);
+}
+
+function editarCategoriaIndice(index) {
+    const categoria = categoriasVista[index];
+    if (categoria) abrirCategoria(categoria);
+}
+
+function abrirMateriales(categoria) {
+    categoriaActual = categoria || '';
+    $('cat-filter').value = categoriaActual;
+    $('vista-categorias').classList.add('hidden');
+    $('vista-materiales').classList.remove('hidden');
+    $('titulo-materiales').textContent = categoriaActual || 'Todos los materiales';
+    renderMateriales();
+}
+
+function volverCategorias() {
+    categoriaActual = '';
+    $('cat-filter').value = '';
+    $('vista-materiales').classList.add('hidden');
+    $('vista-categorias').classList.remove('hidden');
+    renderCategorias();
+}
+
+function aplicarFiltros() {
+    if ($('vista-materiales').classList.contains('hidden')) renderCategorias();
+    else renderMateriales();
+}
+
+function cambiarVista(vista) {
+    vistaActual = vista;
+    $('btn-galeria').className = `px-3 py-2 text-xs font-semibold ${vista === 'galeria' ? 'bg-blue-600 text-white' : 'bg-[#10172a]'}`;
+    $('btn-tabla').className = `px-3 py-2 text-xs font-semibold ${vista === 'tabla' ? 'bg-blue-600 text-white' : 'bg-[#10172a]'}`;
+    $('grid-materiales').classList.toggle('hidden', vista !== 'galeria');
+    $('tabla-materiales').classList.toggle('hidden', vista !== 'tabla');
+}
+
+function botonesMaterial(index, material) {
+    return `
+        <a href="AL.historial-movimientos.html?producto=${encodeURIComponent(material.codigo)}" title="Historial" class="p-2 hover:text-blue-400">↻</a>
+        <a href="AL.almacenes.html?material=${encodeURIComponent(material.codigo)}" title="Existencias por almacén" class="p-2 hover:text-blue-400">▤</a>
+        <button type="button" onclick="editarMaterialIndice(${index})" title="Editar" class="p-2 hover:text-amber-400">✎</button>
+        <button type="button" onclick="eliminarMaterialIndice(${index})" title="Eliminar" class="p-2 text-rose-400">♜</button>`;
+}
+
+function renderMateriales() {
+    materialesVista = materialesFiltrados();
+    $('contador-materiales').textContent = `${materialesVista.length} productos`;
+    $('materiales-vacio').classList.toggle('hidden', materialesVista.length > 0);
+
+    $('grid-materiales').innerHTML = materialesVista.map((material, index) => {
+        const bajo = Number(material.stock) <= Number(material.stockMinimo) || Number(material.stock) <= 0;
+        return `
+            <article class="bg-[#10172a] border border-[#243257] rounded-xl p-4 flex flex-col">
+                <div class="h-48 bg-[#0d1425] rounded-lg flex items-center justify-center overflow-hidden relative">
+                    ${imagenHTML(material.imagen, material.desc)}
+                    ${bajo ? '<span class="absolute top-2 right-2 bg-rose-500 text-white rounded-full px-2 py-1 text-[10px] font-bold">Stock bajo</span>' : ''}
+                </div>
+                <div class="pt-4 flex-1">
+                    <p class="font-mono text-[10px] text-blue-300">${esc(material.codigo)}</p>
+                    <h3 class="mt-1 font-bold text-white leading-snug">${esc(material.desc)}</h3>
+                    <p class="text-xs text-gray-500 mt-1">${esc(material.categoria || 'Sin categoría')}</p>
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-[10px]"><div class="rounded-lg border border-[#243257] bg-[#0d1425] px-2.5 py-2"><span class="text-gray-600">Marca</span><p class="mt-0.5 font-semibold text-gray-300 truncate">${esc(material.marca || 'Sin marca')}</p></div><div class="rounded-lg border border-[#243257] bg-[#0d1425] px-2.5 py-2"><span class="text-gray-600">Proveedor</span><p class="mt-0.5 font-semibold text-gray-300 truncate">${esc(material.proveedor || 'No asignado')}</p></div></div>
+                    ${Array.isArray(material.modismos) && material.modismos.length ? `<p class="text-[10px] text-blue-300/80 mt-1 line-clamp-2">También: ${esc(material.modismos.join(', '))}</p>` : ''}
+                    <div class="mt-4 flex justify-between items-end">
+                        <div><p class="font-bold ${bajo ? 'text-rose-400' : 'text-white'}">${material.stock} ${esc(material.unidad || '')}</p><p class="text-[10px] text-gray-600">Mín. ${material.stockMinimo} · Med. ${material.stockMedio} · Máx. ${material.stockMaximo}</p></div>
+                        <p class="font-mono text-xs">$${Number(material.precio).toFixed(2)}</p>
+                    </div>
+                </div>
+                <div class="border-t border-[#243257] mt-4 pt-2 flex justify-end">${botonesMaterial(index, material)}</div>
+            </article>`;
+    }).join('');
+
+    $('tbody-materiales').innerHTML = materialesVista.map((material, index) => {
+        const bajo = Number(material.stock) <= Number(material.stockMinimo) || Number(material.stock) <= 0;
+        return `
+            <tr class="border-b border-[#243257]">
+                <td class="px-4 py-3"><div class="w-10 h-10 bg-white rounded overflow-hidden flex items-center justify-center">${imagenHTML(material.imagen, material.desc)}</div></td>
+                <td class="px-4 py-3 font-mono">${esc(material.codigo)}</td>
+                <td class="px-4 py-3 font-semibold text-white">${esc(material.desc)}${Array.isArray(material.modismos) && material.modismos.length ? `<div class="text-[9px] font-normal text-blue-300/80 mt-1">También: ${esc(material.modismos.join(', '))}</div>` : ''}</td>
+                <td class="px-4 py-3">${esc(material.categoria || '—')}</td>
+                <td class="px-4 py-3"><div class="font-semibold text-gray-200">${esc(material.marca || 'Sin marca')}</div><div class="mt-1 text-[9px] text-gray-500">${esc(material.proveedor || 'Proveedor no asignado')}</div><div class="mt-1 text-[9px] text-gray-600">${esc(material.contactoProveedor || '')}</div></td>
+                <td class="px-4 py-3"><span class="font-bold ${bajo ? 'text-rose-400' : 'text-white'}">${material.stock} ${esc(material.unidad || '')}</span><div class="text-[10px] text-gray-600">Mín. ${material.stockMinimo}</div></td>
+                <td class="px-4 py-3 text-right font-mono">$${Number(material.precio).toFixed(2)}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">${botonesMaterial(index, material)}</td>
+            </tr>`;
+    }).join('');
+    cambiarVista(vistaActual);
+}
+
+function editarMaterialIndice(index) {
+    const material = materialesVista[index];
+    if (material) abrirProducto(material);
+}
+
+function eliminarMaterialIndice(index) {
+    const material = materialesVista[index];
+    if (material) eliminarProducto(material.codigo);
+}
+
+function abrirCategoria(categoria = null) {
+    editandoCategoria = categoria?.nombre || '';
+    $('categoria-titulo').textContent = categoria ? `Editar categoría "${categoria.nombre}"` : 'Nueva categoría';
+    $('categoria-nombre').value = categoria?.nombre || '';
+    $('categoria-nombre').disabled = false;
+    $('btn-eliminar-categoria').classList.toggle('hidden', !categoria);
+    $('categoria-imagen').value = categoria?.imagen || '';
+    $('categoria-descripcion').value = categoria?.descripcion || '';
+    previewCategoria();
+    $('modal-categoria').classList.remove('hidden');
+    $('modal-categoria').classList.add('flex');
+}
+
+function cerrarCategoria() {
+    $('modal-categoria').classList.add('hidden');
+    $('modal-categoria').classList.remove('flex');
+}
+
+function previewCategoria() {
+    const url = $('categoria-imagen').value.trim();
+    $('categoria-preview').innerHTML = url ? imagenHTML(url, 'Vista previa', 'w-full h-full object-cover') : 'Vista previa';
+    $('quitar-imagen-categoria').classList.toggle('hidden', !url);
+}
+
+function quitarImagenCategoria() {
+    $('categoria-imagen').value = '';
+    previewCategoria();
+}
+
+async function guardarCategoria() {
+    const categoria = {
+        nombre: $('categoria-nombre').value.trim(),
+        imagen: $('categoria-imagen').value.trim(),
+        descripcion: $('categoria-descripcion').value.trim()
+    };
+    if (!categoria.nombre) return alert('Escribe el nombre de la categoría.');
+    try {
+        await SkilledDB.saveCategory(categoria, editandoCategoria);
+        cerrarCategoria();
+        categorias = await SkilledDB.listCategories();
+        sincronizarCategoriasLocales();
+        llenarSelectores();
+        renderCategorias();
+    } catch (error) {
+        alert(`No se pudo guardar la categoría: ${error.message}`);
+    }
+}
+
+function abrirProducto(material = null) {
+    editandoProducto = material?.codigo || '';
+    $('producto-titulo').textContent = material ? 'Editar producto' : 'Nuevo producto';
+    $('p-codigo').value = material?.codigo || '';
+    $('p-codigo').disabled = false;
+    $('p-descripcion').value = material?.desc || '';
+    $('p-modismos').value = Array.isArray(material?.modismos) ? material.modismos.join(', ') : (material?.modismosTexto || '');
+    $('p-categoria').value = material?.categoria || '';
+    $('p-unidad').value = material?.unidad || '';
+    $('p-tipo').value = material?.tipoCable || '';
+    $('p-tamano').value = material?.tamano || '';
+    $('p-precio').value = material?.precio || 0;
+    $('p-marca').value = material?.marca || '';
+    $('p-proveedor').value = material?.proveedor || '';
+    $('p-contacto-proveedor').value = material?.contactoProveedor || material?.contacto_proveedor || '';
+    $('p-imagen').value = material?.imagen || '';
+    const inventory = material?.almacenes?.[0];
+    $('p-almacen').value = inventory?.id || almacenes[0]?.id || '';
+    cambiarAlmacenProducto(material);
+    previewProducto();
+    $('modal-producto').classList.remove('hidden');
+    $('modal-producto').classList.add('flex');
+}
+
+function cerrarProducto() {
+    $('modal-producto').classList.add('hidden');
+    $('modal-producto').classList.remove('flex');
+}
+
+function cambiarAlmacenProducto(material = null) {
+    const current = material || materiales.find(item => item.codigo === editandoProducto);
+    const warehouseId = Number($('p-almacen').value || 0);
+    const inventory = current?.almacenes?.find(item => Number(item.id) === warehouseId);
+    $('p-stock').value = inventory?.stock ?? 0;
+    $('p-minimo').value = inventory?.stockMinimo ?? 0;
+    $('p-medio').value = inventory?.stockMedio ?? 0;
+    $('p-maximo').value = inventory?.stockMaximo ?? 0;
+}
+
+function previewProducto() {
+    const url = $('p-imagen').value.trim();
+    $('p-preview').innerHTML = url ? imagenHTML(url, 'Vista previa') : 'Vista previa';
+}
+
+async function guardarProducto() {
+    const warehouseId = Number($('p-almacen').value || 0);
+    const product = {
+        codigo: $('p-codigo').value.trim(),
+        descripcion: $('p-descripcion').value.trim(),
+        modismos: $('p-modismos').value,
+        categoria: $('p-categoria').value,
+        unidad: $('p-unidad').value.trim(),
+        tipoCable: $('p-tipo').value.trim(),
+        tamano: $('p-tamano').value.trim(),
+        marca: $('p-marca').value.trim(),
+        proveedor: $('p-proveedor').value.trim(),
+        contactoProveedor: $('p-contacto-proveedor').value.trim(),
+        precio: Number($('p-precio').value) || 0,
+        stock: Number($('p-stock').value) || 0,
+        stockMinimo: Number($('p-minimo').value) || 0,
+        stockMedio: Number($('p-medio').value) || 0,
+        stockMaximo: Number($('p-maximo').value) || 0,
+        almacenId: warehouseId,
+        almacenNombre: almacenes.find(a => a.id === warehouseId)?.nombre || '',
+        imagen: $('p-imagen').value.trim()
+    };
+    if (!product.codigo || !product.descripcion) return alert('Código y descripción son obligatorios.');
+    if (!warehouseId) return alert('Selecciona un almacén.');
+    if (editandoProducto && editandoProducto !== product.codigo) {
+        const continuar = confirm(`Cambiarás el código ${editandoProducto} por ${product.codigo}. Las existencias, planes e historial relacionados conservarán la relación mediante la actualización en cascada. ¿Continuar?`);
+        if (!continuar) return;
+    }
+    try {
+        await SkilledDB.saveMaterial(product, editandoProducto);
+        cerrarProducto();
+        materiales = await SkilledDB.listMaterials();
+        renderMateriales();
+        renderCategorias();
+    } catch (error) {
+        alert(`No se pudo guardar el material: ${error.message}`);
+    }
+}
+
+async function eliminarProducto(codigo) {
+    if (!confirm(`¿Retirar ${codigo} del catálogo activo? El historial permanecerá disponible.`)) return;
+    try {
+        await SkilledDB.deleteMaterial(codigo);
+        materiales = materiales.filter(material => material.codigo !== codigo);
+        renderMateriales();
+        renderCategorias();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function eliminarCategoriaActual() {
+    const nombre = editandoCategoria || $('categoria-nombre').value.trim();
+    if (!nombre) return;
+    const cantidad = materiales.filter(material => material.categoria === nombre).length;
+    const mensaje = cantidad > 0
+        ? `La categoría ${nombre} contiene ${cantidad} material(es). Se retirarán la categoría y todos esos materiales del catálogo activo, pero se conservará el historial. ¿Continuar?`
+        : `¿Retirar la categoría ${nombre} del catálogo activo?`;
+    if (!confirm(mensaje)) return;
+    const validacion = prompt(`Escribe ELIMINAR para confirmar la eliminación de ${nombre}:`, '');
+    if (validacion !== 'ELIMINAR') return;
+    try {
+        await SkilledDB.deleteCategory(nombre, { withMaterials: true });
+        cerrarCategoria();
+        [categorias, materiales] = await Promise.all([
+            SkilledDB.listCategories(),
+            SkilledDB.listMaterials()
+        ]);
+        sincronizarCategoriasLocales();
+        llenarSelectores();
+        categoriaActual = '';
+        volverCategorias();
+        renderCategorias();
+    } catch (error) {
+        alert(`No se pudo eliminar la categoría: ${error.message}`);
+    }
+}
+
+$('cat-search').addEventListener('input', aplicarFiltros);
+$('busqueda-global').addEventListener('input', () => {
+    $('cat-search').value = $('busqueda-global').value;
+    aplicarFiltros();
+});
+$('cat-filter').addEventListener('change', () => {
+    if ($('cat-filter').value) abrirMateriales($('cat-filter').value);
+    else aplicarFiltros();
+});
+
+cargarCatalogoVisual();
+</script>
+<script src="AL.catalogo.js"></script>
+<script src="auth-guard.js"></script>
+<script src="skilled-sky.js?v=21" defer></script>
+</body>
+</html>

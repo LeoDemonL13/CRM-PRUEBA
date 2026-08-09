@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060814">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="interfaz.css">
+<script>document.documentElement.classList.remove('tema-claro');document.documentElement.dataset.crmTheme='oscuro';document.documentElement.style.colorScheme='dark';</script>
+<title>Skilled CRM — Iniciar sesión</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--blue:#2f73f1;--blue-soft:#68a7ff;--red:#ea0029;--panel:#091226;--line:rgba(101,136,194,.28)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#040713!important;color-scheme:dark!important}body,body.tema-claro,body[data-theme="light"]{font-family:'Plus Jakarta Sans',sans-serif;background:#040713!important;color:#eaf1fc!important;overflow:hidden}body.tema-claro .login-card,body.tema-claro .login-header,body.tema-claro .login-form,html.tema-claro .login-card,html.tema-claro .login-header,html.tema-claro .login-form{background:transparent!important;color:#eaf1fc!important;border-color:rgba(83,113,165,.23)!important}body.tema-claro .login-card,html.tema-claro .login-card{background:linear-gradient(150deg,rgba(11,20,42,.92),rgba(5,10,24,.88))!important}
+.login-scene{position:fixed;inset:0;isolation:isolate;background:#040713;overflow:hidden}
+.login-scene::before{content:"";position:absolute;inset:-2%;z-index:-6;background-image:linear-gradient(rgba(3,7,18,.42),rgba(2,5,14,.82)),url('fondo-login.gif');background-position:center;background-size:cover;background-repeat:no-repeat;filter:saturate(1.08) contrast(1.05);animation:sceneBreath 11s ease-in-out infinite alternate}
+.login-scene::after{content:"";position:absolute;inset:0;z-index:-5;background:radial-gradient(circle at 50% 42%,rgba(34,99,220,.13),transparent 30%),radial-gradient(circle at 12% 14%,rgba(44,117,255,.2),transparent 29%),radial-gradient(circle at 88% 82%,rgba(234,0,41,.14),transparent 31%),linear-gradient(125deg,rgba(3,7,18,.52),rgba(3,7,17,.83))}
+.scene-grid{position:absolute;inset:-28%;z-index:-4;background-image:linear-gradient(rgba(111,150,210,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(111,150,210,.055) 1px,transparent 1px);background-size:54px 54px;transform:perspective(820px) rotateX(63deg) translateY(33%);transform-origin:center bottom;mask-image:linear-gradient(to bottom,transparent 6%,#000 42%,#000 100%);animation:gridTravel 20s linear infinite}
+.scanline{position:absolute;inset:0;z-index:-3;opacity:.17;background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(126,166,226,.055) 4px);pointer-events:none}
+.glow{position:absolute;border-radius:999px;filter:blur(72px);z-index:-2;opacity:.58;animation:glowDrift 12s ease-in-out infinite alternate}.glow.blue{width:46vw;height:22vh;left:-12vw;top:13vh;background:rgba(37,99,235,.24)}.glow.red{width:38vw;height:18vh;right:-9vw;bottom:5vh;background:rgba(234,0,41,.14);animation-delay:-5s}
+.particle{position:absolute;width:3px;height:3px;border-radius:50%;background:#9ac4ff;box-shadow:0 0 15px rgba(96,165,250,.95);opacity:.38;animation:particleRise var(--duration) linear infinite;animation-delay:var(--delay)}
+.login-stage{position:relative;z-index:5;min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-orbit{position:relative;width:min(540px,100%);padding:22px 20px;animation:cardArrival .72s cubic-bezier(.2,.78,.22,1) both}
+.orbit-ring{position:absolute;left:50%;top:47%;border:1px solid rgba(80,139,241,.15);border-radius:50%;pointer-events:none}.orbit-ring.one{width:640px;height:640px;transform:translate(-50%,-50%);animation:ringSpin 38s linear infinite}.orbit-ring.two{width:760px;height:420px;transform:translate(-50%,-50%) rotate(18deg);border-color:rgba(234,0,41,.08);animation:ringSpinReverse 45s linear infinite}.orbit-ring::before,.orbit-ring::after{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:#4c91ff;box-shadow:0 0 18px rgba(76,145,255,.9)}.orbit-ring::before{left:11%;top:19%}.orbit-ring::after{right:13%;bottom:21%;background:#ea3153;box-shadow:0 0 18px rgba(234,49,83,.72)}
+.login-card{position:relative;width:100%;overflow:hidden;border:1px solid rgba(93,128,187,.36);border-radius:26px;background:linear-gradient(150deg,rgba(11,20,42,.92),rgba(5,10,24,.88));backdrop-filter:blur(28px) saturate(130%);-webkit-backdrop-filter:blur(28px) saturate(130%);box-shadow:0 42px 120px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.018) inset}
+.login-card::before{content:"";position:absolute;inset:0;padding:1px;border-radius:inherit;background:linear-gradient(125deg,rgba(104,167,255,.75),rgba(104,167,255,.04) 34%,rgba(234,0,41,.22) 74%,rgba(255,255,255,.08));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.78}
+.login-card::after{content:"";position:absolute;left:-35%;top:-75%;width:70%;height:170%;transform:rotate(20deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.045),transparent);animation:cardSweep 7s ease-in-out infinite;pointer-events:none}
+.card-accent{height:3px;background:linear-gradient(90deg,transparent,#397ef6 22%,#68a7ff 50%,#ea0029 82%,transparent);opacity:.92;box-shadow:0 0 18px rgba(57,126,246,.52)}
+.login-header{position:relative;padding:30px 34px 22px;border-bottom:1px solid rgba(83,113,165,.23);text-align:center}
+.logo-shell{position:relative;display:flex;align-items:center;justify-content:center;width:min(238px,82%);height:94px;margin:0 auto 4px;border:1px solid rgba(95,135,203,.34);border-radius:20px;background:linear-gradient(145deg,rgba(13,25,52,.96),rgba(6,12,28,.96));box-shadow:0 20px 45px rgba(0,0,0,.42),0 0 35px rgba(37,99,235,.1);overflow:hidden}
+.logo-shell::before{content:"";position:absolute;inset:-60%;background:conic-gradient(from 180deg,transparent,rgba(88,155,255,.14),transparent 33%,rgba(234,0,41,.09),transparent 72%);animation:logoAura 12s linear infinite}
+.login-logo{position:relative;z-index:2;width:178px;max-height:70px;height:auto;object-fit:contain;filter:drop-shadow(0 7px 20px rgba(0,0,0,.35))}
+.security-pill{display:inline-flex;align-items:center;gap:8px;margin-top:15px;padding:6px 10px;border:1px solid rgba(74,113,177,.25);border-radius:999px;background:rgba(5,11,26,.45);color:#8294b0;font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.security-pill i{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 12px rgba(52,211,153,.9);animation:statusPulse 2.2s ease infinite}
+.login-header h1{margin:16px 0 7px;color:#fff;font-size:25px;line-height:1.15;letter-spacing:-.025em}.login-header p{margin:0;color:#7889a4;font-size:11px;line-height:1.7}
+.login-form{padding:27px 34px 31px}.form-row{margin-bottom:17px}.form-row label{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#8a9ab1;font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.form-row label span{color:#50617c;font-weight:600;letter-spacing:0;text-transform:none}
+.input-wrap{position:relative}.input-icon{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:#5f718e;pointer-events:none}.input-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.input-wrap input{width:100%;height:52px;border:1px solid #263a5d;border-radius:12px;background:rgba(3,8,20,.72);padding:0 47px 0 45px;color:#edf4ff;font-size:13px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}.input-wrap input::placeholder{color:#52627c}.input-wrap input:hover{border-color:#324b75}.input-wrap input:focus{border-color:#4d91ff;background:rgba(5,11,27,.88);box-shadow:0 0 0 3px rgba(47,115,241,.12),0 10px 28px rgba(0,0,0,.16)}.input-wrap:focus-within .input-icon{color:#68a7ff}
+.password-toggle{position:absolute;right:8px;top:8px;width:36px;height:36px;border:0;border-radius:9px;background:transparent;color:#6f8099;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.16s}.password-toggle:hover{background:#121e35;color:#e4efff}.password-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.login-message{margin:2px 0 14px;border-radius:11px;border:1px solid;padding:11px 13px;font-size:10px;line-height:1.55}.login-submit{position:relative;width:100%;height:52px;border:0;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#2563eb,#397ef6 58%,#2e71e8);color:#fff;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 14px 34px rgba(37,99,235,.3);transition:transform .18s,filter .18s,box-shadow .18s}.login-submit::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 24%,rgba(255,255,255,.19) 48%,transparent 70%);transform:translateX(-120%);transition:transform .5s}.login-submit:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 18px 42px rgba(37,99,235,.36)}.login-submit:hover::before{transform:translateX(120%)}.login-submit:active{transform:translateY(1px)}.login-submit:disabled{opacity:.62;cursor:wait;transform:none}.login-submit .button-content{display:inline-flex;align-items:center;justify-content:center;gap:9px}.button-spinner{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.28);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite}.login-submit.is-loading .button-spinner{display:inline-block}
+.login-footer{display:flex;align-items:center;justify-content:space-between;margin-top:19px;color:#52617a;font-size:9px}.login-footer strong{color:#71829c;font-weight:700}.footer-status{display:inline-flex;align-items:center;gap:7px}.footer-status::before{content:"";width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 10px rgba(52,211,153,.75)}
+.login-stage.is-success .login-card{transform:scale(.985);opacity:.82;transition:.24s}.login-stage.is-success::after{content:"Acceso autorizado";position:fixed;left:50%;top:50%;z-index:30;transform:translate(-50%,-50%);padding:12px 18px;border:1px solid rgba(52,211,153,.35);border-radius:12px;background:rgba(4,20,18,.92);color:#8df1c8;font-size:11px;font-weight:800;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+@keyframes sceneBreath{to{transform:scale(1.025);filter:saturate(1.16) contrast(1.06)}}@keyframes gridTravel{to{background-position:54px 54px}}@keyframes glowDrift{to{transform:translate(22vw,10vh) scale(1.3)}}@keyframes particleRise{0%{transform:translateY(110vh) translateX(0) scale(.4);opacity:0}12%{opacity:.44}88%{opacity:.28}100%{transform:translateY(-18vh) translateX(72px) scale(1.25);opacity:0}}@keyframes ringSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}@keyframes ringSpinReverse{to{transform:translate(-50%,-50%) rotate(-342deg)}}@keyframes logoAura{to{transform:rotate(360deg)}}@keyframes cardSweep{0%,62%{transform:translateX(-45%) rotate(20deg);opacity:0}72%{opacity:1}100%{transform:translateX(250%) rotate(20deg);opacity:0}}@keyframes cardArrival{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}@keyframes statusPulse{50%{opacity:.45;box-shadow:0 0 4px rgba(52,211,153,.55)}}@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){body{overflow:auto}.login-stage{padding:18px}.login-orbit{padding:22px 0}.orbit-ring{display:none}.login-card{border-radius:21px}.login-header,.login-form{padding-left:23px;padding-right:23px}.logo-shell{width:min(210px,88%);height:82px;margin:0 auto 3px}.login-logo{width:154px;max-height:60px}}
+@media(prefers-reduced-motion:reduce){.login-scene::before,.scene-grid,.glow,.particle,.orbit-ring,.logo-shell::before,.login-card::after,.security-pill i{animation:none!important}.login-orbit{animation:none}}
+</style>
+</head>
+<body class="login-dark">
+<div class="login-scene" aria-hidden="true">
+<div class="scene-grid"></div><div class="scanline"></div><div class="glow blue"></div><div class="glow red"></div><div id="particles"></div>
+</div>
+<main id="login-stage" class="login-stage">
+<div class="login-orbit">
+<div class="orbit-ring one"></div><div class="orbit-ring two"></div>
+<section class="login-card" aria-label="Inicio de sesión del CRM">
+<div class="card-accent"></div>
+<header class="login-header">
+<div class="logo-shell"><img src="logo-reporte.png" alt="Skilled Proyectos Industriales" class="login-logo"></div>
+<div class="security-pill"><i></i> Plataforma corporativa protegida</div>
+</header>
+<form id="login-form" class="login-form">
+<div class="form-row"><label for="email">Correo electrónico <span>Cuenta autorizada</span></label><div class="input-wrap"><span class="input-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="m4 7 8 6 8-6"></path></svg></span><input id="email" type="email" required autocomplete="email" placeholder="nombre@skilled.mx"></div></div>
+<div class="form-row"><label for="password">Contraseña <span>Acceso cifrado</span></label><div class="input-wrap"><span class="input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></span><input id="password" type="password" required autocomplete="current-password" placeholder="••••••••••••"><button id="toggle-password" type="button" class="password-toggle" title="Mostrar contraseña" aria-label="Mostrar contraseña"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div></div>
+<p id="login-message" class="hidden login-message"></p>
+<button id="login-button" type="submit" class="login-submit"><span class="button-content"><span class="button-spinner"></span><span id="login-button-text">Entrar al CRM</span></span></button>
+<div class="login-footer"><span class="footer-status">Servicio conectado</span><strong>Skilled Proyectos Industriales</strong></div>
+</form>
+</section>
+</div>
+</main>
+<script src="skilled-supabase.js?v=11"></script>
+<script>
+(function(){
+const form=document.getElementById('login-form');
+const stage=document.getElementById('login-stage');
+const message=document.getElementById('login-message');
+const button=document.getElementById('login-button');
+const buttonText=document.getElementById('login-button-text');
+const password=document.getElementById('password');
+const toggle=document.getElementById('toggle-password');
+const params=new URLSearchParams(location.search);
+const particles=document.getElementById('particles');
+const roleHomes={administrador:'AL.inicio.html',jefe_almacen:'AL.inicio.html',almacen:'AL.inicio.html',compras:'CO.inicio.html',rh:'RH.inicio.html',finanzas:'FI.inicio.html',proyectos:'AL.proyectos.html',consulta:'AL.inicio.html'};
+for(let i=0;i<30;i+=1){const p=document.createElement('i');p.className='particle';p.style.left=`${Math.random()*100}%`;p.style.setProperty('--duration',`${13+Math.random()*20}s`);p.style.setProperty('--delay',`-${Math.random()*24}s`);p.style.opacity=(.18+Math.random()*.36).toFixed(2);particles.appendChild(p)}
+function show(text,type){message.className=`login-message ${type==='error'?'border-rose-500/35 bg-rose-950/25 text-rose-300':'border-amber-500/35 bg-amber-950/20 text-amber-300'}`;message.textContent=text;message.classList.remove('hidden')}
+function setLoading(value){button.disabled=value;button.classList.toggle('is-loading',value);buttonText.textContent=value?'Validando acceso…':'Entrar al CRM'}
+function cacheProfile(profile,user){try{localStorage.setItem('skilled_profile_cache',JSON.stringify({...profile,email:user?.email||'',fotoUrl:profile?.foto_url}))}catch(_){}}
+function clearProfile(){try{localStorage.removeItem('skilled_profile_cache')}catch(_){}}
+function destination(profile){const next=params.get('next');if(next&&next.startsWith(location.origin))return next;return roleHomes[String(profile?.rol||'').toLowerCase()]||'inicio.html'}
+if(params.get('estado')==='sin_acceso')show('La cuenta existe, pero todavía no tiene un perfil activo.','warn');
+if(params.get('estado')==='sin_permiso')show('Tu perfil no tiene permiso para abrir esa sección.','warn');
+if(params.get('estado')==='sesion_requerida')show('Inicia sesión para abrir el apartado solicitado. Después del acceso regresarás automáticamente a esa pantalla.','warn');
+if(params.get('estado')==='conexion')show('No fue posible validar la sesión. Comprueba tu conexión con Supabase y vuelve a intentarlo.','warn');
+toggle.addEventListener('click',()=>{const visible=password.type==='text';password.type=visible?'password':'text';toggle.title=visible?'Mostrar contraseña':'Ocultar contraseña';toggle.setAttribute('aria-label',toggle.title)});
+form.addEventListener('submit',async event=>{
+event.preventDefault();setLoading(true);message.classList.add('hidden');
+try{
+const email=document.getElementById('email').value.trim();
+const {data,error}=await SkilledDB.client.auth.signInWithPassword({email,password:password.value});
+if(error)throw error;
+const {data:profile,error:profileError}=await SkilledDB.client.from('perfiles_usuario').select('*').eq('id',data.user.id).maybeSingle();
+if(profileError)throw profileError;
+if(!profile||!profile.activo){await SkilledDB.client.auth.signOut();clearProfile();throw new Error('La cuenta existe, pero todavía no ha sido activada por el administrador.')}
+cacheProfile(profile,data.user);
+stage.classList.add('is-success');
+setTimeout(()=>location.replace(destination(profile)),220);
+}catch(error){show(error.message||'No fue posible iniciar sesión.','error');setLoading(false)}
+});
+async function validateExistingSession(){
+try{
+const {data:{session},error}=await SkilledDB.client.auth.getSession();
+if(error||!session)return;
+const {data:profile,error:profileError}=await SkilledDB.client.from('perfiles_usuario').select('*').eq('id',session.user.id).maybeSingle();
+if(profileError){show('Hay una sesión guardada, pero no fue posible validar el perfil. Revisa la conexión con Supabase.','warn');return}
+if(!profile||!profile.activo){await SkilledDB.client.auth.signOut().catch(()=>{});clearProfile();show('La sesión guardada no tiene un perfil activo. Inicia con otra cuenta o solicita la activación.','warn');return}
+cacheProfile(profile,session.user);
+location.replace(destination(profile));
+}catch(error){console.debug('No se pudo validar la sesión guardada:',error);show('No fue posible comprobar la sesión guardada. Puedes intentar iniciar sesión nuevamente.','warn')}
+}
+validateExistingSession();
+})();
+</script>
+</body>
+</html>

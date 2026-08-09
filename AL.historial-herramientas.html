@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#060814" name="theme-color"/>
+<link href="interfaz.css" rel="stylesheet"/>
+<script src="navegacion-suave.js?v=9"></script>
+<title>Skilled - Historial de herramientas</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="skilled-supabase.js?v=11"></script>
+<script src="auth-guard.js"></script><script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head><body class="min-h-screen flex overflow-x-hidden"><aside></aside><div class="flex-1 min-w-0 flex flex-col min-h-screen"><header class="h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30"><div class="relative w-full max-w-md"><svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input class="field pl-9" id="global-search" placeholder="Buscar evento, herramienta, unidad o destino..."/></div><div class="flex items-center gap-3"><button class="crm-icon-button" id="refresh" title="Actualizar"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"></path></svg></button><button class="crm-icon-button" onclick="alternarTema()" title="Cambiar tema" type="button"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></button></div></header><main class="flex-1 p-6 md:p-8 max-w-[1550px] mx-auto w-full"><nav class="text-[11px] text-gray-500 mb-3 flex gap-2"><a href="AL.inicio.html">Inicio</a><span>›</span><a href="AL.herramientas.html">Herramientas</a><span>›</span><span class="text-gray-300 font-semibold">Historial</span></nav><section class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7"><div class="flex gap-3"><div class="w-11 h-11 rounded-xl bg-[#0a1122] border border-[#1d2949] text-violet-400 flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewbox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8M3 3v5h5M12 7v5l3 2"></path></svg></div><div><h1 class="text-2xl font-bold text-white">Historial de herramientas</h1><p class="text-sm text-gray-500 mt-1">Trazabilidad de asignaciones, devoluciones, mantenimiento, estados y bajas.</p></div></div><div class="flex gap-2"><a class="crm-secondary" href="AL.estado-herramientas.html">Estado actual</a><button class="crm-secondary" id="export">Exportar Excel</button><a class="crm-primary" href="AL.asignaciones-herramientas.html?nueva=1">Nueva asignación</a></div></section><section class="panel p-3 mb-5"><div class="grid grid-cols-1 md:grid-cols-[1.4fr_.8fr_.8fr] gap-3"><input class="field" id="search" placeholder="Herramienta, código, serie, proyecto, persona o detalle..."/><select class="field" id="event"><option value="">Todos los eventos</option></select><select class="field" id="state"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="asignada">Asignada</option><option value="mantenimiento">Mantenimiento</option><option value="baja">Baja</option></select></div></section><div class="py-16 text-center text-sm text-gray-500" id="loading">Consultando historial...</div><div class="hidden panel py-16 text-center text-sm text-gray-500" id="empty">No hay eventos con estos filtros.</div><div class="hidden panel overflow-x-auto" id="table-wrap"><table class="w-full text-xs min-w-[1180px]"><thead><tr class="border-b border-[#243257] text-[9px] uppercase tracking-widest text-gray-500"><th class="px-4 py-3 text-left">Fecha</th><th class="px-4 py-3 text-left">Evento</th><th class="px-4 py-3 text-left">Herramienta / unidad</th><th class="px-4 py-3 text-left">Estado</th><th class="px-4 py-3 text-left">Destino</th><th class="px-4 py-3 text-left">Responsable</th><th class="px-4 py-3 text-left">Detalle</th><th class="px-4 py-3 text-right">Acciones</th></tr></thead><tbody id="tbody"></tbody></table></div></main></div><script src="AL.ticket-herramientas.js"></script><script defer="" src="skilled-sidebar.js?v=21"></script><script>(function(){
+'use strict';
+
+const $=id=>document.getElementById(id);
+const escapeHtml=value=>String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+const lower=value=>String(value??'').trim().toLocaleLowerCase('es-MX');
+const formatDate=value=>{
+    const parsed=new Date(value);
+    return Number.isNaN(parsed.getTime())?'—':parsed.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'});
+};
+const eventLabels={
+    alta:'Alta',
+    asignacion:'Asignación',
+    devolucion:'Devolución',
+    cancelacion:'Cancelación',
+    cambio_estado:'Cambio de estado',
+    mantenimiento:'Mantenimiento',
+    baja:'Baja'
+};
+let history=[];
+let assignments=[];
+let documentBusy=false;
+const currentRole=()=>{try{return String(window.SkilledSession?.role||JSON.parse(localStorage.getItem('skilled_profile_cache')||'{}').rol||'').toLowerCase()}catch(_){return String(window.SkilledSession?.role||'').toLowerCase()}};
+const canDeleteTest=()=>['administrador','jefe_almacen'].includes(currentRole());
+
+function showNotice(message,type='info'){
+    let box=$('history-document-notice');
+    if(!box){
+        box=document.createElement('div');
+        box.id='history-document-notice';
+        box.className='hidden mb-5 rounded-xl border px-4 py-3 text-xs';
+        $('table-wrap')?.parentElement?.insertBefore(box,$('table-wrap'));
+    }
+    if(!message){box.classList.add('hidden');return;}
+    const styles={
+        info:'border-blue-500/25 bg-blue-950/15 text-blue-200',
+        success:'border-emerald-500/25 bg-emerald-950/15 text-emerald-200',
+        error:'border-rose-500/30 bg-rose-950/20 text-rose-200'
+    };
+    box.className=`mb-5 rounded-xl border px-4 py-3 text-xs ${styles[type]||styles.info}`;
+    box.textContent=message;
+}
+
+function filtered(){
+    const query=lower($('search').value);
+    const event=$('event').value;
+    const state=$('state').value;
+    const unitId=Number(new URLSearchParams(location.search).get('unidad')||0);
+    return history.filter(item=>(!unitId||Number(item.unidadId)===unitId)
+        &&(!event||item.tipoEvento===event)
+        &&(!state||item.estadoNuevo===state)
+        &&(!query||lower([
+            item.tipoEvento,
+            item.unidad?.codigoInterno,
+            item.unidad?.numeroSerie,
+            item.unidad?.herramienta?.sku,
+            item.unidad?.herramienta?.descripcion,
+            item.proyecto,
+            item.personaNombre,
+            item.responsable,
+            item.detalle
+        ].join(' ')).includes(query)));
+}
+
+function documentType(item){
+    const value=lower(item.tipoEvento);
+    return ['alta','asignacion','devolucion','cancelacion','mantenimiento','baja','cambio_estado'].includes(value)?value:'estado';
+}
+
+async function eventDocument(item){
+    let group=[];
+    if(item.grupoId&&typeof SkilledDB.getToolAssignmentGroup==='function'){
+        try{group=await SkilledDB.getToolAssignmentGroup(item.grupoId)}catch(error){console.warn('No se pudo reconstruir el grupo de herramientas:',error);}
+    }
+    const assignment=group[0]||assignments.find(row=>Number(row.id)===Number(item.asignacionId));
+    const destination=item.destinoTipo==='proyecto'
+        ?`Proyecto ${item.proyecto||assignment?.proyecto||'sin número'}`
+        :item.personaNombre||assignment?.personaNombre||item.estadoNuevo||'Control de herramientas';
+    const items=group.length?group:[{unidad:item.unidad}];
+    return{
+        tipo:documentType(item),
+        grupoId:item.grupoId,
+        folio:item.grupoId||`HIS-${item.id}`,
+        fecha:item.fecha,
+        destino:destination,
+        responsable:item.responsable||assignment?.responsableEntrega||'Control de herramientas',
+        personaContacto:item.personaNombre||assignment?.personaNombre||'',
+        fechaDevolucionEstimada:assignment?.fechaDevolucionEstimada||assignment?.fecha_devolucion_estimada||'',
+        estadoAnterior:item.estadoAnterior||'',
+        estadoNuevo:item.estadoNuevo||'',
+        condicion:documentType(item)==='devolucion'?assignment?.condicionEntrada:assignment?.condicionSalida,
+        accesorios:assignment?.accesoriosSalida,
+        observaciones:item.detalle||assignment?.observaciones||'Sin observaciones',
+        items
+    };
+}
+
+async function openDocument(id,format){
+    if(documentBusy)return;
+    const item=history.find(row=>String(row.id)===String(id));
+    if(!item){showNotice('No se encontró el evento seleccionado. Actualiza el historial e inténtalo nuevamente.','error');return;}
+    documentBusy=true;
+    const buttons=[...document.querySelectorAll(`[data-tool-document-id="${CSS.escape(String(id))}"]`)];
+    buttons.forEach(button=>{
+        button.disabled=true;
+        button.dataset.previousText=button.textContent;
+        button.textContent='Preparando…';
+        button.classList.add('opacity-60');
+    });
+    try{
+        if(!window.SkilledToolTickets?.disponible&&typeof window.SkilledToolTickets?.mostrar!=='function'){
+            throw new Error('No se cargó el generador de tickets. Actualiza el navegador con Ctrl + F5.');
+        }
+        const data=await eventDocument(item);
+        if(!data.items.length||!data.items.some(row=>row?.unidad||row?.codigoInterno||row?.codigo_interno)){
+            throw new Error('El evento no tiene una unidad de herramienta relacionada y no puede generar un documento.');
+        }
+        window.SkilledToolTickets.mostrar(data,format);
+        showNotice('Documento preparado correctamente. Revisa la vista previa y selecciona Imprimir.','success');
+    }catch(error){
+        console.error(error);
+        showNotice(error.message||'No se pudo preparar el documento.','error');
+    }finally{
+        buttons.forEach(button=>{
+            button.disabled=false;
+            button.textContent=button.dataset.previousText||button.textContent;
+            button.classList.remove('opacity-60');
+        });
+        documentBusy=false;
+    }
+}
+
+function render(){
+    const rows=filtered();
+    $('loading').classList.add('hidden');
+    $('empty').classList.toggle('hidden',rows.length>0);
+    $('table-wrap').classList.toggle('hidden',rows.length===0);
+    $('tbody').innerHTML=rows.map(item=>{
+        const tool=item.unidad?.herramienta||{};
+        const destination=item.destinoTipo==='proyecto'?`Proyecto ${item.proyecto||'—'}`:item.personaNombre||'—';
+        return`<tr class="border-b border-[#161f38]">
+            <td class="px-4 py-3 text-gray-300">${formatDate(item.fecha)}</td>
+            <td class="px-4 py-3"><span class="rounded-full border border-violet-500/25 bg-violet-950/15 px-2 py-1 text-[9px] font-bold text-violet-300">${escapeHtml(eventLabels[item.tipoEvento]||item.tipoEvento)}</span></td>
+            <td class="px-4 py-3"><div class="font-semibold text-white">${escapeHtml(tool.descripcion||'Herramienta')}</div><div class="mt-1 font-mono text-[9px] text-blue-300">${escapeHtml(item.unidad?.codigoInterno||'—')} · ${escapeHtml(tool.sku||'—')} · Serie ${escapeHtml(item.unidad?.numeroSerie||'—')}</div></td>
+            <td class="px-4 py-3"><span class="text-gray-500">${escapeHtml(item.estadoAnterior||'—')}</span> <span class="text-blue-300">→</span> <span class="text-gray-200">${escapeHtml(item.estadoNuevo||'—')}</span></td>
+            <td class="px-4 py-3 text-gray-300">${escapeHtml(destination)}</td>
+            <td class="px-4 py-3 text-gray-300">${escapeHtml(item.responsable||'—')}</td>
+            <td class="px-4 py-3 text-gray-400 max-w-sm">${escapeHtml(item.detalle||'Sin detalle')}</td>
+            <td class="px-4 py-3 text-right"><div class="inline-flex flex-wrap justify-end gap-2">
+                <button type="button" data-tool-document-id="${escapeHtml(item.id)}" data-tool-document-format="58mm" class="crm-secondary !px-3 !py-2">Ticket 58 mm</button>
+                <button type="button" data-tool-document-id="${escapeHtml(item.id)}" data-tool-document-format="carta" class="crm-primary !px-3 !py-2">Comprobante</button>
+                ${canDeleteTest()?`<button type="button" data-delete-tool-history="${escapeHtml(item.id)}" class="crm-secondary !px-3 !py-2 text-rose-300 border-rose-500/25">Eliminar</button>`:''}
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+async function deleteHistoryTest(id){
+    if(!canDeleteTest())return alert('Tu perfil no puede eliminar historial de prueba.');
+    const item=history.find(row=>String(row.id)===String(id));
+    if(!item)return;
+    if(!confirm(`¿Eliminar definitivamente este evento de prueba?\n\n${eventLabels[item.tipoEvento]||item.tipoEvento} · ${item.unidad?.codigoInterno||'Sin código'} · ${formatDate(item.fecha)}`))return;
+    try{
+        await SkilledDB.deleteToolHistoryTest(id);
+        history=history.filter(row=>String(row.id)!==String(id));
+        render();
+        showNotice('El evento de historial de prueba fue eliminado.','success');
+    }catch(error){showNotice(error.message||'No se pudo eliminar el evento.','error');}
+}
+
+function exportHistory(){
+    const rows=filtered().map(item=>({
+        'Fecha':item.fecha,
+        'Evento':eventLabels[item.tipoEvento]||item.tipoEvento,
+        'Código interno':item.unidad?.codigoInterno,
+        'No. serie':item.unidad?.numeroSerie,
+        'SKU':item.unidad?.herramienta?.sku,
+        'Herramienta':item.unidad?.herramienta?.descripcion,
+        'Estado anterior':item.estadoAnterior,
+        'Estado nuevo':item.estadoNuevo,
+        'Destino tipo':item.destinoTipo,
+        'Proyecto':item.proyecto,
+        'Persona':item.personaNombre,
+        'Responsable':item.responsable,
+        'Detalle':item.detalle,
+        'Folio grupo':item.grupoId
+    }));
+    const sheet=XLSX.utils.json_to_sheet(rows);
+    sheet['!cols']=Array.from({length:14},(_,index)=>({wch:index===5||index===12?38:18}));
+    const book=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book,sheet,'Historial');
+    XLSX.writeFile(book,`Historial_herramientas_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+async function load(){
+    $('loading').classList.remove('hidden');
+    showNotice('');
+    try{
+        [history,assignments]=await Promise.all([
+            SkilledDB.listToolHistory(),
+            SkilledDB.listToolAssignments()
+        ]);
+        const events=[...new Set(history.map(item=>item.tipoEvento).filter(Boolean))].sort();
+        $('event').innerHTML='<option value="">Todos los eventos</option>'+events.map(value=>`<option value="${escapeHtml(value)}">${escapeHtml(eventLabels[value]||value)}</option>`).join('');
+        render();
+    }catch(error){
+        console.error(error);
+        $('loading').innerHTML=`<span class="text-rose-400">${escapeHtml(error.message)}</span>`;
+    }
+}
+
+['search','event','state'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
+$('global-search').addEventListener('input',event=>{$('search').value=event.target.value;render();});
+$('refresh').addEventListener('click',load);
+$('export').addEventListener('click',exportHistory);
+$('tbody').addEventListener('click',event=>{
+    const deleteButton=event.target.closest('[data-delete-tool-history]');
+    if(deleteButton){deleteHistoryTest(deleteButton.dataset.deleteToolHistory);return;}
+    const button=event.target.closest('[data-tool-document-id]');
+    if(!button)return;
+    openDocument(button.dataset.toolDocumentId,button.dataset.toolDocumentFormat);
+});
+window.addEventListener('skilled:tool-tickets-ready',()=>showNotice('Generador de tickets listo.','success'),{once:true});
+load();
+})();
+</script><script src="skilled-sky.js?v=21" defer></script>
+</body></html>

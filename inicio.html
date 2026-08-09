@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060814">
+<title>Skilled CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="skilled-supabase.js?v=11"></script>
+<style>
+html,body{margin:0;min-height:100%;background:#060814;color:#cbd5e1;font-family:Inter,system-ui,sans-serif}main{min-height:100vh;display:grid;place-items:center}.card{border:1px solid #243257;border-radius:16px;background:#090d1a;padding:28px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.42)}img{width:140px}.dot{display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#34d399;box-shadow:0 0 12px #34d399}
+</style>
+</head>
+<body>
+<main><div class="card"><img src="logo-reporte.png" alt="Skilled"><p><span class="dot"></span>Preparando tu área de trabajo…</p></div></main>
+<script>
+(function(){
+const routes={administrador:'AL.inicio.html',jefe_almacen:'AL.inicio.html',almacen:'AL.inicio.html',compras:'CO.inicio.html',rh:'RH.inicio.html',finanzas:'FI.inicio.html',proyectos:'AL.proyectos.html',consulta:'AL.inicio.html'};
+const go=role=>location.replace(routes[String(role||'').toLowerCase()]||'AL.inicio.html');
+let cache=null;
+try{cache=JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')}catch(_){}
+if(cache?.activo!==false&&cache?.rol){go(cache.rol);return}
+(async()=>{
+try{
+const {data:{session},error:sessionError}=await SkilledDB.client.auth.getSession();
+if(sessionError||!session){try{localStorage.removeItem('skilled_profile_cache')}catch(_){}location.replace('login.html?estado=sesion_requerida');return}
+const {data:profile,error:profileError}=await SkilledDB.client.from('perfiles_usuario').select('*').eq('id',session.user.id).maybeSingle();
+if(profileError){location.replace('login.html?estado=conexion');return}
+if(!profile?.activo){await SkilledDB.client.auth.signOut().catch(()=>{});try{localStorage.removeItem('skilled_profile_cache')}catch(_){}location.replace('login.html?estado=sin_acceso');return}
+try{localStorage.setItem('skilled_profile_cache',JSON.stringify({...profile,email:session.user.email,fotoUrl:profile.foto_url}))}catch(_){}
+go(profile.rol);
+}catch(error){console.error(error);location.replace('login.html?estado=conexion')}
+})();
+})();
+</script>
+</body>
+</html>

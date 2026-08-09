@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060814">
+<link rel="stylesheet" href="interfaz.css">
+<script src="navegacion-suave.js?v=9"></script>
+<title>Prueba ticket 47 mm</title>
+<style>
+body{margin:0;padding:24px;background:#d9dde5;font-family:Arial,sans-serif}
+main{max-width:900px;margin:auto}
+button{border:0;border-radius:8px;background:#2563eb;color:#fff;padding:10px 16px;font-weight:700;cursor:pointer}
+iframe{display:block;margin:20px auto 0;width:58mm;height:760px;border:1px solid #94a3b8;background:#fff;box-shadow:0 12px 30px rgba(0,0,0,.2)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="skilled-supabase.js?v=11"></script>
+<script src="auth-guard.js"></script>
+</head>
+<body>
+<main>
+<h1>Prueba del ticket térmico</h1>
+<p>La hoja representa papel de 58 mm y el diseño ocupa exactamente 47 mm centrados.</p>
+<button id="print">Enviar ticket a impresión</button>
+<iframe id="preview"></iframe>
+</main>
+<script src="AL.ticket-materiales.js"></script>
+<script>
+const datos={
+ titulo:'Comprobante de ajuste de inventario',
+ requestId:'8c622dfd-ad3b-4267-9102-b6921bbaa315',
+ folio:'8c622dfd-ad3b-4267-9102-b6921bbaa315',
+ fecha:'2026-07-31T16:42:00-06:00',
+ proyecto:'26069',
+ bodegaOrigen:'Bodega Central',
+ bodegaDestino:'Bodega Central',
+ recibeNombre:'No especificado',
+ notas:'L',
+ productos:[{producto:{codigo:'11-A1.2',descripcion:'UNIPOLARBLANCO-HELUKABEL-H05V-K 1X1mm²/18AWG',unidad:'METROS'},cantidad:5}]
+};
+document.getElementById('preview').srcdoc=SkilledTickets.crearHtmlTicket(datos,'58mm');
+document.getElementById('print').addEventListener('click',()=>SkilledTickets.imprimir(datos,'58mm'));
+</script>
+<script src="skilled-sky.js?v=21" defer></script>
+</body>
+</html>

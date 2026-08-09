@@ -1,0 +1,19 @@
+CRM SKILLED · PARCHE V20 · COTIZACIONES
+
+Este parche se aplica sobre V19.
+
+Cambios principales:
+- Almacén/Bajo mínimo solicita cotización a Compras.
+- Nuevo CO.cotizaciones.html con comparador precio/plazo.
+- Catálogo proveedor-material e importación masiva.
+- Proveedores temporales que solo se vuelven permanentes al aprobar su oferta.
+- Plantillas de correo y envío directo mediante Edge Function opcional.
+- Sky actualizado para el flujo de cotizaciones.
+- Un único SQL: SQL_MAESTRO_CRM.sql.
+
+IMPORTANTE:
+1. Respaldar la base antes de aplicar el SQL maestro.
+2. Ejecutar SQL_MAESTRO_CRM.sql una vez.
+3. Para envío directo de correo, configurar la Edge Function según CONFIGURAR_ENVIO_CORREO_COMPRAS.md.
+4. Si no se configura la función de correo, el CRM conserva la solicitud y permite envío manual.
+5. Hacer Ctrl+F5 después de sustituir los archivos.

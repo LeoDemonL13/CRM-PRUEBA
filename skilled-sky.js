@@ -1,0 +1,1851 @@
+(function () {
+    'use strict';
+
+    const file = (location.pathname.split('/').pop() || '').toLowerCase();
+    const params = new URLSearchParams(location.search);
+    const requestedProfile = String(params.get('perfil') || '').toLowerCase();
+    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas' };
+    const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', proyectos: 'Proyectos', consulta: 'Consulta' };
+    const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', proyectos: 'PR', consulta: 'CN' };
+    const customProfiles = new Map();
+    function currentRole() {
+        if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
+        if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
+        try { return String(JSON.parse(localStorage.getItem('skilled_profile_cache') || 'null')?.rol || 'consulta').toLowerCase(); } catch (_) { return 'consulta'; }
+    }
+    function detectProfile() {
+        if (requestedProfile) return requestedProfile;
+        const match = file.match(/^([a-z0-9_-]+)\./i);
+        if (match) return knownPrefixProfiles[match[1].toLowerCase()] || match[1].toLowerCase();
+        const body = String(document.body?.dataset?.profile || document.documentElement?.dataset?.profile || '').toLowerCase();
+        if (body) return body;
+        const remembered = String(sessionStorage.getItem('skilled_active_profile') || '').toLowerCase();
+        if (remembered) return remembered;
+        const role = currentRole();
+        if (role === 'compras' || role === 'rh' || role === 'finanzas' || role === 'proyectos' || role === 'consulta') return role;
+        return 'almacen';
+    }
+    function profileConfig(profile = detectProfile()) {
+        const base = {
+            almacen: { title: 'Sky · Asistente de almacén', subtitle: 'Existencias, ubicaciones, mínimos, herramientas, proyectos y flotilla.', placeholder: 'Ej. ¿Cuántos tubos de 1 pulgada tenemos?', examples: [['Existencia de material','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación de material','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas pendientes','¿Qué herramientas están vencidas?'],['Vehículos disponibles','¿Qué vehículos están disponibles?']] },
+            compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Qué cotizaciones requieren atención?', examples: [['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Buscar proveedor','Busca al proveedor ABB'],['Proyectos','¿Qué proyectos están activos?'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?']] },
+            rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
+            finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
+            proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
+            consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
+        };
+        if (base[profile]) return base[profile];
+        const label = profileNames[profile] || profile.replace(/[_-]+/g, ' ').replace(/\w/g, value => value.toUpperCase());
+        return { title: `Sky · Asistente de ${label}`, subtitle: 'Asistente contextual del CRM. Este perfil puede registrar sus propias consultas en Sky.', placeholder: `Pregunta algo sobre ${label}`, examples: [['Ayuda del perfil',`¿Qué puede hacer Sky en ${label}?`],['Buscar en CRM','Busca información disponible para este perfil']] };
+    }
+    const shortcutLabel = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? '⌥ + S' : 'Alt + S';
+
+    const text = value => String(value ?? '').trim();
+    const html = value => text(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    const number = value => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const formatNumber = value => number(value).toLocaleString('es-MX', { maximumFractionDigits: 2 });
+    const normalize = value => {
+        let output = text(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        output = output.replace(/(\d+(?:\s*\/\s*\d+)?)\s*["”″]/g, '$1 pulgada');
+        output = output.replace(/\b(?:una|uno|un)\s+(?:pulgada\s+)?y\s+media\b/g, '1 1/2 pulgada');
+        output = output.replace(/\b(?:una|uno|un)\s+(?:pulgada\s+)?y\s+un\s+cuarto\b/g, '1 1/4 pulgada');
+        output = output.replace(/\btres\s+cuartos?\b/g, '3/4').replace(/\bun\s+cuarto\b/g, '1/4');
+        output = output.replace(/\bmedia\s+pulgada\b/g, '1/2 pulgada').replace(/\bmedio\s+pulgada\b/g, '1/2 pulgada');
+        const numbers = { cero:'0', una:'1', uno:'1', un:'1', dos:'2', tres:'3', cuatro:'4', cinco:'5', seis:'6', siete:'7', ocho:'8', nueve:'9', diez:'10', once:'11', doce:'12', trece:'13', catorce:'14', quince:'15', dieciseis:'16', diecisiete:'17', dieciocho:'18', diecinueve:'19', veinte:'20' };
+        Object.entries(numbers).forEach(([word, digit]) => { output = output.replace(new RegExp(`\\b${word}\\b`, 'g'), digit); });
+        return output.replace(/[^a-z0-9ñ/.:+-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    };
+    const stopWords = new Set(['sky', 'skai', 'skay', 'cuanto', 'cuantos', 'cuanta', 'cuantas', 'tenemos', 'hay', 'dime', 'me', 'puedes', 'por', 'favor', 'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'en', 'que', 'cual', 'cuales', 'donde', 'esta', 'estan', 'ubicacion', 'existencia', 'existencias', 'stock', 'material', 'materiales', 'pieza', 'piezas']);
+
+    const wakePrefix = /^(?:(?:hey\s+)?(?:sky|skai|skay|escai|es\s*ky|es\s+que))[,;:\s-]*/i;
+    function stripWakeWord(value) {
+        return text(value).replace(wakePrefix, '').trim();
+    }
+    function commandNormalize(value) {
+        let output = normalize(stripWakeWord(value));
+        const replacements = [
+            [/\bque horas son\b/g, 'que hora es'], [/\bque horas es\b/g, 'que hora es'], [/\bdime la hora actual\b/g, 'que hora es'], [/\bhora actual\b/g, 'que hora es'],
+            [/\bque fecha estamos\b/g, 'que fecha es hoy'], [/\ben que fecha estamos\b/g, 'que fecha es hoy'], [/\bque dia estamos\b/g, 'que dia es hoy'], [/\ba que dia estamos\b/g, 'que dia es hoy'],
+            [/\borden compra\b/g, 'orden de compra'], [/\bbajo del minimo\b/g, 'bajo minimo'], [/\bbodega principal\b/g, 'bodega central'],
+            [/\brecursos humano\b/g, 'recursos humanos'], [/\bveiculos\b/g, 'vehiculos'], [/\berramientas\b/g, 'herramientas']
+        ];
+        replacements.forEach(([regex, replacement]) => { output = output.replace(regex, replacement); });
+        return output.replace(/\s+/g, ' ').trim();
+    }
+    function levenshtein(a, b) {
+        const left = normalize(a), right = normalize(b);
+        if (!left) return right.length;
+        if (!right) return left.length;
+        const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+        for (let i = 1; i <= left.length; i += 1) {
+            let previous = row[0]; row[0] = i;
+            for (let j = 1; j <= right.length; j += 1) {
+                const temp = row[j];
+                row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (left[i - 1] === right[j - 1] ? 0 : 1));
+                previous = temp;
+            }
+        }
+        return row[right.length];
+    }
+    function fuzzyIncludes(haystack, needle, maxDistance = 1) {
+        const h = commandNormalize(haystack), n = commandNormalize(needle);
+        if (!n) return false;
+        if (h.includes(n)) return true;
+        const targetWords = n.split(' '), words = h.split(' ');
+        return targetWords.every(target => words.some(word => word === target || (target.length >= 5 && Math.abs(word.length - target.length) <= maxDistance && levenshtein(word, target) <= maxDistance)));
+    }
+    function hasFuzzy(value, phrases, maxDistance = 1) {
+        return phrases.some(phrase => fuzzyIncludes(value, phrase, maxDistance));
+    }
+
+    let modal;
+    let transcriptInput;
+    let answerNode;
+    let statusNode;
+    let micButton;
+    let recognition = null;
+    let recognitionPhraseBiasDisabled = true;
+    let listening = false;
+    let recognitionStarting = false;
+    let voiceFinal = '';
+    let voiceInterim = '';
+    let voiceBest = '';
+    let voiceAlternatives = [];
+    let voiceConfidence = 0;
+    let voiceRawTranscript = '';
+    let voiceInterpretedTranscript = '';
+    let voiceShouldSubmit = false;
+    let voiceHadError = false;
+    let silenceTimer = null;
+    let hardStopTimer = null;
+    let micPermissionChecked = false;
+    let speechVoices = [];
+    let lastSpokenText = '';
+    let vocabularyPriming = false;
+    let vocabularyPrimedProfile = '';
+    let speechLexiconCache = { profile: '', sourceAt: -1, words: [], set: new Set(), buckets: new Map() };
+    let cloudVoiceStatus = null;
+    let cloudVoiceCheckedAt = 0;
+    let cloudRecorder = null;
+    let cloudStream = null;
+    let cloudChunks = [];
+    let cloudAudioContext = null;
+    let cloudAnalyser = null;
+    let cloudMeterTimer = null;
+    let cloudStartedAt = 0;
+    let cloudLastVoiceAt = 0;
+    let cloudSpeechDetected = false;
+    let voiceMode = 'automatico';
+    let cache = { at: 0 };
+    const ttl = 45000;
+
+    function styles() {
+        if (document.getElementById('sky-style-v21')) return;
+        const style = document.createElement('style');
+        style.id = 'sky-style-v21';
+        style.textContent = `
+            .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.76);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{width:min(760px,100%);max-height:min(780px,92vh);overflow:auto;border:1px solid #28406a;border-radius:20px;background:linear-gradient(160deg,#0e172b,#080e1c 55%,#091221);box-shadow:0 35px 110px rgba(0,0,0,.58)}.sky-head{padding:20px 22px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:48px;height:48px;border-radius:15px;border:1px solid rgba(96,165,250,.38);background:radial-gradient(circle at 36% 30%,#60a5fa 0 7%,#2563eb 24%,#0b1631 64%);box-shadow:inset 0 0 25px rgba(96,165,250,.18),0 0 28px rgba(37,99,235,.15)}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:22px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:15px;background:rgba(6,12,24,.68);min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:11px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:999px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}}@media(max-width:640px){.sky-header-button span[data-sky-label]{display:none}.sky-header-button{width:36px;padding:0;justify-content:center}.sky-header-button .sky-pulse{display:none}.sky-input-row{grid-template-columns:1fr auto}.sky-input-row .sky-action.primary{grid-column:1/-1}.sky-grid{grid-template-columns:1fr}.sky-body{padding:17px}.sky-head{padding:17px}.sky-modal{border-radius:16px}}@keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
+        `;
+        document.head.appendChild(style);
+    }
+
+    function getHeaderActions() {
+        const header = document.querySelector('body > div header, header');
+        if (!header) return null;
+        const direct = [...header.children].filter(node => node instanceof HTMLElement);
+        const action = [...direct].reverse().find(node => node.querySelector('button') || node.querySelector('[id*=profile], .border-l'));
+        return action || header.lastElementChild;
+    }
+
+    function createUi() {
+        styles();
+        const actions = getHeaderActions();
+        if (actions && !document.getElementById('sky-open')) {
+            const button = document.createElement('button');
+            button.id = 'sky-open';
+            button.type = 'button';
+            button.className = 'sky-header-button';
+            button.title = `Consultar Sky · ${shortcutLabel}`;
+            button.innerHTML = `<span class="sky-pulse"></span><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Sky</span><kbd class="sky-shortcut-badge">${shortcutLabel}</kbd>`;
+            actions.insertBefore(button, actions.firstChild);
+            button.addEventListener('click', open);
+        }
+        if (!document.getElementById('sky-overlay')) {
+            modal = document.createElement('div');
+            modal.id = 'sky-overlay';
+            modal.className = 'sky-overlay';
+            const config = profileConfig();
+            modal.innerHTML = `
+                <section class="sky-modal" role="dialog" aria-modal="true" aria-labelledby="sky-title">
+                    <header class="sky-head">
+                        <div class="flex items-center gap-3"><div class="sky-orb"></div><div><div id="sky-title" class="sky-title">${html(config.title)}</div><div class="sky-subtitle">${html(config.subtitle)} Sky mantiene las consultas en modo lectura.</div></div></div>
+                        <button id="sky-close" class="sky-close" type="button" aria-label="Cerrar">×</button>
+                    </header>
+                    <div class="sky-body">
+                        <div id="sky-status" class="sky-state"><span class="sky-state-dot"></span><span>Listo para consultar.</span></div>
+                        <div class="sky-input-row">
+                            <input id="sky-query" class="sky-input" autocomplete="off" placeholder="${html(config.placeholder)}">
+                            <button id="sky-mic" type="button" class="sky-action" title="Hablar" aria-label="Hablar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg></button>
+                            <button id="sky-send" type="button" class="sky-action primary">Consultar</button>
+                        </div>
+                        <div id="sky-heard" class="sky-heard"><span>Micrófono:</span><strong>listo</strong></div>
+                        <div id="sky-interpreted" class="sky-interpreted"><span>Interpreté:</span><strong>—</strong><em id="sky-listen-quality" class="sky-listen-quality"></em></div>
+                        <div class="sky-mic-help">Habla de forma natural y a una distancia cómoda del micrófono. Sky selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
+                        <div class="sky-voice-row"><span id="sky-engine" class="sky-engine">Voz · automático</span><span id="sky-voice-meter" class="sky-voice-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+                        <div id="sky-answer" class="sky-answer"><div class="sky-answer-title">Respuesta verificada</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Sky consulta únicamente información autorizada para tu sesión y mantiene este asistente en modo lectura.</div></div>
+                        <div class="sky-examples"><div class="sky-examples-title">Prueba con · ${html(profileCodes[detectProfile()] || detectProfile().toUpperCase())}</div><div class="sky-chip-wrap">${[...config.examples, ['Hora','¿Qué hora es?'], ['Fecha','¿Qué día es hoy?'], ['Ayuda','¿Qué puedes hacer?']].map(([label,example]) => `<button class="sky-chip" data-sky-example="${html(example)}">${html(label)}</button>`).join('')}</div></div>
+                    </div>
+                </section>`;
+            document.body.appendChild(modal);
+            transcriptInput = document.getElementById('sky-query');
+            answerNode = document.getElementById('sky-answer');
+            statusNode = document.getElementById('sky-status');
+            micButton = document.getElementById('sky-mic');
+            document.getElementById('sky-close').addEventListener('click', close);
+            document.getElementById('sky-send').addEventListener('click', () => { if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, transcriptInput.value); query(transcriptInput.value); });
+            transcriptInput.addEventListener('keydown', event => {
+                if (event.key === 'Enter') { if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, transcriptInput.value); query(transcriptInput.value); }
+                if (event.key === 'Escape') close();
+            });
+            modal.addEventListener('click', event => { if (event.target === modal) close(); });
+            document.querySelectorAll('[data-sky-example]').forEach(button => button.addEventListener('click', () => {
+                transcriptInput.value = button.dataset.skyExample || '';
+                query(transcriptInput.value);
+            }));
+            setupRecognition();
+        } else {
+            modal = document.getElementById('sky-overlay');
+            transcriptInput = document.getElementById('sky-query');
+            answerNode = document.getElementById('sky-answer');
+            statusNode = document.getElementById('sky-status');
+            micButton = document.getElementById('sky-mic');
+        }
+    }
+
+    function open() {
+        createUi();
+        modal.classList.add('is-open');
+        primeRecognitionVocabulary();
+        ensureCloudVoice(false).then(ready => {
+            if (ready) setVoiceEngine('cloud');
+            else if (recognition) setVoiceEngine('browser');
+            else setVoiceEngine('error');
+        }).catch(() => {});
+        setTimeout(() => transcriptInput?.focus(), 60);
+    }
+
+    function close() {
+        stopListening();
+        modal?.classList.remove('is-open');
+    }
+
+    function setStatus(message, mode = '') {
+        if (!statusNode) return;
+        statusNode.className = `sky-state${mode ? ` is-${mode}` : ''}`;
+        statusNode.innerHTML = `<span class="sky-state-dot"></span><span>${html(message)}</span>`;
+    }
+
+    function setAnswer(title, main, detail = '', cards = [], link = null) {
+        answerNode.innerHTML = `<div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cards.map(card => `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span></div>`).join('')}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}">${html(link.label)}</a>` : ''}`;
+    }
+
+    function cachedUserId() {
+        const sessionId = text(window.SkilledSession?.user?.id || window.SkilledSession?.profile?.id);
+        if (sessionId) return sessionId;
+        try {
+            const cached = JSON.parse(localStorage.getItem('skilled_profile_cache') || 'null');
+            return text(cached?.id || cached?.email || 'local');
+        } catch (_) { return 'local'; }
+    }
+    function voiceStorageKey() { return `skilled_sky_voice_${cachedUserId().replace(/[^a-z0-9@._-]/gi, '_')}`; }
+    function speechLearningStorageKey() { return `skilled_sky_speech_learning_${cachedUserId().replace(/[^a-z0-9@._-]/gi, '_')}`; }
+    function getSpeechLearning() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(speechLearningStorageKey()) || 'null');
+            return parsed && typeof parsed === 'object' ? { phrases: parsed.phrases || {}, words: parsed.words || {} } : { phrases: {}, words: {} };
+        } catch (_) { return { phrases: {}, words: {} }; }
+    }
+    function saveSpeechLearning(data) {
+        try { localStorage.setItem(speechLearningStorageKey(), JSON.stringify(data)); } catch (_) {}
+    }
+    function rememberSpeechCorrection(rawValue, correctedValue) {
+        const raw = normalize(rawValue), corrected = normalize(correctedValue);
+        if (!raw || !corrected || raw === corrected || raw.length > 180 || corrected.length > 180) return false;
+        const distanceRatio = levenshtein(raw, corrected) / Math.max(raw.length, corrected.length, 1);
+        const rawTokens = new Set(raw.split(' ').filter(Boolean));
+        const correctedTokens = corrected.split(' ').filter(Boolean);
+        const overlap = correctedTokens.filter(token => rawTokens.has(token)).length / Math.max(correctedTokens.length, 1);
+        if (distanceRatio > .58 && overlap < .34) return false;
+        const data = getSpeechLearning();
+        data.phrases[raw] = corrected;
+        const phraseKeys = Object.keys(data.phrases);
+        if (phraseKeys.length > 80) phraseKeys.slice(0, phraseKeys.length - 80).forEach(key => delete data.phrases[key]);
+        const left = raw.split(' '), right = corrected.split(' ');
+        if (left.length === right.length) {
+            let changes = 0;
+            left.forEach((word,index) => {
+                const target = right[index];
+                if (word !== target) {
+                    changes += 1;
+                    if (word.length >= 3 && target.length >= 3 && changes <= 4) data.words[word] = target;
+                }
+            });
+        }
+        const wordKeys = Object.keys(data.words);
+        if (wordKeys.length > 120) wordKeys.slice(0, wordKeys.length - 120).forEach(key => delete data.words[key]);
+        saveSpeechLearning(data);
+        return true;
+    }
+    function getVoicePreferences() {
+        const defaults = { voiceURI: '', voiceName: '', lang: 'es-MX', rate: .96, pitch: 1, volume: 1 };
+        try {
+            const parsed = JSON.parse(localStorage.getItem(voiceStorageKey()) || 'null');
+            return parsed && typeof parsed === 'object' ? { ...defaults, ...parsed } : defaults;
+        } catch (_) { return defaults; }
+    }
+    function saveVoicePreferences(changes = {}) {
+        const next = { ...getVoicePreferences(), ...changes };
+        next.rate = Math.max(.65, Math.min(1.35, Number(next.rate) || .96));
+        next.pitch = Math.max(.65, Math.min(1.35, Number(next.pitch) || 1));
+        next.volume = Math.max(0, Math.min(1, Number(next.volume) || 1));
+        try { localStorage.setItem(voiceStorageKey(), JSON.stringify(next)); } catch (_) {}
+        window.dispatchEvent(new CustomEvent('skilled:skyvoicechanged', { detail: next }));
+        return next;
+    }
+    const FEMALE_VOICE_ALIASES = ['Sarah','Sofía','Valeria','Elena','Emma','Victoria','Camila','Daniela','Natalia','Isabella','Amelia','Luna','Clara','Renata','Marina','Paula','Lucía','Carolina','Diana','Irene'];
+    const MALE_VOICE_ALIASES = ['Mateo','Diego','Daniel','Javier','Carlos','Andrés','Miguel','Alejandro','Sebastián','Gabriel','Samuel','Nicolás','Adrián','Fernando','Jorge','Raúl','Pablo','Álvaro','Ricardo','Manuel'];
+    const NEUTRAL_VOICE_ALIASES = ['Alex','Dani','Sam','Ari','Cris','Ángel','Noel','Charlie'];
+    const FEMALE_VOICE_HINTS = new Set(['sabina','dalia','helena','elvira','laura','lucia','lucía','sofia','sofía','ximena','paulina','monica','mónica','marisol','silvia','elena','isabella','camila','valeria','victoria','emma','amelia','sarah','maria','maría','carmen','rosa','paloma','ines','inés','alba','ana','carolina','natalia','daniela','clara','paula','irene','marta','marina','bianca','female','mujer','femenina']);
+    const MALE_VOICE_HINTS = new Set(['jorge','raul','raúl','pablo','alvaro','álvaro','diego','carlos','david','miguel','antonio','javier','alejandro','enrique','fernando','francisco','guillermo','hector','héctor','juan','luis','manuel','mateo','sergio','andres','andrés','daniel','oscar','óscar','ricardo','roberto','samuel','sebastian','sebastián','gabriel','nicolas','nicolás','adrian','adrián','male','hombre','masculino']);
+    function inferVoiceGender(voice) {
+        const raw = text(voice?.name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const words = raw.split(/[^a-zñ]+/).filter(Boolean);
+        if (words.some(word => MALE_VOICE_HINTS.has(word))) return 'male';
+        if (words.some(word => FEMALE_VOICE_HINTS.has(word))) return 'female';
+        if (/\b(male|masculino|hombre)\b/.test(raw)) return 'male';
+        if (/\b(female|femenina|mujer)\b/.test(raw)) return 'female';
+        return 'neutral';
+    }
+    function sortedVoices() {
+        if (!('speechSynthesis' in window)) return [];
+        speechVoices = speechSynthesis.getVoices?.() || speechVoices;
+        return [...speechVoices].sort((a, b) => {
+            const score = voice => /^es-MX$/i.test(voice.lang) ? 0 : /^es(?:-|_)/i.test(voice.lang) ? 1 : 2;
+            const quality = voice => /Natural|Neural|Online|Premium|Enhanced/i.test(voice.name) ? 0 : 1;
+            return score(a) - score(b) || quality(a) - quality(b) || String(a.name).localeCompare(String(b.name), 'es');
+        });
+    }
+    function voiceAlias(voice) {
+        if (!voice) return 'Automática';
+        const voices = sortedVoices();
+        const gender = inferVoiceGender(voice);
+        const sameGender = voices.filter(item => inferVoiceGender(item) === gender);
+        const index = Math.max(0, sameGender.findIndex(item => item.voiceURI === voice.voiceURI));
+        const aliases = gender === 'male' ? MALE_VOICE_ALIASES : gender === 'female' ? FEMALE_VOICE_ALIASES : NEUTRAL_VOICE_ALIASES;
+        return aliases[index % aliases.length] || `Voz ${index + 1}`;
+    }
+    function voiceChoices() {
+        const counters = { male: 0, female: 0, neutral: 0 };
+        return sortedVoices().map(voice => {
+            const gender = inferVoiceGender(voice);
+            const aliases = gender === 'male' ? MALE_VOICE_ALIASES : gender === 'female' ? FEMALE_VOICE_ALIASES : NEUTRAL_VOICE_ALIASES;
+            const alias = aliases[counters[gender] % aliases.length] || `Voz ${counters[gender] + 1}`;
+            counters[gender] += 1;
+            return { voiceURI: voice.voiceURI, voiceName: voice.name, lang: voice.lang, alias, gender };
+        });
+    }
+    function selectedVoice(preferences = getVoicePreferences()) {
+        const voices = sortedVoices();
+        if (preferences.voiceURI) {
+            const exact = voices.find(item => item.voiceURI === preferences.voiceURI);
+            if (exact) return exact;
+        }
+        if (preferences.voiceName) {
+            const byName = voices.find(item => item.name === preferences.voiceName && (!preferences.lang || item.lang === preferences.lang));
+            if (byName) return byName;
+        }
+        return voices.find(item => /^es-MX$/i.test(item.lang)) || voices.find(item => /^es(?:-|_)/i.test(item.lang)) || voices[0] || null;
+    }
+    function speak(value, options = {}) {
+        if (!('speechSynthesis' in window) || !value) return;
+        try {
+            lastSpokenText = text(value);
+            speechSynthesis.cancel();
+            const preferences = { ...getVoicePreferences(), ...options };
+            const utterance = new SpeechSynthesisUtterance(value);
+            const preferred = selectedVoice(preferences);
+            if (preferred) utterance.voice = preferred;
+            utterance.lang = preferred?.lang || preferences.lang || 'es-MX';
+            utterance.rate = Number(preferences.rate) || .96;
+            utterance.pitch = Number(preferences.pitch) || 1;
+            utterance.volume = Number(preferences.volume) || 1;
+            speechSynthesis.speak(utterance);
+        } catch (_) {}
+    }
+    function previewVoice(preferences = {}) {
+        const config = profileConfig();
+        speak(`Hola. Soy Sky, asistente de ${profileNames[detectProfile()] || detectProfile()}. Esta es una prueba de mi voz.`, preferences);
+        return config;
+    }
+
+    if ('speechSynthesis' in window) {
+        speechVoices = speechSynthesis.getVoices?.() || [];
+        speechSynthesis.addEventListener?.('voiceschanged', () => {
+            speechVoices = speechSynthesis.getVoices?.() || [];
+            window.dispatchEvent(new CustomEvent('skilled:skyvoices', { detail: sortedVoices() }));
+        });
+    }
+
+    function setHeard(value, mode = '') {
+        const node = document.getElementById('sky-heard');
+        if (!node) return;
+        node.className = `sky-heard${mode ? ` is-${mode}` : ''}`;
+        node.innerHTML = `<span>Escuché:</span><strong>${html(value || '—')}</strong>`;
+    }
+
+    const SPEECH_DIRECT_CORRECTIONS = new Map(Object.entries({
+        'tuvo':'tubo','tuvos':'tubos','tuboos':'tubos','pulga':'pulgada','pulgara':'pulgada','pulgadas':'pulgadas','pulgada':'pulgada',
+        'erramienta':'herramienta','erramientas':'herramientas','eramienta':'herramienta','eramientas':'herramientas',
+        'veiculo':'vehiculo','veiculos':'vehiculos','beiculo':'vehiculo','beiculos':'vehiculos','vehiculos':'vehiculos',
+        'vodega':'bodega','vodegas':'bodegas','vodaga':'bodega','almasén':'almacen','almasen':'almacen','almacen':'almacen',
+        'ras':'rack','rac':'rack','rack':'rack','prollecto':'proyecto','prollectos':'proyectos','proyeto':'proyecto','proyetos':'proyectos',
+        'ocden':'orden','horden':'orden','conpra':'compra','combra':'compra','provedor':'proveedor','probedor':'proveedor',
+        'requisision':'requisicion','requicision':'requisicion','incapasidad':'incapacidad','capasitacion':'capacitacion',
+        'ora':'hora','oras':'horas','feha':'fecha','fesha':'fecha','oy':'hoy','meses':'mes','skai':'sky','skay':'sky','escai':'sky'
+    }));
+    const BASE_SPEECH_WORDS = [
+        'sky','hora','horas','fecha','dia','hoy','semana','mes','ano','perfil','ayuda','comandos','repite','silencio','calcula',
+        'cuanto','cuantos','cuanta','cuantas','donde','ubicacion','existencia','existencias','stock','material','materiales','bodega','almacen','central',
+        'tubo','tubos','pulgada','pulgadas','cable','cables','broca','brocas','rack','zona','piso','bajo','minimo','orden','compra','compras','herramienta','herramientas',
+        'vehiculo','vehiculos','proyecto','proyectos','proveedor','proveedores','requisicion','recepcion','servicio','servicios','tienda','rfc','cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar','comparador',
+        'trabajador','trabajadores','personal','empleado','empleados','ausencia','ausencias','vacaciones','incapacidad','documento','documentos','contrato','contratos','capacitacion','incidencia',
+        'presupuesto','costo','costos','consumido','planeado','gasto','gastos','finanzas','avance','ruta','picking','solicitud','solicitudes','disponible','disponibles'
+    ];
+    const SPEECH_KEEP_WORDS = new Set(['como','cuando','porque','para','pero','esta','estan','este','estos','estas','quiero','necesito','tengo','tenemos','tiene','tienen','hay','dime','busca','buscar','abre','muestra','ver','verifica','revisa','principal','actual','ahora','aqui','alla','total']);
+    function spanishPhonetic(value) {
+        let word = normalize(value).replace(/[^a-zñ0-9]/g, '');
+        if (!word || /^\d+$/.test(word)) return word;
+        word = word.replace(/h/g, '').replace(/qu/g, 'k').replace(/gu(?=[ei])/g, 'g').replace(/g(?=[ei])/g, 'j').replace(/c(?=[ei])/g, 's').replace(/z/g, 's').replace(/v/g, 'b').replace(/ll/g, 'y').replace(/rr/g, 'r').replace(/x/g, 'ks').replace(/ph/g, 'f');
+        word = word.replace(/([bcdfgjklmnprstwy])\1+/g, '$1');
+        return word;
+    }
+    function domainSpeechLexicon() {
+        const profile = detectProfile();
+        if (speechLexiconCache.profile === profile && speechLexiconCache.sourceAt === cache.at && speechLexiconCache.words.length) return speechLexiconCache;
+        const words = new Set(BASE_SPEECH_WORDS);
+        const push = value => normalize(value).split(' ').forEach(token => { if (token.length >= 3 && token.length <= 28 && !/^\d+$/.test(token)) words.add(token); });
+        if (profile === 'almacen' || profile === 'consulta') {
+            (Array.isArray(cache.materials) ? cache.materials : []).slice(0, 1600).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
+        } else if (profile === 'compras') {
+            (Array.isArray(cache.coSuppliers) ? cache.coSuppliers : []).slice(0,500).forEach(item => [item.razon_social,item.nombre_comercial,item.rfc].forEach(push));
+            (Array.isArray(cache.coServices) ? cache.coServices : []).slice(0,200).forEach(item => [item.nombre,item.proveedor,item.tipo].forEach(push));
+            (Array.isArray(cache.coQuotations) ? cache.coQuotations : []).slice(0,500).forEach(item => {
+                [item.folio,item.referencia,item.solicitadoPor,item.estado,item.prioridad].forEach(push);
+                (Array.isArray(item.items) ? item.items : []).forEach(detail => [detail.materialCodigo,detail.descripcion,detail.marca,detail.unidad].forEach(push));
+            });
+        } else if (profile === 'rh') {
+            (Array.isArray(cache.rhPeople) ? cache.rhPeople : []).slice(0,900).forEach(item => [item.numero_empleado,item.nombre,item.apellidos,item.puesto,item.departamento].forEach(push));
+        } else if (profile === 'finanzas' || profile === 'proyectos') {
+            (Array.isArray(cache.projectDetails) ? cache.projectDetails : []).slice(0,700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
+        }
+        const list = [...words];
+        const buckets = new Map();
+        list.forEach(item => {
+            const key = spanishPhonetic(item)[0] || item[0] || '';
+            if (!buckets.has(key)) buckets.set(key, []);
+            buckets.get(key).push(item);
+        });
+        speechLexiconCache = { profile, sourceAt: cache.at, words: list, set: new Set(list), buckets };
+        return speechLexiconCache;
+    }
+    function correctionDistance(source, target) {
+        if (source === target) return 0;
+        const a = spanishPhonetic(source), b = spanishPhonetic(target);
+        if (a && a === b) return .15;
+        const raw = levenshtein(source, target);
+        const phon = a && b ? levenshtein(a, b) : raw;
+        return Math.min(raw, phon + .25);
+    }
+    function bestSpeechWord(word, lexicon) {
+        const original = normalize(word);
+        if (!original || original.length < 3 || /^\d+(?:\/\d+)?$/.test(original) || SPEECH_KEEP_WORDS.has(original) || stopWords.has(original)) return original;
+        if (SPEECH_DIRECT_CORRECTIONS.has(original)) return SPEECH_DIRECT_CORRECTIONS.get(original);
+        if (lexicon.set.has(original)) return original;
+        let best = original, bestDistance = Infinity;
+        const max = original.length >= 9 ? 2.25 : original.length >= 6 ? 1.4 : .45;
+        const phonetic = spanishPhonetic(original);
+        const candidates = lexicon.buckets.get(phonetic[0] || original[0] || '') || lexicon.words;
+        for (const candidate of candidates) {
+            if (Math.abs(candidate.length - original.length) > 2) continue;
+            const distance = correctionDistance(original, candidate);
+            if (distance < bestDistance) { bestDistance = distance; best = candidate; }
+            if (distance <= .15) break;
+        }
+        return bestDistance <= max ? best : original;
+    }
+    function correctRecognizedTranscript(value) {
+        const raw = text(value);
+        let normalized = normalize(raw);
+        const learned = getSpeechLearning();
+        if (learned.phrases?.[normalized]) {
+            const corrected = commandNormalize(learned.phrases[normalized]);
+            return { raw, normalized, corrected, changes: 1, changeRatio: 0, learned: true };
+        }
+        if (learned.words && Object.keys(learned.words).length) normalized = normalized.split(' ').map(word => learned.words[word] || word).join(' ');
+        const phraseCorrections = [
+            [/\bque horas son\b/g,'que hora es'],[/\bque horas es\b/g,'que hora es'],[/\bque ora es\b/g,'que hora es'],[/\bdime la ora\b/g,'dime la hora'],
+            [/\bque dia estamos\b/g,'que dia es hoy'],[/\ba que dia estamos\b/g,'que dia es hoy'],[/\bque fecha estamos\b/g,'que fecha es hoy'],
+            [/\borden compra\b/g,'orden de compra'],[/\bbajo del minimo\b/g,'bajo minimo'],[/\bcuanto tubo\b/g,'cuantos tubos'],[/\bcuanto tubos\b/g,'cuantos tubos'],
+            [/\bde 1 pulga\b/g,'de 1 pulgada'],[/\bde una pulga\b/g,'de 1 pulgada'],[/\buna pulgada\b/g,'1 pulgada'],[/\bmedia pulga\b/g,'1/2 pulgada']
+        ];
+        phraseCorrections.forEach(([regex,replacement]) => { normalized = normalized.replace(regex,replacement); });
+        const lexicon = domainSpeechLexicon();
+        const corrected = normalized.split(' ').map(word => bestSpeechWord(word, lexicon)).join(' ').replace(/\s+/g,' ').trim();
+        const rawWords = normalized.split(' ').filter(Boolean);
+        const correctedWords = corrected.split(' ').filter(Boolean);
+        let changes = 0;
+        for (let i=0;i<Math.max(rawWords.length,correctedWords.length);i+=1) if ((rawWords[i]||'') !== (correctedWords[i]||'')) changes += 1;
+        const changeRatio = rawWords.length ? changes / rawWords.length : 0;
+        return { raw, normalized, corrected: commandNormalize(corrected), changes, changeRatio };
+    }
+    function recognitionIntentBonus(value) {
+        const norm = commandNormalize(value);
+        let score = 0;
+        const patterns = [
+            [/\bque hora es\b|\bdime la hora\b/,24],[/\bque dia es hoy\b|\bque fecha es hoy\b/,24],[/\bque mes\b|\ben que mes\b/,18],[/\bque ano\b|\ben que ano\b/,18],
+            [/\bque puedes hacer\b|\bayuda\b|\bcomandos\b/,20],[/\bquien eres\b|\bcomo te llamas\b/,18],[/\bque perfil\b|\bperfil actual\b/,18],
+            [/\bcuant[oa]s?\b.*\b(material|tubo|cable|pieza|existencia|stock)\b/,18],[/\bdonde\b.*\b(material|tubo|cable|ubicacion)\b/,18],
+            [/\bbajo minimo\b/,18],[/\borden de compra\b/,16],[/\bherramientas?\b/,14],[/\bvehiculos?\b/,14],[/\bproyectos?\b/,12],[/\bproveedores?\b/,12],[/\btrabajadores?\b|\bpersonal\b/,12]
+        ];
+        patterns.forEach(([pattern,bonus]) => { if (pattern.test(norm)) score += bonus; });
+        return score;
+    }
+    function recognitionQualityLabel(score, confidence, correctionRatio) {
+        const weighted = score + confidence * 12 - correctionRatio * 8;
+        if (weighted >= 32) return 'alta';
+        if (weighted >= 18) return 'media';
+        return 'baja';
+    }
+
+    function setInterpreted(value, quality = '') {
+        const node = document.getElementById('sky-interpreted');
+        if (!node) return;
+        const strong = node.querySelector('strong');
+        const qualityNode = document.getElementById('sky-listen-quality');
+        const clean = text(value);
+        node.classList.toggle('is-visible', Boolean(clean));
+        if (strong) strong.textContent = clean || '—';
+        if (qualityNode) qualityNode.textContent = quality ? `confianza ${quality}` : '';
+    }
+
+    function recognitionCandidateScore(value) {
+        const correctedBundle = correctRecognizedTranscript(value);
+        const normalized = correctedBundle.corrected || commandNormalize(value);
+        if (!normalized) return -1000;
+        let score = normalized.length / 42;
+        const commonWords = ['cuanto','cuantos','donde','tenemos','hay','estado','busca','buscar','disponible','proyecto','hora','fecha','dia','hoy','mes','ano','ayuda','perfil','quien eres','repite'];
+        const profileWords = {
+            almacen: ['ubicacion','bajo minimo','orden de compra','herramienta','vehiculo','tubo','cable','broca','almacen','bodega','rack','zona','piso','existencia'],
+            compras: ['cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar proveedores','orden de compra','requisicion','proveedor','recepcion','servicio','tienda','comprar','pago','vencimiento','rfc'],
+            rh: ['trabajador','colaborador','personal','empleado','ausencia','vacaciones','incapacidad','documento','contrato','capacitacion','incidencia','asistencia'],
+            finanzas: ['presupuesto','costo','consumido','planeado','gasto','finanzas','avance','cuenta por pagar'],
+            proyectos: ['avance','costo','solicitud','material','entrega','picking','ruta','responsable']
+        };
+        [...commonWords, ...(profileWords[detectProfile()] || [])].forEach(word => { if (normalized.includes(word)) score += 3.5; });
+        const simplePatterns = [/que hora es|dime la hora|hora actual/, /que dia es hoy|que fecha es hoy|fecha de hoy/, /que mes|mes actual/, /que ano|ano actual/, /quien eres|como te llamas/, /que puedes hacer|ayuda|comandos/, /que perfil|en que perfil/, /repite|repetir/];
+        simplePatterns.forEach(pattern => { if (pattern.test(normalized)) score += 12; });
+        score += recognitionIntentBonus(normalized);
+        score -= correctedBundle.changeRatio * 4;
+        if (/\d/.test(normalized)) score += 2;
+        if (/\b(pulgada|pulgadas|mm|cm|metro|metros|pieza|piezas)\b/.test(normalized)) score += 3;
+        const materials = Array.isArray(cache.materials) ? cache.materials : [];
+        if (materials.length) {
+            const queryTokens = normalized.split(' ').filter(item => item.length > 2 && !stopWords.has(item));
+            let bestMaterial = 0;
+            for (const material of materials.slice(0, 1400)) {
+                const haystack = materialSearchText(material);
+                let local = 0;
+                queryTokens.forEach(token => {
+                    if (haystack.includes(token)) local += token.length > 5 ? 2 : 1;
+                    else if (token.length >= 5 && haystack.split(' ').some(word => Math.abs(word.length-token.length) <= 1 && levenshtein(word, token) <= 1)) local += .75;
+                });
+                if (local > bestMaterial) bestMaterial = local;
+            }
+            score += Math.min(bestMaterial * 2.5, 16);
+        }
+        return score;
+    }
+
+    function bestRecognitionAlternative(result) {
+        if (!result?.length) return '';
+        let best = text(result[0]?.transcript);
+        let bestScore = recognitionCandidateScore(best) + recognitionIntentBonus(correctRecognizedTranscript(best).corrected) + number(result[0]?.confidence) * 8;
+        for (let index = 1; index < result.length; index += 1) {
+            const candidate = text(result[index]?.transcript);
+            const score = recognitionCandidateScore(candidate) + recognitionIntentBonus(correctRecognizedTranscript(candidate).corrected) + number(result[index]?.confidence) * 8;
+            if (score > bestScore) { best = candidate; bestScore = score; }
+        }
+        return best;
+    }
+
+    function bestTranscriptFromResults(results) {
+        let beams = [{ text: '', confidence: 0, score: 0 }];
+        for (let resultIndex = 0; resultIndex < results.length; resultIndex += 1) {
+            const result = results[resultIndex];
+            const alternatives = [];
+            for (let i = 0; i < Math.min(result.length, 10); i += 1) alternatives.push({ text: text(result[i]?.transcript), confidence: number(result[i]?.confidence) });
+            if (!alternatives.length) continue;
+            const next = [];
+            beams.forEach(beam => alternatives.forEach(alt => {
+                const combined = joinTranscript(beam.text, alt.text);
+                next.push({ text: combined, confidence: beam.confidence + alt.confidence, score: recognitionCandidateScore(combined) + recognitionIntentBonus(correctRecognizedTranscript(combined).corrected) + (beam.confidence + alt.confidence) * 7 });
+            }));
+            beams = next.sort((a,b) => b.score - a.score).slice(0, 24);
+        }
+        const unique = [];
+        const seen = new Set();
+        beams.sort((a,b) => b.score - a.score).forEach(item => {
+            const key = commandNormalize(item.text);
+            if (key && !seen.has(key)) { seen.add(key); unique.push(item.text); }
+        });
+        return { best: unique[0] || '', alternatives: unique.slice(1, 7) };
+    }
+
+    function joinTranscript(base, addition) {
+        const left = text(base);
+        const right = text(addition);
+        if (!left) return right;
+        if (!right) return left;
+        const nl = normalize(left);
+        const nr = normalize(right);
+        if (nl === nr || nl.endsWith(nr)) return left;
+        if (nr.startsWith(nl)) return right;
+        return `${left} ${right}`.replace(/\s+/g, ' ').trim();
+    }
+
+    function clearVoiceTimers() {
+        if (silenceTimer) clearTimeout(silenceTimer);
+        if (hardStopTimer) clearTimeout(hardStopTimer);
+        silenceTimer = null;
+        hardStopTimer = null;
+    }
+
+    function scheduleVoiceStop(delay = 1250) {
+        if (silenceTimer) clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+            if (!recognition || !listening) return;
+            voiceShouldSubmit = true;
+            try { recognition.stop(); } catch (_) {}
+        }, delay);
+    }
+
+    async function preflightMicrophone() {
+        if (micPermissionChecked) return true;
+        if (!navigator.mediaDevices?.getUserMedia) {
+            micPermissionChecked = true;
+            return true;
+        }
+        try {
+            setStatus('Solicitando acceso al micrófono…', 'busy');
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            });
+            stream.getTracks().forEach(track => track.stop());
+            micPermissionChecked = true;
+            return true;
+        } catch (error) {
+            const denied = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
+            setStatus(denied ? 'El navegador bloqueó el micrófono. Permite el acceso para este sitio y vuelve a intentar.' : 'No pude abrir el micrófono. Revisa el dispositivo de entrada del navegador.', 'error');
+            setHeard('micrófono no disponible');
+            return false;
+        }
+    }
+
+    function recognitionGrammarPhrases() {
+        const profile = detectProfile();
+        const common = ['que hora es','que dia es hoy','que fecha es hoy','que puedes hacer','quien eres','que perfil estoy usando','en que seccion estoy','cual es tu atajo'];
+        const profilePhrases = {
+            almacen:['cuantos tubos tenemos','donde esta el material','materiales bajo minimo','orden de compra','herramientas disponibles','vehiculos disponibles','prepara la ruta del proyecto'],
+            compras:['cotizaciones por revisar','busca cotizacion','comparar proveedores','mejor precio y plazo','ordenes de compra pendientes','busca proveedor','servicios por vencer'],
+            rh:['trabajadores activos','busca trabajador','quien esta ausente hoy','documentos por vencer','proyectos sin personal'],
+            finanzas:['costo consumido del proyecto','presupuesto del proyecto','proyectos con mayor costo'],
+            proyectos:['como va el proyecto','costo del proyecto','prepara la ruta del proyecto','solicitudes de material pendientes']
+        };
+        return [...common, ...(profilePhrases[profile] || [])];
+    }
+    function configureLegacyGrammar() {
+        return;
+    }
+
+    function configureRecognitionPhrases() {
+        return;
+    }
+
+    async function primeRecognitionVocabulary() {
+        const profile = detectProfile();
+        if (vocabularyPriming || vocabularyPrimedProfile === profile) return;
+        vocabularyPriming = true;
+        try {
+            if (profile === 'compras') await Promise.all([loadData('coSuppliers'), loadData('coServices'), loadData('coQuotations')]);
+            else if (profile === 'rh') await loadData('rhPeople');
+            else if (profile === 'finanzas' || profile === 'proyectos') await loadData('projectDetails');
+            else await loadData('materials');
+            vocabularyPrimedProfile = profile;
+        } catch (_) {} finally { vocabularyPriming = false; }
+    }
+
+    function showRecognitionChoices(candidates = []) {
+        const cleaned = [];
+        const seen = new Set();
+        candidates.forEach(value => {
+            const corrected = correctRecognizedTranscript(value).corrected;
+            const key = commandNormalize(corrected);
+            if (corrected && !seen.has(key)) { seen.add(key); cleaned.push(corrected); }
+        });
+        if (!cleaned.length) return false;
+        answerNode.innerHTML = `<div class="sky-answer-title">No estoy completamente seguro</div><div class="sky-answer-main">Selecciona la frase que más se parece a lo que dijiste.</div><div class="sky-recognition-choices">${cleaned.slice(0,4).map((value,index)=>`<button type="button" class="sky-recognition-choice" data-sky-choice="${index}">${html(value)}</button>`).join('')}</div><div class="sky-answer-detail">También puedes corregir el texto de arriba y pulsar Consultar.</div>`;
+        answerNode.querySelectorAll('[data-sky-choice]').forEach(button => button.addEventListener('click', () => {
+            const value = cleaned[Number(button.dataset.skyChoice)] || '';
+            if (!value) return;
+            transcriptInput.value = value;
+            if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, value);
+            setInterpreted(value, 'confirmada');
+            query(value);
+        }));
+        return true;
+    }
+
+
+    function setVoiceEngine(mode = 'automatico', label = '') {
+        voiceMode = mode;
+        const node = document.getElementById('sky-engine');
+        if (!node) return;
+        const titles = {
+            cloud: 'Voz · avanzada',
+            browser: 'Voz · navegador',
+            automatico: 'Voz · automático',
+            error: 'Voz · requiere atención'
+        };
+        node.className = `sky-engine${mode === 'cloud' ? ' is-cloud' : mode === 'browser' ? ' is-browser' : mode === 'error' ? ' is-error' : ''}`;
+        node.textContent = label || titles[mode] || titles.automatico;
+    }
+
+    function setVoiceMeter(active = false, level = 0) {
+        const meter = document.getElementById('sky-voice-meter');
+        if (!meter) return;
+        meter.classList.toggle('is-active', active);
+        const normalized = Math.max(0, Math.min(1, Number(level) || 0));
+        [...meter.querySelectorAll('i')].forEach((bar, index, bars) => {
+            if (!active) {
+                bar.style.height = '';
+                return;
+            }
+            const center = (bars.length - 1) / 2;
+            const shape = Math.max(.25, 1 - Math.abs(index - center) / (center + .5));
+            const jitter = .78 + (((Date.now() / 80 + index * 1.7) % 3) / 10);
+            bar.style.height = `${Math.round(4 + 18 * Math.max(.18, normalized) * shape * jitter)}px`;
+        });
+    }
+
+    async function ensureCloudVoice(force = false) {
+        if (!window.SkilledDB?.skyTranscriptionStatus || !window.SkilledDB?.transcribeSkyAudio) return false;
+        if (!force && cloudVoiceStatus && Date.now() - cloudVoiceCheckedAt < 120000) {
+            return cloudVoiceStatus.disponible === true && cloudVoiceStatus.configurado === true;
+        }
+        cloudVoiceCheckedAt = Date.now();
+        try {
+            cloudVoiceStatus = await SkilledDB.skyTranscriptionStatus();
+        } catch (error) {
+            cloudVoiceStatus = { disponible: false, configurado: false, mensaje: error?.message || '' };
+        }
+        return cloudVoiceStatus?.disponible === true && cloudVoiceStatus?.configurado === true;
+    }
+
+    function voiceContextPrompt() {
+        const lexicon = domainSpeechLexicon();
+        const useful = lexicon.words.slice(0, 140);
+        return [...recognitionGrammarPhrases(), ...useful].filter(Boolean).join(', ').slice(0, 1750);
+    }
+
+    function cleanupCloudAudio() {
+        if (cloudMeterTimer) clearInterval(cloudMeterTimer);
+        cloudMeterTimer = null;
+        try { cloudAudioContext?.close(); } catch (_) {}
+        cloudAudioContext = null;
+        cloudAnalyser = null;
+        if (cloudStream) {
+            try { cloudStream.getTracks().forEach(track => track.stop()); } catch (_) {}
+        }
+        cloudStream = null;
+        cloudRecorder = null;
+        setVoiceMeter(false);
+    }
+
+    async function processCloudAudio(blob) {
+        if (!blob || blob.size < 700) {
+            setStatus('No detecté suficiente audio. Acércate al micrófono y vuelve a intentarlo.', 'error');
+            setHeard('sin audio suficiente');
+            return;
+        }
+        setStatus('Transcribiendo la consulta con Sky Voz…', 'busy');
+        setHeard('procesando audio…', 'live');
+        try {
+            const result = await SkilledDB.transcribeSkyAudio(blob, {
+                profile: detectProfile(),
+                context: voiceContextPrompt()
+            });
+            const raw = text(result?.texto);
+            if (!raw) throw new Error('No se reconoció una frase clara.');
+            const correctedBundle = correctRecognizedTranscript(raw);
+            const interpreted = text(correctedBundle.corrected || raw);
+            voiceRawTranscript = raw;
+            voiceInterpretedTranscript = interpreted;
+            transcriptInput.value = interpreted;
+            setHeard(raw, 'final');
+            setInterpreted(commandNormalize(raw) !== commandNormalize(interpreted) ? interpreted : '', recognitionQualityLabel(20, .95, correctedBundle.changeRatio));
+            setStatus('Voz reconocida. Consultando el CRM…', 'busy');
+            setTimeout(() => query(interpreted), 80);
+        } catch (error) {
+            setVoiceEngine('error');
+            setStatus(error?.message || 'No se pudo transcribir la voz.', 'error');
+            setHeard('transcripción no disponible');
+        }
+    }
+
+    async function startCloudListening(options = {}) {
+        if (cloudRecorder || listening || recognitionStarting) return;
+        if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+            setStatus('Este navegador no permite la grabación necesaria para Sky Voz.', 'error');
+            setVoiceEngine('error');
+            return;
+        }
+        if (!options.preserveClearedInput && transcriptInput) transcriptInput.value = '';
+        voiceFinal = '';
+        voiceInterim = '';
+        voiceBest = '';
+        voiceAlternatives = [];
+        voiceConfidence = 0;
+        voiceRawTranscript = '';
+        voiceInterpretedTranscript = '';
+        voiceShouldSubmit = false;
+        voiceHadError = false;
+        clearVoiceTimers();
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
+        recognitionStarting = true;
+        setStatus('Preparando Sky Voz…', 'busy');
+        setHeard('preparando micrófono…', 'live');
+        setInterpreted('');
+        try {
+            await primeRecognitionVocabulary();
+            cloudStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    channelCount: 1
+                }
+            });
+            const mimeCandidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            const mimeType = mimeCandidates.find(value => MediaRecorder.isTypeSupported?.(value)) || '';
+            cloudChunks = [];
+            cloudRecorder = mimeType ? new MediaRecorder(cloudStream, { mimeType }) : new MediaRecorder(cloudStream);
+            cloudRecorder.ondataavailable = event => { if (event.data?.size) cloudChunks.push(event.data); };
+            cloudRecorder.onerror = event => {
+                voiceHadError = true;
+                setStatus(event?.error?.message || 'La grabación del micrófono se interrumpió.', 'error');
+            };
+            cloudRecorder.onstop = async () => {
+                const chunks = cloudChunks.slice();
+                const type = cloudRecorder?.mimeType || chunks[0]?.type || 'audio/webm';
+                const submit = voiceShouldSubmit && !voiceHadError;
+                cleanupCloudAudio();
+                listening = false;
+                recognitionStarting = false;
+                micButton?.classList.remove('is-listening');
+                document.getElementById('sky-open')?.classList.remove('is-listening');
+                if (submit) await processCloudAudio(new Blob(chunks, { type }));
+            };
+
+            cloudAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = cloudAudioContext.createMediaStreamSource(cloudStream);
+            cloudAnalyser = cloudAudioContext.createAnalyser();
+            cloudAnalyser.fftSize = 1024;
+            cloudAnalyser.smoothingTimeConstant = .72;
+            source.connect(cloudAnalyser);
+
+            recognitionStarting = false;
+            listening = true;
+            voiceMode = 'cloud';
+            voiceShouldSubmit = true;
+            cloudStartedAt = Date.now();
+            cloudLastVoiceAt = Date.now();
+            cloudSpeechDetected = false;
+            setVoiceEngine('cloud');
+            micButton?.classList.add('is-listening');
+            document.getElementById('sky-open')?.classList.add('is-listening');
+            setStatus('Escuchando con Sky Voz. Habla normalmente y haz una pausa al terminar.', 'busy');
+            setHeard('escuchando…', 'live');
+            setVoiceMeter(true, .2);
+            cloudRecorder.start(180);
+
+            const timeData = new Uint8Array(cloudAnalyser.fftSize);
+            cloudMeterTimer = setInterval(() => {
+                if (!cloudAnalyser || !cloudRecorder || cloudRecorder.state !== 'recording') return;
+                cloudAnalyser.getByteTimeDomainData(timeData);
+                let sum = 0;
+                for (let i = 0; i < timeData.length; i += 1) {
+                    const value = (timeData[i] - 128) / 128;
+                    sum += value * value;
+                }
+                const rms = Math.sqrt(sum / timeData.length);
+                const level = Math.min(1, rms * 8);
+                setVoiceMeter(true, level);
+                const now = Date.now();
+                if (rms > .018) {
+                    cloudSpeechDetected = true;
+                    cloudLastVoiceAt = now;
+                    setHeard('voz detectada…', 'live');
+                }
+                if (cloudSpeechDetected && now - cloudLastVoiceAt > 1350) {
+                    finishCloudListening(true);
+                    return;
+                }
+                if (now - cloudStartedAt > 18000) finishCloudListening(cloudSpeechDetected);
+            }, 90);
+        } catch (error) {
+            cleanupCloudAudio();
+            recognitionStarting = false;
+            listening = false;
+            const denied = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
+            setVoiceEngine('error');
+            setStatus(denied ? 'El micrófono está bloqueado. Permite el acceso para este sitio.' : 'No pude abrir el micrófono para Sky Voz.', 'error');
+            setHeard('micrófono no disponible');
+        }
+    }
+
+    function finishCloudListening(submit = true) {
+        if (!cloudRecorder) return;
+        voiceShouldSubmit = submit;
+        if (cloudRecorder.state === 'recording') {
+            try { cloudRecorder.stop(); } catch (_) { cleanupCloudAudio(); }
+        }
+    }
+
+    function setupRecognition() {
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Recognition) {
+            recognition = null;
+            micButton.disabled = false;
+            micButton.title = 'Hablar con Sky';
+            setVoiceEngine('automatico');
+            setHeard('voz avanzada disponible si está configurada');
+            micButton.addEventListener('click', () => listening || recognitionStarting ? finishListening() : startListening());
+            return;
+        }
+        recognition = new Recognition();
+        recognition.lang = 'es-MX';
+        recognition.interimResults = true;
+        recognition.continuous = !/iPad|iPhone|iPod/.test(navigator.userAgent);
+        recognition.maxAlternatives = 10;
+        recognition.onstart = () => {
+            recognitionStarting = false;
+            listening = true;
+            voiceHadError = false;
+            setVoiceEngine('browser');
+            setVoiceMeter(true, .35);
+            micButton.classList.add('is-listening');
+            document.getElementById('sky-open')?.classList.add('is-listening');
+            setStatus('Escuchando. Habla normalmente y haz una pausa al terminar…', 'busy');
+            setHeard('escuchando…', 'live');
+            setInterpreted('');
+            clearVoiceTimers();
+            hardStopTimer = setTimeout(() => {
+                if (!listening) return;
+                voiceShouldSubmit = true;
+                try { recognition.stop(); } catch (_) {}
+            }, 24000);
+        };
+        recognition.onspeechstart = () => setStatus('Te escucho…', 'busy');
+        recognition.onresult = event => {
+            const chosen = bestTranscriptFromResults(event.results);
+            voiceBest = chosen.best;
+            voiceAlternatives = chosen.alternatives;
+            let finals = '', interim = '', hasInterim = false;
+            for (let index = 0; index < event.results.length; index += 1) {
+                const result = event.results[index];
+                const candidate = bestRecognitionAlternative(result);
+                if (result.isFinal) finals = joinTranscript(finals, candidate);
+                else { interim = joinTranscript(interim, candidate); hasInterim = true; }
+            }
+            voiceFinal = finals;
+            voiceInterim = interim;
+            const combined = text(voiceBest || joinTranscript(voiceFinal, voiceInterim));
+            voiceRawTranscript = combined;
+            let confidenceTotal = 0, confidenceCount = 0;
+            for (let index = 0; index < event.results.length; index += 1) {
+                const result = event.results[index];
+                if (result?.[0] && Number.isFinite(Number(result[0].confidence)) && Number(result[0].confidence) > 0) { confidenceTotal += Number(result[0].confidence); confidenceCount += 1; }
+            }
+            voiceConfidence = confidenceCount ? confidenceTotal / confidenceCount : 0;
+            setVoiceMeter(true, Math.max(.28, voiceConfidence || .45));
+            const correctedBundle = correctRecognizedTranscript(combined);
+            voiceInterpretedTranscript = correctedBundle.corrected || combined;
+            if (combined) transcriptInput.value = voiceInterpretedTranscript;
+            setHeard(combined || 'escuchando…', hasInterim ? 'live' : 'final');
+            if (combined && commandNormalize(combined) !== commandNormalize(voiceInterpretedTranscript)) setInterpreted(voiceInterpretedTranscript, recognitionQualityLabel(recognitionCandidateScore(combined), voiceConfidence, correctedBundle.changeRatio));
+            else setInterpreted('');
+            scheduleVoiceStop(hasInterim ? 2450 : 1900);
+        };
+        recognition.onspeechend = () => scheduleVoiceStop(1800);
+        recognition.onnomatch = () => {
+            setStatus('No entendí la frase completa. Intenta hablar un poco más cerca del micrófono.', 'error');
+            setHeard('sin coincidencia clara');
+        };
+        recognition.onerror = event => {
+            voiceHadError = true;
+            const error = event.error;
+            const messages = {
+                'not-allowed': 'El micrófono está bloqueado. Permite el acceso para este sitio.',
+                'service-not-allowed': 'El servicio de reconocimiento de voz está bloqueado por el navegador.',
+                'audio-capture': 'No encontré un micrófono disponible. Revisa el dispositivo de entrada.',
+                'no-speech': 'No detecté voz. Acércate al micrófono y vuelve a intentarlo.',
+                'network': 'El reconocimiento de voz necesita conexión a Internet en este navegador.',
+                'language-not-supported': 'El navegador no admite el idioma configurado para el reconocimiento de voz.',
+                'phrases-not-supported': 'El navegador rechazó el modo de vocabulario avanzado. Sky cambiará automáticamente al reconocimiento compatible.'
+            };
+            if (error === 'phrases-not-supported') {
+                recognitionPhraseBiasDisabled = true;
+                stopListening(false, false);
+                setStatus('Reintentando con el reconocimiento compatible…', 'busy');
+                setTimeout(() => startListening({ preserveClearedInput: true, forceBrowser: true }), 180);
+                return;
+            }
+            if (error === 'network' || error === 'service-not-allowed') {
+                try { sessionStorage.setItem('skilled_sky_browser_voice_unstable', '1'); } catch (_) {}
+                stopListening(false, false);
+                setVoiceMeter(false);
+                setStatus('El motor de voz del navegador no respondió. Probando Sky Voz avanzada…', 'busy');
+                ensureCloudVoice(true).then(ready => {
+                    if (ready) {
+                        setVoiceEngine('cloud');
+                        setStatus('Sky Voz avanzada está lista. Habla nuevamente; este modo quedará seleccionado para esta sesión.', 'busy');
+                        setTimeout(() => startCloudListening({ preserveClearedInput: true }), 220);
+                    } else {
+                        setVoiceEngine('error');
+                        setStatus('El navegador no pudo transcribir la voz y Sky Voz avanzada todavía no está configurada en el servidor.', 'error');
+                        setHeard('micrófono disponible · transcripción pendiente');
+                    }
+                });
+                return;
+            }
+            if (error !== 'aborted') setStatus(messages[error] || `No pude reconocer la voz (${error || 'error desconocido'}).`, 'error');
+            stopListening(false, false);
+        };
+        recognition.onend = () => {
+            const rawRecognized = text(voiceRawTranscript || voiceBest || voiceFinal || voiceInterim || transcriptInput?.value);
+            const pool = [rawRecognized, ...voiceAlternatives].filter(Boolean);
+            let bestBundle = null;
+            pool.forEach(candidate => {
+                const correction = correctRecognizedTranscript(candidate);
+                const score = recognitionCandidateScore(candidate) + recognitionIntentBonus(correction.corrected) + voiceConfidence * 8 - correction.changeRatio * 3;
+                if (!bestBundle || score > bestBundle.score) bestBundle = { ...correction, score };
+            });
+            const interpreted = text(bestBundle?.corrected || rawRecognized);
+            const quality = recognitionQualityLabel(bestBundle?.score || 0, voiceConfidence, bestBundle?.changeRatio || 0);
+            const shouldSubmit = voiceShouldSubmit && !voiceHadError && interpreted.length >= 2;
+            stopListening(false, false);
+            setVoiceMeter(false);
+            if (rawRecognized) {
+                transcriptInput.value = interpreted;
+                setHeard(rawRecognized, 'final');
+                setInterpreted(commandNormalize(rawRecognized) !== commandNormalize(interpreted) ? interpreted : '', quality);
+            }
+            if (shouldSubmit) {
+                const ambiguityPool = [interpreted, ...voiceAlternatives];
+                if (quality === 'baja' && (bestBundle?.score || 0) < 10 && showRecognitionChoices(ambiguityPool)) {
+                    setStatus('La voz fue ambigua. Elige la interpretación correcta para evitar una consulta equivocada.', 'error');
+                } else {
+                    setStatus(quality === 'baja' ? 'Interpreté la frase con baja confianza; comprobaré el contexto antes de responder…' : 'Entendido. Consultando el CRM…', 'busy');
+                    setTimeout(() => query(interpreted), 100);
+                }
+            } else if (!voiceHadError) {
+                setStatus(interpreted ? 'Frase capturada. Puedes corregirla o pulsar Consultar.' : 'No detecté una frase completa. Intenta nuevamente.', interpreted ? '' : 'error');
+            }
+        };
+        micButton.addEventListener('click', () => listening || recognitionStarting ? finishListening() : startListening());
+    }
+
+    async function startListening(options = {}) {
+        if (listening || recognitionStarting || cloudRecorder) return;
+        if (!options.preserveClearedInput && transcriptInput) transcriptInput.value = '';
+        voiceFinal = '';
+        voiceInterim = '';
+        voiceBest = '';
+        voiceAlternatives = [];
+        voiceConfidence = 0;
+        voiceRawTranscript = '';
+        voiceInterpretedTranscript = '';
+        voiceShouldSubmit = false;
+        voiceHadError = false;
+        clearVoiceTimers();
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
+
+        const preferCloud = !options.forceBrowser && (
+            sessionStorage.getItem('skilled_sky_browser_voice_unstable') === '1' ||
+            localStorage.getItem('skilled_sky_prefer_advanced_voice') === '1'
+        );
+        const cloudReady = !options.forceBrowser ? await ensureCloudVoice(false) : false;
+        if (cloudReady && !options.forceBrowser) {
+            try { localStorage.setItem('skilled_sky_prefer_advanced_voice', '1'); } catch (_) {}
+            return startCloudListening({ preserveClearedInput: true });
+        }
+
+        if (!recognition) {
+            if (cloudReady) return startCloudListening({ preserveClearedInput: true });
+            setVoiceEngine('error');
+            setStatus('No hay un motor de transcripción disponible. Configura Sky Voz avanzada o utiliza un navegador con reconocimiento de voz.', 'error');
+            return;
+        }
+
+        recognitionStarting = true;
+        const allowed = await preflightMicrophone();
+        if (!allowed) {
+            recognitionStarting = false;
+            return;
+        }
+        setVoiceEngine('browser');
+        setStatus('Activando micrófono…', 'busy');
+        setHeard('preparando…', 'live');
+        setInterpreted('');
+        try {
+            await primeRecognitionVocabulary();
+            recognition.start();
+        } catch (error) {
+            recognitionStarting = false;
+            if (error?.name === 'InvalidStateError') return;
+            if (cloudReady) {
+                try { sessionStorage.setItem('skilled_sky_browser_voice_unstable', '1'); } catch (_) {}
+                setStatus('El reconocimiento del navegador no inició. Cambiando a Sky Voz avanzada…', 'busy');
+                return startCloudListening({ preserveClearedInput: true });
+            }
+            setVoiceEngine('error');
+            setStatus('No pude iniciar el reconocimiento. Espera un segundo y vuelve a pulsar el micrófono.', 'error');
+        }
+    }
+
+    function finishListening() {
+        if (voiceMode === 'cloud' && cloudRecorder) {
+            finishCloudListening(true);
+            return;
+        }
+        if (!recognition) return;
+        voiceShouldSubmit = true;
+        clearVoiceTimers();
+        try { recognition.stop(); } catch (_) { stopListening(false, false); }
+    }
+
+    function stopListening(abort = true, resetSubmit = true) {
+        clearVoiceTimers();
+        if (cloudRecorder) {
+            if (abort) {
+                voiceShouldSubmit = false;
+                try {
+                    if (cloudRecorder.state === 'recording') cloudRecorder.stop();
+                    else cleanupCloudAudio();
+                } catch (_) { cleanupCloudAudio(); }
+            }
+        }
+        if (recognition && (listening || recognitionStarting) && abort && voiceMode !== 'cloud') {
+            try { recognition.abort(); } catch (_) {}
+        }
+        if (!cloudRecorder) {
+            listening = false;
+            recognitionStarting = false;
+        }
+        if (resetSubmit) voiceShouldSubmit = false;
+        micButton?.classList.remove('is-listening');
+        document.getElementById('sky-open')?.classList.remove('is-listening');
+        if (!listening) setVoiceMeter(false);
+    }
+
+    async function tableRows(table, select = '*', order = '') {
+        if (!window.SkilledDB?.client) throw new Error('La conexión con el CRM todavía no está lista.');
+        let request = SkilledDB.client.from(table).select(select);
+        if (order) request = request.order(order, { ascending: true });
+        const { data, error } = await request;
+        if (error) throw error;
+        return data || [];
+    }
+
+    async function loadData(key) {
+        const fresh = Date.now() - cache.at < ttl;
+        if (fresh && cache[key]) return cache[key];
+        if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
+        const loaders = {
+            materials: () => SkilledDB.listMaterials(),
+            low: () => SkilledDB.listLowStock(),
+            purchases: () => SkilledDB.listPurchaseRequests({}),
+            tools: () => SkilledDB.listTools(),
+            assignments: () => SkilledDB.listToolAssignments({}),
+            vehicles: () => SkilledDB.listVehicles(),
+            projects: () => SkilledDB.listProjectOptions(),
+            projectDetails: () => SkilledDB.listProjects(),
+            coSuppliers: () => tableRows('co_proveedores'),
+            coServices: () => SkilledDB.listServices(),
+            coStore: () => SkilledDB.listStoreRequests(),
+            coQuotations: () => typeof SkilledDB.listQuotationRequests === 'function' ? SkilledDB.listQuotationRequests({}) : [],
+            rhPeople: () => tableRows('rh_personal'),
+            rhAssignments: () => tableRows('rh_proyecto_asignaciones'),
+            rhIncidents: () => tableRows('rh_incidencias'),
+            rhDocuments: () => tableRows('rh_documentos', '*,personal:rh_personal(id,numero_empleado,nombre,apellidos,puesto)'),
+            rhTrainings: () => tableRows('rh_capacitaciones'),
+            rhParticipants: () => tableRows('rh_capacitacion_participantes', '*,personal:rh_personal(id,nombre,apellidos)')
+        };
+        if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
+        const data = await loaders[key]();
+        cache[key] = data;
+        cache.at = Date.now();
+        return data;
+    }
+
+    function tokensForMaterial(queryText) {
+        return normalize(queryText).split(' ').filter(token => token.length > 0 && !stopWords.has(token));
+    }
+
+    function materialSearchText(material) {
+        const values = [material.codigo, material.descripcion, material.desc, material.categoria, material.unidad, material.marca, material.tipoCable, material.tamano, ...(Array.isArray(material.modismos) ? material.modismos : [])];
+        return normalize(values.join(' '));
+    }
+
+    function rankMaterial(material, rawQuery) {
+        const haystack = materialSearchText(material);
+        const queryNorm = normalize(rawQuery);
+        const tokens = tokensForMaterial(rawQuery);
+        if (!tokens.length) return -1;
+        let score = 0;
+        const phrase = tokens.join(' ');
+        if (phrase && haystack.includes(phrase)) score += 80;
+        tokens.forEach(token => {
+            const variants = [token];
+            if (token.length > 4 && token.endsWith('es')) variants.push(token.slice(0, -2));
+            if (token.length > 3 && token.endsWith('s')) variants.push(token.slice(0, -1));
+            if (normalize(material.codigo) === token) score += 80;
+            else if (variants.some(value => haystack.includes(value))) score += token.length >= 4 ? 18 : 10;
+            else {
+                const maxDistance = token.length >= 8 ? 2 : 1;
+                const fuzzy = token.length >= 4 && haystack.split(' ').some(word => Math.abs(word.length - token.length) <= maxDistance && levenshtein(word, token) <= maxDistance);
+                if (fuzzy) score += token.length >= 6 ? 10 : 6;
+                else score -= 8;
+            }
+        });
+        const description = normalize(material.descripcion ?? material.desc);
+        if (tokens.every(token => { const variants=[token, token.length>3&&token.endsWith('s')?token.slice(0,-1):token].filter(Boolean); return variants.some(value=>description.includes(value)); })) score += 35;
+        if (queryNorm.includes(normalize(material.codigo)) && normalize(material.codigo)) score += 100;
+        return score;
+    }
+
+    async function findMaterial(rawQuery) {
+        const materials = await loadData('materials');
+        const ranked = materials.map(material => ({ material, score: rankMaterial(material, rawQuery) })).filter(item => item.score > 0).sort((a, b) => b.score - a.score || text(a.material.descripcion).localeCompare(text(b.material.descripcion), 'es'));
+        if (!ranked.length) return { best: null, alternatives: [] };
+        return { best: ranked[0].material, alternatives: ranked.slice(1, 4).map(item => item.material), score: ranked[0].score };
+    }
+
+    function purchaseKey(value) {
+        return normalize(value).replace(/\s+/g, '');
+    }
+
+    function extractOrder(queryNorm) {
+        const matches = queryNorm.match(/\b(?:oc[-\s]?)?[a-z0-9-]*\d[a-z0-9-]*\b/gi) || [];
+        return matches.map(value => text(value)).find(value => /\d/.test(value)) || '';
+    }
+
+    async function answerMaterial(raw, locationOnly) {
+        const match = await findMaterial(raw);
+        if (!match.best) {
+            setAnswer('Material', 'No encontré un material suficientemente parecido.', 'Prueba diciendo el código, descripción o algún modismo registrado en el catálogo.', [], { href: 'AL.catalogo.html', label: 'Abrir catálogo' });
+            return 'No encontré ese material en el catálogo.';
+        }
+        const material = match.best;
+        const inventories = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(item => locationOnly ? Boolean(text(item.ubicacion)) || number(item.stock) > 0 : number(item.stock) !== 0 || Boolean(text(item.ubicacion)));
+        const total = (material.almacenes || []).reduce((sum, item) => sum + number(item.stock), 0);
+        const cards = inventories.map(item => ({ title: item.nombre || 'Almacén', detail: `${formatNumber(item.stock)} ${material.unidad || 'unidades'}${item.ubicacion ? ` · ${item.ubicacion}` : ' · sin ubicación específica'}` }));
+        if (locationOnly) {
+            const located = inventories.filter(item => text(item.ubicacion));
+            const main = located.length ? `${material.descripcion} tiene ${located.length === 1 ? 'esta ubicación' : 'estas ubicaciones'}.` : `${material.descripcion} todavía no tiene una ubicación física específica registrada.`;
+            const detail = match.alternatives.length ? `Interpreté “${text(raw)}” como ${material.descripcion}.` : '';
+            setAnswer('Ubicación', main, detail, cards, { href: `AL.almacenes.html?q=${encodeURIComponent(material.codigo)}`, label: 'Abrir ubicaciones' });
+            const voice = located.length ? `${material.descripcion}. ${located.map(item => `${item.nombre}, ubicación ${item.ubicacion}`).join('. ')}` : `${material.descripcion} todavía no tiene ubicación específica.`;
+            return voice;
+        }
+        const main = `${material.descripcion}: ${formatNumber(total)} ${material.unidad || 'unidades'} en total.`;
+        const detail = match.alternatives.length ? `Interpreté la consulta como ${material.descripcion}.` : 'Existencia consultada directamente del inventario por almacén.';
+        setAnswer('Existencia', main, detail, cards, { href: `AL.catalogo.html?q=${encodeURIComponent(material.codigo)}`, label: 'Abrir material' });
+        const positive = (material.almacenes || []).filter(item => number(item.stock) > 0);
+        return positive.length ? `${material.descripcion}. Tienes ${formatNumber(total)} ${material.unidad || 'unidades'} en total. ${positive.map(item => `En ${item.nombre} tienes ${formatNumber(item.stock)}`).join('. ')}` : `${material.descripcion} tiene existencia cero.`;
+    }
+
+    async function answerLowStock() {
+        const rows = await loadData('low');
+        const total = rows.length;
+        const exhausted = rows.filter(item => item.estadoStock === 'agotado').length;
+        const suggested = rows.reduce((sum, item) => sum + Math.max(0, number(item.cantidadReposicionSugerida ?? item.stockMaximoAlmacen) - (item.cantidadReposicionSugerida == null ? number(item.stockAlmacen) : 0)), 0);
+        const cards = rows.slice(0, 6).map(item => ({ title: `${item.codigo} · ${item.descripcion ?? item.desc}`, detail: `${item.almacenNombre || 'Sin almacén'} · actual ${formatNumber(item.stockAlmacen)} · sugerido comprar ${formatNumber(item.cantidadReposicionSugerida)}` }));
+        setAnswer('Bajo mínimo', total ? `${total} materiales requieren atención; ${exhausted} están agotados.` : 'No hay materiales bajo mínimo.', total ? 'Las cantidades sugeridas se calculan para regresar cada material a su stock máximo.' : 'El inventario no tiene alertas de mínimos en este momento.', cards, { href: detectProfile() === 'compras' ? 'CO.cotizaciones.html' : 'AL.bajo-minimo.html', label: 'Abrir reposiciones' });
+        return total ? `Hay ${total} materiales bajo mínimo. ${exhausted} están agotados.` : 'No hay materiales bajo mínimo.';
+    }
+
+    async function answerPurchase(raw) {
+        const rows = await loadData('purchases');
+        const norm = commandNormalize(raw);
+        const candidate = extractOrder(norm);
+        const matching = candidate ? rows.filter(item => [item.ordenCompra, item.folio, item.grupoOrden].some(value => purchaseKey(value).includes(purchaseKey(candidate)) || purchaseKey(candidate).includes(purchaseKey(value)))) : rows.filter(item => !['recibida', 'cerrada', 'cancelada', 'rechazada'].includes(normalize(item.estado)));
+        if (!matching.length) {
+            setAnswer('Orden de compra', candidate ? `No encontré una orden relacionada con “${candidate}”.` : 'No encontré órdenes pendientes.', 'Puedes indicar el número de OC o el folio de solicitud.', [], { href: detectProfile() === 'compras' ? 'CO.ordenes-compra.html' : 'AL.ordenes-compra.html', label: 'Abrir órdenes' });
+            return candidate ? `No encontré la orden ${candidate}.` : 'No encontré órdenes pendientes.';
+        }
+        const groups = new Map();
+        matching.forEach(item => {
+            const key = text(item.ordenCompra || item.grupoOrden || item.folio);
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(item);
+        });
+        const cards = [...groups.entries()].slice(0, 6).map(([key, items]) => {
+            const requested = items.reduce((sum, item) => sum + number(item.cantidadSolicitada), 0);
+            const received = items.reduce((sum, item) => sum + number(item.cantidadRecibida), 0);
+            const state = received >= requested && requested > 0 ? 'recibida' : received > 0 ? 'parcial' : text(items[0].estado || 'pendiente');
+            return { title: key, detail: `${state} · ${formatNumber(received)} de ${formatNumber(requested)} recibidos · ${items[0].proveedor || 'proveedor pendiente'}` };
+        });
+        const first = cards[0];
+        setAnswer('Orden de compra', candidate && cards.length === 1 ? `${first.title}: ${first.detail}.` : `${cards.length} orden${cards.length === 1 ? '' : 'es'} encontradas.`, 'El avance se calcula con las cantidades solicitadas y recibidas.', cards, { href: detectProfile() === 'compras' ? 'CO.ordenes-compra.html' : 'AL.ordenes-compra.html', label: 'Abrir órdenes' });
+        return candidate && cards.length === 1 ? `${first.title}. ${first.detail}.` : `Encontré ${cards.length} órdenes relacionadas.`;
+    }
+
+    async function answerTools(raw) {
+        const [tools, assignments] = await Promise.all([loadData('tools'), loadData('assignments')]);
+        const norm = commandNormalize(raw);
+        const overdueRequested = /vencid|atrasad|no.*regres|pendiente.*devol/.test(norm);
+        if (overdueRequested) {
+            const overdue = assignments.filter(item => item.estado === 'vencida');
+            const cards = overdue.slice(0, 6).map(item => ({ title: item.unidad?.herramienta?.descripcion || item.unidad?.codigoInterno || 'Herramienta', detail: `${item.personaNombre || item.proyecto || 'Sin destino'} · devolución ${item.fechaDevolucionEstimada || 'sin fecha'}` }));
+            setAnswer('Herramientas pendientes', overdue.length ? `${overdue.length} herramientas tienen devolución vencida.` : 'No hay herramientas con devolución vencida.', '', cards, { href: 'AL.asignaciones-herramientas.html', label: 'Abrir asignaciones' });
+            return overdue.length ? `Hay ${overdue.length} herramientas con devolución vencida.` : 'No hay herramientas vencidas.';
+        }
+        const queryTokens = normalize(raw).split(' ').filter(token => token.length > 2 && !['herramienta', 'herramientas', 'disponible', 'disponibles', 'asignada', 'asignadas', 'tenemos', 'cuantas', 'cuantos'].includes(token));
+        let matched = tools;
+        if (queryTokens.length) matched = tools.filter(tool => queryTokens.some(token => normalize([tool.sku, tool.descripcion, tool.marca, tool.modelo, tool.clasificacion].join(' ')).includes(token)));
+        if (!matched.length) {
+            setAnswer('Herramientas', 'No encontré una herramienta coincidente.', 'Prueba con el SKU, nombre, marca o modelo.', [], { href: 'AL.herramientas.html', label: 'Abrir herramientas' });
+            return 'No encontré esa herramienta.';
+        }
+        const available = matched.reduce((sum, item) => sum + number(item.disponibles), 0);
+        const assigned = matched.reduce((sum, item) => sum + number(item.asignadas), 0);
+        const cards = matched.slice(0, 6).map(item => ({ title: `${item.sku} · ${item.descripcion}`, detail: `${formatNumber(item.disponibles)} disponibles · ${formatNumber(item.asignadas)} asignadas` }));
+        setAnswer('Herramientas', `${formatNumber(available)} disponibles y ${formatNumber(assigned)} asignadas en ${matched.length} tipo${matched.length === 1 ? '' : 's'} de herramienta.`, '', cards, { href: 'AL.estado-herramientas.html', label: 'Abrir estado actual' });
+        return `Hay ${formatNumber(available)} herramientas disponibles y ${formatNumber(assigned)} asignadas.`;
+    }
+
+    async function answerVehicles(raw) {
+        const vehicles = await loadData('vehicles');
+        const norm = commandNormalize(raw);
+        const types = ['pickup', 'camioneta', 'automovil', 'van', 'camion', 'motocicleta', 'montacargas', 'generador', 'maquinaria'];
+        const type = types.find(item => norm.includes(item));
+        const rows = vehicles.filter(item => item.activo !== false && (!type || normalize(item.tipo).includes(type)));
+        const available = rows.filter(item => normalize(item.estado) === 'disponible');
+        const cards = available.slice(0, 6).map(item => ({ title: `${item.numeroEconomico} · ${item.marca} ${item.modelo}`, detail: `${item.tipo || 'vehículo'} · ${item.placas || 'sin placas'} · ${formatNumber(item.kilometraje)} km` }));
+        setAnswer('Vehículos', available.length ? `${available.length} vehículo${available.length === 1 ? '' : 's'} disponible${available.length === 1 ? '' : 's'}${type ? ` del tipo ${type}` : ''}.` : `No hay vehículos disponibles${type ? ` del tipo ${type}` : ''}.`, '', cards, { href: 'AL.vehiculos.html', label: 'Abrir flotilla' });
+        return available.length ? `Hay ${available.length} vehículos disponibles${type ? ` del tipo ${type}` : ''}.` : 'No hay vehículos disponibles con ese filtro.';
+    }
+
+    async function answerProjectRoute(raw) {
+        const projects = await loadData('projects');
+        const norm = commandNormalize(raw);
+        const match = projects.find(item => norm.includes(normalize(item.proyecto)) || (item.nombreProyecto && norm.includes(normalize(item.nombreProyecto))));
+        if (!match) {
+            setAnswer('Preparar proyecto', 'No pude identificar el proyecto.', 'Di el número o nombre exacto del proyecto.', [], { href: 'AL.automatizaciones.html#picking', label: 'Abrir preparación de proyecto' });
+            return 'No pude identificar el proyecto.';
+        }
+        const route = await SkilledDB.buildProjectPickingRoute(match.proyecto);
+        const cards = route.rutas.slice(0, 6).map(item => ({ title: `${item.ubicacion} · ${item.descripcion}`, detail: `${formatNumber(item.cantidad)} ${item.unidad || ''} · ${item.almacenNombre}` }));
+        const main = `${match.proyecto}: ${route.totalParadas} paradas de picking y ${route.faltantes.length} faltantes.`;
+        setAnswer('Preparar proyecto', main, 'Sky solo preparó la ruta; no registró ninguna salida.', cards, { href: `AL.automatizaciones.html?proyecto=${encodeURIComponent(match.proyecto)}#picking`, label: 'Abrir ruta completa' });
+        return `${match.proyecto}. Preparé ${route.totalParadas} paradas. Hay ${route.faltantes.length} faltantes.`;
+    }
+
+
+    function currency(value) {
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 }).format(number(value));
+    }
+    function dateOnly(value) {
+        if (!value) return '—';
+        const raw = text(value);
+        const parsed = new Date(raw.length === 10 ? `${raw}T12:00:00` : raw);
+        return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    function daysFromToday(value) {
+        if (!value) return null;
+        const parsed = new Date(`${text(value).slice(0, 10)}T12:00:00`);
+        if (Number.isNaN(parsed.getTime())) return null;
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        return Math.ceil((parsed - today) / 86400000);
+    }
+    function searchTokens(raw, exclusions = []) {
+        const excluded = new Set([...stopWords, ...exclusions].map(normalize));
+        return normalize(raw).split(' ').filter(token => token.length > 2 && !excluded.has(token));
+    }
+    function matchesTokens(values, tokens) {
+        if (!tokens.length) return true;
+        const haystack = normalize((Array.isArray(values) ? values : [values]).join(' '));
+        return tokens.every(token => haystack.includes(token));
+    }
+    function projectMatch(projects, raw) {
+        const norm = commandNormalize(raw);
+        const tokens = searchTokens(raw, ['proyecto', 'proyectos', 'costo', 'presupuesto', 'avance', 'como', 'cuanto', 'consumido']);
+        return projects.find(item => {
+            const numberKey = normalize(item.proyecto || item.idProyecto);
+            const name = normalize(item.nombreProyecto);
+            if (numberKey && norm.includes(numberKey)) return true;
+            if (name && norm.includes(name)) return true;
+            return tokens.length >= 1 && matchesTokens([item.proyecto, item.nombreProyecto, item.cliente], tokens);
+        });
+    }
+
+    async function answerQuotation(raw) {
+        const norm = commandNormalize(raw);
+        const rows = await loadData('coQuotations');
+        const openStates = new Set(['solicitada','en_revision','cotizando']);
+        const approvedStates = new Set(['aprobada','aprobado']);
+        const folioMatch = String(raw || '').match(/\bCOT[-\s]?[A-Z0-9-]+/i);
+        const tokens = searchTokens(raw, ['cotizacion','cotizaciones','cotizar','solicitud','solicitudes','oferta','ofertas','comparar','proveedor','proveedores','precio','precios','plazo','plazos','entrega','revisar','revision','pendiente','pendientes','busca','buscar','muestra','ver']);
+        let selected = rows;
+        if (folioMatch) {
+            const key = normalize(folioMatch[0]).replace(/\s+/g, '');
+            selected = rows.filter(item => normalize(item.folio).replace(/\s+/g, '').includes(key));
+        } else if (/pendient|por revisar|requieren atencion|en revision|cotizando/.test(norm)) {
+            selected = rows.filter(item => openStates.has(normalize(item.estado)));
+        } else if (/aprobad|aceptad|seleccionad/.test(norm)) {
+            selected = rows.filter(item => approvedStates.has(normalize(item.estado)));
+        } else if (tokens.length) {
+            const matches = rows.filter(item => {
+                const itemText = (Array.isArray(item.items) ? item.items : []).flatMap(detail => [detail.materialCodigo,detail.descripcion,detail.marca,detail.unidad]);
+                return matchesTokens([item.folio,item.referencia,item.solicitadoPor,item.estado,item.prioridad,...itemText], tokens);
+            });
+            if (matches.length) selected = matches;
+        }
+        const open = rows.filter(item => openStates.has(normalize(item.estado)));
+        const materialCount = selected.reduce((sum,item) => sum + (Array.isArray(item.items) ? item.items.length : 0), 0);
+        const cards = selected.slice(0, 7).map(item => {
+            const items = Array.isArray(item.items) ? item.items : [];
+            const preview = items.slice(0,2).map(detail => detail.descripcion || detail.materialCodigo).filter(Boolean).join(', ');
+            return {
+                title: item.folio || 'Cotización',
+                detail: `${text(item.estado) || 'solicitada'} · ${items.length} material${items.length === 1 ? '' : 'es'}${item.prioridad === 'urgente' ? ' · urgente' : ''}${item.fechaRequerida ? ` · requerida ${dateOnly(item.fechaRequerida)}` : ''}${preview ? ` · ${preview}` : ''}`
+            };
+        });
+        if (folioMatch && selected.length === 1 && typeof SkilledDB.getQuotationRequest === 'function') {
+            try {
+                const detail = await SkilledDB.getQuotationRequest(selected[0].id);
+                const items = Array.isArray(detail.items) ? detail.items : [];
+                let quoted = 0, chosen = 0;
+                let bestPrice = null, fastest = null;
+                items.forEach(item => {
+                    const offers = (Array.isArray(item.ofertas) ? item.ofertas : []).filter(o => number(o.precioUnitario) > 0);
+                    if (offers.length) quoted++;
+                    if (item.ofertaSeleccionadaId) chosen++;
+                    offers.forEach(offer => {
+                        if (!bestPrice || number(offer.precioUnitario) < number(bestPrice.precioUnitario)) bestPrice = offer;
+                        if (!fastest || number(offer.plazoEntregaDias) < number(fastest.plazoEntregaDias)) fastest = offer;
+                    });
+                });
+                const notes = [];
+                notes.push(`${quoted} de ${items.length} materiales ya tienen al menos una oferta`);
+                notes.push(`${chosen} tienen proveedor seleccionado`);
+                if (bestPrice) notes.push(`el menor precio registrado es ${currency(bestPrice.precioUnitario)} con ${bestPrice.proveedorNombre || 'un proveedor'}`);
+                if (fastest) notes.push(`el plazo más corto registrado es ${formatNumber(fastest.plazoEntregaDias)} día${number(fastest.plazoEntregaDias) === 1 ? '' : 's'} con ${fastest.proveedorNombre || 'un proveedor'}`);
+                setAnswer('Detalle de cotización', `${detail.folio}: ${items.length} material${items.length === 1 ? '' : 'es'} · estado ${detail.estado}.`, notes.join('. ') + '.', cards, { href: 'CO.cotizaciones.html', label: 'Abrir comparador' });
+                return `${detail.folio} tiene ${items.length} materiales. ${notes.join('. ')}.`;
+            } catch (_) {}
+        }
+        const headline = selected === rows && !folioMatch && !tokens.length ? `${open.length} cotización${open.length === 1 ? '' : 'es'} requieren atención.` : selected.length ? `${selected.length} cotización${selected.length === 1 ? '' : 'es'} encontrada${selected.length === 1 ? '' : 's'}.` : 'No encontré cotizaciones con ese criterio.';
+        setAnswer('Cotizaciones', headline, selected.length ? `${materialCount} material${materialCount === 1 ? '' : 'es'} en el listado mostrado. En el comparador puedes verificar precio y plazo de cada proveedor y cambiar la recomendación automática.` : 'Prueba con el folio, material, estado o referencia de la solicitud.', cards, { href: 'CO.cotizaciones.html', label: 'Abrir cotizaciones' });
+        return selected.length ? `${headline} El listado contiene ${materialCount} materiales.` : headline;
+    }
+
+    async function answerPurchasing(raw) {
+        const norm = commandNormalize(raw);
+        if (/cotiz|oferta|compar.*proveedor|precio.*plazo|plazo.*precio/.test(norm) || hasFuzzy(norm,['cotizacion','cotizaciones','comparar proveedores','precio y plazo'])) return answerQuotation(raw);
+        if (/bajo.*min|agotad|reponer|reposicion/.test(norm) || hasFuzzy(norm,['bajo minimo','reponer material'])) return answerLowStock();
+        if (/orden.*compra|\boc\b|requisicion|recepcion|recibid|por atender|no revisad|en revision/.test(norm) || hasFuzzy(norm,['orden de compra','requisicion','recepcion'])) return answerPurchase(raw);
+        if (/proveedor|proveedores|rfc/.test(norm) || hasFuzzy(norm,['proveedor','proveedores'])) {
+            const rows = await loadData('coSuppliers');
+            const tokens = searchTokens(raw, ['proveedor', 'proveedores', 'busca', 'buscar', 'rfc']);
+            const matches = rows.filter(item => matchesTokens([item.razon_social, item.nombre_comercial, item.contacto, item.email, item.telefono, item.rfc, item.categoria], tokens));
+            const cards = matches.slice(0, 7).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'contacto pendiente'}${item.email ? ` · ${item.email}` : ''}` }));
+            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coinciden con la consulta.` : 'No encontré un proveedor coincidente.', matches.length ? 'La búsqueda considera razón social, nombre comercial, RFC y contacto.' : 'Prueba con razón social, nombre comercial o RFC.', cards, { href: 'CO.proveedores.html', label: 'Abrir proveedores' });
+            return matches.length ? `Encontré ${matches.length} proveedores relacionados.` : 'No encontré ese proveedor.';
+        }
+        if (/servicio|servicios|luz|agua|internet|telefono|pago.*proxim|vence|vencimiento/.test(norm)) {
+            const rows = await loadData('coServices');
+            const due = rows.filter(item => item.estado === 'activo' && (daysFromToday(item.proximaFechaPago) ?? 9999) <= Math.max(30, number(item.anticipacionDias)));
+            const tokens = searchTokens(raw, ['servicio', 'servicios', 'pago', 'proximo', 'proximos', 'proxima', 'proximas', 'pronto', 'vence', 'vencen', 'vencimiento']);
+            const selected = tokens.length ? rows.filter(item => matchesTokens([item.nombre, item.tipo, item.proveedor, item.cuentaContrato, item.ubicacion], tokens)) : due;
+            const cards = selected.slice(0, 7).map(item => ({ title: item.nombre || item.tipo || 'Servicio', detail: `${item.proveedor || 'sin proveedor'} · vence ${dateOnly(item.proximaFechaPago)} · ${currency(item.montoEstimado)}` }));
+            setAnswer('Servicios', selected.length ? `${selected.length} servicio${selected.length === 1 ? '' : 's'} encontrado${selected.length === 1 ? '' : 's'}.` : 'No encontré servicios con ese criterio.', tokens.length ? 'Mostrando coincidencias de la consulta.' : 'Mostrando servicios dentro de su periodo próximo de pago.', cards, { href: 'CO.servicios.html', label: 'Abrir servicios' });
+            return selected.length ? `Encontré ${selected.length} servicios. ${selected.slice(0, 3).map(item => `${item.nombre}, vence ${dateOnly(item.proximaFechaPago)}`).join('. ')}` : 'No encontré servicios con ese criterio.';
+        }
+        if (/proyecto|proyectos|avance.*proyecto|estado.*proyecto|costo.*proyecto/.test(norm) || hasFuzzy(norm,['proyecto','proyectos'])) return answerProjects(raw);
+        if (/tienda|sams|aurrera|compra general|compras generales/.test(norm)) {
+            const rows = await loadData('coStore');
+            const pending = rows.filter(item => !['comprado', 'cancelado'].includes(normalize(item.estado)));
+            const cards = pending.slice(0, 7).map(item => ({ title: item.producto || 'Compra', detail: `${item.negocio || 'negocio pendiente'} · ${formatNumber(item.cantidad)} ${item.unidad || ''} · ${currency(item.costoEstimado)}` }));
+            setAnswer('Compras de tienda', pending.length ? `${pending.length} solicitud${pending.length === 1 ? '' : 'es'} de tienda siguen pendientes.` : 'No hay compras de tienda pendientes.', '', cards, { href: 'CO.tienda.html', label: 'Abrir tienda' });
+            return pending.length ? `Hay ${pending.length} compras de tienda pendientes.` : 'No hay compras de tienda pendientes.';
+        }
+        const [quotes, orders, suppliers, services, store] = await Promise.all([loadData('coQuotations'), loadData('purchases'), loadData('coSuppliers'), loadData('coServices'), loadData('coStore')]);
+        const quoteOpen = quotes.filter(item => ['solicitada','en_revision','cotizando'].includes(normalize(item.estado))).length;
+        const groups = new Set(orders.filter(item => !['compra_realizada', 'recibida', 'cerrada', 'cancelada', 'rechazada'].includes(normalize(item.estadoCompras || item.estado))).map(item => text(item.ordenCompra || item.grupoOrden || item.folio)).filter(Boolean));
+        const due = services.filter(item => item.estado === 'activo' && (daysFromToday(item.proximaFechaPago) ?? 9999) <= Math.max(30, number(item.anticipacionDias))).length;
+        const storePending = store.filter(item => !['comprado', 'cancelado'].includes(normalize(item.estado))).length;
+        const cards = [
+            { title: 'Cotizaciones por revisar', detail: `${quoteOpen}` },
+            { title: 'Órdenes por atender', detail: `${groups.size}` },
+            { title: 'Proveedores', detail: `${suppliers.length}` },
+            { title: 'Servicios próximos', detail: `${due}` },
+            { title: 'Compras de tienda pendientes', detail: `${storePending}` }
+        ];
+        setAnswer('Resumen de Compras', `Hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender, ${due} servicios próximos y ${storePending} compras de tienda pendientes.`, 'Puedes preguntarme por una cotización, material a cotizar, OC, proveedor, precio, plazo, servicio o compra específica.', cards, { href: 'CO.inicio.html', label: 'Abrir Compras' });
+        return `En Compras hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender, ${due} servicios próximos y ${storePending} compras de tienda pendientes.`;
+    }
+
+    async function answerRH(raw) {
+        const norm = commandNormalize(raw);
+        if (/vehiculo|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas/.test(norm) || hasFuzzy(norm,['vehiculo','vehiculos'])) return answerVehicles(raw);
+        const [people, assignments, incidents, documents, trainings] = await Promise.all([loadData('rhPeople'), loadData('rhAssignments'), loadData('rhIncidents'), loadData('rhDocuments'), loadData('rhTrainings')]);
+        const today = new Date().toISOString().slice(0, 10);
+        if (/ausent|vacacion|incapacidad|permiso|retardo|incidencia|asistencia/.test(norm)) {
+            const current = incidents.filter(item => text(item.fecha_inicio) <= today && text(item.fecha_fin || item.fecha_inicio) >= today && !['rechazado', 'cancelado'].includes(normalize(item.estado)));
+            const cards = current.slice(0, 7).map(item => {
+                const person = people.find(row => Number(row.id) === Number(item.personal_id));
+                return { title: person ? `${person.nombre} ${person.apellidos}` : `Personal ${item.personal_id}`, detail: `${item.tipo || 'incidencia'} · ${dateOnly(item.fecha_inicio)}${item.fecha_fin && item.fecha_fin !== item.fecha_inicio ? ` a ${dateOnly(item.fecha_fin)}` : ''}` };
+            });
+            setAnswer('Asistencias e incidencias', current.length ? `${current.length} incidencia${current.length === 1 ? '' : 's'} activa${current.length === 1 ? '' : 's'} hoy.` : 'No hay incidencias activas registradas para hoy.', '', cards, { href: 'RH.asistencias.html', label: 'Abrir asistencias' });
+            return current.length ? `Hay ${current.length} incidencias activas hoy.` : 'No hay incidencias activas hoy.';
+        }
+        if (/document|credencial|licencia|certific|vence|vencen|vencimiento|contrato/.test(norm)) {
+            const in60 = documents.filter(item => { const days = daysFromToday(item.fecha_vencimiento); return days != null && days >= 0 && days <= 60; });
+            const contracts = people.filter(item => { const days = daysFromToday(item.fecha_fin_contrato); return days != null && days >= 0 && days <= 60; });
+            const cards = [
+                ...in60.slice(0, 5).map(item => ({ title: item.nombre || item.tipo || 'Documento', detail: `${item.personal?.nombre || ''} ${item.personal?.apellidos || ''} · vence ${dateOnly(item.fecha_vencimiento)}` })),
+                ...contracts.slice(0, Math.max(0, 7 - Math.min(5, in60.length))).map(item => ({ title: `${item.nombre} ${item.apellidos}`, detail: `${item.tipo_contrato || 'Contrato'} · termina ${dateOnly(item.fecha_fin_contrato)}` }))
+            ];
+            setAnswer('Vencimientos de RH', `${in60.length} documentos y ${contracts.length} contratos vencen en los próximos 60 días.`, '', cards, { href: 'RH.documentos.html', label: 'Abrir documentos' });
+            return `En los próximos sesenta días vencen ${in60.length} documentos y ${contracts.length} contratos.`;
+        }
+        if (/capacit|curso|entrenamiento/.test(norm)) {
+            const open = trainings.filter(item => ['programada', 'en_curso'].includes(normalize(item.estado)));
+            const cards = open.slice(0, 7).map(item => ({ title: item.nombre || 'Capacitación', detail: `${item.estado || 'programada'} · ${dateOnly(item.fecha_inicio)} a ${dateOnly(item.fecha_fin)}` }));
+            setAnswer('Capacitación', open.length ? `${open.length} capacitación${open.length === 1 ? '' : 'es'} programada${open.length === 1 ? '' : 's'} o en curso.` : 'No hay capacitaciones abiertas.', '', cards, { href: 'RH.capacitacion.html', label: 'Abrir capacitación' });
+            return open.length ? `Hay ${open.length} capacitaciones abiertas.` : 'No hay capacitaciones abiertas.';
+        }
+        if (/proyecto|proyectos|personal asignado|sin personal|equipo/.test(norm)) {
+            const projects = await loadData('projectDetails');
+            const activeAssignments = new Set(assignments.filter(item => normalize(item.estado) === 'activo').map(item => text(item.proyecto_numero)));
+            const without = projects.filter(item => !['finalizado', 'cerrado', 'cancelado', 'inactivo'].includes(normalize(item.estado)) && !activeAssignments.has(text(item.proyecto))).slice(0, 7);
+            const cards = without.map(item => ({ title: `${item.proyecto} · ${item.nombreProyecto || 'Proyecto'}`, detail: `${item.cliente || 'sin cliente'} · entrega ${dateOnly(item.fechaEntrega)}` }));
+            setAnswer('Proyectos y personal', without.length ? `${without.length} proyecto${without.length === 1 ? '' : 's'} activo${without.length === 1 ? '' : 's'} no tienen personal activo asignado.` : 'Todos los proyectos activos tienen personal asignado.', '', cards, { href: 'RH.proyectos.html', label: 'Abrir asignaciones' });
+            return without.length ? `Hay ${without.length} proyectos activos sin personal asignado.` : 'Todos los proyectos activos tienen personal asignado.';
+        }
+        const tokens = searchTokens(raw, ['trabajador', 'trabajadores', 'colaborador', 'colaboradores', 'empleado', 'empleados', 'personal', 'activo', 'activos', 'busca', 'buscar']);
+        if (tokens.length) {
+            const matches = people.filter(item => matchesTokens([item.numero_empleado, item.nombre, item.apellidos, item.puesto, item.departamento, item.telefono, item.correo], tokens));
+            const cards = matches.slice(0, 7).map(item => ({ title: `${item.nombre} ${item.apellidos}`, detail: `${item.numero_empleado || 'sin número'} · ${item.puesto || 'sin puesto'} · ${item.departamento || 'sin departamento'} · ${item.estado || 'sin estado'}` }));
+            setAnswer('Personal', matches.length ? `${matches.length} colaborador${matches.length === 1 ? '' : 'es'} coinciden con la búsqueda.` : 'No encontré personal con ese criterio.', '', cards, { href: 'RH.personal.html', label: 'Abrir personal' });
+            return matches.length ? `Encontré ${matches.length} colaboradores relacionados.` : 'No encontré ese colaborador.';
+        }
+        const active = people.filter(item => normalize(item.estado) === 'activo').length;
+        const absent = incidents.filter(item => text(item.fecha_inicio) <= today && text(item.fecha_fin || item.fecha_inicio) >= today && ['permiso', 'vacaciones', 'incapacidad'].includes(normalize(item.tipo)) && !['rechazado', 'cancelado'].includes(normalize(item.estado))).length;
+        setAnswer('Resumen de RH', `${active} trabajadores activos y ${absent} ausencias vigentes hoy.`, 'Puedes preguntar por una persona, proyecto, incidencia, documento, contrato o capacitación.', [{ title: 'Personal activo', detail: `${active}` }, { title: 'Ausencias hoy', detail: `${absent}` }, { title: 'Capacitaciones abiertas', detail: `${trainings.filter(item => ['programada', 'en_curso'].includes(normalize(item.estado))).length}` }], { href: 'RH.inicio.html', label: 'Abrir RH' });
+        return `Recursos Humanos tiene ${active} trabajadores activos y ${absent} ausencias vigentes hoy.`;
+    }
+
+    async function answerFinance(raw) {
+        const projects = await loadData('projectDetails');
+        const norm = commandNormalize(raw);
+        if (/que puede|ayuda|funciones|consultar/.test(norm) && !/proyecto/.test(norm)) {
+            setAnswer('Sky en Finanzas', 'Puedo consultar presupuestos y costos reales de los proyectos que ya están conectados al CRM.', 'Los módulos de gastos, cuentas por pagar y reportes financieros todavía son estructura visual; Sky no inventará cifras que aún no estén conectadas a Supabase.', [{ title: 'Disponible ahora', detail: 'Presupuesto planeado, costo real, avance y costo fuera de plan por proyecto.' }, { title: 'Pendiente de conexión', detail: 'Gastos financieros, cuentas por pagar y conciliaciones.' }], { href: 'FI.inicio.html', label: 'Abrir Finanzas' });
+            return 'En Finanzas puedo consultar presupuestos y costos reales por proyecto. Los demás módulos financieros todavía no tienen datos transaccionales conectados.';
+        }
+        if (/mayor|mas alto|más alto|top|costosos|costo/.test(norm) && !projectMatch(projects, raw)) {
+            const top = [...projects].sort((a, b) => number(b.costoConsumido) - number(a.costoConsumido)).slice(0, 6);
+            const cards = top.map(item => ({ title: `${item.proyecto} · ${item.nombreProyecto || 'Proyecto'}`, detail: `real ${currency(item.costoConsumido)} · planeado ${currency(item.costoPlaneado)} · ${formatNumber(item.avance)}%` }));
+            setAnswer('Costos de proyectos', top.length ? `Estos son los ${top.length} proyectos con mayor costo real registrado.` : 'No hay costos de proyectos registrados.', 'El costo real se calcula con los movimientos vinculados al proyecto.', cards, { href: 'FI.presupuestos.html', label: 'Abrir presupuestos' });
+            return top.length ? `El proyecto con mayor costo registrado es ${top[0].proyecto}, con ${currency(top[0].costoConsumido)}.` : 'No hay costos registrados.';
+        }
+        const project = projectMatch(projects, raw);
+        if (!project) {
+            setAnswer('Finanzas', 'No pude identificar un proyecto en la consulta.', 'Indica el número o nombre del proyecto. Por ahora Sky financiero trabaja con presupuestos y costos de proyectos.', [], { href: 'FI.presupuestos.html', label: 'Abrir presupuestos' });
+            return 'No pude identificar el proyecto. Indica su número o nombre.';
+        }
+        const planned = number(project.costoPlaneado);
+        const real = number(project.costoConsumido);
+        const remaining = planned - real;
+        const state = planned > 0 ? (remaining >= 0 ? `${currency(remaining)} disponibles respecto al planeado` : `${currency(Math.abs(remaining))} por encima del planeado`) : 'sin presupuesto/costo planeado registrado';
+        const cards = [
+            { title: 'Costo planeado', detail: currency(planned) },
+            { title: 'Costo real', detail: currency(real) },
+            { title: 'Avance', detail: `${formatNumber(project.avance)}%` },
+            { title: 'Fuera del plan', detail: currency(project.costoFueraPlan) }
+        ];
+        setAnswer('Finanzas del proyecto', `${project.proyecto} · ${project.nombreProyecto || 'Proyecto'}: ${currency(real)} de costo real.`, `Resultado: ${state}.`, cards, { href: `AL.proyectos.html?perfil=finanzas&q=${encodeURIComponent(project.proyecto)}`, label: 'Abrir proyecto' });
+        return `${project.proyecto}. El costo real es ${currency(real)} y el costo planeado es ${currency(planned)}. ${state}.`;
+    }
+
+    async function answerProjects(raw) {
+        const norm = commandNormalize(raw);
+        if (/prepar|picking|ruta/.test(norm)) return answerProjectRoute(raw);
+        if (/solicitud|solicitudes|material pedido|material solicitado/.test(norm)) {
+            const rows = await SkilledDB.listMaterialRequests({});
+            const pending = rows.filter(item => !['entregado', 'rechazado', 'cancelado', 'cerrado'].includes(normalize(item.estado)));
+            const cards = pending.slice(0, 7).map(item => ({ title: `${item.proyecto || 'Proyecto'} · ${item.descripcion || item.materialDescripcion || item.materialCodigo || 'Material'}`, detail: `${formatNumber(item.cantidad || item.cantidadSolicitada)} ${item.unidad || ''} · ${item.estado || 'pendiente'}` }));
+            setAnswer('Solicitudes de material', pending.length ? `${pending.length} solicitud${pending.length === 1 ? '' : 'es'} siguen abiertas.` : 'No hay solicitudes abiertas.', '', cards, { href: 'AL.solicitudes-material.html', label: 'Abrir solicitudes' });
+            return pending.length ? `Hay ${pending.length} solicitudes de material abiertas.` : 'No hay solicitudes abiertas.';
+        }
+        const projects = await loadData('projectDetails');
+        const project = projectMatch(projects, raw);
+        if (!project) {
+            const active = projects.filter(item => !['finalizado', 'cerrado', 'cancelado', 'inactivo'].includes(normalize(item.estado)));
+            const profileParam = detectProfile() === 'compras' ? '?perfil=compras' : '';
+            setAnswer('Proyectos', `${active.length} proyectos están activos actualmente.`, 'Indica un número o nombre para consultar avance, costo y fechas.', active.slice(0, 7).map(item => ({ title: `${item.proyecto} · ${item.nombreProyecto || 'Proyecto'}`, detail: `${item.estado || 'activo'} · avance ${formatNumber(item.avance)}% · entrega ${dateOnly(item.fechaEntrega)}` })), { href: `AL.proyectos.html${profileParam}`, label: 'Abrir proyectos' });
+            return `Hay ${active.length} proyectos activos.`;
+        }
+        const cards = [
+            { title: 'Estado', detail: project.estado || 'sin estado' },
+            { title: 'Avance', detail: `${formatNumber(project.avance)}%` },
+            { title: 'Costo real', detail: currency(project.costoConsumido) },
+            { title: 'Entrega', detail: dateOnly(project.fechaEntrega) }
+        ];
+        const projectHref = detectProfile() === 'compras'
+            ? `AL.proyectos.html?perfil=compras&q=${encodeURIComponent(project.proyecto)}`
+            : `AL.proyectos.html?q=${encodeURIComponent(project.proyecto)}`;
+        setAnswer('Proyecto', `${project.proyecto} · ${project.nombreProyecto || 'Proyecto'}`, `${project.cliente || 'Sin cliente'} · ${project.responsableSkilled || 'Responsable pendiente'}`, cards, { href: projectHref, label: 'Abrir proyecto' });
+        return `${project.proyecto}, ${project.nombreProyecto || 'proyecto'}. Estado ${project.estado || 'sin estado'}, avance ${formatNumber(project.avance)} por ciento y costo real ${currency(project.costoConsumido)}.`;
+    }
+
+    function localDateParts() {
+        const now = new Date();
+        const dateLong = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const weekday = now.toLocaleDateString('es-MX', { weekday: 'long' });
+        const month = now.toLocaleDateString('es-MX', { month: 'long' });
+        const time = now.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return { now, dateLong, weekday, month, time, year: now.getFullYear() };
+    }
+    function capitalize(value) { const raw=text(value); return raw ? raw.charAt(0).toUpperCase()+raw.slice(1) : raw; }
+    function simpleMath(raw) {
+        let norm = commandNormalize(raw).replace(/\bcuanto es\b/g,'').replace(/\bcalcula\b/g,'').replace(/\bresultado de\b/g,'').trim();
+        norm = norm.replace(/\bmas\b/g,'+').replace(/\bmenos\b/g,'-').replace(/\bpor\b/g,'*').replace(/\bentre\b/g,'/');
+        const match = norm.match(/^(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)$/);
+        if (!match) return null;
+        const a=Number(match[1]), b=Number(match[3]), op=match[2];
+        if (op==='/' && b===0) return { error:'No se puede dividir entre cero.' };
+        const result = op==='+'?a+b:op==='-'?a-b:op==='*'?a*b:a/b;
+        return { a,b,op,result };
+    }
+    async function answerSimple(raw) {
+        const norm = commandNormalize(raw);
+        const date = localDateParts();
+        if (/^(hola|buenos dias|buenas tardes|buenas noches|que tal|hey)\b/.test(norm)) {
+            const message = `Hola. Soy Sky. Estoy listo para ayudarte en ${profileNames[detectProfile()] || detectProfile()}.`;
+            setAnswer('Hola', message, `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
+            return { handled:true, voice:message };
+        }
+        if (/\b(gracias|muchas gracias|te agradezco)\b/.test(norm)) {
+            const message='Con gusto. Cuando necesites otra consulta, aquí estoy.';
+            setAnswer('Sky', message);
+            return { handled:true, voice:message };
+        }
+        if (/\b(que hora es|dime la hora|hora actual|que horas son)\b/.test(norm)) {
+            const message=`Son las ${date.time}.`;
+            setAnswer('Hora actual', message, 'Hora tomada del dispositivo que estás utilizando.', [{ title:'Hoy', detail:capitalize(date.dateLong) }]);
+            return { handled:true, voice:message };
+        }
+        if (/\b(que dia es hoy|que fecha es hoy|fecha de hoy|que fecha es|en que dia estamos)\b/.test(norm)) {
+            const message=`Hoy es ${date.dateLong}.`;
+            setAnswer('Fecha de hoy', capitalize(date.dateLong), `Hora actual: ${date.time}.`);
+            return { handled:true, voice:message };
+        }
+        if (/\b(que dia de la semana|dia de la semana)\b/.test(norm)) {
+            const message=`Hoy es ${date.weekday}.`;
+            setAnswer('Día de la semana', capitalize(date.weekday), capitalize(date.dateLong));
+            return { handled:true, voice:message };
+        }
+        if (/\b(que mes|mes actual|en que mes)\b/.test(norm)) {
+            const message=`Estamos en ${date.month}.`;
+            setAnswer('Mes actual', capitalize(date.month), `Año ${date.year}.`);
+            return { handled:true, voice:message };
+        }
+        if (/\b(que ano|ano actual|en que ano)\b/.test(norm)) {
+            const message=`Estamos en ${date.year}.`;
+            setAnswer('Año actual', String(date.year), capitalize(date.dateLong));
+            return { handled:true, voice:message };
+        }
+        if (/\b(quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
+            const message=`Soy Sky, el asistente del CRM de Skilled. En este momento estoy trabajando con el perfil de ${profileNames[detectProfile()] || detectProfile()}.`;
+            setAnswer('Soy Sky', message, 'Mis consultas respetan los permisos del usuario que inició sesión.');
+            return { handled:true, voice:message };
+        }
+        if (/\b(que perfil|en que perfil|perfil actual|donde estoy)\b/.test(norm)) {
+            const name=profileNames[detectProfile()] || detectProfile();
+            const message=`Estás trabajando en el perfil de ${name}.`;
+            setAnswer('Perfil actual', name, `Rol de la sesión: ${currentRole()}.`);
+            return { handled:true, voice:message };
+        }
+        if (/\b(que pagina|que seccion|en que pagina|en que seccion)\b/.test(norm)) {
+            const rawFile = (location.pathname.split('/').pop() || 'inicio').replace(/\.html?$/i,'').replace(/^[A-Z]{2}\./i,'').replace(/[._-]+/g,' ');
+            const section = rawFile ? rawFile.charAt(0).toUpperCase()+rawFile.slice(1) : 'Inicio';
+            const message=`Estás en la sección ${section}.`;
+            setAnswer('Sección actual', section, `Perfil: ${profileNames[detectProfile()] || detectProfile()}.`);
+            return { handled:true, voice:message };
+        }
+        if (/\b(atajo|como te activo|como activar sky|tecla para sky)\b/.test(norm)) {
+            const message=`Mi atajo es ${shortcutLabel}. Con Sky abierto, el mismo atajo inicia o termina la escucha.`;
+            setAnswer('Atajo de Sky', shortcutLabel, 'Puedes usarlo desde cualquier sección que tenga Sky activo.');
+            return { handled:true, voice:message };
+        }
+        if (/\b(quien inicio sesion|quien soy|mi usuario|mi nombre)\b/.test(norm)) {
+            let cached={}; try{cached=JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')||{}}catch(_){}
+            const name=text(window.SkilledSession?.profile?.nombre || cached.nombre || window.SkilledSession?.user?.email || cached.email || 'Usuario');
+            const message=`La sesión actual corresponde a ${name}.`;
+            setAnswer('Sesión actual', name, `Rol: ${currentRole()}.`);
+            return { handled:true, voice:message };
+        }
+        if (/\b(repite|repetir|dilo otra vez|otra vez)\b/.test(norm)) {
+            const message=lastSpokenText || 'Todavía no tengo una respuesta anterior para repetir.';
+            setAnswer('Repetir', message);
+            return { handled:true, voice:message };
+        }
+        if (/\b(callate|silencio|deja de hablar|para de hablar)\b/.test(norm)) {
+            try { speechSynthesis.cancel(); } catch (_) {}
+            setAnswer('Sky', 'De acuerdo. Detuve la voz.', 'Puedes seguir consultando por texto.');
+            return { handled:true, voice:'' };
+        }
+        if (/\b(que puedes hacer|ayuda|comandos|como te uso|que sabes hacer)\b/.test(norm)) {
+            const config=profileConfig();
+            const cards=[...config.examples.slice(0,5).map(([label,example])=>({title:label,detail:example})),{title:'Hora y fecha',detail:'¿Qué hora es? · ¿Qué día es hoy?'},{title:'Cálculo rápido',detail:'¿Cuánto es 25 por 8?'},{title:'Sección actual',detail:'¿En qué sección estoy?'},{title:'Atajo',detail:'¿Cuál es tu atajo?'}];
+            const message=`Puedo ayudarte con consultas de ${profileNames[detectProfile()] || detectProfile()}, además de hora, fecha, cálculos sencillos y ayuda general.`;
+            setAnswer('Comandos de Sky', message, `Habla de forma natural. No necesitas decir “Sky” al inicio. Atajo: ${shortcutLabel}.`, cards);
+            return { handled:true, voice:message };
+        }
+        const math=simpleMath(raw);
+        if (math) {
+            if (math.error) { setAnswer('Cálculo', math.error); return {handled:true,voice:math.error}; }
+            const symbol={'+':'más','-':'menos','*':'por','/':'entre'}[math.op];
+            const message=`${formatNumber(math.a)} ${symbol} ${formatNumber(math.b)} es ${formatNumber(math.result)}.`;
+            setAnswer('Cálculo rápido', formatNumber(math.result), `${formatNumber(math.a)} ${math.op} ${formatNumber(math.b)}`);
+            return { handled:true, voice:message };
+        }
+        return { handled:false, voice:'' };
+    }
+
+    async function answerWarehouse(raw) {
+        const norm = commandNormalize(raw);
+        if ((/prepar|picking|ruta/.test(norm) || hasFuzzy(norm,['preparar ruta','ruta de picking'])) && (/proyecto/.test(norm) || hasFuzzy(norm,['proyecto']))) return answerProjectRoute(raw);
+        if (/bajo.*min|agotad|urge.*compr|reponer|reposicion/.test(norm) || hasFuzzy(norm,['bajo minimo','reponer material'])) return answerLowStock();
+        if (/orden.*compra|\boc\b|folio.*compra|estado.*orden/.test(norm) || hasFuzzy(norm,['orden de compra'])) return answerPurchase(raw);
+        if (/herramient|taladro|esmeril|soldador|multimetro|pinza|llave/.test(norm) || hasFuzzy(norm,['herramienta','herramientas'])) return answerTools(raw);
+        if (/vehiculo|vehiculos|pickup|camioneta|automovil|van\b|camion\b|motocicleta|montacargas|generador|maquinaria/.test(norm) || hasFuzzy(norm,['vehiculo','vehiculos'])) return answerVehicles(raw);
+        if ((/proyecto/.test(norm) || hasFuzzy(norm,['proyecto'])) && (/(avance|estado|costo|como|cuanto|entrega)/.test(norm) || hasFuzzy(norm,['avance','estado','costo','entrega']))) return answerProjects(raw);
+        if (/donde|ubicacion|ubicado|localiza|encuentra/.test(norm) || hasFuzzy(norm,['donde esta','ubicacion','localiza'])) return answerMaterial(raw, true);
+        return answerMaterial(raw, false);
+    }
+
+    async function answerGeneric(raw, profile) {
+        const adapter = customProfiles.get(profile);
+        if (adapter?.query) return adapter.query({ raw, normalized: normalize(raw), SkilledDB, setAnswer, loadData, formatNumber, currency, dateOnly });
+        const config = profileConfig(profile);
+        setAnswer(config.title, `Sky ya está activo en este perfil (${profileCodes[profile] || profile.toUpperCase()}).`, 'Este perfil todavía no tiene comandos de negocio específicos registrados. El motor global está preparado para que el módulo añada sus consultas sin duplicar Sky.', [{ title: 'Atajo', detail: shortcutLabel }, { title: 'Voz', detail: voiceAlias(selectedVoice()) }]);
+        return `Sky está activo en ${profileNames[profile] || profile}, pero este perfil todavía no tiene consultas específicas configuradas.`;
+    }
+
+    async function dispatchByProfile(raw) {
+        const profile = detectProfile();
+        const adapter = customProfiles.get(profile);
+        if (adapter?.query) return answerGeneric(raw, profile);
+        if (profile === 'compras') return answerPurchasing(raw);
+        if (profile === 'rh') return answerRH(raw);
+        if (profile === 'finanzas') return answerFinance(raw);
+        if (profile === 'proyectos') return answerProjects(raw);
+        if (profile === 'consulta') {
+            const norm = commandNormalize(raw);
+            if (/proyecto/.test(norm)) return answerProjects(raw);
+            if (/donde|ubicacion|ubicado|localiza/.test(norm)) return answerMaterial(raw, true);
+            return answerMaterial(raw, false);
+        }
+        if (profile === 'almacen') return answerWarehouse(raw);
+        return answerGeneric(raw, profile);
+    }
+
+    async function query(rawValue) {
+        const raw = text(rawValue);
+        if (!raw) return;
+        stopListening(false);
+        setStatus('Procesando consulta…', 'busy');
+        setAnswer('Consultando', `Estoy interpretando tu solicitud en ${profileNames[detectProfile()] || detectProfile()}…`);
+        try {
+            const cleanRaw = stripWakeWord(raw);
+            const simple = await answerSimple(cleanRaw);
+            const voice = simple.handled ? simple.voice : await dispatchByProfile(cleanRaw);
+            setStatus('Consulta completada.');
+            if (voice) speak(voice);
+        } catch (error) {
+            console.error('Sky:', error);
+            setStatus('No se pudo completar la consulta.', 'error');
+            setAnswer('Error', error.message || 'Ocurrió un error al consultar el CRM.', 'No se modificó ningún dato.');
+        }
+    }
+
+    function registerProfile(key, adapter = {}) {
+        const profile = text(key).toLowerCase();
+        if (!profile) throw new Error('Indica el identificador del perfil para registrar Sky.');
+        customProfiles.set(profile, adapter || {});
+        return true;
+    }
+
+    function boot() {
+        createUi();
+        document.addEventListener('keydown', event => {
+            if (event.altKey && !event.ctrlKey && !event.metaKey && String(event.key).toLowerCase() === 's') {
+                event.preventDefault();
+                if (modal?.classList.contains('is-open')) {
+                    if (!listening && !recognitionStarting) startListening();
+                    else finishListening();
+                } else open();
+            }
+        });
+        window.SkilledSky = Object.freeze({
+            open,
+            close,
+            query,
+            speak,
+            previewVoice,
+            getVoices: sortedVoices,
+            getVoiceChoices: voiceChoices,
+            getVoiceAlias: voiceAlias,
+            inferVoiceGender,
+            getVoicePreferences,
+            saveVoicePreferences,
+            shortcutLabel,
+            profile: detectProfile,
+            registerProfile,
+            normalizeSpeech: value => correctRecognizedTranscript(value).corrected,
+            clearSpeechLearning: () => { try { localStorage.removeItem(speechLearningStorageKey()); } catch (_) {} },
+            invalidate: () => { cache = { at: 0 }; speechLexiconCache = { profile: '', sourceAt: -1, words: [], set: new Set(), buckets: new Map() }; }
+        });
+        window.dispatchEvent(new CustomEvent('skilled:skyready', { detail: window.SkilledSky }));
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
+})();

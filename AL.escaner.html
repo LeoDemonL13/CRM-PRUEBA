@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060814">
+<link rel="stylesheet" href="interfaz.css">
+<script src="navegacion-suave.js?v=9"></script>
+<title>Skilled — Escáner universal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#060814;color:#e5e7eb}
+#universal-reader video{border-radius:12px;object-fit:cover}
+</style>
+</head>
+<body>
+<div class="min-h-screen flex">
+<aside class="hidden lg:flex w-[280px] border-r border-[#161f38] bg-[#090d1a] flex-col">
+<div class="p-6 border-b border-[#161f38]"><a href="AL.inicio.html"><img src="logo-reporte.png" class="h-10 w-auto" alt="Skilled"></a></div>
+<nav class="p-4 text-xs space-y-2">
+<a href="AL.inicio.html" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-400 hover:bg-[#11182c] hover:text-white">⌂ <span>Inicio</span></a>
+<a href="AL.escaner.html" class="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#141d34] border-l-2 border-blue-500 text-white font-semibold">⌗ <span>Escáner universal</span></a>
+<a href="AL.catalogo.html" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-400 hover:bg-[#11182c] hover:text-white">□ <span>Catálogo</span></a>
+<a href="AL.movimientos.html" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-400 hover:bg-[#11182c] hover:text-white">＋ <span>Registrar movimiento</span></a>
+<a href="AL.historial-movimientos.html" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-400 hover:bg-[#11182c] hover:text-white">↶ <span>Historial</span></a>
+</nav>
+</aside>
+<main class="flex-1 min-w-0">
+<header class="h-16 border-b border-[#161f38] bg-[#0c1427] flex items-center justify-between px-5 lg:px-8">
+<div><p class="text-sm font-bold text-white">Escáner universal</p><p class="text-[10px] text-gray-500">Tickets, materiales, ubicaciones, proyectos y categorías</p></div>
+<a href="AL.inicio.html" class="px-3 py-2 rounded-lg border border-[#243257] text-xs text-gray-300">Volver al inicio</a>
+</header>
+<div class="p-5 lg:p-8 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 xl:grid-cols-[440px_1fr] gap-6">
+<section class="rounded-2xl border border-[#243257] bg-[#090d1a] overflow-hidden">
+<div class="p-5 border-b border-[#243257]">
+<h1 class="text-xl font-extrabold text-white">Leer código</h1>
+<p class="mt-1 text-xs text-gray-500">Usa la cámara o un lector físico USB.</p>
+</div>
+<div class="p-5">
+<div id="universal-reader" class="min-h-[280px] rounded-xl bg-black border border-[#243257] overflow-hidden"></div>
+<div class="mt-4 flex flex-wrap gap-2">
+<button id="btn-start-scanner" type="button" onclick="iniciarScannerUniversal()" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-bold text-white">Iniciar cámara</button>
+<button type="button" onclick="detenerScannerUniversal()" class="px-4 py-2.5 rounded-lg border border-[#243257] bg-[#10172a] text-xs font-bold text-gray-300">Detener</button>
+</div>
+<p id="scanner-status" class="mt-3 text-xs text-gray-400">Presiona iniciar para solicitar permiso de cámara.</p>
+<div class="mt-5 pt-5 border-t border-[#243257]">
+<label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-2">Lector físico o captura manual</label>
+<div class="flex gap-2">
+<input id="scanner-code" onkeydown="procesarScannerManual(event)" autocomplete="off" placeholder="Escanea o escribe el código y presiona Enter" class="min-w-0 flex-1 rounded-lg border border-[#243257] bg-[#060814] px-3 py-3 text-xs font-mono text-gray-200 outline-none focus:border-blue-500">
+<button type="button" onclick="procesarScannerManual()" class="px-4 rounded-lg bg-blue-600 text-xs font-bold text-white">Consultar</button>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div id="scanner-result" class="min-h-[360px] rounded-2xl border border-dashed border-[#243257] bg-[#090d1a] flex items-center justify-center p-8 text-center">
+<div><div class="mx-auto w-16 h-16 rounded-full border border-[#243257] bg-[#0d1425] flex items-center justify-center text-3xl text-gray-500">⌗</div><p class="mt-4 text-sm font-semibold text-gray-300">Todavía no se ha leído ningún código</p><p class="mt-2 text-xs text-gray-600">El resultado aparecerá aquí.</p></div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<script src="skilled-supabase.js?v=11"></script>
+<script src="auth-guard.js"></script>
+<script src="AL.ticket-materiales.js"></script>
+<script src="AL.scanner-universal.js"></script>
+<script src="skilled-sidebar.js?v=21" defer></script>
+
+<script src="skilled-sky.js?v=21" defer></script>
+</body>
+</html>

@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#060814">
+<link rel="stylesheet" href="interfaz.css">
+<script src="navegacion-suave.js?v=9"></script>
+<title>Skilled - Proyectos</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="skilled-supabase.js?v=11"></script>
+<script src="auth-guard.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #060814; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .lista-scroll::-webkit-scrollbar { inline-size: 6px; block-size: 6px; }
+        .lista-scroll::-webkit-scrollbar-thumb { background: #1b2642; border-radius: 8px; }
+        .lista-scroll::-webkit-scrollbar-track { background: transparent; }
+        @keyframes fadeInRow { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .fila-nueva { animation: fadeInRow .25s ease-out; }
+        body.tema-claro { background-color: #f2f4f9; }
+        body.tema-claro .bg-\[\#060814\] { background-color: #f2f4f9 !important; }
+        body.tema-claro .bg-\[\#090d1a\] { background-color: #ffffff !important; }
+        body.tema-claro .bg-\[\#080d1a\] { background-color: #ffffff !important; }
+        body.tema-claro .bg-\[\#0a1122\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#060a14\] { background-color: #f2f4f9 !important; }
+        body.tema-claro .bg-\[\#0d1425\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#0d1325\] { background-color: #e9ecf5 !important; }
+        body.tema-claro .bg-\[\#070b16\] { background-color: #f2f4f9 !important; }
+        body.tema-claro .bg-\[\#101626\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#10172a\] { background-color: #eef1f8 !important; }
+        body.tema-claro .bg-\[\#11182c\] { background-color: #e5e9f4 !important; }
+        body.tema-claro .bg-\[\#141d34\] { background-color: #dde5fb !important; }
+        body.tema-claro .bg-\[\#151c35\] { background-color: #e3e8f3 !important; }
+        body.tema-claro .bg-\[\#161f37\] { background-color: #e5e9f4 !important; }
+        body.tema-claro .bg-\[\#161f38\] { background-color: #e5e9f4 !important; }
+        body.tema-claro .bg-\[\#1b253c\] { background-color: #dbe3f5 !important; }
+        body.tema-claro .hover\:bg-\[\#0d1425\]:hover { background-color: #eef1f8 !important; }
+        body.tema-claro .hover\:bg-\[\#11182c\]:hover { background-color: #e5e9f4 !important; }
+        body.tema-claro .hover\:bg-\[\#151c35\]:hover { background-color: #e3e8f3 !important; }
+        body.tema-claro .hover\:bg-\[\#161f37\]:hover { background-color: #e5e9f4 !important; }
+        body.tema-claro .hover\:bg-\[\#161f38\]:hover { background-color: #e5e9f4 !important; }
+        body.tema-claro .border-\[\#161f38\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#1b2642\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#1d2949\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#1f2c4e\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#232f4e\] { border-color: #dfe4ef !important; }
+        body.tema-claro .border-\[\#243257\] { border-color: #dfe4ef !important; }
+        body.tema-claro .text-gray-200 { color: #1f2937 !important; }
+        body.tema-claro .text-gray-300 { color: #1f2937 !important; }
+        body.tema-claro .text-gray-400 { color: #52596b !important; }
+        body.tema-claro .text-gray-500 { color: #6b7280 !important; }
+        body.tema-claro .text-gray-600 { color: #9199a8 !important; }
+        body.tema-claro .text-white { color: #0f172a !important; }
+        body.tema-claro .lista-scroll::-webkit-scrollbar-thumb { background: #d3d9e6; }
+        body.tema-claro input::placeholder,
+        body.tema-claro textarea::placeholder { color: #9199a8; opacity: 1; }
+
+        .reporte-hoja { background:#fff; color:#003763; border:1px solid #d6deea; border-radius:12px; padding:24px; min-height:680px; }
+        .reporte-categorias { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; align-items:start; }
+        .reporte-categoria { break-inside:avoid; page-break-inside:avoid; }
+        .reporte-tabla { width:100%; border-collapse:collapse; table-layout:fixed; font-size:10px; }
+        .reporte-tabla th,.reporte-tabla td { border:1px solid #8aa0bf; padding:6px 7px; vertical-align:middle; }
+        .reporte-tabla thead th { background:#dbe3ef; color:#003763; font-weight:700; }
+        .reporte-tabla .col-planeado { color:#00416b; }
+        .reporte-tabla .col-entregado { color:#ea0029; }
+        .reporte-tabla .col-sobrantes { color:#7588a5; }
+        .reporte-chip { display:inline-flex; align-items:center; gap:5px; border:1px solid #29426d; background:#10203c; color:#8fc0ff; border-radius:999px; padding:5px 9px; font-size:9px; }
+        .reporte-chip-info-planeado { border-color:#12406e; color:#60a5fa; }
+        .reporte-chip-info-entregado { border-color:#6b1730; color:#fb7185; }
+        .reporte-chip-info-sobrantes { border-color:#35445e; color:#a8b3c7; }
+        @media (max-width:1050px){ .reporte-categorias{grid-template-columns:1fr;} }
+        @media print {
+            body * { visibility:hidden !important; }
+            #reporte-alcance-preview,#reporte-alcance-preview * { visibility:visible !important; }
+            #reporte-alcance-preview { position:absolute; inset:0; border:0; border-radius:0; padding:12mm; min-height:auto; }
+            .reporte-categorias { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12mm; }
+        }
+    </style>
+    <script>
+        (function(){
+            const requested = String(new URLSearchParams(location.search).get('perfil') || '').toLowerCase();
+            const map = { compras:'skilled_tema_compras', rh:'skilled_tema_rh', finanzas:'skilled_tema_finanzas', almacen:'skilled_tema_almacen' };
+            if (requested && map[requested]) {
+                document.documentElement.dataset.profile = requested;
+                window.SkilledThemeKey = map[requested];
+            }
+        })();
+    </script>
+    <script src="skilled-sidebar.js?v=21" defer></script>
+</head>
+<script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
+<body class="text-gray-300 min-h-screen flex overflow-x-hidden">
+    <script>
+        (function () {
+            if (localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen') === 'claro') {
+                document.body.classList.add('tema-claro');
+            }
+        })();
+        function alternarTema() {
+            const esClaroAhora = document.body.classList.toggle('tema-claro');
+            localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen', esClaroAhora ? 'claro' : 'oscuro');
+        }
+    </script>
+
+    <aside class="w-[260px] h-screen sticky top-0 bg-[#090d1a] border-r border-[#161f38] flex-col justify-between hidden lg:flex shrink-0">
+        <div class="overflow-y-auto flex-1 lista-scroll">
+            <div class="p-6 border-b border-[#161f38] flex items-center justify-between">
+                <a href="AL.inicio.html" title="Ir al inicio">
+                    <img src="logo-reporte.png" alt="Skilled Logo" class="h-9 w-auto object-contain">
+                </a>
+            </div>
+            <nav class="p-4 space-y-6 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
+                <div>
+            <span class="px-3 block mb-2">Cuenta</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.inicio.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Inicio</span>
+        </a>
+    </li>
+<li>
+        <a href="perfil.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Mi perfil</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Materiales</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.catalogo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Catálogo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.bajo-minimo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Bajo mínimo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.almacenes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            <span>Almacenes</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.etiquetas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 7h.01M3 11l8.586-8.586A2 2 0 0113 2h5a2 2 0 012 2v5a2 2 0 01-.586 1.414L10.828 19a2 2 0 01-2.828 0l-5-5a2 2 0 010-2.828z"/></svg>
+            <span>Etiquetas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Movimientos</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            <span>Registrar movimiento</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.historial-movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <span>Historial movimientos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.tomas-fisicas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Tomas físicas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Compras y Solicitudes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.entrega-directa.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Entrega directa</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.solicitudes-material.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Solicitudes de material</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.ordenes-compra.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Solicitudes de compra</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Proyectos y Reportes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.proyectos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#141d34] border-l-2 border-blue-500 text-white font-semibold">
+            <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            <span>Proyectos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.reportes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <span>Reportes</span>
+        </a>
+    </li>
+            </ul>
+        </div>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-[#161f38] bg-[#070b16]">
+            <a href="login.html" class="w-full flex items-center justify-center gap-2 bg-[#10172a] hover:bg-red-950/20 border border-[#232f4e] text-red-400 hover:text-red-300 py-2.5 rounded-lg text-xs font-semibold transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Cerrar sesión
+            </a>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <header class="h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a]">
+            <div class="flex items-center gap-4 w-full max-w-md">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span>
+                    <input id="busqueda-global" type="text" placeholder="Buscar proyectos..." class="w-full bg-[#0d1425] text-xs text-gray-300 rounded-lg pl-9 pr-14 py-2 border border-[#1b2642] focus:outline-none focus:border-blue-500 transition">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-gray-500 bg-[#161f38] px-1.5 py-0.5 rounded border border-[#243257]">⌘ k</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-5">
+                <button onclick="cargarProyectos()" title="Actualizar" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15.19M9 5.513a11.59 11.59 0 002.358-.513V4"/></svg></button>
+                <button onclick="alternarTema()" title="Cambiar tema" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z"/></svg></button>
+                <div class="flex items-center gap-3 border-l border-[#161f38] pl-5">
+                    <div class="text-right hidden sm:block"><div class="text-xs font-bold text-white">Almacen</div><div class="text-[10px] text-gray-500 font-medium">Inventario</div></div>
+                    <div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 text-white flex items-center justify-center font-bold text-sm">A</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 md:p-8 overflow-y-auto max-w-[1500px] mx-auto w-full">
+            <section id="vista-lista">
+                <nav class="text-[11px] font-medium text-gray-500 mb-2 flex items-center gap-2">
+                    <a href="AL.inicio.html" class="inline-flex items-center text-gray-500 hover:text-blue-400 transition" title="Inicio" aria-label="Inicio">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path>
+                    </svg>
+                </a><span>&rsaquo;</span><span>Inventario</span><span>&rsaquo;</span><span class="text-gray-300 font-semibold">Proyectos</span>
+                </nav>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 bg-[#0a1122] border border-[#1d2949] rounded-xl flex items-center justify-center text-blue-400 shadow-md">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                        </div>
+                        <div><h1 class="text-xl font-bold text-white tracking-tight">Proyectos</h1><p class="text-[11px] text-gray-500 mt-1">Control por plan de materiales o por presupuesto, consumo, costos, herramientas y movimientos.</p></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="cargarProyectos()" class="px-3.5 py-2 rounded-lg border border-[#243257] bg-[#10172a] hover:bg-[#151c35] text-xs font-semibold text-gray-300 transition">Actualizar</button>
+                        <button onclick="abrirModalNuevo()" class="px-3.5 py-2 rounded-lg border border-blue-500/40 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition">+ Nuevo proyecto</button>
+                    </div>
+                </div>
+
+                <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-5 mb-5">
+                    <div class="text-xs font-bold text-white mb-1">Crear o abrir un proyecto</div>
+                    <div class="text-[10px] text-gray-500 mb-4">Cada proyecto puede controlarse mediante un plan detallado de materiales o mediante un presupuesto planeado.</div>
+                    <div class="flex flex-col sm:flex-row gap-2 max-w-2xl">
+                        <select id="selector-proyecto" class="flex-1 bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                            <option value="">Selecciona un proyecto...</option>
+                        </select>
+                        <button onclick="abrirProyectoSeleccionado()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition">Abrir plan →</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Proyectos</div><div id="kpi-proyectos" class="text-xl font-bold text-white mt-2">0</div></div>
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Costo planeado</div><div id="kpi-planeado" class="text-xl font-bold text-white mt-2">$0.00</div></div>
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Costo real</div><div id="kpi-consumido" class="text-xl font-bold text-emerald-400 mt-2">$0.00</div></div>
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Sin movimientos</div><div id="kpi-sin-movimientos" class="text-xl font-bold text-white mt-2">0</div></div>
+                </div>
+
+                <div class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden">
+                    <div class="p-4 border-b border-[#161f38] flex items-center justify-between gap-3">
+                        <div class="relative flex-1 max-w-md">
+                            <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span>
+                            <input id="busqueda-proyecto" type="text" placeholder="Buscar por proyecto..." class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg pl-9 pr-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div id="contador-proyectos" class="text-[10px] text-gray-500">0 proyectos</div>
+                    </div>
+                    <div class="overflow-x-auto lista-scroll">
+                        <table class="w-full min-w-[970px] text-left">
+                            <thead class="bg-[#0d1325] text-[9px] uppercase tracking-wider text-gray-500">
+                                <tr>
+                                    <th class="px-5 py-3 font-bold">Proyecto</th>
+                                    <th class="px-4 py-3 font-bold text-center">Líneas</th>
+                                    <th class="px-4 py-3 font-bold text-center">Planeado</th>
+                                    <th class="px-4 py-3 font-bold text-center">Consumido</th>
+                                    <th class="px-4 py-3 font-bold">Avance</th>
+                                    <th class="px-4 py-3 font-bold text-right">Costo planeado</th>
+                                    <th class="px-4 py-3 font-bold text-right">Costo real</th>
+                                    <th class="px-4 py-3 font-bold text-center">Movimientos</th>
+                                    <th class="px-4 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-proyectos" class="divide-y divide-[#161f38]"></tbody>
+                        </table>
+                    </div>
+                    <div id="estado-vacio" class="hidden px-6 py-14 text-center">
+                        <div class="w-12 h-12 rounded-xl bg-[#0d1425] border border-[#1b2642] mx-auto flex items-center justify-center text-gray-500 mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></div>
+                        <div class="text-sm font-semibold text-gray-300">No hay proyectos para mostrar</div>
+                        <div class="text-[10px] text-gray-500 mt-1">Agrega información en la tabla proyectos de Supabase o crea un proyecto desde esta pantalla.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="vista-detalle" class="hidden">
+                <nav class="text-[11px] font-medium text-gray-500 mb-2 flex items-center gap-2">
+                    <a href="AL.inicio.html" class="inline-flex items-center text-gray-500 hover:text-blue-400 transition" title="Inicio" aria-label="Inicio">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path>
+                    </svg>
+                </a><span>&rsaquo;</span><span>Inventario</span><span>&rsaquo;</span><button onclick="volverALista()" class="hover:text-blue-400">Proyectos</button><span>&rsaquo;</span><span id="breadcrumb-proyecto" class="text-gray-300 font-semibold"></span>
+                </nav>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-11 h-11 bg-[#0a1122] border border-[#1d2949] rounded-xl flex items-center justify-center text-blue-400 shadow-md"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></div>
+                        <div><h1 id="detalle-titulo" class="text-xl font-bold text-white tracking-tight"></h1><p class="text-[11px] text-gray-500 mt-1">Planeación, seguimiento y movimientos vinculados al proyecto.</p></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="volverALista()" class="px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition">← Volver</button>
+                        <button onclick="actualizarDetalle()" class="px-3.5 py-2 rounded-lg border border-[#243257] bg-[#10172a] hover:bg-[#151c35] text-xs font-semibold text-gray-300 transition">Actualizar</button>
+                        <button id="btn-editar-plan-superior" onclick="activarEdicionPlan()" class="px-3.5 py-2 rounded-lg border border-blue-500/40 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition">Editar plan</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div id="etiqueta-planeado" class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Cant. planeada</div><div id="detalle-planeado" class="text-xl font-bold text-white mt-2">0</div></div>
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div id="etiqueta-consumido" class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Cant. consumida</div><div id="detalle-consumido" class="text-xl font-bold text-white mt-2">0</div></div>
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div id="etiqueta-costo-planeado" class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Costo planeado</div><div id="detalle-costo-planeado" class="text-xl font-bold text-white mt-2">$0.00</div></div>
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><div class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Costo real del proyecto</div><div id="detalle-costo-consumido" class="text-xl font-bold text-emerald-400 mt-2">$0.00</div><div id="detalle-porcentaje-costo" class="text-[9px] text-gray-500 mt-1"></div></div>
+                </div>
+
+                <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-5 mb-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <div class="text-xs font-bold text-white">Información general</div>
+                            <div class="text-[10px] text-gray-500 mt-1">Datos registrados al crear el proyecto.</div>
+                        </div>
+                        <button onclick="abrirModalEditarActual()" class="px-3 py-2 rounded-lg bg-[#10172a] hover:bg-[#151c35] border border-[#243257] text-[10px] font-semibold text-gray-300">Editar datos</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-x-6 gap-y-4">
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">No. de proyecto</div><div id="info-id-proyecto" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Nombre</div><div id="info-nombre-proyecto" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Cliente</div><div id="info-cliente" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Orden de compra</div><div id="info-orden-compra" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Tipo de control</div><div id="info-tipo-control" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Planta</div><div id="info-planta" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Nave</div><div id="info-nave" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Responsable Skilled</div><div id="info-responsable" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                        <div><div class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Periodo</div><div id="info-periodo" class="text-xs font-semibold text-gray-200 mt-1">—</div></div>
+                    </div>
+                </div>
+
+                <div class="border-b border-[#161f38] flex items-center gap-5 mb-4 text-xs overflow-x-auto lista-scroll">
+                    <button data-tab="plan" onclick="cambiarTab('plan')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-blue-500 text-white font-semibold">▱ Plan</button>
+                    <button data-tab="seguimiento" onclick="cambiarTab('seguimiento')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">◉ Seguimiento</button>
+                    <button data-tab="historial" onclick="cambiarTab('historial')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">↶ Historial <span id="badge-historial" class="ml-1 text-[9px] bg-[#161f38] px-1.5 py-0.5 rounded-full">0</span></button>
+                    <button data-tab="herramientas" onclick="cambiarTab('herramientas')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">⌁ Herramientas <span id="badge-herramientas-proyecto" class="ml-1 text-[9px] bg-[#161f38] px-1.5 py-0.5 rounded-full">0</span></button>
+                    <button data-tab="reporte" onclick="cambiarTab('reporte')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">▤ Reporte de alcance</button>
+                </div>
+
+                <div id="tab-plan" class="tab-contenido">
+                    <div id="presupuesto-vista" class="hidden bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden mb-4">
+                        <div class="p-5 border-b border-[#161f38] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div><div class="text-sm font-bold text-white">Control por presupuesto</div><div class="text-[10px] text-gray-500 mt-1">El proyecto no exige una lista cerrada de materiales. Cada entrada, salida o consumo vinculado se refleja en el costo real.</div></div>
+                            <button type="button" onclick="abrirModalEditarActual()" class="px-3 py-2 rounded-lg border border-[#243257] bg-[#10172a] text-[10px] font-semibold text-gray-300">Editar presupuesto</button>
+                        </div>
+                        <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><div class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Presupuesto planeado</div><div id="presupuesto-planeado-resumen" class="mt-2 text-xl font-bold text-white">$0.00</div></div>
+                            <div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><div class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Costo real registrado</div><div id="presupuesto-consumido-resumen" class="mt-2 text-xl font-bold text-emerald-400">$0.00</div></div>
+                            <div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><div class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Disponible / excedido</div><div id="presupuesto-disponible-resumen" class="mt-2 text-xl font-bold text-blue-300">$0.00</div></div>
+                        </div>
+                        <div class="px-5 pb-5"><div class="h-2 rounded-full bg-[#060a14] overflow-hidden"><div id="barra-presupuesto-proyecto" class="h-full bg-blue-600 rounded-full" style="width:0%"></div></div><div id="texto-presupuesto-proyecto" class="mt-2 text-[10px] text-gray-500">Sin presupuesto registrado.</div></div>
+                    </div>
+                    <div id="plan-vista" class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-[#161f38] flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-xs font-bold text-white">Plan de materiales</div>
+                                <div class="text-[10px] text-gray-500 mt-1">Materiales planeados para este proyecto, guardados en Supabase.</div>
+                            </div>
+                            <button onclick="activarEdicionPlan()" class="px-3 py-2 rounded-lg bg-[#10172a] hover:bg-[#151c35] border border-[#243257] text-[10px] font-semibold text-gray-300">Editar plan</button>
+                        </div>
+                        <div class="overflow-x-auto lista-scroll">
+                            <table class="w-full min-w-[980px] text-left">
+                                <thead class="bg-[#0d1325] text-[9px] uppercase tracking-wider text-gray-500">
+                                    <tr>
+                                        <th class="px-5 py-3">Código</th>
+                                        <th class="px-4 py-3">Material</th>
+                                        <th class="px-4 py-3">Unidad</th>
+                                        <th class="px-4 py-3 text-right">Precio</th>
+                                        <th class="px-4 py-3 text-center">Planeado</th>
+                                        <th class="px-4 py-3 text-center">Entregado</th>
+                                        <th class="px-4 py-3 text-center">Sobrante</th>
+                                        <th class="px-4 py-3 text-center">Estado</th>
+                                        <th class="px-4 py-3 text-right">Costo planeado</th>
+                                        <th class="px-4 py-3">Notas</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-plan-materiales"></tbody>
+                            </table>
+                        </div>
+                        <div id="plan-vacio" class="hidden px-6 py-12 text-center">
+                            <div class="w-12 h-12 rounded-full bg-[#060a14] border border-[#161f38] mx-auto flex items-center justify-center text-gray-500 mb-3">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+                            </div>
+                            <div class="text-xs font-semibold text-gray-400">El proyecto todavía no tiene materiales planeados</div>
+                            <button onclick="activarEdicionPlan()" class="mt-3 text-[10px] font-semibold text-blue-400 hover:text-blue-300">Agregar materiales al plan</button>
+                        </div>
+                    </div>
+
+                    <div id="plan-editor" class="hidden bg-[#090d1a] border border-[#161f38] rounded-xl overflow-visible">
+                        <div class="p-5 border-b border-[#161f38] flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="text-sm font-bold text-white uppercase tracking-wide">Plan de materiales</div>
+                                    <span class="text-gray-500" title="Define qué materiales y cuánto se planea utilizar.">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-gray-500 mt-1">Define qué materiales y cuánto se planea usar. Es la base del porcentaje de avance.</div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="cancelarEdicionPlan()" class="px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button>
+                                <button id="btn-guardar-plan" onclick="guardarPlanProyecto()" class="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                                    Guardar plan
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <label class="block text-xs font-semibold text-gray-300 mb-2">Agregar material al plan</label>
+                            <div class="flex flex-col lg:flex-row gap-3 lg:items-start">
+                                <div id="buscador-plan-wrap" class="relative max-w-2xl flex-1">
+                                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                                    </span>
+                                    <input id="buscar-material-plan" autocomplete="off" placeholder="Busca por código o descripción..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg pl-9 pr-3 py-3 text-xs text-gray-300 focus:outline-none focus:border-blue-500" oninput="buscarMaterialPlan(this.value)" onfocus="buscarMaterialPlan(this.value)">
+                                    <div id="dropdown-material-plan" class="hidden absolute z-30 mt-1.5 w-full bg-[#10182c] border border-[#243257] rounded-lg shadow-2xl max-h-72 overflow-y-auto lista-scroll"></div>
+                                </div>
+                                <button type="button" onclick="abrirMaterialNoListadoPlan()" class="shrink-0 px-4 py-3 rounded-lg border border-amber-500/40 bg-amber-950/10 text-amber-300 hover:text-white hover:border-amber-400 text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/><path d="M4 4h16v16H4z"/></svg>
+                                    Material no enlistado
+                                </button>
+                            </div>
+                            <p class="mt-2 text-[10px] text-gray-600">Los materiales no enlistados se guardan solo dentro del plan del proyecto y no modifican el inventario del catálogo.</p>
+
+                            <div class="mt-4 overflow-x-auto lista-scroll border border-[#1b2642] rounded-xl">
+                                <table class="w-full min-w-[1060px] text-left">
+                                    <thead class="bg-[#0d1325] text-[9px] uppercase tracking-wider text-gray-500">
+                                        <tr>
+                                            <th class="px-4 py-3">Código</th>
+                                            <th class="px-4 py-3">Descripción</th>
+                                            <th class="px-4 py-3 text-right">Precio</th>
+                                            <th class="px-4 py-3 text-center">Cant. planeada</th>
+                                            <th class="px-4 py-3 text-right">Costo</th>
+                                            <th class="px-4 py-3">Notas</th>
+                                            <th class="px-4 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-editor-plan" class="divide-y divide-[#161f38]"></tbody>
+                                </table>
+                                <div id="editor-plan-vacio" class="px-5 py-10 text-center text-xs text-gray-500">Busca un material para agregarlo al plan.</div>
+                            </div>
+                            <div class="mt-3 text-right text-[10px] text-gray-500">Costo total planeado (sin guardar): <span id="total-editor-plan" class="font-mono text-gray-300">$0.00</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-seguimiento" class="tab-contenido hidden">
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-5"><div><div class="text-xs font-bold text-white">Seguimiento de consumo</div><div class="text-[10px] text-gray-500 mt-1">Comparación entre lo planeado y lo consumido.</div></div><div id="seguimiento-avance" class="text-sm font-bold text-blue-400">0%</div></div>
+                        <div class="h-3 bg-[#060a14] rounded-full overflow-hidden border border-[#161f38]"><div id="barra-avance" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width:0%"></div></div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
+                            <div class="bg-[#060a14] border border-[#161f38] rounded-lg p-4"><div class="text-[9px] uppercase tracking-wider text-gray-500">Pendiente</div><div id="seguimiento-pendiente" class="text-lg font-bold text-white mt-2">0</div></div>
+                            <div class="bg-[#060a14] border border-[#161f38] rounded-lg p-4"><div class="text-[9px] uppercase tracking-wider text-gray-500">Diferencia de costo</div><div id="seguimiento-diferencia" class="text-lg font-bold text-white mt-2">$0.00</div></div>
+                            <div class="bg-[#060a14] border border-[#161f38] rounded-lg p-4"><div class="text-[9px] uppercase tracking-wider text-gray-500">Último movimiento</div><div id="seguimiento-ultimo" class="text-xs font-semibold text-white mt-2">Sin movimientos</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-historial" class="tab-contenido hidden">
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden">
+                        <div class="p-4 border-b border-[#161f38]">
+                            <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+                                <div><div class="text-xs font-bold text-white">Historial del proyecto</div><div class="text-[10px] text-gray-500 mt-1">Entradas, salidas, ajustes y traspasos vinculados desde Supabase.</div></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2 w-full xl:w-auto">
+                                    <select id="historial-tipo" onchange="renderMovimientosProyecto()" class="bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500"><option value="">Todos los tipos</option><option value="entrada">Entrada</option><option value="salida">Salida</option><option value="ajuste">Ajuste</option><option value="traspaso">Traspaso</option><option value="reingreso">Reingreso</option></select>
+                                    <input id="historial-desde" type="date" onchange="renderMovimientosProyecto()" class="bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500">
+                                    <input id="historial-hasta" type="date" onchange="renderMovimientosProyecto()" class="bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500">
+                                    <input id="historial-busqueda" oninput="renderMovimientosProyecto()" placeholder="Código, material, folio..." class="bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500">
+                                    <button type="button" onclick="limpiarFiltrosHistorial()" class="px-3 py-2 rounded-lg bg-[#10172a] border border-[#243257] text-[10px] font-semibold text-gray-300 hover:bg-[#151c35]">Limpiar filtros</button>
+                                </div>
+                            </div>
+                            <div id="historial-contador" class="text-[9px] text-gray-500 mt-3">0 registros</div>
+                        </div>
+                        <div class="overflow-x-auto lista-scroll">
+                            <table class="w-full min-w-[1250px] text-left">
+                                <thead class="bg-[#0d1325] text-[9px] uppercase tracking-wider text-gray-500"><tr><th class="px-5 py-3">Fecha</th><th class="px-4 py-3">Tipo</th><th class="px-4 py-3">Código</th><th class="px-4 py-3">Descripción</th><th class="px-4 py-3 text-right">Cantidad</th><th class="px-4 py-3">Origen / destino</th><th class="px-4 py-3">Recibe</th><th class="px-4 py-3">Folio</th><th class="px-4 py-3">Motivo</th></tr></thead>
+                                <tbody id="tabla-movimientos-proyecto"></tbody>
+                            </table>
+                        </div>
+                        <div id="sin-movimientos-proyecto" class="hidden py-12 text-center text-xs text-gray-500">No hay movimientos que coincidan con los filtros.</div>
+                    </div>
+                </div>
+
+                <div id="tab-herramientas" class="tab-contenido hidden">
+                    <section class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Herramientas requeridas</p><strong id="proyecto-hta-requeridas" class="block mt-2 text-xl text-white">0</strong></article>
+                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Unidades asignadas</p><strong id="proyecto-hta-asignadas" class="block mt-2 text-xl text-emerald-400">0</strong></article>
+                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Pendientes por asignar</p><strong id="proyecto-hta-pendientes" class="block mt-2 text-xl text-amber-400">0</strong></article>
+                    </section>
+                    <section class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden mb-4">
+                        <div class="p-4 border-b border-[#161f38] flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div class="text-xs font-bold text-white">Selección de herramientas del proyecto</div><div class="text-[10px] text-gray-500 mt-1">Define tipos, cantidades y prioridad antes de asignar unidades físicas.</div></div><div class="flex flex-wrap gap-2"><button type="button" onclick="abrirPlanHerramientasProyectoV14()" class="px-3 py-2 rounded-lg bg-[#10172a] hover:bg-[#151c35] border border-[#243257] text-[10px] font-semibold text-gray-300">Editar selección</button><button type="button" onclick="abrirAsignacionHerramientasProyectoV14()" class="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-[10px] font-semibold text-white">Asignar unidades</button></div></div>
+                        <div class="overflow-x-auto lista-scroll"><table class="w-full min-w-[900px] text-xs"><thead class="bg-[#0d1325] text-[9px] uppercase tracking-wider text-gray-500"><tr><th class="px-4 py-3 text-left">Herramienta</th><th class="px-4 py-3 text-left">Clasificación</th><th class="px-4 py-3 text-center">Requeridas</th><th class="px-4 py-3 text-center">Asignadas</th><th class="px-4 py-3 text-center">Pendientes</th><th class="px-4 py-3 text-left">Prioridad</th><th class="px-4 py-3 text-left">Observaciones</th></tr></thead><tbody id="tabla-plan-herramientas-proyecto"></tbody></table></div>
+                        <div id="vacio-plan-herramientas-proyecto" class="hidden py-12 text-center text-xs text-gray-500">Todavía no se han seleccionado herramientas para este proyecto.</div>
+                    </section>
+                    <section class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden"><div class="p-4 border-b border-[#161f38]"><div class="text-xs font-bold text-white">Unidades asignadas actualmente</div><div class="text-[10px] text-gray-500 mt-1">Resguardos activos vinculados al proyecto.</div></div><div id="unidades-asignadas-proyecto" class="divide-y divide-[#161f38]"></div><div id="vacio-asignaciones-proyecto" class="hidden py-12 text-center text-xs text-gray-500">No hay unidades de herramientas asignadas.</div></section>
+                </div>
+
+                <div id="tab-reporte" class="tab-contenido hidden">
+                    <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4 mb-4">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div>
+                                <div class="text-xs font-bold text-white uppercase">Reporte de alcance</div>
+                                <div class="text-[10px] text-gray-500 mt-1">Selecciona categorías, materiales y la información que debe recibir el destinatario.</div>
+                                <div id="reporte-resumen-chips" class="flex flex-wrap gap-2 mt-3"></div>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="abrirConfiguracionReporte()" class="px-4 py-2.5 rounded-lg bg-[#10172a] hover:bg-[#151c35] border border-[#243257] text-[10px] font-semibold text-gray-200">☑ Configurar reporte</button>
+                                <button type="button" onclick="descargarReporteExcel()" class="px-4 py-2.5 rounded-lg bg-[#10172a] hover:bg-[#151c35] border border-[#243257] text-[10px] font-semibold text-gray-200">⇩ Descargar Excel</button><button type="button" onclick="descargarReporteAlcancePdfV14()" class="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-[10px] font-semibold text-white">⇩ Descargar PDF</button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-[#1b2642]">
+                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.45fr_1fr_1fr_1fr] gap-3">
+                                <div>
+                                    <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Buscar en el reporte</label>
+                                    <input id="reporte-filtro-busqueda" oninput="actualizarFiltrosRapidosReporte()" placeholder="Código, descripción o categoría..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Categoría</label>
+                                    <select id="reporte-filtro-categoria" onchange="actualizarFiltrosRapidosReporte()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="">Todas las categorías</option></select>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Alcance</label>
+                                    <select id="reporte-filtro-alcance" onchange="actualizarFiltrosRapidosReporte()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="todos">Dentro y fuera del plan</option><option value="dentro_plan">Solo dentro del plan</option><option value="fuera_plan">Solo fuera del plan</option></select>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Estado</label>
+                                    <select id="reporte-filtro-estado" onchange="actualizarFiltrosRapidosReporte()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="todos">Todos los estados</option><option value="pendiente">Con faltantes</option><option value="completo">Completados</option><option value="con_entrega">Con entregas</option><option value="sin_entrega">Sin entregas</option></select>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                <div class="flex flex-wrap gap-2">
+                                    <label class="inline-flex items-center gap-2 rounded-lg border border-blue-500/25 bg-blue-950/10 px-3 py-2 text-[10px] text-blue-300 cursor-pointer"><input id="reporte-col-planeado" type="checkbox" checked onchange="alternarColumnaRapidaReporte('planeado',this.checked)" class="accent-blue-500">Planeado</label>
+                                    <label class="inline-flex items-center gap-2 rounded-lg border border-rose-500/25 bg-rose-950/10 px-3 py-2 text-[10px] text-rose-300 cursor-pointer"><input id="reporte-col-entregado" type="checkbox" checked onchange="alternarColumnaRapidaReporte('entregado',this.checked)" class="accent-rose-500">Entregado</label>
+                                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-500/25 bg-slate-950/10 px-3 py-2 text-[10px] text-slate-300 cursor-pointer"><input id="reporte-col-sobrantes" type="checkbox" checked onchange="alternarColumnaRapidaReporte('sobrantes',this.checked)" class="accent-slate-500">Sobrantes</label>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" onclick="seleccionarVisiblesReporteRapido(true)" class="px-3 py-2 rounded-lg border border-[#243257] bg-[#10172a] text-[10px] font-semibold text-gray-300 hover:text-white">Seleccionar visibles</button>
+                                    <button type="button" onclick="seleccionarVisiblesReporteRapido(false)" class="px-3 py-2 rounded-lg border border-[#243257] bg-[#10172a] text-[10px] font-semibold text-gray-300 hover:text-white">Ocultar visibles</button>
+                                    <button type="button" onclick="limpiarFiltrosRapidosReporte()" class="px-3 py-2 rounded-lg border border-[#243257] text-[10px] font-semibold text-gray-400 hover:text-white">Limpiar filtros</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="reporte-alcance-vacio" class="hidden bg-[#090d1a] border border-[#161f38] rounded-xl py-14 text-center text-xs text-gray-500">No hay materiales seleccionados para el reporte.</div>
+                    <div id="reporte-alcance-preview" class="reporte-hoja">
+                        <div class="flex items-start justify-between gap-6 pb-5 mb-5" style="border-bottom:2px solid #8aa0bf">
+                            <div class="flex items-center gap-3">
+                                <img src="logo-reporte.png" alt="Skilled Proyectos Industriales" class="h-12 w-auto object-contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                                <div style="display:none;font-size:16px;font-weight:700;color:#00416b">Skilled Proyectos Industriales</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-sm" style="color:#003763">REPORTE DE ALCANCE</div>
+                                <div id="reporte-proyecto-titulo" class="text-xs mt-2" style="color:#00416b"></div>
+                                <div id="reporte-fecha" class="text-[10px] mt-2" style="color:#7588a5"></div>
+                            </div>
+                        </div>
+                        <div id="reporte-categorias-grid" class="reporte-categorias"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modal-proyecto" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
+        <div class="bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-[#161f38] flex items-center justify-between">
+                <div><div id="modal-titulo" class="text-sm font-bold text-white">Nuevo proyecto</div><div class="text-[10px] text-gray-500 mt-1">Los datos se guardarán directamente en Supabase.</div></div>
+                <button onclick="cerrarModalProyecto()" class="text-gray-500 hover:text-white text-xl">×</button>
+            </div>
+            <form id="form-proyecto" class="p-5">
+                <input type="hidden" id="proyecto-original">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">No. de proyecto (ID) *</label>
+                        <input id="f-proyecto" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Ej. PR-2026-001">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Nombre del proyecto *</label>
+                        <input id="f-nombre-proyecto" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Ej. Instalación línea de producción">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Cliente *</label>
+                        <input id="f-cliente" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Nombre del cliente">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Orden de compra</label>
+                        <input id="f-orden-compra" class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Ej. OC-45872">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Planta *</label>
+                        <input id="f-planta" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Ej. Planta Norte">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Nave</label>
+                        <input id="f-nave" class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Ej. Nave 3">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Tipo de control *</label>
+                        <select id="f-tipo-control" required onchange="actualizarTipoControlProyecto()" class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                            <option value="materiales">Plan de materiales</option>
+                            <option value="presupuesto">Presupuesto planeado</option>
+                        </select>
+                    </div>
+                    <div id="campo-presupuesto-proyecto" class="hidden">
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Presupuesto planeado ($) *</label>
+                        <input id="f-presupuesto-planeado" type="number" min="0" step="0.01" class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Ej. 250000.00">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <div id="ayuda-tipo-control" class="rounded-lg border border-blue-500/20 bg-blue-950/10 px-3 py-2.5 text-[10px] leading-5 text-blue-200">El plan de materiales permite definir códigos y cantidades planeadas. El control por presupuesto compara el costo real de los consumos contra un monto autorizado.</div>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Responsable Skilled *</label>
+                        <input id="f-responsable-skilled" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Nombre del responsable">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Fecha de asignación *</label>
+                        <input id="f-fecha-asignacion" type="date" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Fecha de entrega *</label>
+                        <input id="f-fecha-entrega" type="date" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-between gap-3 mt-6 pt-4 border-t border-[#161f38]">
+                    <button id="btn-eliminar-proyecto" type="button" onclick="eliminarProyectoActual()" class="hidden px-4 py-2.5 rounded-lg text-xs font-semibold text-red-400 hover:bg-red-950/20">Eliminar prueba</button>
+                    <div class="ml-auto flex gap-3"><button type="button" onclick="cerrarModalProyecto()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button id="btn-guardar-proyecto" type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Guardar proyecto</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-no-listado-plan" class="hidden fixed inset-0 z-[90] bg-black/75 items-center justify-center p-4">
+        <div class="w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-sm font-bold text-white">Añadir material no enlistado</h3>
+                    <p class="text-[10px] text-gray-500 mt-1">Se registrará únicamente dentro del plan de este proyecto.</p>
+                </div>
+                <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Descripción *</label>
+                    <input id="plan-nl-descripcion" type="text" placeholder="Ej. Conector especial para instalación" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código o referencia</label>
+                    <input id="plan-nl-codigo" type="text" placeholder="Se genera si lo dejas vacío" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label>
+                    <input id="plan-nl-categoria" type="text" placeholder="Ej. Misceláneos" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Unidad *</label>
+                    <input id="plan-nl-unidad" type="text" placeholder="PIEZA, METRO, LOTE..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Precio unitario</label>
+                    <input id="plan-nl-precio" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-[#161f38] flex justify-end gap-3">
+                <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button>
+                <button type="button" onclick="agregarMaterialNoListadoPlan()" class="px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold">Añadir al plan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-plan-herramientas-proyecto-v14" class="hidden fixed inset-0 z-[105] bg-black/80 items-center justify-center p-4">
+        <div class="w-full max-w-5xl max-h-[92vh] bg-[#10172a] border border-[#243257] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-[#243257] flex items-start justify-between gap-4"><div><h3 class="text-sm font-bold text-white">Herramientas requeridas por el proyecto</h3><p class="text-[10px] text-gray-500 mt-1">Selecciona tipos de herramienta y define cantidad, prioridad y observaciones.</p></div><button type="button" onclick="cerrarPlanHerramientasProyectoV14()" class="text-gray-500 hover:text-white text-xl">×</button></div>
+            <div class="p-4 border-b border-[#243257]"><input id="busqueda-plan-herramientas-v14" oninput="renderEditorHerramientasProyectoV14()" placeholder="Buscar por SKU, descripción, clasificación o marca..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"></div>
+            <div id="lista-plan-herramientas-v14" class="p-4 overflow-y-auto lista-scroll space-y-2 flex-1"></div>
+            <div class="p-4 border-t border-[#243257] flex items-center justify-between"><div id="contador-plan-herramientas-v14" class="text-[10px] text-gray-500">0 herramientas seleccionadas</div><div class="flex gap-2"><button type="button" onclick="cerrarPlanHerramientasProyectoV14()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button id="guardar-plan-herramientas-v14" type="button" onclick="guardarPlanHerramientasProyectoV14()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Guardar selección</button></div></div>
+        </div>
+    </div>
+
+    <div id="modal-config-reporte" class="hidden fixed inset-0 z-[100] bg-black/80 items-center justify-center p-4">
+        <div class="w-full max-w-6xl max-h-[88vh] bg-[#0a1122] border border-[#243257] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="px-5 py-4 border-b border-[#243257] flex items-start justify-between gap-4">
+                <div><h3 class="text-sm font-bold text-white">Seleccionar contenido del reporte</h3><p class="text-[10px] text-gray-500 mt-1">Selecciona categorías, columnas y materiales antes de generar el Excel.</p></div>
+                <button type="button" onclick="cerrarConfiguracionReporte()" class="text-gray-500 hover:text-white text-xl">×</button>
+            </div>
+            <div class="p-5 border-b border-[#243257]">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.05fr_1.05fr_1.2fr_auto] gap-3 items-end">
+                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Categorías</label><select id="reporte-select-categoria" onchange="agregarCategoriaReporteModal(this.value);this.value=''" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="">Seleccionar categoría...</option></select></div>
+                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Información del reporte</label><select id="reporte-select-info" onchange="agregarColumnaReporteModal(this.value);this.value=''" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="">Seleccionar información...</option><option value="todas">Planeado, Entregado y Sobrantes</option><option value="planeado">Planeado</option><option value="entregado">Entregado</option><option value="sobrantes">Sobrantes</option></select></div>
+                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Buscar material</label><input id="reporte-busqueda-material" oninput="renderConfiguracionReporte()" placeholder="Buscar por posición, código o descripción..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"></div>
+                    <div class="flex gap-2"><button type="button" onclick="seleccionarMaterialesVisiblesReporte(true)" class="px-3 py-2.5 rounded-lg bg-[#10172a] border border-[#243257] text-[10px] font-semibold text-gray-300 whitespace-nowrap">Seleccionar visibles</button><button type="button" onclick="seleccionarMaterialesVisiblesReporte(false)" class="px-3 py-2.5 rounded-lg bg-[#10172a] border border-[#243257] text-[10px] font-semibold text-gray-300 whitespace-nowrap">Limpiar visibles</button></div>
+                </div>
+                <div id="reporte-modal-chips-categorias" class="flex flex-wrap gap-2 mt-4"></div>
+                <div id="reporte-modal-chips-info" class="flex flex-wrap gap-2 mt-2"></div>
+            </div>
+            <div id="reporte-modal-lista" class="p-5 overflow-y-auto lista-scroll space-y-4 flex-1"></div>
+            <div class="px-5 py-4 border-t border-[#243257] flex items-center justify-between gap-4">
+                <div id="reporte-modal-contador" class="text-[10px] text-gray-500">0 materiales seleccionados</div>
+                <div class="flex gap-3"><button type="button" onclick="cerrarConfiguracionReporte()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button type="button" onclick="aplicarConfiguracionReporte()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Aplicar selección</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let proyectos = [];
+        let proyectoActual = null;
+        let refrescoProyectoActivo = null;
+        let refrescoProyectoEnCurso = false;
+        let movimientosActuales = [];
+        let catalogoMateriales = [];
+        let planProyectoActual = [];
+        let planBorrador = [];
+        let editandoPlan = false;
+        let reporteCategoriasSeleccionadas = new Set();
+        let reporteColumnasSeleccionadas = new Set(['planeado', 'entregado', 'sobrantes']);
+        let reporteMaterialesSeleccionados = new Set();
+        let reporteCategoriasConocidas = new Set();
+        let reporteMaterialesConocidos = new Set();
+        let reporteModalCategorias = new Set();
+        let reporteModalColumnas = new Set();
+        let reporteModalMateriales = new Set();
+        let reporteFiltroBusqueda = '';
+        let reporteFiltroCategoria = '';
+        let reporteFiltroAlcance = 'todos';
+        let reporteFiltroEstado = 'todos';
+
+        const formatoNumero = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 });
+        const formatoMoneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+        function escapeHTML(valor) {
+            return String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+
+        function textoSeguro(valor) {
+            return String(valor ?? '').trim();
+        }
+
+        function claveProyecto(valor) {
+            return textoSeguro(valor).toLocaleLowerCase('es-MX');
+        }
+
+        function normalizarProyecto(item) {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) {
+                return null;
+            }
+
+            const proyecto = textoSeguro(
+                item.proyecto ??
+                item.Proyectos ??
+                item.nombre ??
+                item.Nombre ??
+                item.codigoProyecto
+            );
+
+            if (!proyecto) {
+                return null;
+            }
+
+            const planeado = Number(item.planeado ?? item.Planeado ?? 0) || 0;
+            const consumido = Number(item.consumido ?? item.Consumido ?? 0) || 0;
+
+            return {
+                proyecto,
+                idProyecto: proyecto,
+                nombreProyecto: textoSeguro(item.nombreProyecto ?? item['Nombre del proyecto']),
+                cliente: textoSeguro(item.cliente ?? item.Cliente),
+                ordenCompra: textoSeguro(item.ordenCompra ?? item['Orden de compra']),
+                planta: textoSeguro(item.planta ?? item.Planta),
+                nave: textoSeguro(item.nave ?? item.Nave),
+                responsableSkilled: textoSeguro(item.responsableSkilled ?? item['Responsable Skilled']),
+                fechaAsignacion: textoSeguro(item.fechaAsignacion ?? item['Fecha de asignación']),
+                fechaEntrega: textoSeguro(item.fechaEntrega ?? item['Fecha de entrega']),
+                tipoControl: textoSeguro(item.tipoControl ?? item.tipo_control) === 'presupuesto' ? 'presupuesto' : 'materiales',
+                presupuestoPlaneado: Math.max(0, Number(item.presupuestoPlaneado ?? item.presupuesto_planeado ?? 0) || 0),
+                lineas: Number(item.lineas ?? item.Lineas ?? 0) || 0,
+                planeado,
+                consumido,
+                costoPlaneado: Number(item.costoPlaneado ?? item['Costo Planeado'] ?? 0) || 0,
+                costoConsumido: Number(item.costoConsumido ?? item['Costo consumido'] ?? 0) || 0,
+                avance: Number.isFinite(Number(item.avance))
+                    ? Number(item.avance)
+                    : (planeado > 0 ? consumido / planeado * 100 : 0),
+                movimientos: Number(item.movimientos ?? 0) || 0,
+                ultimoMovimiento: textoSeguro(item.ultimoMovimiento),
+                cantidadMovimientos: Number(item.cantidadMovimientos ?? 0) || 0,
+                costoMovimientos: Number(item.costoMovimientos ?? 0) || 0
+            };
+        }
+        async function cargarProyectos() {
+            const tbody = document.getElementById('tabla-proyectos');
+            const vacio = document.getElementById('estado-vacio');
+
+            vacio.classList.add('hidden');
+            tbody.innerHTML = '<tr><td colspan="9" class="px-5 py-12 text-center text-xs text-gray-500">Cargando proyectos desde Supabase...</td></tr>';
+
+            try {
+                proyectos = (await SkilledDB.listProjects())
+                    .map(normalizarProyecto)
+                    .filter(Boolean);
+
+                actualizarSelector();
+                renderProyectos();
+                actualizarKpis();
+
+                if (proyectoActual) {
+                    const claveActual = claveProyecto(proyectoActual.proyecto);
+                    const actualizado = proyectos.find(item => claveProyecto(item.proyecto) === claveActual);
+                    if (actualizado) {
+                        proyectoActual = actualizado;
+                        renderDetalle();
+                    }
+                }
+            } catch (error) {
+                proyectos = [];
+                actualizarSelector();
+                actualizarKpis();
+                vacio.classList.add('hidden');
+                tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-12 text-center"><div class="text-xs font-semibold text-red-400">${escapeHTML(error.message)}</div><div class="text-[10px] text-gray-500 mt-2">No se pudieron consultar las tablas proyectos, proyecto_materiales o movimientos en Supabase.</div></td></tr>`;
+            }
+        }
+
+        function actualizarSelector() {
+            const selector = document.getElementById('selector-proyecto');
+            selector.innerHTML = '<option value="">Selecciona un proyecto...</option>' +
+                proyectos.map(item => {
+                    const etiqueta = item.nombreProyecto
+                        ? `${item.proyecto} — ${item.nombreProyecto}`
+                        : item.proyecto;
+                    return `<option value="${escapeHTML(item.proyecto)}">${escapeHTML(etiqueta)}</option>`;
+                }).join('');
+        }
+
+        function actualizarKpis() {
+            const costoPlaneado = proyectos.reduce((total, item) => total + Number(item.costoPlaneado || 0), 0);
+            const costoConsumido = proyectos.reduce((total, item) => total + Number(item.costoConsumido || 0), 0);
+            const sinMovimientos = proyectos.filter(item => Number(item.movimientos || 0) === 0).length;
+            document.getElementById('kpi-proyectos').textContent = formatoNumero.format(proyectos.length);
+            document.getElementById('kpi-planeado').textContent = formatoMoneda.format(costoPlaneado);
+            document.getElementById('kpi-consumido').textContent = formatoMoneda.format(costoConsumido);
+            document.getElementById('kpi-sin-movimientos').textContent = formatoNumero.format(sinMovimientos);
+        }
+
+        function renderProyectos() {
+            const termino = document.getElementById('busqueda-proyecto').value.trim().toLowerCase();
+            const filtrados = proyectos.filter(item => {
+                const texto = [
+                    item.proyecto,
+                    item.nombreProyecto,
+                    item.cliente,
+                    item.ordenCompra,
+                    item.planta,
+                    item.nave,
+                    item.responsableSkilled
+                ].map(claveProyecto).join(' ');
+                return texto.includes(termino);
+            });
+            const tbody = document.getElementById('tabla-proyectos');
+            const vacio = document.getElementById('estado-vacio');
+
+            document.getElementById('contador-proyectos').textContent = `${filtrados.length} proyecto${filtrados.length === 1 ? '' : 's'}`;
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = '';
+                vacio.classList.remove('hidden');
+                return;
+            }
+
+            vacio.classList.add('hidden');
+            tbody.innerHTML = filtrados.map(item => {
+                const avance = Math.max(0, Math.min(100, Number(item.avance || 0)));
+                return `
+                    <tr class="hover:bg-[#0d1425] transition cursor-pointer fila-nueva" onclick='abrirProyecto(${JSON.stringify(item.proyecto)})'>
+                        <td class="px-5 py-3.5"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-[#10172a] border border-[#1b2642] flex items-center justify-center text-blue-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></div><div><div class="text-xs font-semibold text-gray-200">${escapeHTML(item.proyecto)}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(item.nombreProyecto || 'Sin nombre')} ${item.cliente ? '· ' + escapeHTML(item.cliente) : ''}</div><div class="mt-1"><span class="inline-flex rounded-full border px-2 py-0.5 text-[8px] font-semibold ${item.tipoControl === 'presupuesto' ? 'border-violet-500/25 bg-violet-950/15 text-violet-300' : 'border-blue-500/25 bg-blue-950/15 text-blue-300'}">${item.tipoControl === 'presupuesto' ? 'Presupuesto' : 'Plan de materiales'}</span></div></div></div></td>
+                        <td class="px-4 py-3.5 text-center text-xs text-gray-400">${item.tipoControl === 'presupuesto' ? '—' : formatoNumero.format(item.lineas || 0)}</td>
+                        <td class="px-4 py-3.5 text-center text-xs text-gray-400">${item.tipoControl === 'presupuesto' ? formatoMoneda.format(item.presupuestoPlaneado || 0) : formatoNumero.format(item.planeado || 0)}</td>
+                        <td class="px-4 py-3.5 text-center text-xs text-gray-400">${item.tipoControl === 'presupuesto' ? formatoNumero.format(item.movimientos || 0) + ' mov.' : formatoNumero.format(item.consumido || 0)}</td>
+                        <td class="px-4 py-3.5"><div class="flex items-center gap-2"><div class="w-20 h-1.5 bg-[#060a14] rounded-full overflow-hidden"><div class="h-full ${avance >= 100 ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full" style="width:${avance}%"></div></div><span class="text-[9px] text-gray-500">${avance.toFixed(1)}%</span></div></td>
+                        <td class="px-4 py-3.5 text-right text-xs text-gray-400">${formatoMoneda.format(item.costoPlaneado || 0)}</td>
+                        <td class="px-4 py-3.5 text-right text-xs font-semibold text-emerald-400">${formatoMoneda.format(item.costoConsumido || 0)}</td>
+                        <td class="px-4 py-3.5 text-center"><span class="inline-flex min-w-7 justify-center bg-[#10172a] border border-[#1b2642] rounded-full px-2 py-1 text-[9px] text-gray-400">${formatoNumero.format(item.movimientos || 0)}</span></td>
+                        <td class="px-4 py-3.5 text-right text-gray-500">›</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        function abrirProyectoSeleccionado() {
+            const valor = document.getElementById('selector-proyecto').value;
+            if (!valor) {
+                alert('Selecciona un proyecto.');
+                return;
+            }
+            abrirProyecto(valor);
+        }
+
+        async function abrirProyecto(nombre) {
+            proyectoActual = proyectos.find(item => item.proyecto === nombre) || proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(nombre));
+            if (!proyectoActual) return;
+            planProyectoActual = [];
+            planBorrador = [];
+            editandoPlan = false;
+            reiniciarSeleccionReporte();
+            document.getElementById('plan-editor').classList.add('hidden');
+            document.getElementById('plan-vista').classList.remove('hidden');
+            document.getElementById('vista-lista').classList.add('hidden');
+            document.getElementById('vista-detalle').classList.remove('hidden');
+            document.getElementById('busqueda-global').value = '';
+            cambiarTab('plan');
+            renderDetalle();
+            await Promise.all([
+                cargarMovimientosProyecto(),
+                cargarPlanProyecto()
+            ]);
+            iniciarRefrescoProyecto();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function volverALista() {
+            detenerRefrescoProyecto();
+            document.getElementById('vista-detalle').classList.add('hidden');
+            document.getElementById('vista-lista').classList.remove('hidden');
+            proyectoActual = null;
+            movimientosActuales = [];
+            planProyectoActual = [];
+            planBorrador = [];
+            editandoPlan = false;
+            reiniciarSeleccionReporte();
+            document.getElementById('plan-editor').classList.add('hidden');
+            document.getElementById('plan-vista').classList.remove('hidden');
+            history.replaceState(null, '', location.pathname);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function actualizarDetalle() {
+            if (!proyectoActual) return;
+            const nombre = proyectoActual.proyecto;
+            await cargarProyectos();
+            const encontrado = proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(nombre));
+            if (encontrado) {
+                proyectoActual = encontrado;
+                renderDetalle();
+                await Promise.all([
+                    cargarMovimientosProyecto(),
+                    cargarPlanProyecto()
+                ]);
+            }
+        }
+
+        function detenerRefrescoProyecto() {
+            if (refrescoProyectoActivo) {
+                clearInterval(refrescoProyectoActivo);
+                refrescoProyectoActivo = null;
+            }
+        }
+
+        function iniciarRefrescoProyecto() {
+            detenerRefrescoProyecto();
+            refrescoProyectoActivo = setInterval(() => {
+                if (!proyectoActual || editandoPlan || document.hidden || refrescoProyectoEnCurso) return;
+                actualizarDatosProyectoSilencioso();
+            }, 15000);
+        }
+
+        async function actualizarDatosProyectoSilencioso() {
+            if (!proyectoActual || refrescoProyectoEnCurso) return;
+            refrescoProyectoEnCurso = true;
+            const numero = proyectoActual.proyecto;
+            try {
+                const [movimientos, plan] = await Promise.all([
+                    SkilledDB.listMovements({ project: numero }),
+                    cargarPlanProyectoSeguro(numero)
+                ]);
+                if (!proyectoActual || claveProyecto(proyectoActual.proyecto) !== claveProyecto(numero)) return;
+                movimientosActuales = movimientos;
+                planProyectoActual = plan.map(copiarLineaPlan);
+                sincronizarPlanConMovimientosLocal();
+                renderPlanVista();
+                renderMovimientosProyecto();
+                sincronizarSeleccionReporte();
+                renderReporteAlcance();
+                const badge = document.getElementById('badge-historial');
+                if (badge) badge.textContent = formatoNumero.format(movimientosActuales.length);
+            } catch (error) {
+            } finally {
+                refrescoProyectoEnCurso = false;
+            }
+        }
+
+        function renderDetalle() {
+            if (!proyectoActual) return;
+            const p = proyectoActual;
+            const porcentajeCosto = Number(p.costoPlaneado || 0) > 0 ? Number(p.costoConsumido || 0) / Number(p.costoPlaneado || 0) * 100 : 0;
+            const avance = Math.max(0, Math.min(100, Number(p.avance || 0)));
+            const pendiente = Math.max(0, Number(p.planeado || 0) - Number(p.consumido || 0));
+            const diferencia = Number(p.costoPlaneado || 0) - Number(p.costoConsumido || 0);
+
+            document.getElementById('breadcrumb-proyecto').textContent = p.proyecto;
+            document.getElementById('detalle-titulo').textContent = p.nombreProyecto
+                ? `${p.proyecto} — ${p.nombreProyecto}`
+                : p.proyecto;
+            document.getElementById('info-id-proyecto').textContent = p.proyecto || '—';
+            document.getElementById('info-nombre-proyecto').textContent = p.nombreProyecto || '—';
+            document.getElementById('info-cliente').textContent = p.cliente || '—';
+            document.getElementById('info-orden-compra').textContent = p.ordenCompra || '—';
+            document.getElementById('info-tipo-control').textContent = p.tipoControl === 'presupuesto' ? 'Presupuesto planeado' : 'Plan de materiales';
+            document.getElementById('info-planta').textContent = p.planta || '—';
+            document.getElementById('info-nave').textContent = p.nave || '—';
+            document.getElementById('info-responsable').textContent = p.responsableSkilled || '—';
+            document.getElementById('info-periodo').textContent =
+                `${formatearSoloFecha(p.fechaAsignacion)} → ${formatearSoloFecha(p.fechaEntrega)}`;
+            const esPresupuesto = p.tipoControl === 'presupuesto';
+            document.getElementById('etiqueta-planeado').textContent = esPresupuesto ? 'Presupuesto planeado' : 'Cant. planeada';
+            document.getElementById('etiqueta-consumido').textContent = esPresupuesto ? 'Movimientos vinculados' : 'Cant. consumida';
+            document.getElementById('etiqueta-costo-planeado').textContent = esPresupuesto ? 'Monto autorizado' : 'Costo planeado';
+            document.getElementById('detalle-planeado').textContent = esPresupuesto ? formatoMoneda.format(p.presupuestoPlaneado || 0) : formatoNumero.format(p.planeado || 0);
+            document.getElementById('detalle-consumido').textContent = esPresupuesto ? formatoNumero.format(p.movimientos || 0) : formatoNumero.format(p.consumido || 0);
+            document.getElementById('detalle-costo-planeado').textContent = formatoMoneda.format(p.costoPlaneado || 0);
+            document.getElementById('detalle-costo-consumido').textContent = formatoMoneda.format(p.costoConsumido || 0);
+            document.getElementById('detalle-porcentaje-costo').textContent = `${porcentajeCosto.toFixed(1)}% ${esPresupuesto ? 'del presupuesto' : 'del plan'}`;
+            document.getElementById('btn-editar-plan-superior')?.classList.toggle('hidden', esPresupuesto);
+            document.getElementById('plan-vista')?.classList.toggle('hidden', esPresupuesto);
+            document.getElementById('plan-editor')?.classList.add('hidden');
+            document.getElementById('presupuesto-vista')?.classList.toggle('hidden', !esPresupuesto);
+            if (esPresupuesto) {
+                const limite = Math.max(0, Number(p.presupuestoPlaneado || 0));
+                const real = Math.max(0, Number(p.costoConsumido || 0));
+                const disponible = limite - real;
+                const porcentaje = limite > 0 ? real / limite * 100 : 0;
+                document.getElementById('presupuesto-planeado-resumen').textContent = formatoMoneda.format(limite);
+                document.getElementById('presupuesto-consumido-resumen').textContent = formatoMoneda.format(real);
+                const nodoDisponible = document.getElementById('presupuesto-disponible-resumen');
+                nodoDisponible.textContent = formatoMoneda.format(Math.abs(disponible));
+                nodoDisponible.className = `mt-2 text-xl font-bold ${disponible < 0 ? 'text-rose-400' : 'text-blue-300'}`;
+                document.getElementById('barra-presupuesto-proyecto').style.width = `${Math.min(100, Math.max(0, porcentaje))}%`;
+                document.getElementById('barra-presupuesto-proyecto').className = `h-full rounded-full ${porcentaje > 100 ? 'bg-rose-500' : porcentaje >= 85 ? 'bg-amber-500' : 'bg-blue-600'}`;
+                document.getElementById('texto-presupuesto-proyecto').textContent = disponible < 0
+                    ? `Presupuesto excedido por ${formatoMoneda.format(Math.abs(disponible))}. Consumo: ${porcentaje.toFixed(1)}%.`
+                    : `Disponible: ${formatoMoneda.format(disponible)}. Consumo: ${porcentaje.toFixed(1)}%.`;
+            }
+            document.getElementById('badge-historial').textContent = formatoNumero.format(p.movimientos || 0);
+            document.getElementById('seguimiento-avance').textContent = `${avance.toFixed(1)}%`;
+            document.getElementById('barra-avance').style.width = `${avance}%`;
+            document.getElementById('seguimiento-pendiente').textContent = formatoNumero.format(pendiente);
+            document.getElementById('seguimiento-diferencia').textContent = formatoMoneda.format(diferencia);
+            document.getElementById('seguimiento-ultimo').textContent = p.ultimoMovimiento ? formatearFecha(p.ultimoMovimiento) : 'Sin movimientos';
+            if (!esPresupuesto) renderPlanVista();
+        }
+        function obtenerClienteSupabasePlan() {
+            const cliente = window.SkilledDB?.client || window.skilledSupabase;
+            if (!cliente || typeof cliente.from !== 'function') {
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js');
+            }
+            return cliente;
+        }
+
+        async function listarPlanProyectoDirecto(numeroProyecto) {
+            const numero = textoSeguro(numeroProyecto);
+            if (!numero) throw new Error('Falta el número del proyecto.');
+
+            const cliente = obtenerClienteSupabasePlan();
+            const [listados, manuales] = await Promise.all([
+                cliente.from('proyecto_materiales').select('*').eq('proyecto_numero', numero).order('id', { ascending: true }),
+                cliente.from('proyecto_materiales_no_listados').select('*').eq('proyecto_numero', numero).order('id', { ascending: true })
+            ]);
+            if (listados.error) throw new Error(listados.error.message || 'No se pudo consultar el plan del proyecto.');
+            if (manuales.error) throw new Error(manuales.error.message || 'No se pudieron consultar los materiales no enlistados.');
+
+            const lineasCatalogo = (listados.data || []).map(fila => {
+                const material = catalogoMateriales.find(item => claveProyecto(item.codigo) === claveProyecto(fila.material_codigo)) || {
+                    codigo: textoSeguro(fila.material_codigo),
+                    descripcion: textoSeguro(fila.material_codigo),
+                    desc: textoSeguro(fila.material_codigo),
+                    unidad: textoSeguro(fila.unidad),
+                    precio: Number(fila.precio_unitario || 0),
+                    imagen: ''
+                };
+                return {
+                    id: fila.id,
+                    proyecto: textoSeguro(fila.proyecto_numero),
+                    codigo: textoSeguro(fila.material_codigo),
+                    cantidadPlaneada: Number(fila.cantidad_planeada || 0),
+                    cantidadEntregada: Number(fila.cantidad_entregada || 0),
+                    cantidadSobrante: Number(fila.cantidad_sobrante || 0),
+                    unidad: textoSeguro(fila.unidad) || textoSeguro(material.unidad),
+                    precioUnitario: Number(fila.precio_unitario || material.precio || 0),
+                    observaciones: textoSeguro(fila.observaciones),
+                    estadoSolicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
+                    estado_solicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
+                    aprobadaPor: textoSeguro(fila.aprobada_por),
+                    aprobadaAt: fila.aprobada_at || null,
+                    rechazoMotivo: textoSeguro(fila.rechazo_motivo),
+                    esNoListado: false,
+                    material
+                };
+            });
+
+            const lineasManuales = (manuales.data || []).map(fila => {
+                const material = {
+                    codigo: textoSeguro(fila.codigo_manual),
+                    descripcion: textoSeguro(fila.descripcion),
+                    desc: textoSeguro(fila.descripcion),
+                    categoria: textoSeguro(fila.categoria),
+                    unidad: textoSeguro(fila.unidad),
+                    precio: Number(fila.precio_unitario || 0),
+                    imagen: '',
+                    esNoListado: true
+                };
+                return {
+                    id: fila.id,
+                    proyecto: textoSeguro(fila.proyecto_numero),
+                    codigo: textoSeguro(fila.codigo_manual),
+                    cantidadPlaneada: Number(fila.cantidad_planeada || 0),
+                    cantidadEntregada: Number(fila.cantidad_entregada || 0),
+                    cantidadSobrante: Number(fila.cantidad_sobrante || 0),
+                    unidad: textoSeguro(fila.unidad),
+                    precioUnitario: Number(fila.precio_unitario || 0),
+                    observaciones: textoSeguro(fila.observaciones),
+                    estadoSolicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
+                    estado_solicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
+                    aprobadaPor: textoSeguro(fila.aprobada_por),
+                    aprobadaAt: fila.aprobada_at || null,
+                    rechazoMotivo: textoSeguro(fila.rechazo_motivo),
+                    esNoListado: true,
+                    material
+                };
+            });
+
+            return [...lineasCatalogo, ...lineasManuales];
+        }
+
+        async function cargarPlanProyectoSeguro(numeroProyecto) {
+            if (window.SkilledDB && typeof window.SkilledDB.listProjectPlan === 'function') {
+                return window.SkilledDB.listProjectPlan(numeroProyecto);
+            }
+            return listarPlanProyectoDirecto(numeroProyecto);
+        }
+
+        async function guardarPlanProyectoDirecto(numeroProyecto, lineas) {
+            const numero = textoSeguro(numeroProyecto);
+            if (!numero) throw new Error('Falta el número del proyecto.');
+
+            const cliente = obtenerClienteSupabasePlan();
+            const listados = new Map();
+            const manuales = new Map();
+
+            (Array.isArray(lineas) ? lineas : []).forEach(linea => {
+                const material = linea.material || {};
+                const codigo = textoSeguro(linea.codigo ?? material.codigo);
+                const cantidad = Number(linea.cantidadPlaneada ?? linea.cantidad_planeada ?? 0);
+                const marcadoNoListado = Boolean(
+                    linea.esNoListado ?? linea.es_no_listado ?? material.esNoListado ?? material.es_no_listado
+                );
+                const existeEnCatalogo = catalogoMateriales.some(
+                    item => claveProyecto(item.codigo) === claveProyecto(codigo)
+                );
+
+
+
+                const esNoListado = marcadoNoListado || !existeEnCatalogo;
+                if (!codigo) throw new Error('Uno de los materiales no tiene código o referencia.');
+                if (!Number.isFinite(cantidad) || cantidad <= 0) throw new Error(`La cantidad planeada de ${codigo} debe ser mayor a cero.`);
+
+                if (esNoListado) {
+                    const descripcion = textoSeguro(linea.descripcion ?? material.descripcion ?? material.desc);
+                    if (!descripcion) throw new Error(`Escribe la descripción del material no enlistado ${codigo}.`);
+                    manuales.set(claveProyecto(codigo), {
+                        proyecto_numero: numero,
+                        codigo_manual: codigo,
+                        descripcion,
+                        categoria: textoSeguro(linea.categoria ?? material.categoria) || null,
+                        cantidad_planeada: cantidad,
+                        cantidad_entregada: Number(linea.cantidadEntregada ?? linea.cantidad_entregada ?? 0) || 0,
+                        cantidad_sobrante: Number(linea.cantidadSobrante ?? linea.cantidad_sobrante ?? 0) || 0,
+                        unidad: textoSeguro(linea.unidad ?? material.unidad) || null,
+                        precio_unitario: Number(linea.precioUnitario ?? linea.precio_unitario ?? material.precio ?? 0) || 0,
+                        observaciones: textoSeguro(linea.observaciones ?? linea.notas) || null,
+                        updated_at: new Date().toISOString()
+                    });
+                } else {
+                    listados.set(claveProyecto(codigo), {
+                        proyecto_numero: numero,
+                        material_codigo: codigo,
+                        cantidad_planeada: cantidad,
+                        cantidad_entregada: Number(linea.cantidadEntregada ?? linea.cantidad_entregada ?? 0) || 0,
+                        cantidad_sobrante: Number(linea.cantidadSobrante ?? linea.cantidad_sobrante ?? 0) || 0,
+                        unidad: textoSeguro(linea.unidad ?? material.unidad) || null,
+                        precio_unitario: Number(linea.precioUnitario ?? linea.precio_unitario ?? material.precio ?? 0) || 0,
+                        observaciones: textoSeguro(linea.observaciones ?? linea.notas) || null,
+                        updated_at: new Date().toISOString()
+                    });
+                }
+            });
+
+            const [existentesListados, existentesManuales] = await Promise.all([
+                cliente.from('proyecto_materiales').select('material_codigo').eq('proyecto_numero', numero),
+                cliente.from('proyecto_materiales_no_listados').select('codigo_manual').eq('proyecto_numero', numero)
+            ]);
+            if (existentesListados.error) throw new Error(existentesListados.error.message || 'No se pudo consultar el plan actual.');
+            if (existentesManuales.error) throw new Error(existentesManuales.error.message || 'No se pudo consultar el plan manual actual.');
+
+            const filasListadas = Array.from(listados.values());
+            const filasManuales = Array.from(manuales.values());
+            if (filasListadas.length) {
+                const { error } = await cliente.from('proyecto_materiales').upsert(filasListadas, { onConflict: 'proyecto_numero,material_codigo' });
+                if (error) throw new Error(error.message || 'No se pudo guardar el plan del proyecto.');
+            }
+            if (filasManuales.length) {
+                const { error } = await cliente.from('proyecto_materiales_no_listados').upsert(filasManuales, { onConflict: 'proyecto_numero,codigo_manual' });
+                if (error) throw new Error(error.message || 'No se pudieron guardar los materiales no enlistados.');
+            }
+
+            const conservarListados = new Set(filasListadas.map(fila => claveProyecto(fila.material_codigo)));
+            for (const fila of (existentesListados.data || [])) {
+                if (!conservarListados.has(claveProyecto(fila.material_codigo))) {
+                    const { error } = await cliente.from('proyecto_materiales').delete().eq('proyecto_numero', numero).eq('material_codigo', fila.material_codigo);
+                    if (error) throw new Error(error.message || `No se pudo quitar ${fila.material_codigo} del plan.`);
+                }
+            }
+            const conservarManuales = new Set(filasManuales.map(fila => claveProyecto(fila.codigo_manual)));
+            for (const fila of (existentesManuales.data || [])) {
+                if (!conservarManuales.has(claveProyecto(fila.codigo_manual))) {
+                    const { error } = await cliente.from('proyecto_materiales_no_listados').delete().eq('proyecto_numero', numero).eq('codigo_manual', fila.codigo_manual);
+                    if (error) throw new Error(error.message || `No se pudo quitar ${fila.codigo_manual} del plan.`);
+                }
+            }
+
+            return listarPlanProyectoDirecto(numero);
+        }
+
+        async function guardarPlanProyectoSeguro(numeroProyecto, lineas) {
+
+
+
+            return guardarPlanProyectoDirecto(numeroProyecto, lineas);
+        }
+
+        function copiarLineaPlan(linea) {
+            return {
+                id: linea.id || null,
+                codigo: textoSeguro(linea.codigo ?? linea.material?.codigo),
+                cantidadPlaneada: Number(linea.cantidadPlaneada ?? 0) || 0,
+                cantidadEntregada: Number(linea.cantidadEntregada ?? 0) || 0,
+                cantidadSobrante: Number(linea.cantidadSobrante ?? 0) || 0,
+                unidad: textoSeguro(linea.unidad ?? linea.material?.unidad),
+                precioUnitario: Number(linea.precioUnitario ?? linea.material?.precio ?? 0) || 0,
+                observaciones: textoSeguro(linea.observaciones),
+                estadoSolicitud: textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud) || 'pendiente',
+                estado_solicitud: textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud) || 'pendiente',
+                aprobadaPor: textoSeguro(linea.aprobadaPor ?? linea.aprobada_por),
+                aprobadaAt: linea.aprobadaAt ?? linea.aprobada_at ?? null,
+                rechazoMotivo: textoSeguro(linea.rechazoMotivo ?? linea.rechazo_motivo),
+                esNoListado: Boolean(linea.esNoListado ?? linea.material?.esNoListado),
+                material: linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || null
+            };
+        }
+
+        function imagenMaterialPlan(material, clases = 'w-10 h-10') {
+            const url = textoSeguro(material?.imagen ?? material?.imagen_url ?? material?.urlImagen);
+            const icono = `<span class="${clases} rounded-lg bg-[#10172a] border border-[#243257] flex items-center justify-center text-gray-500 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+            </span>`;
+            if (!url) return icono;
+            return `<span class="${clases} rounded-lg bg-white border border-[#243257] overflow-hidden shrink-0 flex items-center justify-center">
+                <img src="${escapeHTML(url)}" alt="" class="w-full h-full object-contain" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">
+                <svg class="hidden w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+            </span>`;
+        }
+
+        async function cargarPlanProyecto() {
+            if (!proyectoActual) return;
+            const tbody = document.getElementById('tabla-plan-materiales');
+            tbody.innerHTML = '<tr><td colspan="10" class="px-5 py-10 text-center text-xs text-gray-500">Cargando plan desde Supabase...</td></tr>';
+            document.getElementById('plan-vacio').classList.add('hidden');
+
+            try {
+                const [catalogo, plan] = await Promise.all([
+                    catalogoMateriales.length ? Promise.resolve(catalogoMateriales) : SkilledDB.listMaterials(),
+                    cargarPlanProyectoSeguro(proyectoActual.proyecto)
+                ]);
+                catalogoMateriales = catalogo;
+                planProyectoActual = plan.map(copiarLineaPlan);
+                sincronizarPlanConMovimientosLocal();
+                if (!editandoPlan) planBorrador = planProyectoActual.map(copiarLineaPlan);
+                renderPlanVista();
+                if (editandoPlan) renderEditorPlan();
+                sincronizarSeleccionReporte();
+                renderReporteAlcance();
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="10" class="px-5 py-10 text-center text-xs text-red-400">${escapeHTML(error.message)}</td></tr>`;
+            }
+        }
+
+        function estadoVisualPlan(linea) {
+            const solicitud = textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud).toLowerCase() || 'pendiente';
+            const planeado = Math.max(0, Number(linea.cantidadPlaneada || 0));
+            const entregado = Math.max(0, Number(linea.cantidadEntregada || 0));
+            const sobrante = Math.max(0, Number(linea.cantidadSobrante || 0));
+            if (solicitud === 'rechazada') {
+                return {
+                    texto: 'Rechazada',
+                    detalle: textoSeguro(linea.rechazoMotivo) || 'La solicitud fue rechazada.',
+                    clase: 'border-rose-500/30 bg-rose-950/20 text-rose-300'
+                };
+            }
+            if (solicitud !== 'aprobada') {
+                return {
+                    texto: 'Aún en aprobación',
+                    detalle: 'Todavía no puede surtirse como parte del plan.',
+                    clase: 'border-amber-500/30 bg-amber-950/20 text-amber-300'
+                };
+            }
+            if (planeado > 0 && sobrante <= 0) {
+                return {
+                    texto: 'Completo',
+                    detalle: `${formatoNumero.format(entregado)} de ${formatoNumero.format(planeado)} entregado`,
+                    clase: 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300'
+                };
+            }
+            if (entregado > 0) {
+                return {
+                    texto: 'Entrega parcial',
+                    detalle: `Faltan ${formatoNumero.format(sobrante)}`,
+                    clase: 'border-blue-500/30 bg-blue-950/20 text-blue-300'
+                };
+            }
+            return {
+                texto: 'Pendiente',
+                detalle: `Faltan ${formatoNumero.format(sobrante || planeado)}`,
+                clase: 'border-[#34415f] bg-[#10172a] text-gray-300'
+            };
+        }
+
+        function renderPlanVista() {
+            const tbody = document.getElementById('tabla-plan-materiales');
+            const vacio = document.getElementById('plan-vacio');
+            if (!tbody || !vacio) return;
+
+            if (!planProyectoActual.length) {
+                tbody.innerHTML = '';
+                vacio.classList.remove('hidden');
+                actualizarResumenProyectoDesdePlan();
+                return;
+            }
+
+            vacio.classList.add('hidden');
+            tbody.innerHTML = planProyectoActual.map(linea => {
+                const material = linea.material || {};
+                const precio = Number(linea.precioUnitario || material.precio || 0);
+                const costo = Number(linea.cantidadPlaneada || 0) * precio;
+                const estado = estadoVisualPlan(linea);
+                const entregado = Math.max(0, Number(linea.cantidadEntregada || 0));
+                const planeado = Math.max(0, Number(linea.cantidadPlaneada || 0));
+                const avance = planeado > 0 ? Math.min(100, entregado / planeado * 100) : 0;
+                return `<tr class="border-t border-[#161f38] hover:bg-[#0d1425] transition">
+                    <td class="px-5 py-3.5 text-[10px] font-mono font-semibold text-blue-300">${escapeHTML(linea.codigo)}</td>
+                    <td class="px-4 py-3.5"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div class="min-w-0"><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}</div><div class="mt-2 w-32 max-w-full h-1.5 rounded-full bg-[#060a14] overflow-hidden"><div class="h-full ${avance >= 100 ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full" style="width:${avance}%"></div></div></div></div></td>
+                    <td class="px-4 py-3.5 text-[10px] text-gray-400">${escapeHTML(linea.unidad || material.unidad || '—')}</td>
+                    <td class="px-4 py-3.5 text-right text-[10px] text-gray-400">${formatoMoneda.format(precio)}</td>
+                    <td class="px-4 py-3.5 text-center text-xs font-semibold text-gray-200">${formatoNumero.format(planeado)}</td>
+                    <td class="px-4 py-3.5 text-center text-xs font-semibold ${entregado > 0 ? 'text-emerald-300' : 'text-gray-500'}">${formatoNumero.format(entregado)}</td>
+                    <td class="px-4 py-3.5 text-center text-xs font-semibold ${Number(linea.cantidadSobrante || 0) > 0 ? 'text-amber-300' : 'text-emerald-300'}">${formatoNumero.format(linea.cantidadSobrante)}</td>
+                    <td class="px-4 py-3.5 text-center"><span class="inline-flex px-2 py-1 rounded-full border text-[9px] font-semibold ${estado.clase}" title="${escapeHTML(estado.detalle)}">${escapeHTML(estado.texto)}</span><div class="mt-1 text-[8px] text-gray-600">${escapeHTML(estado.detalle)}</div></td>
+                    <td class="px-4 py-3.5 text-right text-xs font-semibold text-gray-300">${formatoMoneda.format(costo)}</td>
+                    <td class="px-4 py-3.5 text-[10px] text-gray-500">${escapeHTML(linea.observaciones || '—')}</td>
+                </tr>`;
+            }).join('');
+            actualizarResumenProyectoDesdePlan();
+        }
+
+        async function activarEdicionPlan() {
+            if (!proyectoActual) return;
+            if (proyectoActual.tipoControl === 'presupuesto') {
+                abrirModalEditarActual();
+                return;
+            }
+            editandoPlan = true;
+            planBorrador = planProyectoActual.map(copiarLineaPlan);
+            document.getElementById('plan-vista').classList.add('hidden');
+            document.getElementById('plan-editor').classList.remove('hidden');
+            document.getElementById('buscar-material-plan').value = '';
+            document.getElementById('dropdown-material-plan').classList.add('hidden');
+            renderEditorPlan();
+
+            if (!catalogoMateriales.length) {
+                try {
+                    catalogoMateriales = await SkilledDB.listMaterials();
+                } catch (error) {
+                    alert(`No se pudo cargar el catálogo: ${error.message}`);
+                }
+            }
+            setTimeout(() => document.getElementById('buscar-material-plan').focus(), 50);
+        }
+
+        function cancelarEdicionPlan() {
+            editandoPlan = false;
+            planBorrador = planProyectoActual.map(copiarLineaPlan);
+            document.getElementById('plan-editor').classList.add('hidden');
+            document.getElementById('plan-vista').classList.remove('hidden');
+            document.getElementById('dropdown-material-plan').classList.add('hidden');
+            renderPlanVista();
+        }
+
+        function buscarMaterialPlan(valor) {
+            const dropdown = document.getElementById('dropdown-material-plan');
+            const termino = claveProyecto(valor);
+            const seleccionados = new Set(planBorrador.map(item => claveProyecto(item.codigo)));
+            const resultados = catalogoMateriales
+                .filter(item => !seleccionados.has(claveProyecto(item.codigo)))
+                .filter(item => {
+                    if (!termino) return true;
+                    return [item.codigo, item.desc, item.descripcion, item.categoria]
+                        .map(claveProyecto)
+                        .join(' ')
+                        .includes(termino);
+                })
+                .slice(0, 12);
+
+            if (!resultados.length) {
+                dropdown.innerHTML = '<div class="px-4 py-4 text-[11px] text-gray-500">No hay materiales disponibles con ese criterio.</div>';
+                dropdown.classList.remove('hidden');
+                return;
+            }
+
+            dropdown.innerHTML = resultados.map(material => `<button type="button" onclick='agregarMaterialPlan(${JSON.stringify(material.codigo)})' class="w-full px-3 py-2.5 hover:bg-[#161f38] transition flex items-center gap-3 text-left">
+                ${imagenMaterialPlan(material, 'w-9 h-9')}
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs text-gray-200"><span class="font-mono text-[10px] text-blue-300">${escapeHTML(material.codigo)}</span> <span class="font-semibold">${escapeHTML(material.desc || material.descripcion)}</span></div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || 'Sin categoría')}</div>
+                </div>
+                <div class="text-[9px] text-gray-500 shrink-0">${formatoNumero.format(material.stock || 0)} ${escapeHTML(material.unidad || '')}</div>
+            </button>`).join('');
+            dropdown.classList.remove('hidden');
+        }
+
+        function agregarMaterialPlan(codigo) {
+            const material = catalogoMateriales.find(item => item.codigo === codigo);
+            if (!material || planBorrador.some(item => claveProyecto(item.codigo) === claveProyecto(codigo))) return;
+            planBorrador.push({
+                id: null,
+                codigo: material.codigo,
+                cantidadPlaneada: 1,
+                cantidadEntregada: 0,
+                cantidadSobrante: 0,
+                unidad: material.unidad || '',
+                precioUnitario: Number(material.precio || 0),
+                observaciones: '',
+                material
+            });
+            document.getElementById('buscar-material-plan').value = '';
+            document.getElementById('dropdown-material-plan').classList.add('hidden');
+            renderEditorPlan();
+        }
+
+        function generarCodigoNoListadoPlan() {
+            return `NL-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+        }
+
+        function abrirMaterialNoListadoPlan() {
+            ['plan-nl-descripcion', 'plan-nl-codigo', 'plan-nl-categoria', 'plan-nl-unidad'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('plan-nl-precio').value = '0';
+            const modal = document.getElementById('modal-no-listado-plan');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('plan-nl-descripcion').focus(), 80);
+        }
+
+        function cerrarMaterialNoListadoPlan() {
+            const modal = document.getElementById('modal-no-listado-plan');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function agregarMaterialNoListadoPlan() {
+            const descripcion = document.getElementById('plan-nl-descripcion').value.trim();
+            const unidad = document.getElementById('plan-nl-unidad').value.trim();
+            let codigo = document.getElementById('plan-nl-codigo').value.trim() || generarCodigoNoListadoPlan();
+            const categoria = document.getElementById('plan-nl-categoria').value.trim();
+            const precio = Math.max(0, Number(document.getElementById('plan-nl-precio').value) || 0);
+            if (!descripcion) { alert('Escribe la descripción del material.'); return; }
+            if (!unidad) { alert('Escribe la unidad del material.'); return; }
+            if (planBorrador.some(item => claveProyecto(item.codigo) === claveProyecto(codigo))) {
+                alert('Ya existe un material con ese código o referencia dentro del plan.');
+                return;
+            }
+            const material = { codigo, desc: descripcion, descripcion, categoria, unidad, precio, stock: 0, imagen: '', esNoListado: true };
+            planBorrador.push({
+                id: null,
+                codigo,
+                cantidadPlaneada: 1,
+                cantidadEntregada: 0,
+                cantidadSobrante: 0,
+                unidad,
+                precioUnitario: precio,
+                observaciones: '',
+                esNoListado: true,
+                material
+            });
+            cerrarMaterialNoListadoPlan();
+            renderEditorPlan();
+        }
+
+        function cambiarCantidadPlan(indice, valor) {
+            const cantidad = Number(valor);
+            planBorrador[indice].cantidadPlaneada = Number.isFinite(cantidad) ? Math.max(0, cantidad) : 0;
+            renderEditorPlan(false);
+        }
+
+        function cambiarNotaPlan(indice, valor) {
+            planBorrador[indice].observaciones = valor;
+        }
+
+        function eliminarMaterialPlan(indice) {
+            planBorrador.splice(indice, 1);
+            renderEditorPlan();
+        }
+
+        function renderEditorPlan(reconstruir = true) {
+            const tbody = document.getElementById('tabla-editor-plan');
+            const vacio = document.getElementById('editor-plan-vacio');
+            if (!tbody || !vacio) return;
+
+            if (!planBorrador.length) {
+                tbody.innerHTML = '';
+                vacio.classList.remove('hidden');
+                document.getElementById('total-editor-plan').textContent = formatoMoneda.format(0);
+                return;
+            }
+
+            vacio.classList.add('hidden');
+            if (reconstruir) {
+                tbody.innerHTML = planBorrador.map((linea, indice) => {
+                    const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {};
+                    const precio = Number(linea.precioUnitario || material.precio || 0);
+                    const costo = Number(linea.cantidadPlaneada || 0) * precio;
+                    return `<tr class="hover:bg-[#0d1425] transition">
+                        <td class="px-4 py-3 text-[10px] font-mono text-blue-300">${escapeHTML(linea.codigo)}</td>
+                        <td class="px-4 py-3"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}</div></div></div></td>
+                        <td class="px-4 py-3 text-right text-[10px] font-mono text-gray-400">${formatoMoneda.format(precio)}</td>
+                        <td class="px-4 py-3"><div class="flex items-center justify-center gap-2"><input type="number" min="0.01" step="0.01" value="${Number(linea.cantidadPlaneada || 0)}" oninput="cambiarCantidadPlan(${indice}, this.value)" class="w-20 bg-[#060a14] border border-[#243257] rounded-lg px-2 py-2 text-center text-xs text-gray-200 focus:outline-none focus:border-blue-500"><span class="text-[9px] text-gray-500 uppercase">${escapeHTML(linea.unidad || material.unidad || '')}</span></div></td>
+                        <td id="costo-linea-${indice}" class="px-4 py-3 text-right text-[10px] font-mono text-gray-300">${formatoMoneda.format(costo)}</td>
+                        <td class="px-4 py-3"><input value="${escapeHTML(linea.observaciones || '')}" oninput="cambiarNotaPlan(${indice}, this.value)" placeholder="Opcional" class="w-full min-w-44 bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></td>
+                        <td class="px-4 py-3 text-right"><button type="button" onclick="eliminarMaterialPlan(${indice})" class="text-rose-500 hover:text-rose-400" title="Quitar material"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0l1 14h8l1-14M10 11v5m4-5v5"/></svg></button></td>
+                    </tr>`;
+                }).join('');
+            } else {
+                planBorrador.forEach((linea, indice) => {
+                    const precio = Number(linea.precioUnitario || linea.material?.precio || 0);
+                    const celda = document.getElementById(`costo-linea-${indice}`);
+                    if (celda) celda.textContent = formatoMoneda.format(Number(linea.cantidadPlaneada || 0) * precio);
+                });
+            }
+
+            const total = planBorrador.reduce((suma, linea) => {
+                const precio = Number(linea.precioUnitario || linea.material?.precio || 0);
+                return suma + Number(linea.cantidadPlaneada || 0) * precio;
+            }, 0);
+            document.getElementById('total-editor-plan').textContent = formatoMoneda.format(total);
+        }
+
+        async function guardarPlanProyecto() {
+            if (!proyectoActual) return;
+            const invalidas = planBorrador.filter(linea => Number(linea.cantidadPlaneada || 0) <= 0);
+            if (invalidas.length) {
+                alert('Todas las cantidades planeadas deben ser mayores a cero.');
+                return;
+            }
+
+            const boton = document.getElementById('btn-guardar-plan');
+            const contenido = boton.innerHTML;
+            boton.disabled = true;
+            boton.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Guardando...';
+
+            try {
+                planProyectoActual = (await guardarPlanProyectoSeguro(proyectoActual.proyecto, planBorrador)).map(copiarLineaPlan);
+                editandoPlan = false;
+                document.getElementById('plan-editor').classList.add('hidden');
+                document.getElementById('plan-vista').classList.remove('hidden');
+                await cargarProyectos();
+                const actualizado = proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(proyectoActual?.proyecto));
+                if (actualizado) proyectoActual = actualizado;
+                renderDetalle();
+                renderPlanVista();
+                sincronizarSeleccionReporte();
+                renderReporteAlcance();
+            } catch (error) {
+                alert(`No se pudo guardar el plan: ${error.message}`);
+            } finally {
+                boton.disabled = false;
+                boton.innerHTML = contenido;
+            }
+        }
+
+        async function cargarMovimientosProyecto() {
+            if (!proyectoActual) return;
+            const tbody = document.getElementById('tabla-movimientos-proyecto');
+            tbody.innerHTML = '<tr><td colspan="9" class="px-5 py-10 text-center text-xs text-gray-500">Cargando historial desde Supabase...</td></tr>';
+            try {
+                movimientosActuales = await SkilledDB.listMovements({ project: proyectoActual.proyecto });
+                sincronizarPlanConMovimientosLocal();
+                sincronizarPlanConMovimientosLocal();
+                renderMovimientosProyecto();
+                renderPlanVista();
+                sincronizarSeleccionReporte();
+                renderReporteAlcance();
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="9" class="px-5 py-10 text-center text-xs text-red-400">${escapeHTML(error.message)}</td></tr>`;
+            }
+        }
+
+        function movimientosFiltradosHistorial() {
+            const tipo = textoSeguro(document.getElementById('historial-tipo')?.value).toLowerCase();
+            const desde = textoSeguro(document.getElementById('historial-desde')?.value);
+            const hasta = textoSeguro(document.getElementById('historial-hasta')?.value);
+            const busqueda = claveProyecto(document.getElementById('historial-busqueda')?.value);
+            const limiteDesde = desde ? new Date(`${desde}T00:00:00`) : null;
+            const limiteHasta = hasta ? new Date(`${hasta}T23:59:59.999`) : null;
+
+            return movimientosActuales.filter(item => {
+                if (tipo && textoSeguro(item.tipo).toLowerCase() !== tipo) return false;
+                const fecha = new Date(item.fecha || 0);
+                if (limiteDesde && !Number.isNaN(fecha.getTime()) && fecha < limiteDesde) return false;
+                if (limiteHasta && !Number.isNaN(fecha.getTime()) && fecha > limiteHasta) return false;
+                if (busqueda) {
+                    const texto = [item.codigo, item.descripcion, item.motivo, item.ubicacion, item.bodegaOrigen, item.bodegaDestino, item.recibeNombre, item.folioEntrega]
+                        .map(claveProyecto).join(' ');
+                    if (!texto.includes(busqueda)) return false;
+                }
+                return true;
+            });
+        }
+
+        function limpiarFiltrosHistorial() {
+            ['historial-tipo', 'historial-desde', 'historial-hasta', 'historial-busqueda'].forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.value = '';
+            });
+            renderMovimientosProyecto();
+        }
+
+        function renderMovimientosProyecto() {
+            const tbody = document.getElementById('tabla-movimientos-proyecto');
+            const vacio = document.getElementById('sin-movimientos-proyecto');
+            const filtrados = movimientosFiltradosHistorial().slice().sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+            const contador = document.getElementById('historial-contador');
+            if (contador) contador.textContent = `${filtrados.length} registro${filtrados.length === 1 ? '' : 's'} de ${movimientosActuales.length}`;
+            const badge = document.getElementById('badge-historial');
+            if (badge) badge.textContent = formatoNumero.format(movimientosActuales.length);
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = '';
+                vacio.classList.remove('hidden');
+                return;
+            }
+            vacio.classList.add('hidden');
+            tbody.innerHTML = filtrados.map(item => {
+                const claseTipo = item.tipo === 'entrada' ? 'text-emerald-400 bg-emerald-500/10' : item.tipo === 'salida' ? 'text-red-400 bg-red-500/10' : (item.tipo === 'traspaso' || item.tipo === 'reingreso') ? 'text-blue-400 bg-blue-500/10' : 'text-amber-400 bg-amber-500/10';
+                const ruta = item.tipo === 'traspaso'
+                    ? `${item.bodegaOrigen || '—'} → ${item.bodegaDestino || '—'}`
+                    : (item.tipo === 'entrada' || item.tipo === 'reingreso')
+                        ? (item.bodegaDestino || item.ubicacion || '—')
+                        : (item.bodegaOrigen || item.ubicacion || '—');
+                const cantidad = `${formatoNumero.format(item.cantidad || 0)}${item.unidad ? ' ' + item.unidad : ''}`;
+                return `<tr class="border-t border-[#161f38] hover:bg-[#0d1425]">
+                    <td class="px-5 py-3 text-[10px] text-gray-400 whitespace-nowrap">${escapeHTML(formatearFecha(item.fecha))}</td>
+                    <td class="px-4 py-3"><span class="inline-flex px-2 py-1 rounded-full text-[9px] font-bold uppercase ${claseTipo}">${escapeHTML(item.tipo || '')}</span></td>
+                    <td class="px-4 py-3 text-[10px] font-semibold text-gray-300">${escapeHTML(item.codigo || '')}${item.esNoListado ? '<div class="text-[8px] text-amber-400 mt-0.5">No enlistado</div>' : ''}</td>
+                    <td class="px-4 py-3 text-[10px] text-gray-400">${escapeHTML(item.descripcion || '')}</td>
+                    <td class="px-4 py-3 text-right text-[10px] font-semibold text-gray-300 whitespace-nowrap">${escapeHTML(cantidad)}</td>
+                    <td class="px-4 py-3 text-[10px] text-gray-500">${escapeHTML(ruta)}</td>
+                    <td class="px-4 py-3 text-[10px] text-gray-500">${escapeHTML(item.recibeNombre || '—')}</td>
+                    <td class="px-4 py-3 text-[10px] text-gray-500">${escapeHTML(item.folioEntrega || item.requestId || '—')}</td>
+                    <td class="px-4 py-3 text-[10px] text-gray-500">${escapeHTML(item.motivo || '—')}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function claveLineaReporte(linea) {
+            return `${linea.esNoListado ? 'manual' : 'catalogo'}::${textoSeguro(linea.codigo)}`;
+        }
+
+        function categoriaLineaReporte(linea) {
+            return textoSeguro(linea.material?.categoria || linea.categoria || 'SIN CATEGORÍA').toUpperCase();
+        }
+
+        function datosReporteAlcance() {
+            const planPorCodigo = new Map();
+            planProyectoActual.forEach(linea => {
+                const codigo = textoSeguro(linea.codigo || linea.material?.codigo);
+                if (codigo) {
+                    planPorCodigo.set(claveProyecto(codigo), {
+                        linea,
+                        planeado: Math.max(0, Number(linea.cantidadPlaneada || 0)),
+                        dentro: 0,
+                        fuera: 0
+                    });
+                }
+            });
+
+            const resumen = new Map();
+            const movimientosOrdenados = [...movimientosActuales].sort((a, b) => {
+                const fechaA = new Date(a.fecha || 0).getTime() || 0;
+                const fechaB = new Date(b.fecha || 0).getTime() || 0;
+                return fechaA - fechaB;
+            });
+
+            movimientosOrdenados.forEach(mov => {
+                const tipo = textoSeguro(mov.tipo).toLowerCase();
+                const codigo = textoSeguro(mov.codigo || mov.materialCodigo || mov.material_codigo || mov.codigoManual || mov.codigo_manual);
+                if (!codigo) return;
+                const clave = claveProyecto(codigo);
+                if (!resumen.has(clave)) {
+                    resumen.set(clave, {
+                        codigo,
+                        descripcion: textoSeguro(mov.descripcion || codigo),
+                        categoria: textoSeguro(mov.categoria || mov.categoriaManual || mov.categoria_manual || 'SIN CATEGORÍA'),
+                        unidad: textoSeguro(mov.unidad || 'PZA.'),
+                        dentro: 0,
+                        fuera: 0
+                    });
+                }
+
+                const item = resumen.get(clave);
+                const cantidad = Math.max(0, Number(mov.cantidad || 0));
+                const accionAjuste = textoSeguro(mov.ajusteAccion ?? mov.ajuste_accion).toLowerCase();
+                const esEntrega = tipo === 'salida' || (tipo === 'ajuste' && accionAjuste === 'disminuir');
+                const esReingreso = tipo === 'reingreso' || (tipo === 'ajuste' && accionAjuste === 'aumentar' && textoSeguro(mov.proyecto));
+                if (!esEntrega && !esReingreso) return;
+
+                const signo = esReingreso ? -1 : 1;
+                const dentroGuardado = Math.max(0, Number(mov.cantidadDentroPlan ?? mov.cantidad_dentro_plan ?? 0) || 0);
+                const fueraGuardado = Math.max(0, Number(mov.cantidadFueraPlan ?? mov.cantidad_fuera_plan ?? 0) || 0);
+                const alcance = textoSeguro(mov.alcance).toLowerCase();
+                let dentro = 0;
+                let fuera = 0;
+
+                if (dentroGuardado > 0 || fueraGuardado > 0) {
+                    dentro = dentroGuardado;
+                    fuera = fueraGuardado;
+                } else if (alcance === 'fuera_plan') {
+                    fuera = cantidad;
+                } else if (alcance === 'dentro_plan') {
+                    dentro = cantidad;
+                } else if (alcance === 'mixto') {
+                    dentro = Math.max(0, cantidad - fueraGuardado);
+                    fuera = Math.max(0, cantidad - dentro);
+                } else {
+                    const plan = planPorCodigo.get(clave);
+                    if (plan) {
+                        if (signo > 0) {
+                            const disponiblePlan = Math.max(0, plan.planeado - Math.max(0, item.dentro));
+                            dentro = Math.min(cantidad, disponiblePlan);
+                            fuera = Math.max(0, cantidad - dentro);
+                        } else {
+                            dentro = Math.min(cantidad, Math.max(0, item.dentro));
+                            fuera = Math.max(0, cantidad - dentro);
+                        }
+                    } else {
+                        fuera = cantidad;
+                    }
+                }
+
+                item.dentro = Math.max(0, item.dentro + signo * dentro);
+                item.fuera = Math.max(0, item.fuera + signo * fuera);
+            });
+
+            const datos = planProyectoActual.map((linea, indice) => {
+                const codigo = textoSeguro(linea.codigo || linea.material?.codigo);
+                const movimiento = resumen.get(claveProyecto(codigo));
+                const planeado = Math.max(0, Number(linea.cantidadPlaneada || 0));
+                const entregadoGuardado = Math.max(0, Number(linea.cantidadEntregada || 0));
+                const entregadoReal = Math.max(0, movimiento ? movimiento.dentro : entregadoGuardado);
+                const entregado = Math.min(planeado, entregadoReal);
+                const sobrantes = Math.max(0, planeado - entregado);
+                return {
+                    key: claveLineaReporte(linea),
+                    indice,
+                    codigo,
+                    descripcion: textoSeguro(linea.material?.descripcion || linea.material?.desc || linea.descripcion || codigo),
+                    categoria: categoriaLineaReporte(linea),
+                    unidad: textoSeguro(linea.unidad || linea.material?.unidad || 'PZA.'),
+                    planeado,
+                    entregado,
+                    sobrantes,
+                    entregadoReal,
+                    esNoListado: Boolean(linea.esNoListado),
+                    alcance: 'dentro_plan',
+                    estado: sobrantes > 0 ? 'pendiente' : 'completo'
+                };
+            });
+
+            resumen.forEach((movimiento, clave) => {
+                const fuera = Math.max(0, Number(movimiento.fuera || 0));
+                if (fuera <= 0) return;
+                const material = catalogoMateriales.find(item => claveProyecto(item.codigo) === clave) || {};
+                datos.push({
+                    key: `fuera::${clave}`,
+                    indice: datos.length,
+                    codigo: textoSeguro(material.codigo || movimiento.codigo),
+                    descripcion: textoSeguro(material.descripcion || material.desc || movimiento.descripcion || movimiento.codigo),
+                    categoria: textoSeguro(material.categoria || movimiento.categoria || 'SIN CATEGORÍA').toUpperCase(),
+                    unidad: textoSeguro(material.unidad || movimiento.unidad || 'PZA.'),
+                    planeado: 0,
+                    entregado: fuera,
+                    sobrantes: 0,
+                    entregadoReal: fuera,
+                    esNoListado: Boolean(material.esNoListado || material.es_no_listado),
+                    alcance: 'fuera_plan',
+                    estado: 'completo'
+                });
+            });
+
+            return datos;
+        }
+
+        function sincronizarPlanConMovimientosLocal() {
+            if (!planProyectoActual.length) {
+                actualizarResumenProyectoDesdePlan();
+                return;
+            }
+            const datos = datosReporteAlcance().filter(item => item.alcance === 'dentro_plan');
+            const porCodigo = new Map(datos.map(item => [claveProyecto(item.codigo), item]));
+            planProyectoActual = planProyectoActual.map(linea => {
+                const item = porCodigo.get(claveProyecto(linea.codigo || linea.material?.codigo));
+                const planeado = Math.max(0, Number(linea.cantidadPlaneada || 0));
+                const entregado = item ? Math.min(planeado, Math.max(0, Number(item.entregado || 0))) : Math.min(planeado, Math.max(0, Number(linea.cantidadEntregada || 0)));
+                return {
+                    ...linea,
+                    cantidadEntregada: entregado,
+                    cantidadSobrante: Math.max(0, planeado - entregado)
+                };
+            });
+            if (!editandoPlan) planBorrador = planProyectoActual.map(copiarLineaPlan);
+            actualizarResumenProyectoDesdePlan();
+        }
+
+        function actualizarResumenProyectoDesdePlan() {
+            if (!proyectoActual) return;
+            const planeado = planProyectoActual.reduce((total, linea) => total + Math.max(0, Number(linea.cantidadPlaneada || 0)), 0);
+            const entregado = planProyectoActual.reduce((total, linea) => total + Math.min(Math.max(0, Number(linea.cantidadPlaneada || 0)), Math.max(0, Number(linea.cantidadEntregada || 0))), 0);
+            const pendiente = Math.max(0, planeado - entregado);
+            const avance = planeado > 0 ? Math.min(100, entregado / planeado * 100) : 0;
+            proyectoActual.planeado = planeado;
+            proyectoActual.consumido = entregado;
+            proyectoActual.avance = avance;
+            const planeadoNodo = document.getElementById('detalle-planeado');
+            const consumidoNodo = document.getElementById('detalle-consumido');
+            const seguimientoAvance = document.getElementById('seguimiento-avance');
+            const barra = document.getElementById('barra-avance');
+            const seguimientoPendiente = document.getElementById('seguimiento-pendiente');
+            if (planeadoNodo) planeadoNodo.textContent = formatoNumero.format(planeado);
+            if (consumidoNodo) consumidoNodo.textContent = formatoNumero.format(entregado);
+            if (seguimientoAvance) seguimientoAvance.textContent = `${avance.toFixed(1)}%`;
+            if (barra) barra.style.width = `${avance}%`;
+            if (seguimientoPendiente) seguimientoPendiente.textContent = formatoNumero.format(pendiente);
+        }
+
+        function reiniciarSeleccionReporte() {
+            reporteCategoriasSeleccionadas = new Set();
+            reporteColumnasSeleccionadas = new Set(['planeado', 'entregado', 'sobrantes']);
+            reporteMaterialesSeleccionados = new Set();
+            reporteCategoriasConocidas = new Set();
+            reporteMaterialesConocidos = new Set();
+        }
+
+        function sincronizarSeleccionReporte() {
+            const datos = datosReporteAlcance();
+            const categoriasActuales = new Set(datos.map(item => item.categoria));
+            const materialesActuales = new Set(datos.map(item => item.key));
+            categoriasActuales.forEach(categoria => {
+                if (!reporteCategoriasConocidas.has(categoria)) reporteCategoriasSeleccionadas.add(categoria);
+            });
+            materialesActuales.forEach(key => {
+                if (!reporteMaterialesConocidos.has(key)) reporteMaterialesSeleccionados.add(key);
+            });
+            reporteCategoriasSeleccionadas = new Set([...reporteCategoriasSeleccionadas].filter(item => categoriasActuales.has(item)));
+            reporteMaterialesSeleccionados = new Set([...reporteMaterialesSeleccionados].filter(item => materialesActuales.has(item)));
+            reporteCategoriasConocidas = categoriasActuales;
+            reporteMaterialesConocidos = materialesActuales;
+        }
+
+        function materialesReporteFiltradosBase() {
+            const busqueda = claveProyecto(reporteFiltroBusqueda);
+            return datosReporteAlcance().filter(item => {
+                if (reporteFiltroCategoria && item.categoria !== reporteFiltroCategoria) return false;
+                if (reporteFiltroAlcance !== 'todos' && item.alcance !== reporteFiltroAlcance) return false;
+                if (reporteFiltroEstado === 'pendiente' && item.sobrantes <= 0) return false;
+                if (reporteFiltroEstado === 'completo' && item.sobrantes > 0) return false;
+                if (reporteFiltroEstado === 'con_entrega' && item.entregado <= 0) return false;
+                if (reporteFiltroEstado === 'sin_entrega' && item.entregado > 0) return false;
+                if (busqueda && !claveProyecto(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(busqueda)) return false;
+                return true;
+            });
+        }
+
+        function datosReporteSeleccionados() {
+            return materialesReporteFiltradosBase().filter(item => reporteCategoriasSeleccionadas.has(item.categoria) && reporteMaterialesSeleccionados.has(item.key));
+        }
+
+        function actualizarFiltrosRapidosReporte() {
+            reporteFiltroBusqueda = textoSeguro(document.getElementById('reporte-filtro-busqueda')?.value);
+            reporteFiltroCategoria = textoSeguro(document.getElementById('reporte-filtro-categoria')?.value);
+            reporteFiltroAlcance = textoSeguro(document.getElementById('reporte-filtro-alcance')?.value) || 'todos';
+            reporteFiltroEstado = textoSeguro(document.getElementById('reporte-filtro-estado')?.value) || 'todos';
+            renderReporteAlcance();
+        }
+
+        function alternarColumnaRapidaReporte(columna, activo) {
+            if (activo) reporteColumnasSeleccionadas.add(columna);
+            else reporteColumnasSeleccionadas.delete(columna);
+            renderReporteAlcance();
+        }
+
+        function seleccionarVisiblesReporteRapido(seleccionar) {
+            materialesReporteFiltradosBase().forEach(item => {
+                if (seleccionar) {
+                    reporteMaterialesSeleccionados.add(item.key);
+                    reporteCategoriasSeleccionadas.add(item.categoria);
+                } else {
+                    reporteMaterialesSeleccionados.delete(item.key);
+                }
+            });
+            renderReporteAlcance();
+        }
+
+        function limpiarFiltrosRapidosReporte() {
+            reporteFiltroBusqueda = '';
+            reporteFiltroCategoria = '';
+            reporteFiltroAlcance = 'todos';
+            reporteFiltroEstado = 'todos';
+            const busqueda = document.getElementById('reporte-filtro-busqueda');
+            const categoria = document.getElementById('reporte-filtro-categoria');
+            const alcance = document.getElementById('reporte-filtro-alcance');
+            const estado = document.getElementById('reporte-filtro-estado');
+            if (busqueda) busqueda.value = '';
+            if (categoria) categoria.value = '';
+            if (alcance) alcance.value = 'todos';
+            if (estado) estado.value = 'todos';
+            renderReporteAlcance();
+        }
+
+        function sincronizarControlesRapidosReporte() {
+            const categorias = [...new Set(datosReporteAlcance().map(item => item.categoria))].sort((a,b) => a.localeCompare(b,'es'));
+            const select = document.getElementById('reporte-filtro-categoria');
+            if (select) {
+                const actual = reporteFiltroCategoria;
+                select.innerHTML = '<option value="">Todas las categorías</option>' + categorias.map(categoria => `<option value="${escapeHTML(categoria)}">${escapeHTML(categoria)}</option>`).join('');
+                select.value = categorias.includes(actual) ? actual : '';
+                if (!categorias.includes(actual)) reporteFiltroCategoria = '';
+            }
+            const columnas = {
+                planeado: document.getElementById('reporte-col-planeado'),
+                entregado: document.getElementById('reporte-col-entregado'),
+                sobrantes: document.getElementById('reporte-col-sobrantes')
+            };
+            Object.entries(columnas).forEach(([columna, control]) => {
+                if (control) control.checked = reporteColumnasSeleccionadas.has(columna);
+            });
+        }
+
+        function etiquetaColumnaReporte(columna) {
+            return columna === 'planeado' ? 'Planeado' : columna === 'entregado' ? 'Entregado' : 'Sobrantes';
+        }
+
+        function claseColumnaReporte(columna) {
+            return columna === 'planeado' ? 'col-planeado' : columna === 'entregado' ? 'col-entregado' : 'col-sobrantes';
+        }
+
+        function renderResumenReporte() {
+            const contenedor = document.getElementById('reporte-resumen-chips');
+            if (!contenedor) return;
+            const materiales = datosReporteSeleccionados();
+            const categorias = new Set(materiales.map(item => item.categoria));
+            const chips = [
+                `<span class="reporte-chip">${categorias.size} categoría${categorias.size === 1 ? '' : 's'}</span>`,
+                `<span class="reporte-chip" style="border-color:#145c4a;color:#6ee7b7">${materiales.length} material${materiales.length === 1 ? '' : 'es'}</span>`
+            ];
+            ['planeado','entregado','sobrantes'].forEach(columna => {
+                if (reporteColumnasSeleccionadas.has(columna)) chips.push(`<span class="reporte-chip reporte-chip-info-${columna}">${etiquetaColumnaReporte(columna)}</span>`);
+            });
+            contenedor.innerHTML = chips.join('');
+        }
+
+        function renderReporteAlcance() {
+            const grid = document.getElementById('reporte-categorias-grid');
+            if (!grid || !proyectoActual) return;
+            sincronizarSeleccionReporte();
+            sincronizarControlesRapidosReporte();
+            renderResumenReporte();
+            document.getElementById('reporte-proyecto-titulo').textContent = `Proyecto ${proyectoActual.proyecto}${proyectoActual.nombreProyecto ? ' — ' + proyectoActual.nombreProyecto : ''}`;
+            document.getElementById('reporte-fecha').textContent = new Date().toLocaleDateString('es-MX');
+            const datos = datosReporteSeleccionados();
+            const columnas = ['planeado','entregado','sobrantes'].filter(item => reporteColumnasSeleccionadas.has(item));
+            const vacio = document.getElementById('reporte-alcance-vacio');
+            const preview = document.getElementById('reporte-alcance-preview');
+            if (!datos.length || !columnas.length) {
+                grid.innerHTML = '';
+                vacio.classList.remove('hidden');
+                preview.classList.add('hidden');
+                return;
+            }
+            vacio.classList.add('hidden');
+            preview.classList.remove('hidden');
+            const grupos = new Map();
+            datos.forEach(item => {
+                if (!grupos.has(item.categoria)) grupos.set(item.categoria, []);
+                grupos.get(item.categoria).push(item);
+            });
+            grid.innerHTML = [...grupos.entries()].map(([categoria, items]) => {
+                const encabezadoSuperior = columnas.map(col => `<th colspan="2" class="${claseColumnaReporte(col)}">${etiquetaColumnaReporte(col)}</th>`).join('');
+                const encabezadoInferior = columnas.map(col => `<th class="${claseColumnaReporte(col)}">Cantidad</th><th class="${claseColumnaReporte(col)}">Unidad</th>`).join('');
+                const filas = items.map((item, index) => {
+                    const valores = columnas.map(col => `<td class="text-center ${claseColumnaReporte(col)}">${formatoNumero.format(item[col] || 0)}</td><td class="text-center ${claseColumnaReporte(col)}">${escapeHTML(item.unidad)}</td>`).join('');
+                    return `<tr><td class="text-center" style="width:42px">${index + 1}</td><td><div style="font-weight:600;color:#003763">${escapeHTML(item.descripcion)}</div><div style="font-size:8px;color:#7588a5;margin-top:2px">${escapeHTML(item.codigo)}${item.esNoListado ? ' · NO ENLISTADO' : ''}</div></td>${valores}</tr>`;
+                }).join('');
+                return `<section class="reporte-categoria"><div class="text-center font-bold text-xs mb-2" style="color:#003763">${escapeHTML(categoria)}</div><table class="reporte-tabla"><thead><tr><th rowspan="2" style="width:42px">Pos.</th><th rowspan="2" style="min-width:180px">Descripción</th>${encabezadoSuperior}</tr><tr>${encabezadoInferior}</tr></thead><tbody>${filas}</tbody></table></section>`;
+            }).join('');
+        }
+
+        function abrirConfiguracionReporte() {
+            sincronizarSeleccionReporte();
+            reporteModalCategorias = new Set(reporteCategoriasSeleccionadas);
+            reporteModalColumnas = new Set(reporteColumnasSeleccionadas);
+            reporteModalMateriales = new Set(reporteMaterialesSeleccionados);
+            document.getElementById('reporte-busqueda-material').value = '';
+            const modal = document.getElementById('modal-config-reporte');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            renderConfiguracionReporte();
+        }
+
+        function cerrarConfiguracionReporte() {
+            const modal = document.getElementById('modal-config-reporte');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function agregarCategoriaReporteModal(categoria) {
+            if (!categoria) return;
+            if (categoria === '__todas__') datosReporteAlcance().forEach(item => reporteModalCategorias.add(item.categoria));
+            else reporteModalCategorias.add(categoria);
+            renderConfiguracionReporte();
+        }
+
+        function quitarCategoriaReporteModal(categoria) {
+            reporteModalCategorias.delete(categoria);
+            datosReporteAlcance().filter(item => item.categoria === categoria).forEach(item => reporteModalMateriales.delete(item.key));
+            renderConfiguracionReporte();
+        }
+
+        function agregarColumnaReporteModal(columna) {
+            if (!columna) return;
+            if (columna === 'todas') reporteModalColumnas = new Set(['planeado','entregado','sobrantes']);
+            else reporteModalColumnas.add(columna);
+            renderConfiguracionReporte();
+        }
+
+        function quitarColumnaReporteModal(columna) {
+            reporteModalColumnas.delete(columna);
+            renderConfiguracionReporte();
+        }
+
+        function materialesVisiblesReporteModal() {
+            const busqueda = claveProyecto(document.getElementById('reporte-busqueda-material')?.value);
+            return datosReporteAlcance().filter(item => {
+                if (busqueda && !claveProyecto(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(busqueda)) return false;
+                return true;
+            });
+        }
+
+        function seleccionarMaterialesVisiblesReporte(seleccionar) {
+            materialesVisiblesReporteModal().forEach(item => {
+                if (seleccionar) {
+                    reporteModalMateriales.add(item.key);
+                    reporteModalCategorias.add(item.categoria);
+                } else reporteModalMateriales.delete(item.key);
+            });
+            renderConfiguracionReporte();
+        }
+
+        function seleccionarCategoriaReporteModal(categoria, seleccionar) {
+            datosReporteAlcance().filter(item => item.categoria === categoria).forEach(item => {
+                if (seleccionar) reporteModalMateriales.add(item.key);
+                else reporteModalMateriales.delete(item.key);
+            });
+            if (seleccionar) reporteModalCategorias.add(categoria);
+            renderConfiguracionReporte();
+        }
+
+        function alternarMaterialReporteModal(key, seleccionado) {
+            const item = datosReporteAlcance().find(linea => linea.key === key);
+            if (seleccionado) {
+                reporteModalMateriales.add(key);
+                if (item) reporteModalCategorias.add(item.categoria);
+            } else reporteModalMateriales.delete(key);
+            renderConfiguracionReporte();
+        }
+
+        function renderConfiguracionReporte() {
+            const todos = datosReporteAlcance();
+            const categorias = [...new Set(todos.map(item => item.categoria))].sort((a,b) => a.localeCompare(b,'es'));
+            const select = document.getElementById('reporte-select-categoria');
+            select.innerHTML = '<option value="">Seleccionar categoría...</option><option value="__todas__">Todas las categorías</option>' + categorias.map(cat => `<option value="${escapeHTML(cat)}">${escapeHTML(cat)}</option>`).join('');
+            document.getElementById('reporte-modal-chips-categorias').innerHTML = [...reporteModalCategorias].sort((a,b)=>a.localeCompare(b,'es')).map(cat => `<span class="reporte-chip">${escapeHTML(cat)} <button type="button" onclick='quitarCategoriaReporteModal(${JSON.stringify(cat)})' class="text-blue-300 hover:text-white">×</button></span>`).join('');
+            document.getElementById('reporte-modal-chips-info').innerHTML = ['planeado','entregado','sobrantes'].filter(col => reporteModalColumnas.has(col)).map(col => `<span class="reporte-chip reporte-chip-info-${col}">${etiquetaColumnaReporte(col)} <button type="button" onclick="quitarColumnaReporteModal('${col}')">×</button></span>`).join('');
+
+            const visibles = materialesVisiblesReporteModal();
+            const grupos = new Map();
+            visibles.forEach(item => {
+                if (!grupos.has(item.categoria)) grupos.set(item.categoria, []);
+                grupos.get(item.categoria).push(item);
+            });
+            document.getElementById('reporte-modal-lista').innerHTML = [...grupos.entries()].map(([categoria, items]) => {
+                const seleccionados = items.filter(item => reporteModalMateriales.has(item.key)).length;
+                const filas = items.map((item,index) => `<label class="grid grid-cols-[20px_34px_1fr_auto] gap-3 items-center px-4 py-3 border-t border-[#1b2642] hover:bg-[#10172a] cursor-pointer"><input type="checkbox" ${reporteModalMateriales.has(item.key) ? 'checked' : ''} onchange='alternarMaterialReporteModal(${JSON.stringify(item.key)},this.checked)' class="accent-blue-500"><span class="text-[9px] text-gray-500">${index+1}</span><span><span class="text-[8px] text-gray-500 font-mono">${escapeHTML(item.codigo)}</span><span class="block text-xs font-semibold text-gray-200 mt-0.5">${escapeHTML(item.descripcion)}</span></span><span class="text-[9px] text-gray-500 whitespace-nowrap">${formatoNumero.format(item.planeado)} ${escapeHTML(item.unidad)}</span></label>`).join('');
+                return `<section class="border border-[#243257] rounded-xl overflow-hidden"><div class="px-4 py-3 bg-[#0d1325] flex items-center justify-between gap-3"><div><div class="text-xs font-bold text-white">${escapeHTML(categoria)}</div><div class="text-[9px] text-gray-500 mt-0.5">${seleccionados} de ${items.length} materiales seleccionados</div></div><div class="flex gap-3"><button type="button" onclick='seleccionarCategoriaReporteModal(${JSON.stringify(categoria)},true)' class="text-[9px] text-blue-300 hover:text-white">Seleccionar categoría</button><button type="button" onclick='seleccionarCategoriaReporteModal(${JSON.stringify(categoria)},false)' class="text-[9px] text-gray-500 hover:text-white">Limpiar</button></div></div>${filas}</section>`;
+            }).join('') || '<div class="py-12 text-center text-xs text-gray-500">No hay materiales que coincidan con la búsqueda.</div>';
+            document.getElementById('reporte-modal-contador').textContent = `${reporteModalMateriales.size} material${reporteModalMateriales.size === 1 ? '' : 'es'} seleccionado${reporteModalMateriales.size === 1 ? '' : 's'}`;
+        }
+
+        function aplicarConfiguracionReporte() {
+            reporteCategoriasSeleccionadas = new Set(reporteModalCategorias);
+            reporteColumnasSeleccionadas = new Set(reporteModalColumnas);
+            reporteMaterialesSeleccionados = new Set(reporteModalMateriales);
+            cerrarConfiguracionReporte();
+            renderReporteAlcance();
+        }
+
+        function descargarReporteExcel() {
+            if (!window.XLSX) {
+                alert('No se pudo cargar la librería para generar Excel. Recarga la página e inténtalo de nuevo.');
+                return;
+            }
+            const datos = datosReporteSeleccionados();
+            const columnas = ['planeado','entregado','sobrantes'].filter(item => reporteColumnasSeleccionadas.has(item));
+            if (!datos.length || !columnas.length) {
+                alert('Selecciona al menos un material y una columna para generar el reporte.');
+                return;
+            }
+            const grupos = new Map();
+            datos.forEach(item => {
+                if (!grupos.has(item.categoria)) grupos.set(item.categoria, []);
+                grupos.get(item.categoria).push(item);
+            });
+            const aoa = [
+                ['SKILLED PROYECTOS INDUSTRIALES'],
+                ['REPORTE DE ALCANCE'],
+                ['Proyecto', proyectoActual.proyecto],
+                ['Nombre', proyectoActual.nombreProyecto || ''],
+                ['Cliente', proyectoActual.cliente || ''],
+                ['Orden de compra', proyectoActual.ordenCompra || ''],
+                ['Planta', proyectoActual.planta || ''],
+                ['Nave', proyectoActual.nave || ''],
+                ['Responsable Skilled', proyectoActual.responsableSkilled || ''],
+                ['Fecha de generación', new Date().toLocaleString('es-MX')],
+                []
+            ];
+            [...grupos.entries()].forEach(([categoria, items]) => {
+                aoa.push([categoria]);
+                const encabezado = ['Pos.','Código','Descripción'];
+                columnas.forEach(col => encabezado.push(`${etiquetaColumnaReporte(col)} - Cantidad`, `${etiquetaColumnaReporte(col)} - Unidad`));
+                aoa.push(encabezado);
+                items.forEach((item,index) => {
+                    const fila = [index+1,item.codigo,item.descripcion];
+                    columnas.forEach(col => fila.push(item[col],item.unidad));
+                    aoa.push(fila);
+                });
+                aoa.push([]);
+            });
+            const hoja = XLSX.utils.aoa_to_sheet(aoa);
+            hoja['!cols'] = [{wch:8},{wch:20},{wch:42},...columnas.flatMap(()=>[{wch:18},{wch:14}])];
+            const datosPlanos = datos.map((item,index) => {
+                const fila = {Posicion:index+1,Categoria:item.categoria,Codigo:item.codigo,Descripcion:item.descripcion,Unidad:item.unidad};
+                columnas.forEach(col => fila[etiquetaColumnaReporte(col)] = item[col]);
+                return fila;
+            });
+            const hojaDatos = XLSX.utils.json_to_sheet(datosPlanos);
+            const libro = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(libro, hoja, 'Reporte de alcance');
+            XLSX.utils.book_append_sheet(libro, hojaDatos, 'Datos');
+            const nombre = `Reporte_Alcance_${textoSeguro(proyectoActual.proyecto).replace(/[^a-z0-9_-]+/gi,'_')}.xlsx`;
+            XLSX.writeFile(libro, nombre);
+        }
+
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab-contenido').forEach(item => item.classList.add('hidden'));
+            const panel = document.getElementById(`tab-${tab}`);
+            if (!panel) return;
+            panel.classList.remove('hidden');
+            if (tab === 'historial') renderMovimientosProyecto();
+            if (tab === 'reporte') renderReporteAlcance();
+            document.querySelectorAll('.tab-proyecto').forEach(item => {
+                const activo = item.dataset.tab === tab;
+                item.classList.toggle('border-blue-500', activo);
+                item.classList.toggle('text-white', activo);
+                item.classList.toggle('font-semibold', activo);
+                item.classList.toggle('border-transparent', !activo);
+                item.classList.toggle('text-gray-500', !activo);
+            });
+        }
+
+        function actualizarTipoControlProyecto() {
+            const tipo = document.getElementById('f-tipo-control')?.value === 'presupuesto' ? 'presupuesto' : 'materiales';
+            const campo = document.getElementById('campo-presupuesto-proyecto');
+            const input = document.getElementById('f-presupuesto-planeado');
+            const ayuda = document.getElementById('ayuda-tipo-control');
+            campo?.classList.toggle('hidden', tipo !== 'presupuesto');
+            if (input) input.required = tipo === 'presupuesto';
+            if (ayuda) ayuda.textContent = tipo === 'presupuesto'
+                ? 'El presupuesto planeado sustituye al plan de cantidades. Los materiales consumidos se registran y su costo real se descuenta del monto autorizado.'
+                : 'El plan de materiales permite definir códigos, cantidades, unidades y costos planeados antes de realizar las entregas.';
+        }
+
+        function abrirModalNuevo() {
+            const hoy = new Date().toISOString().slice(0, 10);
+
+            document.getElementById('modal-titulo').textContent = 'Nuevo proyecto';
+            document.getElementById('proyecto-original').value = '';
+            document.getElementById('f-proyecto').value = '';
+            document.getElementById('f-nombre-proyecto').value = '';
+            document.getElementById('f-cliente').value = '';
+            document.getElementById('f-orden-compra').value = '';
+            document.getElementById('f-planta').value = '';
+            document.getElementById('f-nave').value = '';
+            document.getElementById('f-responsable-skilled').value = '';
+            document.getElementById('f-fecha-asignacion').value = hoy;
+            document.getElementById('f-fecha-entrega').value = '';
+            document.getElementById('f-tipo-control').value = 'materiales';
+            document.getElementById('f-presupuesto-planeado').value = '';
+            actualizarTipoControlProyecto();
+            document.getElementById('btn-eliminar-proyecto').classList.add('hidden');
+            document.getElementById('modal-proyecto').classList.remove('hidden');
+            setTimeout(() => document.getElementById('f-proyecto').focus(), 50);
+        }
+
+        function abrirModalEditarActual() {
+            if (!proyectoActual) return;
+            abrirModalEditar(proyectoActual);
+        }
+
+        function abrirModalEditar(proyecto) {
+            document.getElementById('modal-titulo').textContent = 'Editar proyecto';
+            document.getElementById('proyecto-original').value = proyecto.proyecto;
+            document.getElementById('f-proyecto').value = proyecto.proyecto;
+            document.getElementById('f-nombre-proyecto').value = proyecto.nombreProyecto || '';
+            document.getElementById('f-cliente').value = proyecto.cliente || '';
+            document.getElementById('f-orden-compra').value = proyecto.ordenCompra || '';
+            document.getElementById('f-planta').value = proyecto.planta || '';
+            document.getElementById('f-nave').value = proyecto.nave || '';
+            document.getElementById('f-responsable-skilled').value = proyecto.responsableSkilled || '';
+            document.getElementById('f-fecha-asignacion').value = fechaParaInput(proyecto.fechaAsignacion);
+            document.getElementById('f-fecha-entrega').value = fechaParaInput(proyecto.fechaEntrega);
+            document.getElementById('f-tipo-control').value = proyecto.tipoControl === 'presupuesto' ? 'presupuesto' : 'materiales';
+            document.getElementById('f-presupuesto-planeado').value = Number(proyecto.presupuestoPlaneado || 0) || '';
+            actualizarTipoControlProyecto();
+            document.getElementById('btn-eliminar-proyecto').classList.remove('hidden');
+            document.getElementById('modal-proyecto').classList.remove('hidden');
+        }
+
+        function cerrarModalProyecto() {
+            document.getElementById('modal-proyecto').classList.add('hidden');
+        }
+
+        async function guardarProyecto(evento) {
+            evento.preventDefault();
+            const original = document.getElementById('proyecto-original').value.trim();
+            const existente = original
+                ? proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(original))
+                : null;
+
+            const datos = {
+                proyectoOriginal: original,
+                proyecto: document.getElementById('f-proyecto').value.trim(),
+                nombreProyecto: document.getElementById('f-nombre-proyecto').value.trim(),
+                cliente: document.getElementById('f-cliente').value.trim(),
+                ordenCompra: document.getElementById('f-orden-compra').value.trim(),
+                planta: document.getElementById('f-planta').value.trim(),
+                nave: document.getElementById('f-nave').value.trim(),
+                responsableSkilled: document.getElementById('f-responsable-skilled').value.trim(),
+                fechaAsignacion: document.getElementById('f-fecha-asignacion').value,
+                fechaEntrega: document.getElementById('f-fecha-entrega').value,
+                tipoControl: document.getElementById('f-tipo-control').value === 'presupuesto' ? 'presupuesto' : 'materiales',
+                presupuestoPlaneado: Math.max(0, Number(document.getElementById('f-presupuesto-planeado').value) || 0),
+                lineas: Number(existente?.lineas || 0),
+                planeado: Number(existente?.planeado || 0),
+                consumido: Number(existente?.consumido || 0),
+                costoPlaneado: Number(existente?.costoPlaneado || 0),
+                costoConsumido: Number(existente?.costoConsumido || 0)
+            };
+            if (!datos.proyecto || !datos.nombreProyecto || !datos.cliente ||
+                !datos.planta || !datos.responsableSkilled ||
+                !datos.fechaAsignacion || !datos.fechaEntrega) {
+                alert('Completa todos los campos obligatorios.');
+                return;
+            }
+
+            if (datos.fechaEntrega < datos.fechaAsignacion) {
+                alert('La fecha de entrega no puede ser anterior a la fecha de asignación.');
+                return;
+            }
+            if (datos.tipoControl === 'presupuesto' && datos.presupuestoPlaneado <= 0) {
+                alert('Captura un presupuesto planeado mayor a cero.');
+                document.getElementById('f-presupuesto-planeado').focus();
+                return;
+            }
+            const boton = document.getElementById('btn-guardar-proyecto');
+            const texto = boton.textContent;
+            boton.textContent = 'Guardando...';
+            boton.disabled = true;
+            try {
+                await SkilledDB.saveProject(datos, original);
+                cerrarModalProyecto();
+                const nombreNuevo = datos.proyecto;
+                await cargarProyectos();
+                if (original && proyectoActual) {
+                    proyectoActual = proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(nombreNuevo)) || null;
+                    if (proyectoActual) {
+                        renderDetalle();
+                        await cargarMovimientosProyecto();
+                    }
+                }
+            } catch (error) {
+                alert(`No se pudo guardar el proyecto: ${error.message}`);
+            } finally {
+                boton.textContent = texto;
+                boton.disabled = false;
+            }
+        }
+
+        async function eliminarProyectoActual() {
+            const proyecto = document.getElementById('proyecto-original').value.trim();
+            if (!proyecto) return;
+            if (!confirm(`¿Eliminar definitivamente el proyecto de prueba "${proyecto}"?
+
+Se eliminarán su plan de materiales, reservas y relaciones de prueba. Si todavía tiene movimientos, el CRM bloqueará la operación para que primero los elimines desde Historial de movimientos.`)) return;
+            const typed = prompt(`Escribe el número del proyecto para confirmar:
+${proyecto}`);
+            if (String(typed || '').trim() !== proyecto) return alert('La confirmación no coincide.');
+            try {
+                await SkilledDB.deleteProjectTest(proyecto);
+                cerrarModalProyecto();
+                volverALista();
+                await cargarProyectos();
+                alert('El proyecto de prueba fue eliminado.');
+            } catch (error) {
+                alert(`No se pudo eliminar el proyecto: ${error.message}`);
+            }
+        }
+
+        function fechaParaInput(valor) {
+            if (!valor) return '';
+            const fecha = new Date(valor);
+            if (Number.isNaN(fecha.getTime())) {
+                return String(valor).slice(0, 10);
+            }
+            const year = fecha.getFullYear();
+            const month = String(fecha.getMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatearSoloFecha(valor) {
+            if (!valor) return 'Sin fecha';
+            const fecha = new Date(valor);
+            if (Number.isNaN(fecha.getTime())) return String(valor);
+            return fecha.toLocaleDateString('es-MX', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function formatearFecha(valor) {
+            if (!valor) return '—';
+            const fecha = new Date(valor);
+            if (Number.isNaN(fecha.getTime())) return String(valor);
+            return fecha.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+
+        document.getElementById('form-proyecto').addEventListener('submit', guardarProyecto);
+        document.getElementById('busqueda-proyecto').addEventListener('input', renderProyectos);
+        document.getElementById('busqueda-global').addEventListener('input', event => {
+            if (document.getElementById('vista-lista').classList.contains('hidden')) return;
+            document.getElementById('busqueda-proyecto').value = event.target.value;
+            renderProyectos();
+        });
+        document.getElementById('modal-proyecto').addEventListener('click', event => {
+            if (event.target.id === 'modal-proyecto') cerrarModalProyecto();
+        });
+        document.getElementById('modal-config-reporte').addEventListener('click', event => {
+            if (event.target.id === 'modal-config-reporte') cerrarConfiguracionReporte();
+        });
+        document.addEventListener('click', event => {
+            const wrap = document.getElementById('buscador-plan-wrap');
+            if (wrap && !wrap.contains(event.target)) {
+                document.getElementById('dropdown-material-plan').classList.add('hidden');
+            }
+        });
+        window.addEventListener('focus', () => {
+            if (proyectoActual && !editandoPlan) actualizarDatosProyectoSilencioso();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && proyectoActual && !editandoPlan) actualizarDatosProyectoSilencioso();
+        });
+        document.addEventListener('keydown', event => {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                document.getElementById('busqueda-global').focus();
+            }
+            if (event.key === 'Escape') {
+                cerrarModalProyecto();
+                cerrarConfiguracionReporte();
+                if (editandoPlan) cancelarEdicionPlan();
+            }
+        });
+
+        cargarProyectos();
+    </script>
+<script src="AL.proyectos.js"></script>
+
+<script src="skilled-sky.js?v=21" defer></script>
+</body>
+</html>

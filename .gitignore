@@ -1,0 +1,12 @@
+.env
+.env.*
+node_modules/
+dist/
+.vscode/
+*.log
+*.bak
+*.tmp
+.DS_Store
+fondo-login-original.*
+exportaciones/
+respaldos/
