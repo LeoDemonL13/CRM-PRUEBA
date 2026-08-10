@@ -1,14 +1,13 @@
-const STATIC_CACHE='skilled-crm-static-v37';
-const PAGE_CACHE='skilled-crm-pages-v37';
+const STATIC_CACHE='skilled-crm-static-v38';
+const PAGE_CACHE='skilled-crm-pages-v38';
 const CORE=[
- './interfaz.css?v=37',
- './navegacion-suave.js?v=37',
- './skilled-performance.js?v=37',
- './skilled-sidebar.js?v=37',
- './skilled-search.js?v=37',
- './skilled-supabase.js?v=37',
- './skilled-sky.js?v=37',
- './auth-guard.js?v=37',
+ './interfaz.css?v=38',
+ './navegacion-suave.js?v=38',
+ './skilled-performance.js?v=38',
+ './skilled-sidebar.js?v=38',
+ './skilled-search.js?v=38',
+ './skilled-supabase.js?v=38',
+ './auth-guard.js?v=38',
  './favicon-32x32.png?v=29',
  './favicon-192x192.png?v=29'
 ];
@@ -22,7 +21,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
  event.waitUntil((async()=>{
   const keys=await caches.keys();
-  await Promise.all(keys.filter(key=>key.startsWith('skilled-crm-')&&!['skilled-crm-static-v37','skilled-crm-pages-v37'].includes(key)).map(key=>caches.delete(key)));
+  await Promise.all(keys.filter(key=>key.startsWith('skilled-crm-')&&!['skilled-crm-static-v38','skilled-crm-pages-v38'].includes(key)).map(key=>caches.delete(key)));
   await self.clients.claim();
  })());
 });

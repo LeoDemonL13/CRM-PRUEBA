@@ -8,6 +8,7 @@
     const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', proyectos: 'Proyectos', consulta: 'Consulta' };
     const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', proyectos: 'PR', consulta: 'CN' };
     const customProfiles = new Map();
+    const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente']);
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
@@ -15,6 +16,8 @@
     }
     function detectProfile() {
         if (requestedProfile) return requestedProfile;
+        const warehouseLegacyFiles = new Set(['inicio.html','catalogo.html','almacenes.html','bajo-minimo.html','etiquetas.html','escaner.html','herramientas.html','historial-movimientos.html','reportes.html','solicitudes-compra.html','importar-materiales.html','estado-herramientas.html','proyectos.html']);
+        if (warehouseLegacyFiles.has(file)) return 'almacen';
         const match = file.match(/^([a-z0-9_-]+)\./i);
         if (match) return knownPrefixProfiles[match[1].toLowerCase()] || match[1].toLowerCase();
         const body = String(document.body?.dataset?.profile || document.documentElement?.dataset?.profile || '').toLowerCase();
@@ -24,6 +27,9 @@
         const role = currentRole();
         if (['compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(role)) return role;
         return 'almacen';
+    }
+    function skyAllowed() {
+        return skyProfiles.has(detectProfile());
     }
     function profileConfig(profile = detectProfile()) {
         const base = {
@@ -170,9 +176,9 @@
     const ttl = 45000;
 
     function styles() {
-        if (document.getElementById('sky-style-v37')) return;
+        if (document.getElementById('sky-style-v38')) return;
         const style = document.createElement('style');
-        style.id = 'sky-style-v37';
+        style.id = 'sky-style-v38';
         style.textContent = `
             .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.76);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{width:min(760px,100%);max-height:min(780px,92vh);overflow:auto;border:1px solid #28406a;border-radius:20px;background:linear-gradient(160deg,#0e172b,#080e1c 55%,#091221);box-shadow:0 35px 110px rgba(0,0,0,.58)}.sky-head{padding:20px 22px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:48px;height:48px;border-radius:15px;border:1px solid rgba(96,165,250,.38);background:radial-gradient(circle at 36% 30%,#60a5fa 0 7%,#2563eb 24%,#0b1631 64%);box-shadow:inset 0 0 25px rgba(96,165,250,.18),0 0 28px rgba(37,99,235,.15)}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:22px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:15px;background:rgba(6,12,24,.68);min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:11px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:999px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}}@media(max-width:640px){.sky-header-button span[data-sky-label]{display:none}.sky-header-button{width:36px;padding:0;justify-content:center}.sky-header-button .sky-pulse{display:none}.sky-input-row{grid-template-columns:1fr auto}.sky-input-row .sky-action.primary{grid-column:1/-1}.sky-grid{grid-template-columns:1fr}.sky-body{padding:17px}.sky-head{padding:17px}.sky-modal{border-radius:16px}}@keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
         `;
@@ -261,14 +267,18 @@
                 setVoiceEngine('cloud');
                 setStatus('Listo para consultar. Sky Voz avanzada está disponible.');
                 setHeard('micrófono listo');
+            } else if (desktopBrave && recognition) {
+                setVoiceEngine('browser', 'Voz · navegador / Groq');
+                setStatus('Sky por texto está listo. En Brave se probará primero la voz avanzada y, si no está disponible, el reconocimiento compatible del navegador.');
+                setHeard('micrófono listo');
+            } else if (desktopBrave) {
+                setVoiceEngine('automatico', 'Voz · requiere Groq');
+                setStatus(cloudVoiceProblemMessage() || 'Sky por texto está listo. En Brave de escritorio la voz requiere Sky Voz avanzada.', 'error');
+                setHeard('voz avanzada no disponible');
             } else if (recognition) {
                 setVoiceEngine('browser');
                 setStatus('Listo para consultar. El micrófono usará el reconocimiento del navegador.');
                 setHeard('micrófono listo');
-            } else if (desktopBrave) {
-                setVoiceEngine('automatico', 'Voz · requiere Groq');
-                setStatus('Sky por texto está listo. En Brave de escritorio la voz se habilita mediante Sky Voz avanzada.');
-                setHeard('consulta por texto disponible');
             } else {
                 setVoiceEngine('automatico');
                 setStatus('Listo para consultar por texto. Sky Voz avanzada es opcional.');
@@ -812,9 +822,10 @@
         }
         cloudVoiceCheckedAt = Date.now();
         try {
-            cloudVoiceStatus = await SkilledDB.skyTranscriptionStatus();
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado al comprobar Sky Voz.')), 4500));
+            cloudVoiceStatus = await Promise.race([SkilledDB.skyTranscriptionStatus(), timeout]);
         } catch (error) {
-            cloudVoiceStatus = { disponible: false, configurado: false, mensaje: error?.message || '' };
+            cloudVoiceStatus = { disponible: false, configurado: false, codigo: 'unavailable', mensaje: error?.message || '' };
         }
         return cloudVoiceStatus?.disponible === true && cloudVoiceStatus?.configurado === true;
     }
@@ -838,8 +849,8 @@
         }
         if (desktopBrave) {
             setVoiceEngine('automatico', 'Voz · requiere Groq');
-            setStatus('Brave de escritorio no ofrece un reconocimiento de voz compatible. Sky seguirá por texto hasta que Sky Voz avanzada esté activa.');
-            setHeard('consulta por texto disponible');
+            setStatus(cloudVoiceProblemMessage() || 'En Brave de escritorio la voz requiere Sky Voz avanzada mediante Supabase y Groq.', 'error');
+            setHeard('voz avanzada no disponible');
             return;
         }
         setVoiceEngine('automatico');
@@ -1037,7 +1048,7 @@
 
     function setupRecognition() {
         const BrowserRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const Recognition = desktopBrave ? null : BrowserRecognition;
+        const Recognition = BrowserRecognition;
         if (!Recognition) {
             recognition = null;
             micButton.disabled = false;
@@ -1193,14 +1204,15 @@
         clearVoiceTimers();
         if ('speechSynthesis' in window) speechSynthesis.cancel();
 
-        const cloudReady = !options.forceBrowser && Date.now() >= cloudRetryAfter ? await ensureCloudVoice(false) : false;
-        if (cloudReady && !options.forceBrowser) {
-            try { localStorage.setItem('skilled_sky_prefer_advanced_voice', '1'); } catch (_) {}
-            return startCloudListening({ preserveClearedInput: true });
-        }
+        let cloudReady = !options.forceBrowser && Date.now() >= cloudRetryAfter && cloudVoiceStatus?.disponible === true && cloudVoiceStatus?.configurado === true;
+        const browserUnstable = sessionStorage.getItem('skilled_sky_browser_voice_unstable') === '1';
+        if (cloudReady) return startCloudListening({ preserveClearedInput: true });
 
-        if (!recognition) {
+        if (!options.forceBrowser && (desktopBrave || !recognition || browserUnstable) && Date.now() >= cloudRetryAfter) {
+            cloudReady = await ensureCloudVoice(false);
             if (cloudReady) return startCloudListening({ preserveClearedInput: true });
+        }
+        if (!recognition) {
             showVoiceSetupState();
             return;
         }
@@ -2160,6 +2172,11 @@
     }
 
     function boot() {
+        if (!skyAllowed()) {
+            document.getElementById('sky-open')?.remove();
+            document.getElementById('sky-overlay')?.remove();
+            return;
+        }
         createUi();
         document.addEventListener('keydown', event => {
             if (event.altKey && !event.ctrlKey && !event.metaKey && String(event.key).toLowerCase() === 's') {

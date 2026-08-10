@@ -143,7 +143,7 @@
         if (!('serviceWorker' in navigator)) return;
         if (!window.isSecureContext && !['localhost','127.0.0.1'].includes(location.hostname)) return;
         try {
-            const registration = await navigator.serviceWorker.register('./crm-sw.js?v=37', { scope: './', updateViaCache: 'none' });
+            const registration = await navigator.serviceWorker.register('./crm-sw.js?v=38', { scope: './', updateViaCache: 'none' });
             registration.update().catch(() => {});
         } catch (_) {}
     }

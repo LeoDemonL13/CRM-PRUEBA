@@ -36,6 +36,8 @@
         const requested = String(new URLSearchParams(location.search).get('perfil') || '').toLowerCase();
         if (['almacen','compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(requested)) return requested;
         const file = currentFile().toLowerCase();
+        const warehouseLegacyFiles = new Set(['inicio.html','catalogo.html','almacenes.html','bajo-minimo.html','etiquetas.html','escaner.html','herramientas.html','historial-movimientos.html','reportes.html','solicitudes-compra.html','importar-materiales.html','estado-herramientas.html','proyectos.html']);
+        if (warehouseLegacyFiles.has(file)) return 'almacen';
         if (file.startsWith('co.')) return 'compras';
         if (file.startsWith('rh.')) return 'rh';
         if (file.startsWith('fi.')) return 'finanzas';
@@ -63,6 +65,10 @@
         if (value === 'consulta') return 'consulta';
         return 'almacen';
     }
+    const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente']);
+    function skyAllowed() {
+        return skyProfiles.has(pageProfileKey());
+    }
     function sidebarStorageKey(role = currentRole()) {
         return `skilled_sidebar_compact_${sidebarProfileKey(role)}`;
     }
@@ -77,6 +83,7 @@
     }
     function applySidebarWidth(aside, compact) {
         if (!aside) return;
+        document.body?.classList.add('skilled-has-sidebar');
         const mobile = window.matchMedia('(max-width: 1023px)').matches;
         if (mobile) {
             aside.style.width = 'min(300px, 88vw)';
@@ -90,6 +97,8 @@
         aside.style.overflowX = 'hidden';
         document.documentElement.dataset.crmSidebarCompact = compact ? '1' : '0';
         document.documentElement.dataset.crmSidebarProfile = sidebarProfileKey();
+        document.documentElement.style.setProperty('--crm-sidebar-live', mobile ? '0px' : (compact ? '76px' : '260px'));
+        requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('skilled:sidebarstate', { detail: { compact, mobile } })));
     }
     const warehouseSections=[
         {title:'Cuenta',items:[['AL.inicio.html','Inicio','home'],['AL.escaner.html','Escáner','scanner'],['perfil.html','Mi perfil','user']]},
@@ -917,9 +926,14 @@
     }
 
     function ensureSky() {
+        if (!skyAllowed()) {
+            document.getElementById('sky-open')?.remove();
+            document.getElementById('sky-overlay')?.remove();
+            return;
+        }
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=35';
+        script.src = 'skilled-sky.js?v=38';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);
