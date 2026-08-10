@@ -1,0 +1,71 @@
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const text=v=>String(v??'').trim();
+const money=v=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(v||0));
+const dateLabel=v=>v?new Date(`${v}T12:00:00`).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'—';
+const esc=v=>text(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let periods=[];
+let currentPeriod=null;
+let details=[];
+let sending=false;
+
+function currentRole(){return String(window.SkilledSession?.role||window.SkilledSession?.profile?.rol||'').toLowerCase()}
+function canEdit(){return ['administrador','rh'].includes(currentRole())}
+function stateLabel(v){return ({borrador:'Borrador',revisada:'Revisada',cerrada:'Cerrada',cancelada:'Cancelada'})[v]||v||'Borrador'}
+function setDefaultDates(){const end=new Date();const start=new Date(end);start.setDate(end.getDate()-6);$('period-start').value=start.toISOString().slice(0,10);$('period-end').value=end.toISOString().slice(0,10)}
+function openModal(){$('period-modal').classList.remove('hidden');$('period-modal').classList.add('flex');setDefaultDates();$('period-name').value=''}
+function closeModal(){$('period-modal').classList.add('hidden');$('period-modal').classList.remove('flex')}
+
+async function loadPeriods(selectId=null){
+  const {data,error}=await SkilledDB.client.from('rh_nomina_periodos').select('*').order('fecha_inicio',{ascending:false}).limit(80);
+  if(error){$('period-list').innerHTML=`<div class="rounded-xl border border-amber-500/25 bg-amber-950/10 p-3 text-xs text-amber-200">${esc(error.message)}<br><span class="text-amber-100/60">Ejecuta SQL_MAESTRO_CRM.sql V24.</span></div>`;return}
+  periods=data||[];
+  $('metric-periods').textContent=periods.length.toLocaleString('es-MX');
+  renderPeriods();
+  if(selectId){const found=periods.find(p=>String(p.id)===String(selectId));if(found)await selectPeriod(found)}
+}
+function renderPeriods(){
+  if(!periods.length){$('period-list').innerHTML='<div class="rounded-xl border border-dashed border-[#2a395a] p-5 text-center text-xs text-gray-500">Todavía no hay periodos.</div>';return}
+  $('period-list').innerHTML=periods.map(p=>`<button type="button" data-period="${p.id}" class="w-full text-left rounded-xl border ${currentPeriod?.id===p.id?'border-violet-500/50 bg-violet-950/15':'border-[#202d4a] bg-[#080e1b] hover:border-[#344665]'} p-3 transition"><div class="flex items-center justify-between gap-2"><span class="font-bold text-white text-xs">${esc(p.nombre)}</span><span class="payroll-chip ${p.estado==='cerrada'?'text-emerald-300':p.estado==='cancelada'?'text-rose-300':'text-violet-300'}">${esc(stateLabel(p.estado))}</span></div><p class="mt-2 text-[10px] text-gray-500">${esc(dateLabel(p.fecha_inicio))} → ${esc(dateLabel(p.fecha_fin))}</p></button>`).join('');
+  document.querySelectorAll('[data-period]').forEach(btn=>btn.addEventListener('click',()=>{const p=periods.find(x=>String(x.id)===btn.dataset.period);if(p)selectPeriod(p)}));
+}
+async function selectPeriod(period){currentPeriod=period;renderPeriods();$('no-period').classList.add('hidden');$('period-content').classList.remove('hidden');$('period-title').textContent=period.nombre;$('period-state').textContent=stateLabel(period.estado);$('period-dates').textContent=`${dateLabel(period.fecha_inicio)} al ${dateLabel(period.fecha_fin)}`;$('close-period').disabled=!canEdit()||period.estado==='cerrada';$('send-all').disabled=!canEdit();await loadDetails()}
+async function loadDetails(){
+  $('detail-list').innerHTML='<div class="p-6 text-center text-xs text-gray-500">Cargando personal…</div>';
+  const {data,error}=await SkilledDB.client.from('rh_nomina_detalles').select('*,rh_personal!inner(id,numero_empleado,nombre,apellidos,puesto,departamento,telefono,telefono_whatsapp,whatsapp_nomina)').eq('periodo_id',currentPeriod.id).order('id');
+  if(error){$('detail-list').innerHTML=`<div class="p-5 text-xs text-rose-300">${esc(error.message)}</div>`;return}
+  details=data||[];
+  const {data:sent}=await SkilledDB.client.from('rh_nomina_envios').select('detalle_id,estado').in('detalle_id',details.map(d=>d.id).length?details.map(d=>d.id):[-1]).eq('estado','enviado');
+  const sentSet=new Set((sent||[]).map(x=>String(x.detalle_id)));
+  details.forEach(d=>d.sent=sentSet.has(String(d.id)));
+  renderDetails();
+}
+function renderDetails(){
+  $('people-count').textContent=`${details.length} persona${details.length===1?'':'s'}`;
+  $('metric-total').textContent=money(details.reduce((s,d)=>s+Number(d.total_neto||0),0));
+  $('metric-whatsapp').textContent=details.filter(d=>d.rh_personal?.whatsapp_nomina&&(d.rh_personal?.telefono_whatsapp||d.rh_personal?.telefono)).length;
+  $('metric-sent').textContent=details.filter(d=>d.sent).length;
+  if(!details.length){$('detail-list').innerHTML='<div class="p-6 text-center text-xs text-gray-500">Este periodo no contiene colaboradores.</div>';return}
+  $('detail-list').innerHTML=details.map(d=>{const p=d.rh_personal||{};const phone=p.telefono_whatsapp||p.telefono||'';const editable=canEdit()&&currentPeriod?.estado!=='cerrada';return `<div class="payroll-detail-row" data-detail="${d.id}"><div><div class="flex items-center gap-2"><div class="w-9 h-9 rounded-xl border border-[#2b3b5c] bg-[#101a30] flex items-center justify-center font-black text-violet-300">${esc((p.nombre?.[0]||'')+(p.apellidos?.[0]||''))}</div><div><p class="font-bold text-white text-xs">${esc(`${p.nombre||''} ${p.apellidos||''}`)}</p><p class="mt-1 text-[9px] text-gray-500">${esc(p.numero_empleado||'')} · ${esc(p.puesto||'Sin puesto')}</p><p class="mt-1 text-[9px] ${p.whatsapp_nomina&&phone?'text-emerald-300':'text-gray-600'}">${p.whatsapp_nomina&&phone?`WhatsApp ${esc(phone)}`:'Sin envío WhatsApp habilitado'}</p></div></div></div><div><span class="xl:hidden text-[9px] uppercase text-gray-500">Base</span><p class="mt-1 font-semibold text-gray-200">${money(d.salario_base)}</p></div><div><span class="xl:hidden text-[9px] uppercase text-gray-500">Bonos</span><input data-bonus="${d.id}" type="number" min="0" step="0.01" class="payroll-number mt-1" value="${Number(d.bonos||0)}" ${editable?'':'disabled'}></div><div><span class="xl:hidden text-[9px] uppercase text-gray-500">Descuentos</span><input data-discount="${d.id}" type="number" min="0" step="0.01" class="payroll-number mt-1" value="${Number(d.descuentos||0)}" ${editable?'':'disabled'}></div><div><span class="xl:hidden text-[9px] uppercase text-gray-500">Neto</span><p data-net="${d.id}" class="mt-1 font-black text-emerald-300">${money(d.total_neto)}</p></div><div class="payroll-actions flex flex-wrap gap-2"><button data-save="${d.id}" class="crm-secondary !px-3 !py-2" ${editable?'':'disabled'}>Guardar</button><button data-pdf="${d.id}" class="crm-secondary !px-3 !py-2">Comprobante</button><button data-whatsapp="${d.id}" class="crm-primary !px-3 !py-2" ${p.whatsapp_nomina&&phone&&canEdit()?'':'disabled'}>${d.sent?'Reenviar':'WhatsApp'}</button></div></div>`}).join('');
+  bindDetailEvents();
+}
+function bindDetailEvents(){
+  document.querySelectorAll('[data-bonus],[data-discount]').forEach(input=>input.addEventListener('input',()=>{const id=input.dataset.bonus||input.dataset.discount;const d=details.find(x=>String(x.id)===String(id));if(!d)return;const bonus=Number(document.querySelector(`[data-bonus="${id}"]`)?.value||0);const disc=Number(document.querySelector(`[data-discount="${id}"]`)?.value||0);const net=Math.max(0,Number(d.salario_base||0)+bonus-disc);document.querySelector(`[data-net="${id}"]`).textContent=money(net)}));
+  document.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>saveDetail(b.dataset.save)));
+  document.querySelectorAll('[data-pdf]').forEach(b=>b.addEventListener('click',()=>downloadPdf(b.dataset.pdf)));
+  document.querySelectorAll('[data-whatsapp]').forEach(b=>b.addEventListener('click',()=>sendWhatsApp(b.dataset.whatsapp,b)));
+}
+async function saveDetail(id){const d=details.find(x=>String(x.id)===String(id));if(!d)return;const bonus=Number(document.querySelector(`[data-bonus="${id}"]`)?.value||0);const disc=Number(document.querySelector(`[data-discount="${id}"]`)?.value||0);const net=Math.max(0,Number(d.salario_base||0)+bonus-disc);const {error}=await SkilledDB.client.from('rh_nomina_detalles').update({bonos:bonus,descuentos:disc,total_neto:net,estado:'revisado',updated_at:new Date().toISOString()}).eq('id',id);if(error)return alert(error.message);d.bonos=bonus;d.descuentos=disc;d.total_neto=net;d.estado='revisado';renderDetails()}
+async function ensurePdf(){if(window.jspdf?.jsPDF)return window.jspdf.jsPDF;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('No se pudo cargar el generador de PDF.'));document.head.appendChild(s)});return window.jspdf.jsPDF}
+async function createPdfBlob(detail){const JsPDF=await ensurePdf();const p=detail.rh_personal||{};const doc=new JsPDF({unit:'mm',format:'a4'});doc.setFillColor(8,15,31);doc.rect(0,0,210,42,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);doc.text('SKILLED PROYECTOS INDUSTRIALES',18,20);doc.setFontSize(10);doc.text('Comprobante de nómina',18,29);doc.setTextColor(25,35,55);doc.setFontSize(13);doc.text(`${p.nombre||''} ${p.apellidos||''}`,18,58);doc.setFontSize(9);doc.text(`${p.numero_empleado||''} · ${p.puesto||''} · ${p.departamento||''}`,18,65);doc.line(18,72,192,72);doc.setFontSize(10);doc.text(`Periodo: ${currentPeriod.nombre}`,18,83);doc.text(`Fechas: ${dateLabel(currentPeriod.fecha_inicio)} - ${dateLabel(currentPeriod.fecha_fin)}`,18,90);const rows=[['Sueldo base',money(detail.salario_base)],['Bonos',money(detail.bonos)],['Descuentos',money(detail.descuentos)],['Neto',money(detail.total_neto)]];let y=106;rows.forEach(([a,b],i)=>{doc.setFont(undefined,i===3?'bold':'normal');doc.text(a,18,y);doc.text(b,192,y,{align:'right'});y+=10});doc.setDrawColor(60,80,115);doc.line(18,y,192,y);doc.setFont(undefined,'normal');doc.setFontSize(8);doc.setTextColor(90,105,125);doc.text('Documento generado por el CRM de Skilled. Verifica la información antes de realizar cualquier pago.',18,y+13);return doc.output('blob')}
+async function downloadPdf(id){const d=details.find(x=>String(x.id)===String(id));if(!d)return;try{const blob=await createPdfBlob(d);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Nomina-${d.rh_personal?.numero_empleado||id}-${currentPeriod.fecha_fin}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}catch(e){alert(e.message)} }
+function blobToBase64(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(blob)})}
+async function sendWhatsApp(id,button,silent=false){const d=details.find(x=>String(x.id)===String(id));if(!d)return;button.disabled=true;const previous=button.textContent;button.textContent='Preparando…';try{await saveDetail(id);const fresh=details.find(x=>String(x.id)===String(id))||d;const blob=await createPdfBlob(fresh);const pdfBase64=await blobToBase64(blob);button.textContent='Enviando…';const {data,error}=await SkilledDB.client.functions.invoke('rh-enviar-nomina-whatsapp',{body:{detalle_id:Number(id),pdf_base64:pdfBase64,pdf_nombre:`Nomina-${fresh.rh_personal?.numero_empleado||id}-${currentPeriod.fecha_fin}.pdf`}});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'No se pudo enviar el comprobante.');fresh.sent=true;if(!silent)alert(`Comprobante enviado a ${data.telefono||'WhatsApp'}.`);renderDetails();return true}catch(e){if(!silent)alert(`No se pudo enviar por WhatsApp. ${e.message||e}\n\nRevisa que la función rh-enviar-nomina-whatsapp y sus secretos estén configurados.`);return false}finally{button.disabled=false;button.textContent=previous}}
+async function sendAll(){if(sending)return;const candidates=details.filter(d=>d.rh_personal?.whatsapp_nomina&&(d.rh_personal?.telefono_whatsapp||d.rh_personal?.telefono));if(!candidates.length)return alert('No hay colaboradores con WhatsApp de nómina habilitado.');if(!confirm(`Se enviarán ${candidates.length} comprobantes. ¿Continuar?`))return;sending=true;$('send-all').disabled=true;$('send-all').textContent='Enviando…';let ok=0,fail=0;for(const d of candidates){const fake={disabled:false,textContent:''};const sent=await sendWhatsApp(d.id,fake,true);if(sent)ok++;else fail++;await new Promise(r=>setTimeout(r,350))}$('send-all').textContent='Enviar WhatsApp habilitados';$('send-all').disabled=false;sending=false;alert(`Proceso terminado. Enviados: ${ok}. Con error: ${fail}.`)}
+async function createPeriod(){const start=$('period-start').value,end=$('period-end').value,name=text($('period-name').value);if(!start||!end)return alert('Selecciona las fechas del periodo.');const b=$('create-period');b.disabled=true;b.textContent='Generando…';try{const {data,error}=await SkilledDB.client.rpc('crm_generar_nomina',{p_inicio:start,p_fin:end,p_nombre:name||null});if(error)throw error;closeModal();await loadPeriods(data)}catch(e){alert(e.message)}finally{b.disabled=false;b.textContent='Generar'}}
+async function markReviewed(){if(!currentPeriod||!canEdit())return;const next=currentPeriod.estado==='borrador'?'revisada':'cerrada';if(!confirm(`¿Cambiar el periodo a ${stateLabel(next)}?`))return;const {error}=await SkilledDB.client.from('rh_nomina_periodos').update({estado:next,updated_at:new Date().toISOString()}).eq('id',currentPeriod.id);if(error)return alert(error.message);currentPeriod.estado=next;await loadPeriods(currentPeriod.id)}
+
+$('new-period').addEventListener('click',openModal);$('close-period-modal').addEventListener('click',closeModal);$('cancel-period').addEventListener('click',closeModal);$('create-period').addEventListener('click',createPeriod);$('reload-periods').addEventListener('click',()=>loadPeriods(currentPeriod?.id));$('refresh').addEventListener('click',()=>loadPeriods(currentPeriod?.id));$('close-period').addEventListener('click',markReviewed);$('send-all').addEventListener('click',sendAll);$('period-modal').addEventListener('click',e=>{if(e.target===$('period-modal'))closeModal()});
+loadPeriods();
+})();

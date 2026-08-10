@@ -2,20 +2,22 @@
     'use strict';
 
     const root = document.documentElement;
-    function currentFile(){return (location.pathname.split('/').pop()||'').toLowerCase()}
+    function currentFile(){let file=(location.pathname.split('/').pop()||'').toLowerCase();if(file&&!/\.html?$/.test(file))file+='.html';return file}
     function darkOnlyPage(){return ['login.html'].includes(currentFile())}
     function themeProfile(){
         const requested=String(new URLSearchParams(location.search).get('perfil')||'').toLowerCase();
-        if(['almacen','compras','rh','finanzas','proyectos','consulta'].includes(requested))return requested;
+        if(['almacen','compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(requested))return requested;
         const file=currentFile();
         if(file.startsWith('co.'))return 'compras';
         if(file.startsWith('rh.'))return 'rh';
         if(file.startsWith('fi.'))return 'finanzas';
+        if(file.startsWith('gg.'))return 'gerente_general';
+        if(file.startsWith('sg.'))return 'subgerente';
         if(file.startsWith('al.'))return 'almacen';
         const remembered=sessionStorage.getItem('skilled_active_profile');
-        if(['almacen','compras','rh','finanzas','proyectos','consulta'].includes(remembered))return remembered;
+        if(['almacen','compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(remembered))return remembered;
         const role=cachedRole();
-        if(['compras','rh','finanzas','proyectos','consulta'].includes(role))return role;
+        if(['compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(role))return role;
         return 'almacen';
     }
     const themeStorageKey=()=>`skilled_tema_${themeProfile()}`;
@@ -106,6 +108,8 @@
 
     const prefetched = new Set();
     function prefetch(anchor) {
+        const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+        if(connection?.saveData||['slow-2g','2g'].includes(connection?.effectiveType))return;
         const url = targetUrl(anchor);
         if (!url || prefetched.has(url.href)) return;
         prefetched.add(url.href);

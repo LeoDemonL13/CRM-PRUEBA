@@ -4,14 +4,26 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=(), usb=(self)
   Cross-Origin-Opener-Policy: same-origin-allow-popups
-  Cache-Control: no-store, max-age=0
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.js
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/*.css
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/*.png
+  Cache-Control: public, max-age=604800, must-revalidate
+
+/*.webp
+  Cache-Control: public, max-age=604800, must-revalidate
+
+/*.gif
+  Cache-Control: public, max-age=604800, must-revalidate
+
+/*.xlsx
+  Cache-Control: public, max-age=86400, must-revalidate
 
 /crm-sw.js
   Cache-Control: no-store, max-age=0
   Service-Worker-Allowed: /
-
-/logo-reporte.png
-  Cache-Control: no-cache, must-revalidate
-
-/fondo-login.gif
-  Cache-Control: no-cache, must-revalidate

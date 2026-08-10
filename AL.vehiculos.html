@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#060814">
 <link rel="stylesheet" href="interfaz.css">
-<script src="navegacion-suave.js?v=9"></script>
+<script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Vehículos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="skilled-supabase.js?v=22"></script>
-<script src="auth-guard.js?v=23"></script>
+<script src="auth-guard.js?v=24"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -192,6 +192,17 @@ body.tema-claro .seat-assignment-row-v23 select{background:#fff;color:#1e293b;bo
 
 <div id="expense-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4"><div class="crm-modal max-w-2xl"><div class="crm-modal-header"><div><h2 class="text-base font-bold text-white">Registrar gasto vehicular</h2><p class="mt-1 text-[11px] text-gray-500">Gasolina, casetas, mantenimiento, refacciones u otros gastos.</p></div><button id="close-expense" class="crm-icon-button text-xl">×</button></div><form id="expense-form" class="p-5"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><label class="crm-label sm:col-span-2">Vehículo *<select id="expense-vehicle" class="field mt-2" required><option value="">Selecciona...</option></select></label><label class="crm-label">Fecha<input id="expense-date" type="date" class="field mt-2"></label><label class="crm-label">Tipo<select id="expense-type" class="field mt-2"><option value="gasolina">Gasolina</option><option value="diesel">Diésel</option><option value="carga_electrica">Carga eléctrica</option><option value="casetas">Casetas</option><option value="estacionamiento">Estacionamiento</option><option value="mantenimiento">Mantenimiento</option><option value="refacciones">Refacciones</option><option value="lavado">Lavado</option><option value="otro">Otro</option></select></label><label class="crm-label">Litros / unidades<input id="expense-liters" type="number" min="0" step="any" class="field mt-2"></label><label class="crm-label">Importe ($) *<input id="expense-amount" type="number" min="0" step="any" class="field mt-2" required></label><label class="crm-label">Odómetro<input id="expense-mileage" type="number" min="0" class="field mt-2"></label><label class="crm-label">Proveedor<input id="expense-vendor" class="field mt-2"></label><label class="crm-label sm:col-span-2">Comprobante / folio<input id="expense-receipt" class="field mt-2"></label><label class="crm-label sm:col-span-2">Notas<textarea id="expense-notes" rows="2" class="field mt-2"></textarea></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" id="cancel-expense" class="crm-secondary">Cancelar</button><button class="crm-primary">Guardar gasto</button></div></form></div></div>
 
-<script src="skilled-sidebar.js?v=23" defer></script><script src="AL.vehiculos.js?v=23"></script>
-<script src="skilled-sky.js?v=23" defer></script>
+<script src="skilled-sidebar.js?v=24" defer></script><script src="AL.vehiculos.js?v=24"></script>
+<script src="skilled-sky.js?v=24" defer></script>
+<!-- V24 styles injected before closing body by browser are valid for this static module -->
+<style id="vehicle-seat-v24-fix">
+.seat-assignment-panel-v24{margin:0 auto 14px;max-width:840px;border:1px solid #29436c;border-radius:16px;background:linear-gradient(145deg,#0a1427,#07101e);padding:14px;box-shadow:0 14px 30px rgba(0,0,0,.16)}
+.seat-assignment-head-v24{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.seat-assignment-head-v24 h4{font-size:12px;font-weight:900;color:#f8fafc}.seat-assignment-head-v24 p{margin-top:4px;max-width:620px;font-size:9px;line-height:1.55;color:#7b8da9}.seat-auto-v24{flex:none;border:1px solid rgba(96,165,250,.4);border-radius:9px;background:rgba(37,99,235,.12);padding:8px 11px;color:#93c5fd;font-size:9px;font-weight:850;cursor:pointer}.seat-auto-v24:hover{background:rgba(37,99,235,.22)}
+.seat-assignment-summary-v24{display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;margin-top:11px;border-top:1px solid #1b2d49;padding-top:9px;color:#71839e;font-size:8px}.seat-assignment-grid-v24{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.seat-assignment-row-v24{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,190px);align-items:center;gap:10px;border:1px solid #203756;border-radius:11px;background:#0c1729;padding:9px}.seat-person-v24{display:flex;align-items:center;gap:8px;min-width:0}.seat-person-index-v24{display:grid!important;place-items:center;width:25px;height:25px;flex:none;border:1px solid #31527d;border-radius:8px;background:#101e35;color:#75adf8!important;font-size:9px!important;font-weight:900}.seat-person-v24 strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#edf5ff;font-size:10px}.seat-person-v24 span:not(.seat-person-index-v24){display:block;margin-top:2px;color:#64748b;font-size:7px}.seat-assignment-row-v24 select{width:100%;min-height:34px;border:1px solid #36557d;border-radius:9px;background:#06101f;color:#e0edff;padding:7px 9px;font-size:9px;outline:none}.seat-assignment-row-v24 select:focus{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.14)}.seat-empty-v24{grid-column:1/-1;border:1px dashed #283a57;border-radius:10px;padding:16px;text-align:center;color:#718096;font-size:9px}.trip-seat-map-v23 .vehicle-seat-stage{margin-top:10px}
+body.tema-claro .seat-assignment-panel-v24{background:#f8fbff;border-color:#c9d8ea}body.tema-claro .seat-assignment-head-v24 h4,body.tema-claro .seat-person-v24 strong{color:#0f172a}body.tema-claro .seat-assignment-row-v24{background:#fff;border-color:#d2deec}body.tema-claro .seat-assignment-row-v24 select{background:#fff;color:#0f172a;border-color:#c3d2e4}
+@media(max-width:760px){.seat-assignment-head-v24{flex-direction:column}.seat-auto-v24{width:100%}.seat-assignment-grid-v24{grid-template-columns:1fr}.seat-assignment-row-v24{grid-template-columns:minmax(0,1fr) 150px}.trip-seat-map-v23 .vehicle-seat-shell{transform:scale(.94);transform-origin:top center;margin-bottom:-22px}}
+@media(max-width:480px){.seat-assignment-row-v24{grid-template-columns:1fr}.seat-assignment-row-v24 select{min-height:40px;font-size:11px}.seat-person-v24 strong{font-size:11px}.trip-seat-map-v23 .vehicle-seat-shell{transform:scale(.82);margin-bottom:-72px}}
+</style>
+
+<script src="skilled-performance.js?v=24" defer></script>
 </body></html>

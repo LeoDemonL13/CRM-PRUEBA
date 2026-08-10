@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#060814">
 <link rel="stylesheet" href="interfaz.css">
-<script src="navegacion-suave.js?v=9"></script>
+<script src="navegacion-suave.js?v=24"></script>
 <title>Prueba ticket 47 mm</title>
 <style>
 body{margin:0;padding:24px;background:#d9dde5;font-family:Arial,sans-serif}
@@ -15,7 +15,7 @@ iframe{display:block;margin:20px auto 0;width:58mm;height:760px;border:1px solid
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="skilled-supabase.js?v=22"></script>
-<script src="auth-guard.js?v=23"></script>
+<script src="auth-guard.js?v=24"></script>
 </head>
 <body>
 <main>
@@ -41,6 +41,7 @@ const datos={
 document.getElementById('preview').srcdoc=SkilledTickets.crearHtmlTicket(datos,'58mm');
 document.getElementById('print').addEventListener('click',()=>SkilledTickets.imprimir(datos,'58mm'));
 </script>
-<script src="skilled-sky.js?v=23" defer></script>
+<script src="skilled-sky.js?v=24" defer></script>
+<script src="skilled-performance.js?v=24" defer></script>
 </body>
 </html>

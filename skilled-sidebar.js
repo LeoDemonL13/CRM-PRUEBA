@@ -97,7 +97,7 @@
         {title:'Automatización',items:[['AL.automatizaciones.html','Centro inteligente','automation']]},
         {title:'Movimientos',items:[['AL.movimientos.html','Registrar movimiento','plus'],['AL.historial-movimientos.html','Historial movimientos','history'],['AL.tomas-fisicas.html','Tomas físicas','clipboard']]},
         {title:'Compras y solicitudes',items:[['AL.entrega-directa.html','Entrega directa','delivery'],['AL.solicitudes-material.html','Solicitudes de material','request'],['AL.ordenes-compra.html','Órdenes de compra','cart']]},
-        {title:'Proyectos y reportes',items:[['AL.proyectos.html','Proyectos','folder'],['AL.reportes.html','Reportes','report']]},
+        {title:'Proyectos y reportes',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=almacen','Importar proyectos','delivery'],['AL.reportes.html','Reportes','report']]},
         {title:'Herramientas',items:[['AL.herramientas.html','Herramientas','tool'],['AL.unidades-herramientas.html','Unidades','layers'],['AL.asignaciones-herramientas.html','Asignaciones','assignment'],['AL.estado-herramientas.html','Estado actual','layers'],['AL.historial-herramientas.html','Historial','history']]},
         {title:'Vehículos',items:[['AL.vehiculos.html','Control vehicular','vehicle']]},
         {title:'Ayuda',items:[['AL.manual-usuario.html','Manual de usuario','manual']]}
@@ -112,7 +112,7 @@
             {title:'Cuenta',items:[['perfil.html?perfil=compras','Mi perfil','user']]}
         ],
         rh:[
-            {title:'Operación de personal',items:[['RH.inicio.html','Inicio','home'],['RH.personal.html','Personal','user'],['RH.proyectos.html','Proyectos y asignaciones','folder'],['RH.asistencias.html','Asistencias e incidencias','history']]},
+            {title:'Operación de personal',items:[['RH.inicio.html','Inicio','home'],['RH.personal.html','Personal','user'],['RH.proyectos.html','Proyectos y asignaciones','folder'],['PROY.importar.html?perfil=rh','Importar proyectos','delivery'],['RH.nomina.html','Nómina','clipboard'],['RH.asistencias.html','Asistencias e incidencias','history']]},
             {title:'Desarrollo y cumplimiento',items:[['RH.documentos.html','Documentos','folder'],['RH.capacitacion.html','Capacitación','report']]},
             {title:'Operación compartida',items:[['AL.vehiculos.html?perfil=rh','Control vehicular','vehicle']]},
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
@@ -120,17 +120,18 @@
         finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
-        proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
+        proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
     };
-    function sectionsForRole(){const role=currentRole();const profile=sidebarProfileKey(role);if(role==='administrador'){if(profile==='almacen')return warehouseSections;return profileSections[profile]||warehouseSections}return ['jefe_almacen','almacen'].includes(role)?warehouseSections:(profileSections[role]||profileSections.consulta)}
+    function sectionsForRole(){const role=currentRole();const profile=sidebarProfileKey(role);if(role==='administrador'){const base=(profile==='almacen'?warehouseSections:(profileSections[profile]||warehouseSections)).map(section=>({title:section.title,items:[...section.items]}));base.push({title:'Administración',items:[['ADM.importaciones.html','Centro de importaciones','delivery'],['ADM.limpieza.html','Limpieza de pruebas','server']]});return base}return ['jefe_almacen','almacen'].includes(role)?warehouseSections:(profileSections[role]||profileSections.consulta)}
 
 
     function currentFile() {
         let file = decodeURIComponent((location.pathname.split('/').pop() || 'AL.inicio.html')).toLowerCase();
-        if (file === 'AL.etiqueta.html') file = 'AL.etiquetas.html';
-        if (file === 'AL.importar-materiales.html') file = 'AL.catalogo.html';
-        if (file === 'importar-herramientas.html') file = 'AL.herramientas.html';
+        if (file && !/\.html?$/.test(file)) file += '.html';
+        if (file === 'al.etiqueta.html') file = 'al.etiquetas.html';
+        if (file === 'al.importar-materiales.html') file = 'al.catalogo.html';
+        if (file === 'importar-herramientas.html') file = 'al.herramientas.html';
         return file;
     }
 

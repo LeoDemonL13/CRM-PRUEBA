@@ -1,8 +1,13 @@
-Parche V22.2 - Sky Voz
+INSTALACIÓN DE ESTA CORRECCIÓN
 
-1. Reemplaza skilled-sky.js y skilled-supabase.js en el CRM publicado.
-2. Haz Ctrl+F5 tras el nuevo deployment de Cloudflare Pages.
-3. Para que Brave funcione por voz cuando SpeechRecognition falla, debes desplegar la función sky-transcribir en Supabase y configurar OPENAI_API_KEY.
-4. Sigue ACTIVAR_SKY_VOZ_V22_2.md.
+1. Respalda la carpeta actual y Supabase.
+2. Copia todos los archivos sobre la raíz del CRM y acepta reemplazarlos.
+3. En Supabase SQL Editor ejecuta SQL_MAESTRO_CRM.sql.
+4. Abre limpiar-cache.html una sola vez para retirar archivos anteriores del navegador.
+5. Inicia sesión con cada perfil.
+6. Verifica que Compras muestre Hacer compra, Información de entrega, Tienda y Servicios.
+7. Abre AL.bajo-minimo.html. Si Supabase falla, ahora se mostrará el error y el botón Reintentar.
+8. En RH Personal prueba los tres esquemas de pago.
+9. Cambia entre modo oscuro y claro en varias páginas y modales.
 
-Este parche no requiere ejecutar SQL.
+No ejecutes SQL_MAESTRO_CRM.sql sobre la única base productiva sin respaldo. Para una base existente solo se requiere SQL_MAESTRO_CRM.sql.
