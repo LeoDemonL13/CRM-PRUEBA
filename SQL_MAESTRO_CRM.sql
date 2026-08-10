@@ -1902,10 +1902,7 @@ begin
       into v_paths from public.solicitudes_compra where id=any(p_ids);
     delete from public.solicitudes_compra where id=any(p_ids);
     get diagnostics v_count=row_count;
-    if cardinality(v_paths)>0 then
-        delete from storage.objects where bucket_id='ordenes-compra' and name=any(v_paths);
-    end if;
-    return jsonb_build_object('ok',true,'eliminados',v_count,'pdf_eliminados',cardinality(v_paths));
+    return jsonb_build_object('ok',true,'eliminados',v_count,'pdf_paths',to_jsonb(v_paths));
 end;
 $$;
 
@@ -3622,13 +3619,7 @@ begin
     delete from public.solicitudes_compra where id=any(p_ids);
     get diagnostics v_count=row_count;
 
-    if cardinality(v_paths)>0 then
-        delete from storage.objects
-         where bucket_id='ordenes-compra'
-           and name=any(v_paths);
-    end if;
-
-    return jsonb_build_object('ok',true,'eliminados',v_count,'pdf_eliminados',cardinality(v_paths));
+    return jsonb_build_object('ok',true,'eliminados',v_count,'pdf_paths',to_jsonb(v_paths));
 end;
 $$;
 revoke all on function public.crm_eliminar_orden_compra_prueba(bigint[]) from public,anon;
@@ -3658,16 +3649,10 @@ begin
     delete from public.solicitudes_compra where true;
     get diagnostics v_count=row_count;
 
-    if cardinality(v_paths)>0 then
-        delete from storage.objects
-         where bucket_id='ordenes-compra'
-           and name=any(v_paths);
-    end if;
-
     return jsonb_build_object(
         'ok',true,
         'eliminados',v_count,
-        'pdf_eliminados',cardinality(v_paths)
+        'pdf_paths',to_jsonb(v_paths)
     );
 end;
 $$;
@@ -3683,3 +3668,132 @@ commit;
 select 'OK' estado,'CRM-V27-BORRADO-SEGURO-COMPRAS-FAVICON-2026-08-10' version,
        case when to_regprocedure('public.crm_borrar_historial_movimientos(text)') is not null then 'OK' else 'FALTA' end borrar_historial,
        case when to_regprocedure('public.crm_borrar_ordenes_compra_prueba(text)') is not null then 'OK' else 'FALTA' end borrar_ordenes;
+
+begin;
+
+-- ============================================================
+-- V28 · ÓRDENES DE COMPRA + STORAGE API + FAVICON TRANSPARENTE
+-- ============================================================
+-- Supabase Storage considera storage.objects metadatos de solo lectura.
+-- La base elimina las filas de la OC y devuelve las rutas de los PDF.
+-- skilled-supabase.js elimina luego los archivos con Storage API remove().
+
+create or replace function public.crm_eliminar_orden_compra_prueba(p_ids bigint[])
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_paths text[]:=array[]::text[];
+    v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen']) then
+        raise exception using errcode='42501',message='Solo Administrador, Compras o Jefe de almacén puede eliminar órdenes de prueba.';
+    end if;
+    if p_ids is null or cardinality(p_ids)=0 then
+        raise exception 'Selecciona una orden de compra.';
+    end if;
+
+    select coalesce(array_agg(distinct pdf_path) filter(where coalesce(btrim(pdf_path),'')<>''),array[]::text[])
+      into v_paths
+      from public.solicitudes_compra
+     where id=any(p_ids);
+
+    delete from public.solicitudes_compra where id=any(p_ids);
+    get diagnostics v_count=row_count;
+
+    return jsonb_build_object(
+        'ok',true,
+        'eliminados',v_count,
+        'pdf_paths',to_jsonb(v_paths)
+    );
+end;
+$$;
+revoke all on function public.crm_eliminar_orden_compra_prueba(bigint[]) from public,anon;
+grant execute on function public.crm_eliminar_orden_compra_prueba(bigint[]) to authenticated;
+
+create or replace function public.crm_borrar_ordenes_compra_prueba(p_clave text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_paths text[]:=array[]::text[];
+    v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','compras']) then
+        raise exception using errcode='42501',message='Solo Administrador o Compras puede borrar todas las órdenes de prueba.';
+    end if;
+    if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
+        raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
+    end if;
+
+    select coalesce(array_agg(distinct pdf_path) filter(where coalesce(btrim(pdf_path),'')<>''),array[]::text[])
+      into v_paths
+      from public.solicitudes_compra;
+
+    delete from public.solicitudes_compra where true;
+    get diagnostics v_count=row_count;
+
+    return jsonb_build_object(
+        'ok',true,
+        'eliminados',v_count,
+        'pdf_paths',to_jsonb(v_paths)
+    );
+end;
+$$;
+revoke all on function public.crm_borrar_ordenes_compra_prueba(text) from public,anon;
+grant execute on function public.crm_borrar_ordenes_compra_prueba(text) to authenticated;
+
+-- RLS necesaria para que remove() pueda retirar los PDF del bucket.
+drop policy if exists "crm_ordenes_compra_select_v28" on storage.objects;
+create policy "crm_ordenes_compra_select_v28"
+on storage.objects for select to authenticated
+using (
+    bucket_id='ordenes-compra'
+    and public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen'])
+);
+
+drop policy if exists "crm_ordenes_compra_delete_v28" on storage.objects;
+create policy "crm_ordenes_compra_delete_v28"
+on storage.objects for delete to authenticated
+using (
+    bucket_id='ordenes-compra'
+    and public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen'])
+);
+
+-- Mantiene habilitada la carga/actualización de PDF para Compras.
+drop policy if exists "crm_ordenes_compra_insert_v28" on storage.objects;
+create policy "crm_ordenes_compra_insert_v28"
+on storage.objects for insert to authenticated
+with check (
+    bucket_id='ordenes-compra'
+    and public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen'])
+);
+
+drop policy if exists "crm_ordenes_compra_update_v28" on storage.objects;
+create policy "crm_ordenes_compra_update_v28"
+on storage.objects for update to authenticated
+using (
+    bucket_id='ordenes-compra'
+    and public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen'])
+)
+with check (
+    bucket_id='ordenes-compra'
+    and public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen'])
+);
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V28-STORAGE-API-FAVICON-TRANSPARENTE-2026-08-10',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+    'OK' as estado,
+    'CRM-V28-STORAGE-API-FAVICON-TRANSPARENTE-2026-08-10' as version,
+    case when to_regprocedure('public.crm_borrar_ordenes_compra_prueba(text)') is not null then 'OK' else 'FALTA' end as borrar_ordenes,
+    case when exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='crm_ordenes_compra_delete_v28') then 'OK' else 'FALTA' end as storage_delete_api;

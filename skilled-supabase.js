@@ -1942,14 +1942,35 @@
         return data && typeof data === 'object' ? data : { ok: true };
     }
 
+    async function removeStoragePaths(bucket, paths = []) {
+        const cleanPaths = [...new Set((Array.isArray(paths) ? paths : [paths]).map(text).filter(Boolean))];
+        if (!cleanPaths.length) return { ok: true, eliminados: 0, errores: [] };
+        const errors = [];
+        let deleted = 0;
+        for (let i = 0; i < cleanPaths.length; i += 100) {
+            const batch = cleanPaths.slice(i, i + 100);
+            const { data, error } = await client.storage.from(bucket).remove(batch);
+            if (error) {
+                errors.push(error.message || String(error));
+                continue;
+            }
+            deleted += Array.isArray(data) ? data.length : batch.length;
+        }
+        return { ok: errors.length === 0, eliminados: deleted, errores: errors };
+    }
+
     async function deletePurchaseRequestsTest(ids = []) {
         const requestIds = (Array.isArray(ids) ? ids : [ids]).map(Number).filter(Boolean);
         if (!requestIds.length) throw new Error('Selecciona al menos una orden de compra.');
-        return runTestCleanupRpc('crm_eliminar_orden_compra_prueba', { p_ids: requestIds }, 'No se pudo eliminar la orden de compra de prueba.');
+        const result = await runTestCleanupRpc('crm_eliminar_orden_compra_prueba', { p_ids: requestIds }, 'No se pudo eliminar la orden de compra de prueba.');
+        const storage = await removeStoragePaths('ordenes-compra', result?.pdf_paths || result?.pdfPaths || []);
+        return { ...result, pdf_eliminados: storage.eliminados, advertencia_storage: storage.errores.join(' | ') || null };
     }
 
     async function deleteAllPurchaseOrdersTest(password) {
-        return runTestCleanupRpc('crm_borrar_ordenes_compra_prueba', { p_clave: text(password) }, 'No se pudieron borrar las órdenes de compra de prueba.');
+        const result = await runTestCleanupRpc('crm_borrar_ordenes_compra_prueba', { p_clave: text(password) }, 'No se pudieron borrar las órdenes de compra de prueba.');
+        const storage = await removeStoragePaths('ordenes-compra', result?.pdf_paths || result?.pdfPaths || []);
+        return { ...result, pdf_eliminados: storage.eliminados, advertencia_storage: storage.errores.join(' | ') || null };
     }
 
     async function deleteMovementTest(payload = {}) {

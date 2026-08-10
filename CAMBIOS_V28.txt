@@ -1,0 +1,22 @@
+CRM V28 · 10/08/2026
+
+1. Órdenes de compra
+- Se elimina el borrado directo de storage.objects.
+- Las funciones SQL borran las filas de solicitudes_compra y devuelven las rutas de PDF.
+- El frontend elimina los PDF mediante Supabase Storage API remove().
+- Se agregan políticas RLS SELECT/DELETE/INSERT/UPDATE para el bucket ordenes-compra según rol.
+- Admin Compras puede borrar órdenes individuales y todas las órdenes de prueba.
+- Si falla solo la limpieza de un archivo, la interfaz informa que la orden ya fue eliminada y muestra la advertencia de Storage.
+
+2. Logo/Favicon
+- El favicon de Skilled ahora tiene fondo transparente.
+- Se regeneraron ICO, 16, 32, 192, 512 y Apple Touch Icon.
+- Todas las páginas usan ?v=28 para forzar actualización de caché del favicon.
+
+3. Caché
+- skilled-supabase.js se carga como v=28.
+
+Instalación
+- Ejecutar primero SQL_MAESTRO_CRM.sql V28 en Supabase.
+- Después publicar CRM_WEB_PRODUCCION_V28 en GitHub/Cloudflare Pages.
+- Hacer Ctrl+F5 una vez.
