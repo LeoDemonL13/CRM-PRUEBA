@@ -354,6 +354,7 @@
     }
 
     function searchText(value) {
+        if (window.SkilledSearch?.normalize) return window.SkilledSearch.normalize(value);
         return cleanText(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-MX');
     }
 
@@ -644,7 +645,7 @@
                 type: 'Material', symbol: 'M', title: item.descripcion || item.desc || item.codigo,
                 subtitle: `${item.codigo || 'Sin código'} · ${item.categoria || 'Sin categoría'}${item.stock != null ? ` · Stock ${Number(item.stock) || 0}` : ''}`,
                 url: `AL.catalogo.html?q=${encodeURIComponent(item.codigo || item.descripcion || '')}`,
-                terms: [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.proveedor,item.contactoProveedor,item.contacto_proveedor,item.unidad].join(' ')
+                terms: [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.proveedor,item.contactoProveedor,item.contacto_proveedor,item.unidad,...(item.modismos||[])].join(' ')
             }));
             if (name === 'purchases') {
                 const groups = new Map();
@@ -783,6 +784,12 @@
     function scoreEntry(entry, query) {
         const normalized = searchText(query);
         if (!normalized) return entry.type === 'Apartado' ? 20 : 0;
+        if (window.SkilledSearch?.score) {
+            const base = window.SkilledSearch.score([entry.title, entry.subtitle, entry.terms], query);
+            if (base < 0) return -1;
+            const titleScore = window.SkilledSearch.score(entry.title, query);
+            return base + Math.max(0, titleScore) * 0.35 + (entry.type === 'Apartado' ? 8 : 0);
+        }
         const tokens = normalized.split(' ').filter(Boolean);
         if (!tokens.every(token => entry.terms.includes(token))) return -1;
         const title = searchText(entry.title);
@@ -852,7 +859,7 @@
         if (!input || input.dataset.skilledGlobalSearch === '1') return;
         input.dataset.skilledGlobalSearch = '1';
         input.autocomplete = 'off';
-        input.placeholder = 'Buscar materiales, órdenes, proyectos, herramientas, vehículos o apartados...';
+        input.placeholder = 'Busca con palabras sueltas: pija 1/4x1, tubo 1 pulgada, proyecto 26028...';
         input.classList.add('skilled-global-search-input');
         const host = input.parentElement;
         host.classList.add('skilled-global-search-host');

@@ -242,7 +242,7 @@
         const rows = currentLocations();
         const query = lower($('material-filter').value);
         const states = inventory.map(item => ({ item, state: materialLocationState(item) }));
-        const unassigned = states.filter(row => !row.state.location && (!query || lower(`${row.item.codigo} ${row.item.descripcion} ${row.item.categoria}`).includes(query)));
+        const unassigned = states.filter(row => !row.state.location && (!query || (window.SkilledSearch?.matches?window.SkilledSearch.matches([row.item.codigo,row.item.descripcion,row.item.categoria,row.item.marca,row.item.proveedor,...(row.item.modismos||[])],query):lower(`${row.item.codigo} ${row.item.descripcion} ${row.item.categoria}`).includes(query))));
         const located = states.filter(row => row.state.location).length;
         const slotMap = new Map();
         states.forEach(entry => {

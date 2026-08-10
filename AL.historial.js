@@ -25,10 +25,11 @@
     }
     function matches(group,query){
         if(!query)return true;
-        return[
+        const values=[
             group.requestId,group.referencia,group.proyecto,group.bodegaOrigen,group.bodegaDestino,group.recibeNombre,group.motivo,
-            ...group.productos.flatMap(item=>[item.codigo,item.descripcion,item.producto?.desc])
-        ].some(value=>lower(value).includes(query));
+            ...group.productos.flatMap(item=>[item.codigo,item.descripcion,item.producto?.desc,item.producto?.categoria,...(item.producto?.modismos||[])])
+        ];
+        return window.SkilledSearch?.matches ? window.SkilledSearch.matches(values,query) : values.some(value=>lower(value).includes(query));
     }
     function render(){
         const query=lower(document.getElementById('historial_search')?.value);

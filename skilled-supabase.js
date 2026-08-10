@@ -552,9 +552,7 @@
     }
 
     function matchesMaterial(material, query) {
-        const value = lower(query);
-        if (!value) return true;
-        return [
+        const values = [
             material?.codigo,
             material?.descripcion,
             material?.desc,
@@ -569,7 +567,11 @@
             material?.contactoProveedor,
             material?.contacto_proveedor,
             ...(Array.isArray(material?.modismos) ? material.modismos : [])
-        ].some(item => lower(item).includes(value));
+        ];
+        if (window.SkilledSearch?.matches) return window.SkilledSearch.matches(values, query);
+        const value = lower(query);
+        if (!value) return true;
+        return values.some(item => lower(item).includes(value));
     }
 
     async function loadInventoryContext() {
@@ -2167,8 +2169,8 @@
         return rows.filter(row => {
             if (category && lower(row.categoria) !== category) return false;
             if (search) {
-                const hay = [row.codigo, row.descripcion, row.categoria, row.almacenNombre, row.marca, row.proveedor, row.contactoProveedor, ...(Array.isArray(row.modismos) ? row.modismos : [])]
-                    .some(value => lower(value).includes(search));
+                const values = [row.codigo, row.descripcion, row.categoria, row.almacenNombre, row.marca, row.proveedor, row.contactoProveedor, ...(Array.isArray(row.modismos) ? row.modismos : [])];
+                const hay = window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, search) : values.some(value => lower(value).includes(search));
                 if (!hay) return false;
             }
             return true;

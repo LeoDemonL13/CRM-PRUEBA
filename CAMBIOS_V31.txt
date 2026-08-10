@@ -1,0 +1,15 @@
+CRM V31 — BÚSQUEDA DINÁMICA
+
+1. Nuevo motor compartido skilled-search.js para todos los perfiles.
+2. Búsqueda por palabras sueltas y sin necesidad de respetar el nombre completo.
+3. Coincidencia tolerante a acentos, orden de palabras, plurales, prefijos y errores tipográficos leves.
+4. Equivalencias de vocabulario operativo: pija/tornillo/autotaladrante, bodega/almacén, desarmador/destornillador, etc.
+5. Normalización de medidas: 1/4x1, 1/4 x 1, ¼x1 y equivalencias de calibre. #14x1 se reconoce como equivalente operativo de 1/4x1 para búsquedas de pijas/tornillería.
+6. Catálogo de materiales ordena los resultados por relevancia.
+7. Buscador global ordena por relevancia y contempla modismos de materiales.
+8. El mismo motor se aplica a buscadores de materiales, bajo mínimo, movimientos, OC, herramientas, unidades, asignaciones, vehículos, proyectos, Compras, RH, chat y manuales.
+9. No requiere cambios SQL.
+
+Ejemplo validado:
+Consulta: pija 1/4x1
+Resultado compatible: PIJA PUNTA DE: BROCA, AUTOTALADRANTE #14x1\"

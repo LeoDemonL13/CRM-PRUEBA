@@ -213,7 +213,7 @@ function alternarHerramientaProyectoV14(id,checked){
 function actualizarHerramientaProyectoV14(id,field,value){const line=borradorHerramientasV14.get(Number(id));if(!line)return;line[field]=field==='cantidadRequerida'?Math.max(1,numeroV14(value)||1):value;borradorHerramientasV14.set(Number(id),line);const count=document.getElementById('contador-plan-herramientas-v14');if(count)count.textContent=`${borradorHerramientasV14.size} herramienta${borradorHerramientasV14.size===1?'':'s'} seleccionada${borradorHerramientasV14.size===1?'':'s'}`}
 function renderEditorHerramientasProyectoV14(){
     const query=claveV14(document.getElementById('busqueda-plan-herramientas-v14')?.value);
-    const list=catalogoHerramientasV14.filter(item=>!query||claveV14([item.sku,item.descripcion,item.clasificacion,item.marca,item.modelo].join(' ')).includes(query));
+    const list=catalogoHerramientasV14.filter(item=>!query||(window.SkilledSearch?.matches?window.SkilledSearch.matches([item.sku,item.descripcion,item.clasificacion,item.marca,item.modelo],query):claveV14([item.sku,item.descripcion,item.clasificacion,item.marca,item.modelo].join(' ')).includes(query)));
     const host=document.getElementById('lista-plan-herramientas-v14');
     if(host)host.innerHTML=list.map(item=>{
         const selected=borradorHerramientasV14.has(Number(item.id));

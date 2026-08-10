@@ -7,7 +7,7 @@ function prefix(){return String(window.SkilledSession?.role||'')==='gerente_gene
 function pct(real,plan){return plan>0?Math.min(999,real/plan*100):real>0?100:0}
 function bar(real,plan){const p=Math.min(100,pct(real,plan));const over=real>plan&&plan>0;return `<div class="exec-bar"><span style="width:${p}%" class="${over?'over':''}"></span></div>`}
 function statusClass(r){if(num(r.desviacion_total)>0)return'danger';if(num(r.total_real)>0&&num(r.total_real)<=num(r.total_planeado))return'success';return''}
-function filtered(){const q=txt($('search').value).toLowerCase(),s=$('state').value;return rows.filter(r=>(!s||txt(r.estado)===s)&&(!q||[r.proyecto,r.nombre,r.cliente,r.responsable].join(' ').toLowerCase().includes(q)))}
+function filtered(){const q=txt($('search').value).toLowerCase(),s=$('state').value;return rows.filter(r=>(!s||txt(r.estado)===s)&&(!q||(window.SkilledSearch?.matches?window.SkilledSearch.matches([r.proyecto,r.nombre,r.cliente,r.responsable],q):[r.proyecto,r.nombre,r.cliente,r.responsable].join(' ').toLowerCase().includes(q))))}
 function metrics(){const data=filtered();$('m-projects').textContent=data.length.toLocaleString('es-MX');$('m-planned').textContent=money(data.reduce((s,r)=>s+num(r.total_planeado),0));$('m-real').textContent=money(data.reduce((s,r)=>s+num(r.total_real),0));$('m-over').textContent=data.filter(r=>num(r.desviacion_total)>0).length.toLocaleString('es-MX')}
 function render(){
  metrics();
