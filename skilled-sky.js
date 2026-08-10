@@ -145,9 +145,9 @@
     const ttl = 45000;
 
     function styles() {
-        if (document.getElementById('sky-style-v21')) return;
+        if (document.getElementById('sky-style-v22-2')) return;
         const style = document.createElement('style');
-        style.id = 'sky-style-v21';
+        style.id = 'sky-style-v22-2';
         style.textContent = `
             .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.76);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{width:min(760px,100%);max-height:min(780px,92vh);overflow:auto;border:1px solid #28406a;border-radius:20px;background:linear-gradient(160deg,#0e172b,#080e1c 55%,#091221);box-shadow:0 35px 110px rgba(0,0,0,.58)}.sky-head{padding:20px 22px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:48px;height:48px;border-radius:15px;border:1px solid rgba(96,165,250,.38);background:radial-gradient(circle at 36% 30%,#60a5fa 0 7%,#2563eb 24%,#0b1631 64%);box-shadow:inset 0 0 25px rgba(96,165,250,.18),0 0 28px rgba(37,99,235,.15)}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:22px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:15px;background:rgba(6,12,24,.68);min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:11px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:999px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}}@media(max-width:640px){.sky-header-button span[data-sky-label]{display:none}.sky-header-button{width:36px;padding:0;justify-content:center}.sky-header-button .sky-pulse{display:none}.sky-input-row{grid-template-columns:1fr auto}.sky-input-row .sky-action.primary{grid-column:1/-1}.sky-grid{grid-template-columns:1fr}.sky-body{padding:17px}.sky-head{padding:17px}.sky-modal{border-radius:16px}}@keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
         `;
@@ -770,6 +770,22 @@
         return cloudVoiceStatus?.disponible === true && cloudVoiceStatus?.configurado === true;
     }
 
+    function cloudVoiceProblemMessage() {
+        const code = text(cloudVoiceStatus?.codigo);
+        const detail = text(cloudVoiceStatus?.mensaje);
+        if (code === 'missing_function') return 'Sky Voz avanzada todavía no está publicada en Supabase. El micrófono funciona, pero falta desplegar la función sky-transcribir.';
+        if (code === 'missing_key') return 'Sky Voz avanzada ya está publicada, pero falta configurar la clave de transcripción en los secretos de Supabase.';
+        if (code === 'auth') return 'Sky Voz avanzada está publicada, pero la sesión actual no pudo autorizar la función. Cierra sesión, vuelve a entrar y reintenta.';
+        if (code === 'not_configured') return detail || 'Sky Voz avanzada existe, pero aún requiere configuración del servidor.';
+        return detail ? `Sky Voz avanzada no está disponible: ${detail}` : 'Sky Voz avanzada todavía no está disponible en el servidor.';
+    }
+
+    function showVoiceSetupState() {
+        setVoiceEngine('error', 'Voz · servidor pendiente');
+        setStatus(cloudVoiceProblemMessage(), 'error');
+        setHeard('micrófono disponible · falta habilitar transcripción');
+    }
+
     function voiceContextPrompt() {
         const lexicon = domainSpeechLexicon();
         const useful = lexicon.words.slice(0, 140);
@@ -815,8 +831,10 @@
             setStatus('Voz reconocida. Consultando el CRM…', 'busy');
             setTimeout(() => query(interpreted), 80);
         } catch (error) {
-            setVoiceEngine('error');
-            setStatus(error?.message || 'No se pudo transcribir la voz.', 'error');
+            cloudVoiceCheckedAt = 0;
+            await ensureCloudVoice(true);
+            setVoiceEngine('error', 'Voz · requiere atención');
+            setStatus(error?.message || cloudVoiceProblemMessage() || 'No se pudo transcribir la voz.', 'error');
             setHeard('transcripción no disponible');
         }
     }
@@ -1040,9 +1058,7 @@
                         setStatus('Sky Voz avanzada está lista. Habla nuevamente; este modo quedará seleccionado para esta sesión.', 'busy');
                         setTimeout(() => startCloudListening({ preserveClearedInput: true }), 220);
                     } else {
-                        setVoiceEngine('error');
-                        setStatus('El navegador no pudo transcribir la voz y Sky Voz avanzada todavía no está configurada en el servidor.', 'error');
-                        setHeard('micrófono disponible · transcripción pendiente');
+                        showVoiceSetupState();
                     }
                 });
                 return;
@@ -1111,8 +1127,7 @@
 
         if (!recognition) {
             if (cloudReady) return startCloudListening({ preserveClearedInput: true });
-            setVoiceEngine('error');
-            setStatus('No hay un motor de transcripción disponible. Configura Sky Voz avanzada o utiliza un navegador con reconocimiento de voz.', 'error');
+            showVoiceSetupState();
             return;
         }
 

@@ -4159,17 +4159,56 @@
         return data;
     }
 
+    async function edgeFunctionErrorDetail(error, fallback = 'Servicio no disponible.') {
+        let message = text(error?.message) || fallback;
+        const response = error?.context;
+        if (response && typeof response.clone === 'function') {
+            try {
+                const clone = response.clone();
+                const payload = await clone.json();
+                message = text(payload?.error ?? payload?.message) || message;
+            } catch (_) {
+                try {
+                    const raw = await response.clone().text();
+                    if (text(raw)) message = text(raw).slice(0, 700);
+                } catch (_) {}
+            }
+            if (response.status === 404 && !/no existe|not found/i.test(message)) message = 'La función sky-transcribir todavía no está desplegada en Supabase.';
+            if (response.status === 401 && !/sesión|jwt|token/i.test(message)) message = 'La sesión no pudo autorizar el servicio de voz avanzada.';
+        }
+        return message;
+    }
+
+    function skyVoiceStatusCode(message = '', available = false, configured = false) {
+        const value = text(message).toLowerCase();
+        if (available && configured) return 'ready';
+        if (/openai_api_key|falta configurar.*clave|api key/.test(value)) return 'missing_key';
+        if (/no está desplegada|not found|404|function.*not.*found|failed to send a request/.test(value)) return 'missing_function';
+        if (/sesión|jwt|token|unauthorized|401/.test(value)) return 'auth';
+        return available ? 'not_configured' : 'unavailable';
+    }
+
     async function skyTranscriptionStatus() {
         try {
             const { data, error } = await client.functions.invoke('sky-transcribir', { body: { ping: true } });
-            if (error) return { disponible: false, configurado: false, mensaje: error.message || 'Servicio de voz no disponible.' };
+            if (error) {
+                const mensaje = await edgeFunctionErrorDetail(error, 'Servicio de voz no disponible.');
+                return { disponible: false, configurado: false, codigo: skyVoiceStatusCode(mensaje, false, false), mensaje };
+            }
+            const disponible = data?.ok === true;
+            const configurado = data?.configured === true;
+            const mensaje = text(data?.message);
             return {
-                disponible: data?.ok === true,
-                configurado: data?.configured === true,
-                mensaje: text(data?.message)
+                disponible,
+                configurado,
+                codigo: skyVoiceStatusCode(mensaje, disponible, configurado),
+                mensaje,
+                version: text(data?.version),
+                modelo: text(data?.model)
             };
         } catch (error) {
-            return { disponible: false, configurado: false, mensaje: errorMessage(error) };
+            const mensaje = errorMessage(error);
+            return { disponible: false, configurado: false, codigo: skyVoiceStatusCode(mensaje, false, false), mensaje };
         }
     }
 
@@ -4181,10 +4220,10 @@
         form.append('profile', text(options.profile) || 'consulta');
         form.append('context', text(options.context).slice(0, 1800));
         const { data, error } = await client.functions.invoke('sky-transcribir', { body: form });
-        if (error) throw new Error(error.message || 'No se pudo transcribir el audio.');
+        if (error) throw new Error(await edgeFunctionErrorDetail(error, 'No se pudo transcribir el audio.'));
         const transcript = text(data?.text ?? data?.transcript);
         if (!transcript) throw new Error(text(data?.error) || 'No se reconoció una frase en el audio.');
-        return { texto: transcript, duracionMs: Number(data?.durationMs) || 0 };
+        return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model) };
     }
 
     function quotationRequestFromDb(row) {
