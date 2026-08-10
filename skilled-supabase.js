@@ -1781,6 +1781,48 @@
         return listProjectPlan(project);
     }
 
+    function missingProjectSchemaColumn(error) {
+        const message = errorMessage(error);
+        const patterns = [
+            /Could not find the ['"]([^'"]+)['"] column of ['"]proyectos['"] in the schema cache/i,
+            /column ['"]?([^'"\s]+)['"]? of relation ['"]?proyectos['"]? does not exist/i,
+            /column ['"]?([^'"\s]+)['"]? does not exist/i
+        ];
+        for (const pattern of patterns) {
+            const match = message.match(pattern);
+            if (match?.[1]) return match[1];
+        }
+        return '';
+    }
+
+    async function persistProjectWithSchemaCompatibility(row, original = '') {
+        const working = { ...row };
+        const removable = new Set(['tipo_control', 'presupuesto_planeado', 'presupuesto_materiales', 'presupuesto_sueldos', 'updated_at']);
+        const omitted = [];
+
+        for (let attempt = 0; attempt < 7; attempt += 1) {
+            const result = original
+                ? await client.from('proyectos').update(working).eq('numero_proyecto', original)
+                : await client.from('proyectos').insert(working);
+
+            if (!result.error) return { omitted };
+
+            const column = missingProjectSchemaColumn(result.error);
+            if (!column || !removable.has(column) || !Object.prototype.hasOwnProperty.call(working, column)) {
+                assertNoError(result.error, original ? 'No se pudo actualizar el proyecto.' : 'No se pudo crear el proyecto.');
+            }
+
+            if ((column === 'tipo_control' || column === 'presupuesto_planeado') && row.tipo_control === 'presupuesto') {
+                throw new Error(`La base todavía no tiene la columna ${column}. Ejecuta SQL_MAESTRO_CRM V30 antes de crear proyectos por presupuesto.`);
+            }
+
+            delete working[column];
+            omitted.push(column);
+        }
+
+        throw new Error('No se pudo adaptar la creación del proyecto al esquema actual de Supabase. Ejecuta SQL_MAESTRO_CRM V30.');
+    }
+
     async function saveProject(project, originalNumber = '') {
         const original = text(originalNumber);
         const row = {
@@ -1808,26 +1850,17 @@
             throw new Error('La fecha de entrega no puede ser anterior a la fecha de asignación.');
         }
 
-        if (original) {
-            const { error } = await client
-                .from('proyectos')
-                .update(row)
-                .eq('numero_proyecto', original);
-            assertNoError(error, 'No se pudo actualizar el proyecto.');
+        const compatibility = await persistProjectWithSchemaCompatibility(row, original);
 
-            if (original !== row.numero_proyecto) {
-                const { error: movementError } = await client
-                    .from('movimientos')
-                    .update({ proyecto: row.numero_proyecto })
-                    .eq('proyecto', original);
-                assertNoError(movementError, 'El proyecto se actualizó, pero no sus movimientos relacionados.');
-            }
-        } else {
-            const { error } = await client.from('proyectos').insert(row);
-            assertNoError(error, 'No se pudo crear el proyecto.');
+        if (original && original !== row.numero_proyecto) {
+            const { error: movementError } = await client
+                .from('movimientos')
+                .update({ proyecto: row.numero_proyecto })
+                .eq('proyecto', original);
+            assertNoError(movementError, 'El proyecto se actualizó, pero no sus movimientos relacionados.');
         }
 
-        return { ok: true, proyecto: row.numero_proyecto };
+        return { ok: true, proyecto: row.numero_proyecto, columnasOmitidas: compatibility.omitted };
     }
 
     async function deleteProject(projectNumber) {
@@ -3370,6 +3403,8 @@
             id: Number(row.id),
             numeroEconomico: text(row.numero_economico),
             numero_economico: text(row.numero_economico),
+            nombreVehiculo: text(row.numero_economico),
+            nombre_vehiculo: text(row.numero_economico),
             placas: text(row.placas),
             vin: text(row.vin),
             marca: text(row.marca),

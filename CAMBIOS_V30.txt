@@ -1,0 +1,8 @@
+CRM SKILLED · V30 · 2026-08-10
+
+1. Proyectos: agrega tipo_control al inicio del SQL maestro, antes de cualquier vista o función que lo consulte.
+2. Proyectos: saveProject ahora tolera esquemas antiguos; para proyectos por plan de materiales puede omitir automáticamente columnas opcionales faltantes y guardar los datos generales.
+3. Flujo: el proyecto se crea primero y el plan de materiales puede capturarse después.
+4. Sky Vehículos: las respuestas de vehículos disponibles ahora leen por voz los nombres de los vehículos, hasta seis, e indican si existen más.
+5. Vehículos: se expone nombreVehiculo como alias compatible de numero_economico sin romper la base actual.
+6. Cache: skilled-supabase.js y skilled-sky.js se cargan como v=30 en las páginas del CRM.

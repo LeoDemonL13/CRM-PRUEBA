@@ -1,4 +1,4 @@
--- SQL MAESTRO CRM SKILLED · V23 · 2026-08-09
+-- SQL MAESTRO CRM SKILLED · V30 · 2026-08-10
 -- ÚNICO SQL OFICIAL DEL PROYECTO. No combinar con scripts SQL antiguos por separado.
 -- Incluye la migración del flujo de cotizaciones de Compras al final del archivo.
 
@@ -34,6 +34,30 @@ create table if not exists public.crm_migraciones(
     aplicada_at timestamptz not null default now()
 );
 
+commit;
+
+
+-- V30 · NORMALIZACIÓN TEMPRANA DEL ESQUEMA DE PROYECTOS
+-- Debe ejecutarse antes de las vistas/funciones de Gerencia que usan tipo_control.
+begin;
+
+alter table public.proyectos add column if not exists tipo_control text;
+update public.proyectos
+set tipo_control='materiales'
+where tipo_control is null or btrim(tipo_control)='' or lower(tipo_control) not in ('materiales','presupuesto');
+alter table public.proyectos alter column tipo_control set default 'materiales';
+alter table public.proyectos alter column tipo_control set not null;
+
+alter table public.proyectos add column if not exists presupuesto_planeado numeric(16,2) not null default 0;
+alter table public.proyectos add column if not exists presupuesto_materiales numeric(16,2) not null default 0;
+alter table public.proyectos add column if not exists presupuesto_sueldos numeric(16,2) not null default 0;
+alter table public.proyectos add column if not exists updated_at timestamptz not null default now();
+
+alter table public.proyectos drop constraint if exists proyectos_tipo_control_check_v30;
+alter table public.proyectos add constraint proyectos_tipo_control_check_v30
+check (tipo_control in ('materiales','presupuesto'));
+
+notify pgrst,'reload schema';
 commit;
 
 
@@ -3828,3 +3852,21 @@ select
         select 1 from information_schema.columns
         where table_schema='public' and table_name='proyectos' and column_name='presupuesto_materiales'
     ) then 'OK' else 'FALTA' end as presupuesto_materiales;
+
+
+begin;
+
+-- V30 · Diagnóstico final de Proyectos + compatibilidad de Sky Vehículos.
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V30-PROYECTOS-TIPO-CONTROL-SKY-NOMBRE-VEHICULO-2026-08-10',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+    'OK' as estado,
+    'CRM-V30-PROYECTOS-TIPO-CONTROL-SKY-NOMBRE-VEHICULO-2026-08-10' as version,
+    case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='proyectos' and column_name='tipo_control') then 'OK' else 'FALTA' end as tipo_control,
+    case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='proyectos' and column_name='presupuesto_planeado') then 'OK' else 'FALTA' end as presupuesto_planeado,
+    case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='proyectos' and column_name='updated_at') then 'OK' else 'FALTA' end as updated_at;

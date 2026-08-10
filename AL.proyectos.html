@@ -17,7 +17,7 @@
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=29"></script>
+    <script src="skilled-supabase.js?v=30"></script>
 <script src="auth-guard.js?v=24"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -1110,7 +1110,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=29');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=30');
             }
             return cliente;
         }
@@ -2484,7 +2484,7 @@ ${proyecto}`);
     </script>
 <script src="AL.proyectos.js"></script>
 
-<script src="skilled-sky.js?v=25" defer></script>
+<script src="skilled-sky.js?v=30" defer></script>
 <script src="skilled-performance.js?v=25" defer></script>
 </body>
 </html>

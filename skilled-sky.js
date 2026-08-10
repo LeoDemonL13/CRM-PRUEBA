@@ -1407,8 +1407,9 @@
         const active = vehicles.filter(item => item.activo !== false);
         const named = active
             .map(item => {
-                const vehicleName = normalize(item.numeroEconomico);
-                const full = normalize([item.numeroEconomico,item.marca,item.modelo,item.placas,item.tipo].join(' '));
+                const displayName = text(item.nombreVehiculo || item.numeroEconomico);
+                const vehicleName = normalize(displayName);
+                const full = normalize([displayName,item.numeroEconomico,item.marca,item.modelo,item.placas,item.tipo].join(' '));
                 let score = 0;
                 if (vehicleName && norm.includes(vehicleName)) score += 120;
                 for (const token of norm.split(' ').filter(t => t.length > 2)) {
@@ -1421,19 +1422,27 @@
             .sort((a,b) => b.score-a.score);
         if (named.length && !/disponible|disponibles|cuantos|cuantas|flotilla|vehiculos/.test(norm)) {
             const item=named[0].item;
-            conversationContext.vehicle = { nombre: text(item.numeroEconomico), id: item.id };
+            conversationContext.vehicle = { nombre: text(item.nombreVehiculo || item.numeroEconomico), id: item.id };
             const state=normalize(item.estado)==='disponible'?'disponible':text(item.estado||'sin estado');
-            const main=`${item.numeroEconomico}: ${item.marca || ''} ${item.modelo || ''}`.trim();
+            const displayName = text(item.nombreVehiculo || item.numeroEconomico) || 'Vehículo';
+            const main=`${displayName}: ${item.marca || ''} ${item.modelo || ''}`.trim();
             setAnswer('Vehículo', main, `${item.tipo || 'Vehículo'} · ${state} · ${item.placas || 'sin placas'} · ${formatNumber(item.kilometraje)} km`,
-                [{title:'Nombre del vehículo',detail:item.numeroEconomico || 'Sin nombre'},{title:'Estado',detail:state},{title:'Responsable',detail:item.responsable || item.asignadoA || 'Sin asignación'}],
+                [{title:'Nombre del vehículo',detail:displayName || 'Sin nombre'},{title:'Estado',detail:state},{title:'Responsable',detail:item.responsable || item.asignadoA || 'Sin asignación'}],
                 { href:'AL.vehiculos.html', label:'Abrir flotilla' });
-            return `El vehículo ${item.numeroEconomico} está ${state}. ${item.marca || ''} ${item.modelo || ''}.`;
+            return `El vehículo ${displayName} está ${state}. ${item.marca || ''} ${item.modelo || ''}.`;
         }
         const rows = active.filter(item => !type || normalize(item.tipo).includes(type));
         const available = rows.filter(item => normalize(item.estado) === 'disponible');
-        const cards = available.slice(0, 6).map(item => ({ title: `${item.numeroEconomico} · ${item.marca} ${item.modelo}`, detail: `${item.tipo || 'vehículo'} · ${item.placas || 'sin placas'} · ${formatNumber(item.kilometraje)} km` }));
-        setAnswer('Vehículos', available.length ? `${available.length} vehículo${available.length === 1 ? '' : 's'} disponible${available.length === 1 ? '' : 's'}${type ? ` del tipo ${type}` : ''}.` : `No hay vehículos disponibles${type ? ` del tipo ${type}` : ''}.`, 'Puedes preguntarme directamente por el nombre de un vehículo.', cards, { href: 'AL.vehiculos.html', label: 'Abrir flotilla' });
-        return available.length ? `Hay ${available.length} vehículos disponibles${type ? ` del tipo ${type}` : ''}.` : 'No hay vehículos disponibles con ese filtro.';
+        const vehicleLabel = item => text(item.nombreVehiculo || item.numeroEconomico) || `${item.marca || ''} ${item.modelo || ''}`.trim() || 'Vehículo sin nombre';
+        const cards = available.slice(0, 6).map(item => ({ title: `${vehicleLabel(item)} · ${item.marca || ''} ${item.modelo || ''}`.trim(), detail: `${item.tipo || 'vehículo'} · ${item.placas || 'sin placas'} · ${formatNumber(item.kilometraje)} km` }));
+        const spokenNames = available.slice(0, 6).map(vehicleLabel);
+        const extra = Math.max(0, available.length - spokenNames.length);
+        const namesText = spokenNames.length ? ` Disponibles: ${spokenNames.join(', ')}${extra ? ` y ${extra} más` : ''}.` : '';
+        const summary = available.length
+            ? `${available.length} vehículo${available.length === 1 ? '' : 's'} disponible${available.length === 1 ? '' : 's'}${type ? ` del tipo ${type}` : ''}.${namesText}`
+            : `No hay vehículos disponibles${type ? ` del tipo ${type}` : ''}.`;
+        setAnswer('Vehículos', summary, 'Puedes preguntarme directamente por el nombre de un vehículo.', cards, { href: 'AL.vehiculos.html', label: 'Abrir flotilla' });
+        return available.length ? `Hay ${available.length} vehículos disponibles${type ? ` del tipo ${type}` : ''}. ${spokenNames.length ? `Son: ${spokenNames.join(', ')}${extra ? ` y ${extra} más` : ''}.` : ''}` : 'No hay vehículos disponibles con ese filtro.';
     }
 
     async function answerProjectRoute(raw) {
