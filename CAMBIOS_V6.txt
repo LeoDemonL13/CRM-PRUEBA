@@ -1,9 +1,0 @@
-CRM V6
-
-- SQL_MAESTRO_CRM.sql corregido: error 42601 del índice de ubicaciones.
-- La preferencia de barra lateral se guarda por perfil: Almacén, Compras, RH, Finanzas, Proyectos y Consulta.
-- Ancho de la barra estabilizado para evitar expansiones inconsistentes.
-- En móvil la barra funciona como panel y los modales quedan por encima de la barra en escritorio.
-- Edición de vehículos reforzada con delegación de eventos, búsqueda robusta por ID y guardado RPC con respaldo directo.
-- Métricas de Compras y RH compactadas.
-- El proyecto contiene un solo SQL de actualización: SQL_MAESTRO_CRM.sql.

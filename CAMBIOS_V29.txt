@@ -1,8 +1,0 @@
-CRM V29 · PROYECTO PRIMERO / PLAN DESPUÉS + SKY MODISMOS
-
-1. AL.proyectos: un proyecto con control por plan de materiales se crea solo con sus datos generales.
-2. skilled-supabase: ya no envía presupuesto_planeado al crear/editar proyectos por materiales.
-3. Al crear el proyecto, el CRM lo abre automáticamente para continuar con el plan cuando el usuario quiera.
-4. SQL maestro garantiza columnas de compatibilidad y fuerza recarga del schema cache de PostgREST.
-5. Sky amplía modismos, corrección de voz, vocabulario dinámico de materiales/herramientas/vehículos/proyectos y seguimiento conversacional de proyectos.
-6. Cache busting V29 para Supabase/Sky en las páginas publicadas.

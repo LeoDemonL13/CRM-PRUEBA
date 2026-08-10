@@ -1,8 +1,0 @@
-CRM V27
-
-- Corrige DELETE requires a WHERE clause en limpieza de historial y limpieza general.
-- Historial de movimientos vuelve a eliminarse mediante RPC segura con contraseña 1234.
-- Compras puede eliminar órdenes individuales de prueba.
-- Compras/Administrador pueden borrar todas las órdenes de compra de prueba con contraseña 1234.
-- Se agregan favicon, iconos de aplicación y manifest de Skilled CRM.
-- Los favicons se cargan desde la raíz para Cloudflare Pages.

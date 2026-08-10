@@ -1,6 +1,0 @@
-CRM V5
-
-1. SQL unificado: usa únicamente SQL_MAESTRO_CRM.sql para las actualizaciones actuales.
-2. Vehículos: botón de edición visible sobre la imagen y dentro de la tarjeta; guardado reforzado con crm_guardar_vehiculo y fallback compatible.
-3. Navegación compacta: Escáner forma parte del menú central y ya no se inyecta con texto fuera del modo compacto. El menú recorta cualquier etiqueta residual al minimizarse.
-4. Todos los avisos del CRM que pedían SQL separados ahora apuntan al SQL maestro.

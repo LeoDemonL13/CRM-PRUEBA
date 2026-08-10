@@ -1,9 +1,0 @@
-CRM V14 · SKY RECONOCIMIENTO Y COMANDOS SIMPLES
-
-- Reconocimiento por voz más tolerante: hasta 10 alternativas, selección por vocabulario, recomposición de frase completa y pausas más largas para evitar cortar comandos.
-- Sky ya no requiere pronunciar su nombre al inicio. Tolera variantes de pronunciación del nombre y frases naturales.
-- Nuevos comandos generales disponibles en todos los perfiles: hora, fecha, día de la semana, mes, año, saludo, identidad de Sky, perfil actual, ayuda, repetir respuesta, silencio y cálculos básicos.
-- Ejemplos: “qué hora es”, “qué día es hoy”, “qué mes estamos”, “qué puedes hacer”, “cuánto es 25 por 8”.
-- Mejor normalización de números hablados del 0 al 20 y medidas de pulgadas.
-- Las voces se muestran con nombres simples (Sarah, Sofía, Luna, etc.). No se muestra proveedor, origen ni idioma en la interfaz.
-- No requiere cambios en SQL_MAESTRO_CRM.sql.

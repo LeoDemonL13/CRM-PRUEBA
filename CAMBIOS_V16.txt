@@ -1,9 +1,0 @@
-CRM V16 - SKY VOZ
-
-- Se desactiva el uso experimental de SpeechRecognition.phrases que provocaba el error phrases-not-supported.
-- Sky conserva correccion fonetica, contexto del CRM, alternativas y aprendizaje local sin depender de esa API experimental.
-- Al pulsar el microfono se limpia inmediatamente el texto anterior del campo de consulta.
-- Se mantiene el reconocimiento es-MX, resultados parciales, alternativas, pausas y correccion contextual.
-- Si algun navegador reporta phrases-not-supported, Sky reintenta automaticamente en modo compatible.
-- Se actualiza la carga de skilled-sky.js a v16 para evitar cache de versiones anteriores.
-- No requiere cambios SQL.

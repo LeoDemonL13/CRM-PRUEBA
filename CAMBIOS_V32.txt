@@ -1,9 +1,0 @@
-CRM V32 — Movimientos con materiales no enlistados
-
-- Corrige el error «No existe el material NL-... en el catálogo» al registrar un material creado mediante «Añadir material no enlistado».
-- Conserva esos materiales únicamente en el historial; no alteran existencias del catálogo.
-- Refuerza la marca esNoListado/es_no_listado en interfaz, plan de proyecto y capa Supabase.
-- Los códigos generados NL-* se reconocen como manuales aunque un objeto intermedio pierda la bandera.
-- No requiere cambios SQL.
-
-Si aplicas solo este parche, asegúrate de que AL.movimientos.html cargue skilled-supabase.js?v=32 o realiza Ctrl+F5 después de reemplazarlo.

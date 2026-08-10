@@ -1,5 +1,0 @@
-Copia el GIF corporativo en esta misma carpeta y nómbralo exactamente:
-
-fondo-login.gif
-
-La pantalla de inicio de sesión lo usará automáticamente. Si el archivo no existe, se conserva el fondo animado industrial generado con CSS.
