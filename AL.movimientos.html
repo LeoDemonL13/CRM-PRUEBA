@@ -15,7 +15,7 @@
 <script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Registrar Movimiento</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=31"></script>
+    <script src="skilled-supabase.js?v=32"></script>
 <script src="auth-guard.js?v=24"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -549,7 +549,7 @@
     <div id="modal-no-listado-movimiento" class="hidden fixed inset-0 z-[85] bg-black/75 items-center justify-center p-4">
         <div class="w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
             <div class="px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
-                <div><h2 class="text-sm font-bold text-white">Material no enlistado</h2><p class="text-[10px] text-gray-500 mt-1">Se guardará como movimiento manual sin afectar el stock del catálogo.</p></div>
+                <div><h2 class="text-sm font-bold text-white">Material no enlistado</h2><p class="text-[10px] text-gray-500 mt-1">Se guardará en el historial como material no enlistado y no modificará las existencias del catálogo.</p></div>
                 <button type="button" onclick="cerrarMaterialNoListadoMovimiento()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
             <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -675,16 +675,20 @@
 
         function productoDesdeLineaProyecto(linea) {
             const material = linea?.material || {};
+            const codigo = String(linea.codigo || material.codigo || '').trim();
+            const esNoListado = Boolean(
+                linea.esNoListado ?? linea.es_no_listado ?? material.esNoListado ?? material.es_no_listado
+            ) || /^NL-/i.test(codigo);
             return {
                 ...material,
-                codigo: String(linea.codigo || material.codigo || '').trim(),
+                codigo,
                 desc: String(material.desc || material.descripcion || linea.descripcion || linea.codigo || '').trim(),
                 descripcion: String(material.descripcion || material.desc || linea.descripcion || linea.codigo || '').trim(),
                 categoria: String(material.categoria || linea.categoria || '').trim(),
                 unidad: String(linea.unidad || material.unidad || '').trim(),
                 precio: Number(linea.precioUnitario ?? material.precio ?? 0) || 0,
-                esNoListado: Boolean(linea.esNoListado),
-                es_no_listado: Boolean(linea.esNoListado),
+                esNoListado,
+                es_no_listado: esNoListado,
                 _planEntrega: linea
             };
         }
@@ -1439,8 +1443,8 @@
                     bodegaDestino,
                     recibeNombre: document.getElementById('recibe_nombre_val').value.trim(),
                     recibeTipo: 'persona',
-                    esNoListado: Boolean(productoSeleccionado.esNoListado),
-                    es_no_listado: Boolean(productoSeleccionado.esNoListado),
+                    esNoListado: Boolean(productoSeleccionado.esNoListado ?? productoSeleccionado.es_no_listado) || /^NL-/i.test(String(productoSeleccionado.codigo || '')),
+                    es_no_listado: Boolean(productoSeleccionado.esNoListado ?? productoSeleccionado.es_no_listado) || /^NL-/i.test(String(productoSeleccionado.codigo || '')),
                     cantidadPlaneadaProyecto: Number(lineaPlan?.planeado || 0),
                     cantidadEntregadaProyecto: Number(lineaPlan?.entregado || 0),
                     pendienteProyecto: Number(lineaPlan?.pendiente || 0)
@@ -1686,8 +1690,8 @@
                     bodegaDestino: document.getElementById('bodega_destino_val').value,
                     recibeNombre: document.getElementById('recibe_nombre_val').value.trim(),
                     recibeTipo: 'persona',
-                    esNoListado: Boolean(producto.esNoListado),
-                    es_no_listado: Boolean(producto.esNoListado),
+                    esNoListado: Boolean(producto.esNoListado ?? producto.es_no_listado) || /^NL-/i.test(String(producto.codigo || '')),
+                    es_no_listado: Boolean(producto.esNoListado ?? producto.es_no_listado) || /^NL-/i.test(String(producto.codigo || '')),
                     cantidadPlaneadaProyecto: Number(lineaPlan?.planeado || 0),
                     cantidadEntregadaProyecto: Number(lineaPlan?.entregado || 0),
                     pendienteProyecto: Number(lineaPlan?.pendiente || 0)

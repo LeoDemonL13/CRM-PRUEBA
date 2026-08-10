@@ -1202,10 +1202,13 @@
 
         const normalizedProducts = products.map(item => {
             const product = item.producto || {};
+            const codigo = text(item.codigo ?? product.codigo);
+            // Los materiales creados desde «Material no enlistado» usan el prefijo NL-.
+            // La detección por código es una segunda protección para que el indicador
+            // no se pierda al mover el objeto entre la interfaz, la lista y el RPC.
             const esNoListado = boolean(
                 item.esNoListado ?? item.es_no_listado ?? product.esNoListado ?? product.es_no_listado
-            );
-            const codigo = text(item.codigo ?? product.codigo);
+            ) || /^NL-[A-Z0-9_-]+$/i.test(codigo);
             const descripcion = text(item.descripcion ?? item.desc ?? product.descripcion ?? product.desc);
             const unidad = text(item.unidad ?? product.unidad);
             const categoria = text(item.categoria ?? product.categoria);
