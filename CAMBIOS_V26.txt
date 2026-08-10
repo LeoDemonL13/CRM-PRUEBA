@@ -1,0 +1,34 @@
+CRM V26 · 10/08/2026
+
+1. Navegación fija
+- La barra lateral queda fija en escritorio mientras se desplaza el contenido.
+- El ancho expandido/compacto sigue siendo independiente por perfil.
+- La cabecera superior permanece visible durante el desplazamiento.
+- En tablet/teléfono se conserva el menú deslizable y no se aplica margen lateral fijo.
+
+2. Nómina RH rediseñada
+- Se eliminaron los iconos gigantes de las métricas.
+- Nuevo resumen compacto con Periodos, Neto del periodo, WhatsApp listo y Comprobantes enviados.
+- Se mantuvo la estética visual de RH y del resto del CRM.
+- Lista de periodos y detalle de colaboradores más compactos y legibles.
+- Mantiene generación de comprobante y preparación de envío por WhatsApp.
+
+3. Dirección · Gerente General y Subgerente
+- En cada proyecto se muestra primero el gasto acumulado.
+- Desglose inmediato de materiales y sueldos.
+- Comparación con total planeado, porcentaje utilizado y desviación.
+- “Mostrar más detalles” conserva el detalle material por material y colaborador por colaborador.
+- Inicio ejecutivo ahora muestra materiales y sueldos por cada proyecto prioritario.
+
+4. Historial de movimientos
+- Botón “Borrar historial” visible en la cabecera para Administrador/Jefe de almacén.
+- El botón ahora se habilita después de que la sesión termina de cargar.
+- Se corrigió el evento que faltaba para ejecutar el borrado masivo.
+- Las operaciones individuales vuelven a mostrar “Eliminar operación” cuando corresponde.
+- Borrado masivo solicita la contraseña de limpieza configurada.
+- El SQL maestro V26 refuerza la autorización del Jefe de almacén.
+- El borrado del historial no recalcula existencias actuales.
+
+SQL
+- Continúa existiendo un solo SQL maestro acumulativo.
+- Ejecutar SQL_MAESTRO_CRM.sql V26 antes de probar el borrado masivo.

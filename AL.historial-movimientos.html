@@ -81,7 +81,7 @@
 
         body.tema-claro input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
     </style>
-    <script src="skilled-sidebar.js?v=25" defer></script>
+    <script src="skilled-sidebar.js?v=26" defer></script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v3');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -275,10 +275,16 @@
                     </div>
                 </div>
 
-                <a href="AL.movimientos.html" class="text-xs text-white flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-lg transition font-semibold self-start sm:self-center shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                    Registrar movimiento
-                </a>
+                <div class="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                    <button type="button" id="delete-all-history-top" class="hidden text-xs flex items-center gap-1.5 border border-rose-500/30 bg-rose-950/15 hover:bg-rose-950/30 px-4 py-2.5 rounded-lg transition font-semibold text-rose-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6"/></svg>
+                        Borrar historial
+                    </button>
+                    <a href="AL.movimientos.html" class="text-xs text-white flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-lg transition font-semibold shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                        Registrar movimiento
+                    </a>
+                </div>
             </div>
 
             
@@ -729,9 +735,11 @@
         }
 
         function actualizarAccionesLimpiezaHistorial() {
-            const button = document.getElementById('delete-all-history-test');
-            if (!button) return;
-            button.classList.toggle('hidden', !canDeleteTest());
+            const allowed = canDeleteTest();
+            ['delete-all-history-test','delete-all-history-top'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) button.classList.toggle('hidden', !allowed);
+            });
         }
 
         function renderBajoMinimo() {
@@ -788,6 +796,14 @@
         const productoInicial = new URLSearchParams(window.location.search).get('producto');
         if (productoInicial) document.getElementById('historial_search').value = productoInicial;
         cambiarTab('historial');
+        ['delete-all-history-test','delete-all-history-top'].forEach(id => {
+            document.getElementById(id)?.addEventListener('click', borrarHistorialCompletoPrueba);
+        });
+        actualizarAccionesLimpiezaHistorial();
+        window.addEventListener('skilled:sessionready', () => {
+            actualizarAccionesLimpiezaHistorial();
+            renderHistorial();
+        });
         cargarCatalogo();
         cargarHistorial();
     </script>

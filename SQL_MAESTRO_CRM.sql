@@ -3472,3 +3472,69 @@ select 'OK' estado,'CRM-V25-LIMPIEZA-CHAT-REUNIONES-2026-08-10' version,
        case when to_regprocedure('public.crm_borrar_historial_movimientos(text)') is not null then 'OK' else 'FALTA' end borrar_historial,
        case when to_regprocedure('public.crm_borrar_unidades_herramientas(text)') is not null then 'OK' else 'FALTA' end borrar_unidades,
        case when to_regprocedure('public.crm_convocar_reunion_general(text,timestamp with time zone,text)') is not null then 'OK' else 'FALTA' end reuniones;
+
+-- ============================================================
+-- V26 · UI FIJA, NOMINA Y LIMPIEZA DE HISTORIAL
+-- ============================================================
+begin;
+
+create or replace function public.crm_borrar_historial_movimientos(p_clave text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_count integer:=0;
+    v_allowed boolean:=false;
+begin
+    select exists(
+        select 1
+        from public.perfiles_usuario p
+        where p.id=auth.uid()
+          and p.activo=true
+          and (
+              lower(btrim(coalesce(p.rol,''))) in ('administrador','jefe_almacen','admin_almacen','administrador_almacen')
+              or (
+                  lower(btrim(coalesce(p.rol,'')))='almacen'
+                  and lower(btrim(coalesce(p.puesto,''))) like '%jefe%almac%'
+              )
+          )
+    ) into v_allowed;
+
+    if not v_allowed then
+        raise exception using errcode='42501',message='Solo Administrador o Jefe de almacén puede borrar el historial de movimientos.';
+    end if;
+
+    if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
+        raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
+    end if;
+
+    if to_regclass('public.ubicaciones_pendientes') is not null then
+        begin execute 'delete from public.ubicaciones_pendientes'; exception when others then null; end;
+    end if;
+    if to_regclass('public.prestamos_material_proyecto') is not null then
+        begin execute 'delete from public.prestamos_material_proyecto'; exception when others then null; end;
+    end if;
+
+    delete from public.movimientos;
+    get diagnostics v_count=row_count;
+
+    return jsonb_build_object(
+        'ok',true,
+        'eliminados',v_count,
+        'advertencia','El historial fue eliminado. Las existencias actuales no se recalcularon automáticamente.'
+    );
+end;
+$$;
+revoke all on function public.crm_borrar_historial_movimientos(text) from public,anon;
+grant execute on function public.crm_borrar_historial_movimientos(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V26-HISTORIAL-NOMINA-DIRECCION-2026-08-10',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' estado,'CRM-V26-HISTORIAL-NOMINA-DIRECCION-2026-08-10' version,
+       case when to_regprocedure('public.crm_borrar_historial_movimientos(text)') is not null then 'OK' else 'FALTA' end borrar_historial;

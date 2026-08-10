@@ -52,7 +52,7 @@ function alternarTema(){const claro=document.body.classList.toggle('tema-claro')
         </section>
     </main>
 </div>
-<script src="skilled-sidebar.js?v=25"></script>
+<script src="skilled-sidebar.js?v=26"></script>
 <script>
 (function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();
 let solicitudes=[];let reajustes=[];let tabActual='solicitudes';const currentRole=()=>{try{return String(window.SkilledSession?.role||JSON.parse(localStorage.getItem('skilled_profile_cache')||'{}').rol||'').toLowerCase()}catch(_){return String(window.SkilledSession?.role||'').toLowerCase()}};const canDeleteTest=()=>['administrador','jefe_almacen'].includes(currentRole());

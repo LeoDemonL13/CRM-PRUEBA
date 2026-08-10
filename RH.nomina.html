@@ -12,9 +12,23 @@
 <script src="auth-guard.js?v=24"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-.payroll-card{border:1px solid #202d4a;background:#0a1121;border-radius:16px}.payroll-chip{border:1px solid #2a395a;background:#0d1628;border-radius:999px;padding:5px 9px;font-size:9px;font-weight:800}.payroll-detail-row{display:grid;grid-template-columns:minmax(170px,1.5fr) repeat(4,minmax(100px,.7fr)) minmax(200px,1fr);gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid #18233b}.payroll-detail-row:last-child{border-bottom:0}.payroll-number{width:100%;border:1px solid #263653;background:#070d1b;border-radius:9px;padding:8px 9px;color:#e5e7eb}.payroll-number:focus{outline:none;border-color:#3b82f6}.status-dot{width:8px;height:8px;border-radius:999px;display:inline-block}
-@media(max-width:1100px){.payroll-detail-row{grid-template-columns:minmax(180px,1.6fr) repeat(2,minmax(100px,.7fr));}.payroll-detail-row .payroll-actions{grid-column:1/-1}.payroll-hide-tablet{display:none}}
-@media(max-width:700px){.payroll-detail-row{display:flex;flex-direction:column;align-items:stretch}.payroll-detail-row>div{width:100%}.payroll-card{border-radius:12px}}
+.payroll-card{border:1px solid #1b2944;background:linear-gradient(155deg,#0b1222,#090d1a);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.08)}
+.payroll-chip{display:inline-flex;align-items:center;border:1px solid #2a395a;background:#0d1628;border-radius:999px;padding:4px 8px;font-size:8px;font-weight:800;letter-spacing:.04em}
+.payroll-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.payroll-summary-card{display:flex;align-items:center;gap:12px;min-height:88px;border:1px solid #1b2944;border-radius:13px;background:linear-gradient(155deg,#0b1222,#090d1a);padding:13px 14px;overflow:hidden;position:relative}
+.payroll-summary-card:after{content:"";position:absolute;right:-22px;top:-28px;width:72px;height:72px;border-radius:50%;background:rgba(139,92,246,.06)}
+.payroll-summary-icon{width:38px;height:38px;flex:0 0 38px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid rgba(139,92,246,.24);background:rgba(109,40,217,.1);color:#a78bfa;position:relative;z-index:1}
+.payroll-summary-icon svg{width:18px!important;height:18px!important;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.payroll-summary-copy{min-width:0;position:relative;z-index:1}.payroll-summary-copy span{display:block;color:#748198;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.payroll-summary-copy strong{display:block;margin-top:5px;color:#f8fafc;font-size:19px;line-height:1;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.payroll-summary-copy small{display:block;margin-top:5px;color:#5e6b80;font-size:9px}
+.payroll-detail-row{display:grid;grid-template-columns:minmax(210px,1.7fr) repeat(4,minmax(105px,.65fr)) minmax(250px,1.15fr);gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid #18233b}.payroll-detail-row:last-child{border-bottom:0}
+.payroll-number{width:100%;border:1px solid #263653;background:#070d1b;border-radius:8px;padding:8px 9px;color:#e5e7eb;font-size:11px}.payroll-number:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.08)}
+.payroll-period-sidebar{position:sticky;top:82px;max-height:calc(100vh - 106px);overflow:auto}.payroll-period-sidebar::-webkit-scrollbar{width:6px}.payroll-period-sidebar::-webkit-scrollbar-thumb{background:#263653;border-radius:999px}
+.payroll-period-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #18233b}
+.payroll-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:15px 16px;border-bottom:1px solid #202d4a}
+.status-dot{width:8px;height:8px;border-radius:999px;display:inline-block}
+body.tema-claro .payroll-card,body.tema-claro .payroll-summary-card{background:#fff;border-color:#d9e1ed;box-shadow:0 10px 25px rgba(15,23,42,.05)}body.tema-claro .payroll-summary-copy strong,body.tema-claro .payroll-detail-head .text-white,body.tema-claro .payroll-card .text-white{color:#111827!important}body.tema-claro .payroll-number{background:#fff;border-color:#cfd8e6;color:#111827}
+@media(max-width:1150px){.payroll-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.payroll-detail-row{grid-template-columns:minmax(190px,1.5fr) repeat(2,minmax(100px,.7fr))}.payroll-detail-row .payroll-actions{grid-column:1/-1}.payroll-hide-tablet{display:none}.payroll-period-sidebar{position:static;max-height:none}}
+@media(max-width:700px){.payroll-summary-grid{grid-template-columns:1fr}.payroll-summary-card{min-height:78px}.payroll-detail-row{display:flex;flex-direction:column;align-items:stretch}.payroll-detail-row>div{width:100%}.payroll-card{border-radius:12px}.payroll-detail-head{flex-direction:column}}
 </style>
 </head>
 <body class="area-rh profile-page min-h-screen flex overflow-x-hidden">
@@ -36,16 +50,16 @@
     </div>
   </section>
 
-  <section class="profile-metrics !grid-cols-2 lg:!grid-cols-4">
-    <article class="profile-metric"><span class="profile-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg></span><p>Periodos</p><strong id="metric-periods">0</strong><small>Registrados</small></article>
-    <article class="profile-metric"><span class="profile-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18M17 7.5c0-1.5-1.7-2.5-5-2.5s-5 1.2-5 3 1.8 2.5 5 3 5 1.2 5 3-1.7 3-5 3-5-1-5-2.5"/></svg></span><p>Total periodo</p><strong id="metric-total">$0</strong><small>Periodo seleccionado</small></article>
-    <article class="profile-metric"><span class="profile-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a8.4 8.4 0 01-9 8.3 8.8 8.8 0 01-3.7-.9L3 20l1.1-4.1A8.1 8.1 0 013 11.5a8.5 8.5 0 1117 0zM8.5 8.5c.5 2 2 3.5 4 4l1-1 2 .5c.2 0 .4.3.4.5 0 1.2-1 2-2.2 2-3.5 0-6.2-2.7-6.2-6.2 0-1.2.8-2.2 2-2.2.2 0 .4.2.5.4l.5 2-1 1z"/></svg></span><p>WhatsApp listo</p><strong id="metric-whatsapp">0</strong><small>Personal habilitado</small></article>
-    <article class="profile-metric"><span class="profile-metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12l4 4L19 6"/></svg></span><p>Enviados</p><strong id="metric-sent">0</strong><small>Comprobantes del periodo</small></article>
+  <section class="payroll-summary-grid">
+    <article class="payroll-summary-card"><span class="payroll-summary-icon"><svg viewBox="0 0 24 24"><path d="M8 3v3M16 3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg></span><div class="payroll-summary-copy"><span>Periodos</span><strong id="metric-periods">0</strong><small>Registrados en RH</small></div></article>
+    <article class="payroll-summary-card"><span class="payroll-summary-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18M17 7.5c0-1.5-1.7-2.5-5-2.5s-5 1.2-5 3 1.8 2.5 5 3 5 1.2 5 3-1.7 3-5 3-5-1-5-2.5"/></svg></span><div class="payroll-summary-copy"><span>Neto del periodo</span><strong id="metric-total">$0</strong><small>Periodo seleccionado</small></div></article>
+    <article class="payroll-summary-card"><span class="payroll-summary-icon"><svg viewBox="0 0 24 24"><path d="M20 11.5a8.4 8.4 0 01-9 8.3 8.8 8.8 0 01-3.7-.9L3 20l1.1-4.1A8.1 8.1 0 013 11.5a8.5 8.5 0 1117 0zM8.5 8.5c.5 2 2 3.5 4 4l1-1 2 .5"/></svg></span><div class="payroll-summary-copy"><span>WhatsApp listo</span><strong id="metric-whatsapp">0</strong><small>Personal autorizado</small></div></article>
+    <article class="payroll-summary-card"><span class="payroll-summary-icon"><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></span><div class="payroll-summary-copy"><span>Comprobantes enviados</span><strong id="metric-sent">0</strong><small>Periodo seleccionado</small></div></article>
   </section>
 
   <section class="grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-4 mt-5">
-    <aside class="payroll-card p-4 h-fit">
-      <div class="flex items-center justify-between"><div><p class="text-sm font-bold text-white">Periodos</p><p class="text-[10px] text-gray-500 mt-1">Selecciona uno para revisar.</p></div><button id="reload-periods" class="crm-secondary !px-3 !py-2">Actualizar</button></div>
+    <aside class="payroll-card payroll-period-sidebar p-4 h-fit">
+      <div class="payroll-period-header"><div><p class="text-sm font-bold text-white">Periodos de nómina</p><p class="text-[10px] text-gray-500 mt-1">Selecciona un periodo para revisar el detalle.</p></div><button id="reload-periods" class="crm-secondary !px-3 !py-2">Actualizar</button></div>
       <div id="period-list" class="mt-4 space-y-2"><p class="text-xs text-gray-500">Cargando…</p></div>
     </aside>
 
@@ -60,7 +74,7 @@
         </article>
 
         <article class="payroll-card overflow-hidden">
-          <div class="px-4 py-3 border-b border-[#202d4a] flex items-center justify-between"><div><p class="text-sm font-bold text-white">Detalle del periodo</p><p class="text-[10px] text-gray-500 mt-1">Los cambios de bonos y descuentos recalculan el neto.</p></div><span id="people-count" class="payroll-chip text-violet-300">0 personas</span></div>
+          <div class="payroll-detail-head"><div><p class="text-sm font-bold text-white">Detalle del periodo</p><p class="text-[10px] text-gray-500 mt-1">Revisa sueldo base, bonos, descuentos, neto y envío de comprobantes.</p></div><span id="people-count" class="payroll-chip text-violet-300">0 personas</span></div>
           <div class="hidden xl:grid payroll-detail-row bg-[#080e1b] text-[9px] uppercase tracking-widest text-gray-500 font-bold"><div>Colaborador</div><div>Base</div><div>Bonos</div><div>Descuentos</div><div>Neto</div><div>Acciones</div></div>
           <div id="detail-list"></div>
         </article>
@@ -78,9 +92,9 @@
   </section>
 </div>
 
-<script src="RH.nomina.js?v=24"></script>
-<script src="skilled-sidebar.js?v=25"></script>
-<script src="skilled-sky.js?v=25" defer></script>
-<script src="skilled-performance.js?v=25" defer></script>
+<script src="RH.nomina.js?v=26"></script>
+<script src="skilled-sidebar.js?v=26"></script>
+<script src="skilled-sky.js?v=26" defer></script>
+<script src="skilled-performance.js?v=26" defer></script>
 </body>
 </html>
