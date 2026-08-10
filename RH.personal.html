@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <link rel="icon" href="/favicon.ico?v=29" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=29">
@@ -12,18 +12,18 @@
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Personal RH</title>
-<link rel="stylesheet" href="interfaz.css">
+<link rel="stylesheet" href="interfaz.css?v=37">
 <link rel="stylesheet" href="importaciones.css">
-<script src="navegacion-suave.js?v=24"></script>
+<script src="navegacion-suave.js?v=37"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=35"></script>
-<script src="auth-guard.js?v=24"></script>
+<script src="skilled-supabase.js?v=37"></script>
+<script src="auth-guard.js?v=37"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 .rh-tab{border:1px solid #243257;background:#0b1325;color:#8794aa;border-radius:9px;padding:8px 12px;font-size:10px;font-weight:700}.rh-tab.is-active{border-color:rgba(139,92,246,.45);background:rgba(139,92,246,.13);color:#ddd6fe}.rh-section{display:none}.rh-section.is-active{display:grid}.rh-avatar{width:38px;height:38px;border-radius:11px;border:1px solid #2b3b5c;background:#101a30;display:flex;align-items:center;justify-content:center;font-weight:800;color:#a5b4fc;overflow:hidden}.rh-avatar img{width:100%;height:100%;object-fit:cover}
 </style>
-<script src="skilled-search.js?v=31"></script>
+<script src="skilled-search.js?v=37"></script>
 </head>
 <body class="area-rh profile-page min-h-screen flex overflow-x-hidden">
 <aside></aside>
@@ -115,9 +115,9 @@
 </div>
 
 <script src="RH.personal.js?v=31"></script>
-<script src="skilled-sidebar.js?v=31"></script>
+<script src="skilled-sidebar.js?v=37"></script>
 <script>{const p=new URLSearchParams(location.search);if(p.get('nuevo')==='1')setTimeout(()=>document.getElementById('new-person')?.click(),450);if(p.get('importar')==='1')setTimeout(()=>document.getElementById('import-people')?.click(),500);}</script>
-<script src="skilled-sky.js?v=35" defer></script>
-<script src="skilled-performance.js?v=25" defer></script>
+<script src="skilled-sky.js?v=37" defer></script>
+<script src="skilled-performance.js?v=37" defer></script>
 </body>
 </html>

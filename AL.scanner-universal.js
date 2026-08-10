@@ -10,6 +10,34 @@
     let lastAt=0;
     let currentTicket=null;
     let recent=[];
+    let scannerLibraryPromise=null;
+    let warehouseCache={at:0,rows:[]};
+    let wedgeBuffer='';
+    let wedgeLastAt=0;
+
+    function loadScannerLibrary(){
+        if(typeof Html5Qrcode==='function')return Promise.resolve(true);
+        if(scannerLibraryPromise)return scannerLibraryPromise;
+        scannerLibraryPromise=new Promise((resolve,reject)=>{
+            const existing=document.querySelector('script[data-html5-qrcode]');
+            if(existing){existing.addEventListener('load',()=>resolve(typeof Html5Qrcode==='function'),{once:true});existing.addEventListener('error',()=>reject(new Error('No se pudo cargar el lector de cámara.')),{once:true});return}
+            const script=document.createElement('script');
+            script.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+            script.async=true;
+            script.dataset.html5Qrcode='1';
+            script.onload=()=>typeof Html5Qrcode==='function'?resolve(true):reject(new Error('El lector de cámara no quedó disponible.'));
+            script.onerror=()=>reject(new Error('No se pudo descargar el lector de cámara. Puedes usar el lector USB.'));
+            document.head.appendChild(script);
+        });
+        return scannerLibraryPromise;
+    }
+
+    async function cachedWarehouses(){
+        if(warehouseCache.rows.length&&Date.now()-warehouseCache.at<120000)return warehouseCache.rows;
+        const rows=await SkilledDB.listWarehouses();
+        warehouseCache={at:Date.now(),rows:Array.isArray(rows)?rows:[]};
+        return warehouseCache.rows;
+    }
 
     function parse(value){
         const raw=text(value);
@@ -24,6 +52,10 @@
         if(match)return{type:lower(match[1]),value:text(match[2]),raw};
         if(/^MAT:/i.test(raw))return{type:'material',value:raw.slice(4).trim(),raw};
         if(/^CAT:/i.test(raw))return{type:'categoria',value:raw.slice(4).trim(),raw};
+        if(/^(POS|UBI):/i.test(raw))return{type:'posicion',value:raw.replace(/^(POS|UBI):/i,'').trim(),raw};
+        if(/^PROY:/i.test(raw))return{type:'proyecto',value:raw.slice(5).trim(),raw};
+        if(/^(TKT|TICKET):/i.test(raw))return{type:'ticket',value:raw.replace(/^(TKT|TICKET):/i,'').trim(),raw};
+        if(/^(0[1-9]|1[0-9]|20)-([1-9]\d*)-([A-Z])([1-9]\d*)$/i.test(raw))return{type:'posicion',value:raw.toUpperCase(),raw};
         return{type:'auto',value:raw,raw};
     }
 
@@ -125,14 +157,24 @@
     }
 
     async function showMaterial(value){
-        const {data,error}=await SkilledDB.client.from('materiales').select('*').eq('codigo',value).maybeSingle();
+        const code=text(value);
+        const [{data,error},{data:inventory,error:inventoryError},warehouses]=await Promise.all([
+            SkilledDB.client.from('materiales').select('*').eq('codigo',code).maybeSingle(),
+            SkilledDB.client.from('existencias_almacen').select('almacen_id,stock,ubicacion,stock_minimo,stock_medio,stock_maximo').eq('material_codigo',code),
+            cachedWarehouses()
+        ]);
         if(error)throw error;
+        if(inventoryError)throw inventoryError;
         if(!data)return false;
-        const materials=await SkilledDB.listMaterials();
-        const material=materials.find(item=>lower(item.codigo)===lower(value))||data;
-        const warehouses=(material.almacenes||[]).map(row=>`<div class="flex justify-between gap-3 py-2 border-b border-[#1b2642]"><span class="text-xs text-gray-300">${html(row.nombre)}</span><span class="text-xs font-bold ${Number(row.stock)>0?'text-emerald-300':'text-rose-300'}">${html(row.stock)} ${html(material.unidad)}</span></div>`).join('');
-        const body=`<div class="flex items-start gap-4"><div class="w-20 h-20 rounded-xl bg-white border border-[#243257] overflow-hidden flex items-center justify-center">${material.imagen?`<img src="${html(material.imagen)}" class="w-full h-full object-contain">`:'<span class="text-gray-600 text-3xl">□</span>'}</div><div class="min-w-0"><p class="font-mono text-xs text-blue-300">${html(material.codigo)}</p><p class="mt-1 text-base font-bold text-white">${html(material.descripcion||material.desc)}</p><p class="mt-1 text-xs text-gray-500">${html(material.categoria)} · ${html(material.unidad)}</p><p class="mt-3 text-sm font-bold text-emerald-300">Stock total: ${html(material.stock)} ${html(material.unidad)}</p></div></div><div class="mt-5">${warehouses||'<p class="text-xs text-gray-500">Sin existencias por almacén.</p>'}</div>`;
-        card('Material encontrado',material.codigo,body,`<a href="AL.catalogo.html?buscar=${encodeURIComponent(material.codigo)}" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir catálogo</a>`);
+        const warehouseById=new Map(warehouses.map(row=>[Number(row.id),row]));
+        const rows=(inventory||[]).map(row=>({nombre:warehouseById.get(Number(row.almacen_id))?.nombre||`Almacén ${row.almacen_id}`,stock:Number(row.stock)||0,ubicacion:text(row.ubicacion)}));
+        const total=rows.reduce((sum,row)=>sum+row.stock,0);
+        const unit=text(data.unidad)||'unidades';
+        const description=text(data.descripcion||data.desc||data.codigo);
+        const image=text(data.imagen_url||data.imagen);
+        const warehouseRows=rows.map(row=>`<div class="flex items-center justify-between gap-3 py-2.5 border-b border-[#1b2642]"><div class="min-w-0"><span class="text-xs text-gray-300">${html(row.nombre)}</span>${row.ubicacion?`<p class="mt-1 font-mono text-[9px] text-blue-300">${html(row.ubicacion)}</p>`:''}</div><span class="text-xs font-bold whitespace-nowrap ${row.stock>0?'text-emerald-300':'text-rose-300'}">${row.stock.toLocaleString('es-MX')} ${html(unit)}</span></div>`).join('');
+        const body=`<div class="flex items-start gap-4"><div class="w-20 h-20 rounded-xl bg-white border border-[#243257] overflow-hidden flex items-center justify-center shrink-0">${image?`<img src="${html(image)}" loading="lazy" decoding="async" class="w-full h-full object-contain">`:'<span class="text-gray-600 text-3xl">□</span>'}</div><div class="min-w-0"><p class="font-mono text-xs text-blue-300 break-all">${html(data.codigo)}</p><p class="mt-1 text-base font-bold text-white">${html(description)}</p><p class="mt-1 text-xs text-gray-500">${html(data.categoria)} · ${html(unit)}</p><p class="mt-3 text-sm font-bold text-emerald-300">Stock total: ${total.toLocaleString('es-MX')} ${html(unit)}</p></div></div><div class="mt-5">${warehouseRows||'<p class="text-xs text-gray-500">Sin existencias por almacén.</p>'}</div>`;
+        card('Material encontrado',data.codigo,body,`<a href="AL.catalogo.html?buscar=${encodeURIComponent(data.codigo)}" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir catálogo</a>`);
         return true;
     }
 
@@ -146,15 +188,24 @@
         const {data,error}=await query.maybeSingle();
         if(error)throw error;
         if(!data)return false;
-        const warehouses=await SkilledDB.listWarehouses();
+        const warehouses=await cachedWarehouses();
         const warehouse=warehouses.find(row=>Number(row.id)===Number(data.almacen_id));
         let materials=[];
         if(positionMatch){
-            const inventory=await SkilledDB.listWarehouseInventory({warehouseId:Number(data.almacen_id)});
-            materials=inventory.filter(row=>text(row.ubicacion).toUpperCase()===raw);
+            const {data:inventory,error:inventoryError}=await SkilledDB.client.from('existencias_almacen').select('material_codigo,stock,ubicacion').eq('almacen_id',Number(data.almacen_id)).eq('ubicacion',raw);
+            if(inventoryError)throw inventoryError;
+            const codes=(inventory||[]).map(row=>text(row.material_codigo)).filter(Boolean);
+            let materialRows=[];
+            if(codes.length){
+                const result=await SkilledDB.client.from('materiales').select('codigo,descripcion,unidad').in('codigo',codes);
+                if(result.error)throw result.error;
+                materialRows=result.data||[];
+            }
+            const byCode=new Map(materialRows.map(row=>[lower(row.codigo),row]));
+            materials=(inventory||[]).map(row=>{const material=byCode.get(lower(row.material_codigo))||{};return{codigo:text(row.material_codigo),descripcion:text(material.descripcion||row.material_codigo),unidad:text(material.unidad),stock:Number(row.stock)||0}}).sort((a,b)=>a.descripcion.localeCompare(b.descripcion,'es'));
         }
         const filled=Math.min(materials.length,7);
-        const materialRows=positionMatch?(materials.length?`<div class="mt-4 rounded-xl border border-[#243257] overflow-hidden"><div class="px-4 py-3 border-b border-[#243257] flex items-center justify-between gap-3"><div><p class="text-xs font-bold text-white">Contenido del cajón</p><p class="mt-1 text-[9px] text-gray-500">Cada renglón corresponde a un tipo de material.</p></div><span class="text-[9px] font-bold ${filled>=7?'text-amber-300':'text-blue-300'}">${filled}/7 tipos</span></div><div class="divide-y divide-[#1b2642]">${materials.map((item,index)=>`<div class="px-4 py-3"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-[#111b31] border border-[#243257] text-[8px] text-gray-400 flex items-center justify-center shrink-0">${index+1}</span><p class="font-mono text-[9px] text-blue-300 truncate">${html(item.codigo)}</p></div><p class="mt-1.5 text-xs font-semibold text-white">${html(item.descripcion||item.codigo)}</p></div><span class="text-[9px] text-gray-400 whitespace-nowrap">${Number(item.stock||0).toLocaleString('es-MX')} ${html(item.unidad||'')}</span></div></div>`).join('')}</div></div>`:`<div class="mt-4 rounded-xl border border-dashed border-[#243257] p-6 text-center"><p class="text-xs font-semibold text-gray-400">Cajón disponible</p><p class="mt-1 text-[10px] text-gray-600">No hay materiales asignados a esta posición.</p></div>`):'';
+        const materialRows=positionMatch?(materials.length?`<div class="mt-4 rounded-xl border border-[#243257] overflow-hidden"><div class="px-4 py-3 border-b border-[#243257] flex items-center justify-between gap-3"><div><p class="text-xs font-bold text-white">Contenido del cajón</p><p class="mt-1 text-[9px] text-gray-500">${materials.length===1?'1 tipo de material':`${materials.length} tipos de material`} en esta posición.</p></div><span class="text-[9px] font-bold ${filled>=7?'text-amber-300':'text-blue-300'}">${filled}/7 tipos</span></div><div class="divide-y divide-[#1b2642]">${materials.map((item,index)=>`<div class="px-4 py-3"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-[#111b31] border border-[#243257] text-[8px] text-gray-400 flex items-center justify-center shrink-0">${index+1}</span><p class="font-mono text-[9px] text-blue-300 truncate">${html(item.codigo)}</p></div><p class="mt-1.5 text-xs font-semibold text-white">${html(item.descripcion||item.codigo)}</p></div><span class="text-[9px] text-gray-400 whitespace-nowrap">${item.stock.toLocaleString('es-MX')} ${html(item.unidad||'')}</span></div></div>`).join('')}</div></div>`:`<div class="mt-4 rounded-xl border border-dashed border-[#243257] p-6 text-center"><p class="text-xs font-semibold text-gray-400">Cajón disponible</p><p class="mt-1 text-[10px] text-gray-600">No hay materiales asignados a esta posición.</p></div>`):'';
         const shownCode=positionMatch?raw:(data.codigo||data.id);
         const body=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">${positionMatch?'Posición':'Ubicación'}</p><p class="mt-1 text-base font-bold text-white">${html(positionMatch?`Cajón ${shownCode}`:data.nombre)}</p><p class="mt-1 font-mono text-xs text-blue-300">${html(shownCode)}</p></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">Almacén</p><p class="mt-1 text-base font-bold text-white">${html(warehouse?.nombre||'Sin almacén')}</p><p class="mt-1 text-xs text-gray-500">${positionMatch?`${materials.length} tipo${materials.length===1?'':'s'} de material`:`${html(data.tipo)} · Posiciones 1–${html(data.columnas)}`}</p></div></div>${materialRows}${data.nota?`<p class="mt-4 text-xs text-gray-300">${html(data.nota)}</p>`:''}`;
         card(positionMatch?'Posición encontrada':'Ubicación encontrada',shownCode,body,`<a href="AL.almacenes.html" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir almacenes</a>`);
@@ -162,9 +213,10 @@
     }
 
     async function showProject(value){
-        const projects=await SkilledDB.listProjects();
-        const project=projects.find(row=>lower(row.proyecto)===lower(value));
-        if(!project)return false;
+        const {data,error}=await SkilledDB.client.from('proyectos').select('*').eq('numero_proyecto',text(value)).maybeSingle();
+        if(error)throw error;
+        if(!data)return false;
+        const project={proyecto:text(data.numero_proyecto),nombre:text(data.nombre_proyecto),cliente:text(data.cliente),ordenCompra:text(data.orden_compra),responsableSkilled:text(data.responsable_skilled),planta:text(data.planta),nave:text(data.nave)};
         const body=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${[['Nombre',project.nombre],['Cliente',project.cliente],['Orden de compra',project.ordenCompra],['Responsable',project.responsableSkilled],['Planta',project.planta],['Nave',project.nave]].map(([label,val])=>`<div class="rounded-xl border border-[#243257] bg-[#060a14] p-3"><p class="text-[9px] uppercase text-gray-500">${html(label)}</p><p class="mt-1 text-xs font-bold text-white">${html(val||'—')}</p></div>`).join('')}</div>`;
         card('Proyecto encontrado',project.proyecto,body,`<a href="AL.proyectos.html?proyecto=${encodeURIComponent(project.proyecto)}" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir proyecto</a>`);
         return true;
@@ -174,9 +226,10 @@
         const {data,error}=await SkilledDB.client.from('categorias_materiales').select('*').ilike('nombre',value).maybeSingle();
         if(error)throw error;
         if(!data)return false;
-        const materials=await SkilledDB.listMaterials();
-        const count=materials.filter(row=>lower(row.categoria)===lower(data.nombre)).length;
-        const body=`<div class="flex items-start gap-4"><div class="w-28 h-20 rounded-xl bg-white border border-[#243257] overflow-hidden flex items-center justify-center">${data.imagen_url?`<img src="${html(data.imagen_url)}" class="w-full h-full object-cover">`:'<span class="text-gray-600 text-3xl">□</span>'}</div><div><p class="text-lg font-bold text-white">${html(data.nombre)}</p><p class="mt-1 text-xs text-gray-500">${html(data.descripcion||'Sin descripción')}</p><p class="mt-3 text-sm font-bold text-blue-300">${count} materiales</p></div></div>`;
+        const countResult=await SkilledDB.client.from('materiales').select('codigo',{count:'exact',head:true}).eq('categoria',data.nombre);
+        if(countResult.error)throw countResult.error;
+        const count=Number(countResult.count)||0;
+        const body=`<div class="flex items-start gap-4"><div class="w-28 h-20 rounded-xl bg-white border border-[#243257] overflow-hidden flex items-center justify-center shrink-0">${data.imagen_url?`<img src="${html(data.imagen_url)}" loading="lazy" decoding="async" class="w-full h-full object-cover">`:'<span class="text-gray-600 text-3xl">□</span>'}</div><div><p class="text-lg font-bold text-white">${html(data.nombre)}</p><p class="mt-1 text-xs text-gray-500">${html(data.descripcion||'Sin descripción')}</p><p class="mt-3 text-sm font-bold text-blue-300">${count} materiales</p></div></div>`;
         card('Categoría encontrada',data.nombre,body,`<a href="AL.catalogo.html?categoria=${encodeURIComponent(data.nombre)}" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir categoría</a>`);
         return true;
     }
@@ -200,12 +253,12 @@
             else if(['proyecto','project'].includes(parsed.type)){found=await showProject(parsed.value);kind='Proyecto'}
             else if(['categoria','categoría','category'].includes(parsed.type)){found=await showCategory(parsed.value);kind='Categoría'}
             else{
-                found=await showTicket(parsed.value);
-                if(found)kind='Ticket';
-                if(!found){found=await showMaterial(parsed.value);if(found)kind='Material'}
+                found=await showMaterial(parsed.value);
+                if(found)kind='Material';
                 if(!found){found=await showLocation(parsed.value);if(found)kind='Posición'}
                 if(!found){found=await showProject(parsed.value);if(found)kind='Proyecto'}
                 if(!found){found=await showCategory(parsed.value);if(found)kind='Categoría'}
+                if(!found){found=await showTicket(parsed.value);if(found)kind='Ticket'}
             }
             if(!found){
                 currentTicket=null;
@@ -216,6 +269,7 @@
             }
             remember(parsed.raw,kind);
             setStatus(`${kind} identificado correctamente.`,'ok');
+            if(input&&matchMedia('(pointer:fine)').matches){input.focus({preventScroll:true});input.select?.()}
         }catch(error){
             currentTicket=null;
             card('Error al consultar',parsed.value,`<div class="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4"><p class="text-sm text-rose-300">${html(error.message||error)}</p></div>`);
@@ -234,11 +288,9 @@
             setStatus('La cámara requiere HTTPS. Puedes seguir usando el lector USB o la captura manual.','warn');
             return;
         }
-        if(typeof Html5Qrcode!=='function'){
-            setStatus('No se cargó el componente de lectura. Recarga la página e inténtalo de nuevo.','error');
-            return;
-        }
         try{
+            setStatus('Preparando lector de cámara…');
+            await loadScannerLibrary();
             setStatus('Solicitando acceso a la cámara…');
             scanner=scanner||new Html5Qrcode('universal-reader');
             await scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.min(w*.82,360),height:Math.min(h*.52,240)}),aspectRatio:1.333},code=>resolve(code),()=>{});
@@ -279,10 +331,26 @@
         renderHistory();
     };
 
+    document.addEventListener('keydown',event=>{
+        const target=event.target;
+        if(target?.id==='scanner-code'||target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(target?.tagName))return;
+        const now=Date.now();
+        if(now-wedgeLastAt>120)wedgeBuffer='';
+        wedgeLastAt=now;
+        if(event.key==='Enter'){
+            const value=text(wedgeBuffer);
+            wedgeBuffer='';
+            if(value.length>=3){event.preventDefault();const input=$('scanner-code');if(input)input.value=value;resolve(value)}
+            return;
+        }
+        if(event.key.length===1&&!event.ctrlKey&&!event.metaKey&&!event.altKey)wedgeBuffer+=event.key;
+    },true);
+
     window.addEventListener('beforeunload',()=>{if(scanner&&active)scanner.stop().catch(()=>{})});
     document.addEventListener('DOMContentLoaded',()=>{
         setCameraState(false);
         renderHistory();
+        if(matchMedia('(pointer:fine)').matches)setTimeout(()=>$('scanner-code')?.focus({preventScroll:true}),180);
         const params=new URLSearchParams(location.search);
         if(params.get('codigo'))setTimeout(()=>resolve(params.get('codigo')),400);
     });

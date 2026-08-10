@@ -4268,6 +4268,20 @@
         return message;
     }
 
+    async function edgeFunctionFailure(error, fallback = 'Servicio no disponible.') {
+        const message = await edgeFunctionErrorDetail(error, fallback);
+        const failure = new Error(message);
+        const response = error?.context;
+        const status = Number(response?.status) || 0;
+        failure.status = status;
+        if (status === 429 || /429|rate limit|too many requests|límite.*groq/i.test(message)) failure.code = 'rate_limit';
+        if (response?.headers?.get) {
+            const retry = Number(response.headers.get('retry-after'));
+            if (Number.isFinite(retry) && retry > 0) failure.retryAfterMs = retry * 1000;
+        }
+        return failure;
+    }
+
     function skyVoiceStatusCode(message = '', available = false, configured = false) {
         const value = text(message).toLowerCase();
         if (available && configured) return 'ready';
@@ -4294,7 +4308,10 @@
                 mensaje,
                 version: text(data?.version),
                 modelo: text(data?.model),
-                proveedor: text(data?.provider)
+                proveedor: text(data?.provider),
+                inteligenciaConfigurada: data?.intelligenceConfigured === true,
+                inteligenciaModelo: text(data?.intelligenceModel),
+                inteligenciaProveedor: text(data?.intelligenceProvider)
             };
         } catch (error) {
             const mensaje = errorMessage(error);
@@ -4310,10 +4327,30 @@
         form.append('profile', text(options.profile) || 'consulta');
         form.append('context', text(options.context).slice(0, 1800));
         const { data, error } = await client.functions.invoke('sky-transcribir', { body: form });
-        if (error) throw new Error(await edgeFunctionErrorDetail(error, 'No se pudo transcribir el audio.'));
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo transcribir el audio.');
         const transcript = text(data?.text ?? data?.transcript);
         if (!transcript) throw new Error(text(data?.error) || 'No se reconoció una frase en el audio.');
         return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model), proveedor: text(data?.provider) };
+    }
+
+    async function interpretSkyQuery(value, options = {}) {
+        const input = text(value).slice(0, 700);
+        if (!input) throw new Error('Falta la consulta a interpretar.');
+        const { data, error } = await client.functions.invoke('sky-transcribir', {
+            body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta' }
+        });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar Sky IA.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Sky IA no devolvió una interpretación válida.');
+        return {
+            intent: text(data?.intent),
+            query: text(data?.query) || input,
+            entity: text(data?.entity),
+            confidence: Number(data?.confidence) || 0,
+            locationOnly: data?.locationOnly === true,
+            duracionMs: Number(data?.durationMs) || 0,
+            modelo: text(data?.model),
+            proveedor: text(data?.provider)
+        };
     }
 
     function quotationRequestFromDb(row) {
@@ -5256,6 +5293,7 @@
         sendSupplierRequest,
         skyTranscriptionStatus,
         transcribeSkyAudio,
+        interpretSkyQuery,
         listQuotationRequests,
         getQuotationRequest,
         createQuotationRequest,

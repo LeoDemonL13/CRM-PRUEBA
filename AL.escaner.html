@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <link rel="icon" href="/favicon.ico?v=29" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=29">
@@ -11,13 +11,12 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css">
-<script src="navegacion-suave.js?v=24"></script>
+<link rel="stylesheet" href="interfaz.css?v=37">
+<script src="navegacion-suave.js?v=37"></script>
 <title>Skilled - Escáner universal</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="skilled-search.js?v=31"></script>
+<script src="skilled-search.js?v=37"></script>
 <style>
 #scanner-stage{overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(37,99,235,.13),transparent 42%),#03060d}#universal-reader{position:absolute;inset:0;overflow:hidden}
 #universal-reader video{width:100%!important;height:100%!important;object-fit:cover;border-radius:16px}
@@ -31,6 +30,12 @@
 .scan-line{position:absolute;left:7%;right:7%;top:50%;height:1px;background:linear-gradient(90deg,transparent,#60a5fa,transparent);box-shadow:0 0 14px rgba(96,165,250,.75);animation:scanMove 2.2s ease-in-out infinite}
 @keyframes scanMove{0%,100%{transform:translateY(-70px);opacity:.25}50%{transform:translateY(70px);opacity:1}}
 body.tema-claro #scanner-stage{background:#eaf0f8}
+
+.scanner-page{container-type:inline-size}.scanner-main-grid>div{min-width:0}.scanner-result{overflow-wrap:anywhere}.scanner-metrics .panel{min-width:0}.scanner-metrics p{overflow-wrap:anywhere}
+@container (max-width:860px){.scanner-main-grid{grid-template-columns:1fr!important}.scanner-result{min-height:300px!important}}
+@media(max-width:640px){.scanner-page{padding-top:12px!important}.scanner-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.scanner-metrics .panel{padding:11px!important}.scanner-metrics .panel p:nth-child(2),.scanner-metrics .panel>div{font-size:13px!important}.scanner-metrics .panel p:last-child{display:none}.scanner-main-grid{gap:12px!important}.scanner-main-grid>div{gap:12px!important}.scanner-result{min-height:260px!important;padding:12px!important}#scanner-stage{height:250px!important}.scan-frame{width:min(80%,300px);height:min(52%,170px)}.scan-line{animation-duration:2.8s}}
+@media(max-width:430px){.scanner-metrics article:nth-child(2),.scanner-metrics article:nth-child(3){display:none}.scanner-metrics{grid-template-columns:1fr 1fr!important}}
+html[data-crm-save-data="1"] .scan-line{animation:none;transform:none;opacity:.65}
 </style>
 </head>
 <body class="min-h-screen flex overflow-x-hidden">
@@ -45,38 +50,38 @@ body.tema-claro #scanner-stage{background:#eaf0f8}
 <div class="border-l border-[#161f38] pl-4 flex items-center gap-3"><div class="hidden sm:block text-right"><div id="profile-name" class="text-xs font-bold text-white">Almacén</div><div id="profile-role" class="text-[10px] text-gray-500">Inventario</div></div><div id="profile-avatar" class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 flex items-center justify-center text-xs font-bold">A</div></div>
 </div>
 </header>
-<main class="flex-1 p-6 md:p-8 max-w-[1500px] mx-auto w-full">
+<main class="scanner-page flex-1 p-6 md:p-8 max-w-[1600px] mx-auto w-full">
 <nav class="text-[11px] text-gray-500 mb-3 flex items-center gap-2"><a href="AL.inicio.html" class="hover:text-gray-300">Inicio</a><span>›</span><span class="text-gray-300 font-semibold">Escáner universal</span></nav>
 <section class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
 <div class="flex items-start gap-3"><div class="w-11 h-11 rounded-xl bg-[#0a1122] border border-[#1d2949] text-blue-400 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M9 7v10M12 7v10M15 7v10"/></svg></div><div><h1 class="text-2xl font-bold text-white">Escáner universal</h1><p class="text-sm text-gray-500 mt-1 max-w-2xl">Lee QR, códigos de barras o captura manual para localizar materiales, posiciones, proyectos, categorías y comprobantes.</p></div></div>
 <div class="flex flex-wrap gap-2"><a href="AL.historial-movimientos.html" class="crm-secondary">Historial de movimientos</a><a href="AL.etiquetas.html" class="crm-secondary">Etiquetas</a></div>
 </section>
-<section class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+<section class="scanner-metrics grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
 <article class="panel p-4"><p class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Métodos</p><p class="mt-2 text-lg font-bold text-white">Cámara + USB</p><p class="mt-1 text-[10px] text-gray-500">También admite captura manual</p></article>
 <article class="panel p-4"><p class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Consultas</p><p class="mt-2 text-lg font-bold text-white">5 tipos</p><p class="mt-1 text-[10px] text-gray-500">Material, posición, proyecto, categoría y ticket</p></article>
 <article class="panel p-4"><p class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Posiciones</p><p class="mt-2 text-lg font-bold text-emerald-300">Multi-material</p><p class="mt-1 text-[10px] text-gray-500">Muestra todo el contenido del cajón</p></article>
 <article class="panel p-4"><p class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Estado</p><div class="mt-2 flex items-center gap-2"><span id="scanner-state-dot" class="w-2 h-2 rounded-full bg-gray-500"></span><p id="scanner-mode-state" class="text-lg font-bold text-white">En espera</p></div><p class="mt-1 text-[10px] text-gray-500">La cámara solo se activa cuando la solicitas</p></article>
 </section>
-<section class="grid grid-cols-1 xl:grid-cols-[.88fr_1.12fr] gap-5 items-start">
+<section class="scanner-main-grid grid grid-cols-1 xl:grid-cols-[.9fr_1.1fr] gap-5 items-start">
 <div class="space-y-5">
 <article class="panel overflow-hidden">
 <div class="px-5 py-4 border-b border-[#161f38] flex items-center justify-between gap-3"><div><h2 class="text-sm font-bold text-white">Lector</h2><p class="mt-1 text-[10px] text-gray-500">Centra el código dentro del marco azul.</p></div><span class="px-2.5 py-1 rounded-full border border-blue-500/25 bg-blue-950/10 text-[9px] font-bold text-blue-300">QR + BARRAS</span></div>
 <div class="p-5">
-<div id="scanner-stage" class="relative h-[320px] sm:h-[360px] rounded-2xl border border-[#243257]"><div id="universal-reader"></div><div class="scan-frame"><span></span><span></span><span></span><span></span><div class="scan-line"></div></div><div class="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]" id="scanner-idle"><div class="text-center"><div class="mx-auto w-12 h-12 rounded-xl border border-[#253858] bg-[#0b1425]/90 text-blue-300 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M9 8h6v8H9z"/></svg></div><p class="mt-3 text-xs font-semibold text-gray-300">Cámara detenida</p><p class="mt-1 text-[10px] text-gray-600">Pulsa iniciar cuando estés listo.</p></div></div></div>
+<div id="scanner-stage" class="relative h-[280px] sm:h-[340px] lg:h-[360px] rounded-2xl border border-[#243257]"><div id="universal-reader"></div><div class="scan-frame"><span></span><span></span><span></span><span></span><div class="scan-line"></div></div><div class="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]" id="scanner-idle"><div class="text-center"><div class="mx-auto w-12 h-12 rounded-xl border border-[#253858] bg-[#0b1425]/90 text-blue-300 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M9 8h6v8H9z"/></svg></div><p class="mt-3 text-xs font-semibold text-gray-300">Cámara detenida</p><p class="mt-1 text-[10px] text-gray-600">Pulsa iniciar cuando estés listo.</p></div></div></div>
 <div class="mt-4 flex flex-wrap gap-2"><button id="btn-start-scanner" type="button" onclick="iniciarScannerUniversal()" class="crm-primary">Iniciar cámara</button><button id="btn-stop-scanner" type="button" onclick="detenerScannerUniversal()" class="crm-secondary" disabled>Detener</button></div>
-<div class="mt-3 rounded-xl border border-[#1d2949] bg-[#0a1122] px-3.5 py-3 flex items-start gap-2"><span id="scanner-status-dot" class="mt-1 w-2 h-2 rounded-full bg-gray-500 shrink-0"></span><p id="scanner-status" class="text-xs text-gray-400 leading-relaxed">Presiona iniciar para solicitar permiso de cámara o utiliza un lector USB.</p></div>
+<div class="mt-3 rounded-xl border border-[#1d2949] bg-[#0a1122] px-3.5 py-3 flex items-start gap-2"><span id="scanner-status-dot" class="mt-1 w-2 h-2 rounded-full bg-gray-500 shrink-0"></span><p id="scanner-status" aria-live="polite" class="text-xs text-gray-400 leading-relaxed">Presiona iniciar para solicitar permiso de cámara o utiliza un lector USB.</p></div>
 </div>
 </article>
 <article class="panel p-5">
 <div class="flex items-center justify-between gap-3"><div><h2 class="text-sm font-bold text-white">Lector físico o captura manual</h2><p class="mt-1 text-[10px] text-gray-500">Los lectores USB funcionan como teclado y envían Enter al terminar.</p></div><span class="hidden sm:inline-flex text-[9px] font-mono text-gray-500 border border-[#243257] rounded-md px-2 py-1">ENTER</span></div>
-<div class="mt-4 flex flex-col sm:flex-row gap-2"><input id="scanner-code" onkeydown="procesarScannerManual(event)" autocomplete="off" placeholder="Escanea o escribe el código" class="field min-w-0 flex-1 font-mono"><button type="button" onclick="procesarScannerManual()" class="crm-primary sm:w-auto">Consultar</button></div>
+<div class="mt-4 flex flex-col sm:flex-row gap-2"><input id="scanner-code" onkeydown="procesarScannerManual(event)" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="Escanea o escribe el código" class="field min-w-0 flex-1 font-mono"><button type="button" onclick="procesarScannerManual()" class="crm-primary sm:w-auto">Consultar</button></div>
 <div class="mt-3 flex flex-wrap gap-2 text-[9px] text-gray-500"><span class="px-2 py-1 rounded-md bg-[#0d1425] border border-[#1d2949]">MAT:código</span><span class="px-2 py-1 rounded-md bg-[#0d1425] border border-[#1d2949]">SKILLED|ubicacion|01-1-A1</span><span class="px-2 py-1 rounded-md bg-[#0d1425] border border-[#1d2949]">Código directo</span></div>
 </article>
 </div>
 <div class="space-y-5">
 <article class="panel overflow-hidden">
 <div class="px-5 py-4 border-b border-[#161f38] flex items-center justify-between gap-3"><div><h2 class="text-sm font-bold text-white">Resultado de la lectura</h2><p class="mt-1 text-[10px] text-gray-500">La consulta es de solo lectura.</p></div><span class="inline-flex items-center gap-2 text-[9px] text-emerald-300"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Supabase</span></div>
-<div id="scanner-result" class="min-h-[455px] p-5 flex items-center justify-center">
+<div id="scanner-result" aria-live="polite" class="scanner-result min-h-[420px] p-5 flex items-center justify-center">
 <div class="max-w-md text-center"><div class="mx-auto w-16 h-16 rounded-2xl border border-[#243257] bg-[#0d1425] flex items-center justify-center text-blue-300"><svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM15 14h1v1h-1zM18 14h1v3h-1zM14 18h3v1h-3z"/></svg></div><p class="mt-4 text-sm font-semibold text-gray-300">Listo para leer</p><p class="mt-2 text-xs text-gray-600 leading-relaxed">Al escanear una etiqueta de posición se mostrarán todos los materiales guardados dentro de ese cajón.</p></div>
 </div>
 </article>
@@ -88,12 +93,12 @@ body.tema-claro #scanner-stage{background:#eaf0f8}
 </section>
 </main>
 </div>
-<script src="skilled-supabase.js?v=35"></script>
-<script src="auth-guard.js?v=24"></script>
+<script src="skilled-supabase.js?v=37"></script>
+<script src="auth-guard.js?v=37"></script>
 <script src="AL.ticket-materiales.js?v=35"></script>
-<script src="AL.scanner-universal.js?v=35"></script>
-<script src="skilled-sidebar.js?v=31" defer></script>
-<script src="skilled-sky.js?v=35" defer></script>
-<script src="skilled-performance.js?v=25" defer></script>
+<script src="AL.scanner-universal.js?v=37"></script>
+<script src="skilled-sidebar.js?v=37" defer></script>
+<script src="skilled-sky.js?v=37" defer></script>
+<script src="skilled-performance.js?v=37" defer></script>
 </body>
 </html>

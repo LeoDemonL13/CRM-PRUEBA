@@ -109,7 +109,7 @@
     const prefetched = new Set();
     function prefetch(anchor) {
         const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-        if(connection?.saveData||['slow-2g','2g'].includes(connection?.effectiveType))return;
+        if(connection?.saveData||['slow-2g','2g','3g'].includes(connection?.effectiveType))return;
         const url = targetUrl(anchor);
         if (!url || prefetched.has(url.href)) return;
         prefetched.add(url.href);
@@ -139,24 +139,19 @@
         beginProgress();
     }, false);
 
-    async function retireLegacyServiceWorker() {
+    async function enableServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
+        if (!window.isSecureContext && !['localhost','127.0.0.1'].includes(location.hostname)) return;
         try {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map(registration => registration.unregister()));
-            if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.filter(key => /^skilled-crm/i.test(key)).map(key => caches.delete(key)));
-            }
-            localStorage.setItem('skilled_sw_retirado', '1');
-        } catch (error) {
-            console.debug('No fue necesario retirar la caché anterior:', error);
-        }
+            const registration = await navigator.serviceWorker.register('./crm-sw.js?v=37', { scope: './', updateViaCache: 'none' });
+            registration.update().catch(() => {});
+        } catch (_) {}
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', retireLegacyServiceWorker, { once: true });
+        document.addEventListener('DOMContentLoaded', enableServiceWorker, { once: true });
     } else {
-        retireLegacyServiceWorker();
+        enableServiceWorker();
     }
+
 })();
