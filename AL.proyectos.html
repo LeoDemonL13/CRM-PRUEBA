@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#060814">
-<link rel="icon" href="/favicon.ico?v=28" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=28">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=28">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=28">
-<link rel="manifest" href="/site.webmanifest?v=28">
+<link rel="icon" href="/favicon.ico?v=29" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=29">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=29">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=29">
+<link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <link rel="stylesheet" href="interfaz.css">
@@ -17,7 +17,7 @@
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=28"></script>
+    <script src="skilled-supabase.js?v=29"></script>
 <script src="auth-guard.js?v=24"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -622,7 +622,7 @@
     <div id="modal-proyecto" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
             <div class="px-5 py-4 border-b border-[#161f38] flex items-center justify-between">
-                <div><div id="modal-titulo" class="text-sm font-bold text-white">Nuevo proyecto</div><div class="text-[10px] text-gray-500 mt-1">Los datos se guardarán directamente en Supabase.</div></div>
+                <div><div id="modal-titulo" class="text-sm font-bold text-white">Nuevo proyecto</div><div class="text-[10px] text-gray-500 mt-1">Primero crea el proyecto. Después podrás abrirlo y construir o modificar su plan de materiales cuando lo necesites.</div></div>
                 <button onclick="cerrarModalProyecto()" class="text-gray-500 hover:text-white text-xl">×</button>
             </div>
             <form id="form-proyecto" class="p-5">
@@ -1110,7 +1110,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=28');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=29');
             }
             return cliente;
         }
@@ -2374,11 +2374,15 @@
                 cerrarModalProyecto();
                 const nombreNuevo = datos.proyecto;
                 await cargarProyectos();
-                if (original && proyectoActual) {
-                    proyectoActual = proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(nombreNuevo)) || null;
-                    if (proyectoActual) {
-                        renderDetalle();
-                        await cargarMovimientosProyecto();
+                proyectoActual = proyectos.find(item => claveProyecto(item.proyecto) === claveProyecto(nombreNuevo)) || null;
+                if (proyectoActual) {
+                    renderDetalle();
+                    await cargarMovimientosProyecto();
+                    if (!original && proyectoActual.tipoControl !== 'presupuesto') {
+                        setTimeout(() => {
+                            const plan = document.getElementById('panel-plan') || document.getElementById('plan-materiales') || document.querySelector('[data-project-plan]');
+                            if (plan?.scrollIntoView) plan.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 120);
                     }
                 }
             } catch (error) {

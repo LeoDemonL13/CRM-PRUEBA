@@ -85,7 +85,14 @@
             [/\bque traemos de\b/g, 'cuanto tenemos de'], [/\bque hay de\b/g, 'cuanto tenemos de'], [/\bcuanto queda ahorita\b/g, 'cuanto tenemos'], [/\bcuanto tenemos ahorita\b/g, 'cuanto tenemos'],
             [/\bdonde anda\b/g, 'donde esta'], [/\bdonde mero esta\b/g, 'donde esta'], [/\bdonde lo pusieron\b/g, 'donde esta'], [/\bdonde lo dejaron\b/g, 'donde esta'],
             [/\bcotizame\b/g, 'cotizacion'], [/\bcheca precios\b/g, 'compara proveedores'], [/\bcheca proveedor\b/g, 'busca proveedor'], [/\bque urge\b/g, 'prioridad urgente'],
-            [/\bjunta general\b/g, 'reunion general'], [/\bjunta con todos\b/g, 'reunion general']
+            [/\bjunta general\b/g, 'reunion general'], [/\bjunta con todos\b/g, 'reunion general'],
+            [/\ba ver si tenemos\b/g, 'cuanto tenemos de'], [/\ba ver si hay\b/g, 'cuanto tenemos de'], [/\bcheca si tenemos\b/g, 'cuanto tenemos de'],
+            [/\brevisa si tenemos\b/g, 'cuanto tenemos de'], [/\bfijate si tenemos\b/g, 'cuanto tenemos de'], [/\btenemos por ahi\b/g, 'cuanto tenemos de'],
+            [/\bque queda de\b/g, 'cuanto tenemos de'], [/\bque nos queda de\b/g, 'cuanto tenemos de'], [/\bcuanto queda de\b/g, 'cuanto tenemos de'],
+            [/\bpasame el dato de\b/g, 'busca'], [/\bdame el dato de\b/g, 'busca'], [/\bpasame info de\b/g, 'busca'], [/\bdame info de\b/g, 'busca'],
+            [/\bcomo va el jale\b/g, 'estado de proyecto'], [/\bcomo anda el jale\b/g, 'estado de proyecto'], [/\bque onda con el proyecto\b/g, 'estado de proyecto'],
+            [/\bdonde mero quedo\b/g, 'donde esta'], [/\bdonde mero anda\b/g, 'donde esta'], [/\bdonde se guardo\b/g, 'donde esta'],
+            [/\bechame la mano con\b/g, 'busca'], [/\bme ayudas con\b/g, 'busca'], [/\bayudame a encontrar\b/g, 'busca']
         ];
         replacements.forEach(([regex, replacement]) => { output = output.replace(regex, replacement); });
         return output.replace(/\s+/g, ' ').trim();
@@ -431,7 +438,8 @@
         'ras':'rack','rac':'rack','rack':'rack','prollecto':'proyecto','prollectos':'proyectos','proyeto':'proyecto','proyetos':'proyectos',
         'ocden':'orden','horden':'orden','conpra':'compra','combra':'compra','provedor':'proveedor','probedor':'proveedor',
         'requisision':'requisicion','requicision':'requisicion','incapasidad':'incapacidad','capasitacion':'capacitacion',
-        'ora':'hora','oras':'horas','feha':'fecha','fesha':'fecha','oy':'hoy','meses':'mes','skai':'sky','skay':'sky','escai':'sky'
+        'ora':'hora','oras':'horas','feha':'fecha','fesha':'fecha','oy':'hoy','meses':'mes','skai':'sky','skay':'sky','escai':'sky',
+        'checame':'revisa','chekame':'revisa','checame':'revisa','chécame':'revisa','jale':'proyecto','jales':'proyectos','troka':'pickup','troca':'pickup','bodega':'bodega'
     }));
     const BASE_SPEECH_WORDS = [
         'sky','hora','horas','fecha','dia','hoy','semana','mes','ano','perfil','ayuda','comandos','repite','silencio','calcula',
@@ -441,7 +449,7 @@
         'trabajador','trabajadores','personal','empleado','empleados','ausencia','ausencias','vacaciones','incapacidad','documento','documentos','contrato','contratos','capacitacion','incidencia',
         'presupuesto','costo','costos','consumido','planeado','gasto','gastos','finanzas','avance','ruta','picking','solicitud','solicitudes','disponible','disponibles'
     ];
-    const SPEECH_KEEP_WORDS = new Set(['como','cuando','porque','para','pero','esta','estan','este','estos','estas','quiero','necesito','tengo','tenemos','tiene','tienen','hay','dime','busca','buscar','abre','muestra','ver','verifica','revisa','principal','actual','ahora','aqui','alla','total']);
+    const SPEECH_KEEP_WORDS = new Set(['como','cuando','porque','para','pero','esta','estan','este','estos','estas','quiero','necesito','tengo','tenemos','tiene','tienen','hay','dime','busca','buscar','abre','muestra','ver','verifica','revisa','principal','actual','ahora','ahorita','aqui','alla','total','mero','queda','quedan','jale','onda','dato','info']);
     function spanishPhonetic(value) {
         let word = normalize(value).replace(/[^a-zñ0-9]/g, '');
         if (!word || /^\d+$/.test(word)) return word;
@@ -456,6 +464,9 @@
         const push = value => normalize(value).split(' ').forEach(token => { if (token.length >= 3 && token.length <= 28 && !/^\d+$/.test(token)) words.add(token); });
         if (profile === 'almacen' || profile === 'consulta') {
             (Array.isArray(cache.materials) ? cache.materials : []).slice(0, 1600).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
+            (Array.isArray(cache.tools) ? cache.tools : []).slice(0, 600).forEach(item => [item.sku,item.descripcion,item.marca,item.modelo,item.clasificacion].forEach(push));
+            (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0, 300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
+            (Array.isArray(cache.projects) ? cache.projects : []).slice(0, 700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
         } else if (profile === 'compras') {
             (Array.isArray(cache.coSuppliers) ? cache.coSuppliers : []).slice(0,500).forEach(item => [item.razon_social,item.nombre_comercial,item.rfc].forEach(push));
             (Array.isArray(cache.coServices) ? cache.coServices : []).slice(0,200).forEach(item => [item.nombre,item.proveedor,item.tipo].forEach(push));
@@ -516,7 +527,9 @@
             [/\bque horas son\b/g,'que hora es'],[/\bque horas es\b/g,'que hora es'],[/\bque ora es\b/g,'que hora es'],[/\bdime la ora\b/g,'dime la hora'],
             [/\bque dia estamos\b/g,'que dia es hoy'],[/\ba que dia estamos\b/g,'que dia es hoy'],[/\bque fecha estamos\b/g,'que fecha es hoy'],
             [/\borden compra\b/g,'orden de compra'],[/\bbajo del minimo\b/g,'bajo minimo'],[/\bcuanto tubo\b/g,'cuantos tubos'],[/\bcuanto tubos\b/g,'cuantos tubos'],
-            [/\bde 1 pulga\b/g,'de 1 pulgada'],[/\bde una pulga\b/g,'de 1 pulgada'],[/\buna pulgada\b/g,'1 pulgada'],[/\bmedia pulga\b/g,'1/2 pulgada']
+            [/\bde 1 pulga\b/g,'de 1 pulgada'],[/\bde una pulga\b/g,'de 1 pulgada'],[/\buna pulgada\b/g,'1 pulgada'],[/\bmedia pulga\b/g,'1/2 pulgada'],
+            [/\bchecame\b/g,'revisa'],[/\bchekame\b/g,'revisa'],[/\ba ver si ay\b/g,'a ver si hay'],[/\bdonde mero\b/g,'donde esta'],
+            [/\bcomo va el yale\b/g,'como va el jale'],[/\bcomo va el jale\b/g,'estado de proyecto'],[/\bque onda con el proyecto\b/g,'estado de proyecto']
         ];
         phraseCorrections.forEach(([regex,replacement]) => { normalized = normalized.replace(regex,replacement); });
         const lexicon = domainSpeechLexicon();
@@ -713,6 +726,7 @@
             if (profile === 'compras') await Promise.all([loadData('coSuppliers'), loadData('coServices'), loadData('coQuotations')]);
             else if (profile === 'rh') await loadData('rhPeople');
             else if (profile === 'finanzas' || profile === 'proyectos') await loadData('projectDetails');
+            else if (profile === 'almacen' || profile === 'consulta') await Promise.all([loadData('materials'), loadData('tools'), loadData('vehicles'), loadData('projects')]);
             else await loadData('materials');
             vocabularyPrimedProfile = profile;
         } catch (_) {} finally { vocabularyPriming = false; }
@@ -1691,6 +1705,7 @@
             setAnswer('Proyectos', `${active.length} proyectos están activos actualmente.`, 'Indica un número o nombre para consultar avance, costo y fechas.', active.slice(0, 7).map(item => ({ title: `${item.proyecto} · ${item.nombreProyecto || 'Proyecto'}`, detail: `${item.estado || 'activo'} · avance ${formatNumber(item.avance)}% · entrega ${dateOnly(item.fechaEntrega)}` })), { href: `AL.proyectos.html${profileParam}`, label: 'Abrir proyectos' });
             return `Hay ${active.length} proyectos activos.`;
         }
+        conversationContext.project = { proyecto: text(project.proyecto), nombre: text(project.nombreProyecto) };
         const cards = [
             { title: 'Estado', detail: project.estado || 'sin estado' },
             { title: 'Avance', detail: `${formatNumber(project.avance)}%` },
@@ -1937,6 +1952,9 @@
         }
         if (conversationContext.vehicle && /^(y\s+)?(como esta|estado|disponible|kilometraje|cuantos km|donde esta)/.test(norm)) {
             return `Vehículo ${conversationContext.vehicle.nombre} ${original}`;
+        }
+        if (conversationContext.project && /^(y\s+)?(como va|como anda|cuanto lleva|cuanto se ha gastado|gasto|costo|avance|cuando entrega|fecha de entrega|y ese)/.test(norm)) {
+            return `Proyecto ${conversationContext.project.proyecto || conversationContext.project.nombre} ${original}`;
         }
         return original;
     }

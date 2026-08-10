@@ -2756,6 +2756,8 @@ $$;
 revoke all on function public.co_aprobar_cotizacion(uuid) from public,anon;
 grant execute on function public.co_aprobar_cotizacion(uuid) to authenticated;
 
+-- V29 compatibility before executive views
+alter table public.proyectos add column if not exists presupuesto_planeado numeric(16,2) not null default 0;
 alter table public.proyectos add column if not exists presupuesto_materiales numeric(16,2) not null default 0;
 alter table public.proyectos add column if not exists presupuesto_sueldos numeric(16,2) not null default 0;
 
@@ -3797,3 +3799,32 @@ select
     'CRM-V28-STORAGE-API-FAVICON-TRANSPARENTE-2026-08-10' as version,
     case when to_regprocedure('public.crm_borrar_ordenes_compra_prueba(text)') is not null then 'OK' else 'FALTA' end as borrar_ordenes,
     case when exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='crm_ordenes_compra_delete_v28') then 'OK' else 'FALTA' end as storage_delete_api;
+
+begin;
+
+-- V29 · Proyectos: creación independiente del plan de materiales.
+-- La columna legacy se conserva únicamente para proyectos controlados por presupuesto.
+alter table public.proyectos add column if not exists presupuesto_planeado numeric(16,2) not null default 0;
+alter table public.proyectos add column if not exists presupuesto_materiales numeric(16,2) not null default 0;
+alter table public.proyectos add column if not exists presupuesto_sueldos numeric(16,2) not null default 0;
+
+comment on column public.proyectos.presupuesto_planeado is 'Compatibilidad para proyectos cuyo tipo_control es presupuesto. Un proyecto por plan de materiales puede crearse sin capturar este monto.';
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V29-PROYECTO-PRIMERO-PLAN-DESPUES-SKY-MODISMOS-2026-08-10',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+    'OK' as estado,
+    'CRM-V29-PROYECTO-PRIMERO-PLAN-DESPUES-SKY-MODISMOS-2026-08-10' as version,
+    case when exists(
+        select 1 from information_schema.columns
+        where table_schema='public' and table_name='proyectos' and column_name='presupuesto_planeado'
+    ) then 'OK' else 'FALTA' end as presupuesto_legacy,
+    case when exists(
+        select 1 from information_schema.columns
+        where table_schema='public' and table_name='proyectos' and column_name='presupuesto_materiales'
+    ) then 'OK' else 'FALTA' end as presupuesto_materiales;

@@ -1794,9 +1794,11 @@
             fecha_asignacion: project.fechaAsignacion ?? project.fecha_asignacion ?? null,
             fecha_entrega: project.fechaEntrega ?? project.fecha_entrega ?? null,
             tipo_control: text(project.tipoControl ?? project.tipo_control) === 'presupuesto' ? 'presupuesto' : 'materiales',
-            presupuesto_planeado: Math.max(0, number(project.presupuestoPlaneado ?? project.presupuesto_planeado)),
             updated_at: new Date().toISOString()
         };
+        if (row.tipo_control === 'presupuesto') {
+            row.presupuesto_planeado = Math.max(0, number(project.presupuestoPlaneado ?? project.presupuesto_planeado));
+        }
 
         if (!row.numero_proyecto || !row.nombre_proyecto || !row.cliente || !row.planta ||
             !row.responsable_skilled || !row.fecha_asignacion || !row.fecha_entrega) {
