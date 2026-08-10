@@ -80,7 +80,12 @@
             [/\bdonde dejaron\b/g, 'donde esta'], [/\bdonde guardaron\b/g, 'donde esta'], [/\bdonde quedo\b/g, 'donde esta'],
             [/\bbuscame\b/g, 'busca'], [/\bcheca\b/g, 'revisa'], [/\bchecame\b/g, 'revisa'], [/\bchécame\b/g, 'revisa'],
             [/\bcomo anda\b/g, 'como va'], [/\bcomo vamos con\b/g, 'estado de'], [/\bque falta de\b/g, 'pendiente de'],
-            [/\bla troca\b/g, 'pickup'], [/\btroca\b/g, 'pickup'], [/\bmonta cargas\b/g, 'montacargas'], [/\bgenny\b/g, 'generador movil']
+            [/\bla troca\b/g, 'pickup'], [/\btroca\b/g, 'pickup'], [/\bmonta cargas\b/g, 'montacargas'], [/\bgenny\b/g, 'generador movil'],
+            [/\bechale un ojo\b/g, 'revisa'], [/\bechame un ojo\b/g, 'revisa'], [/\bpegale una revisada\b/g, 'revisa'], [/\bdate una vuelta por\b/g, 'revisa'],
+            [/\bque traemos de\b/g, 'cuanto tenemos de'], [/\bque hay de\b/g, 'cuanto tenemos de'], [/\bcuanto queda ahorita\b/g, 'cuanto tenemos'], [/\bcuanto tenemos ahorita\b/g, 'cuanto tenemos'],
+            [/\bdonde anda\b/g, 'donde esta'], [/\bdonde mero esta\b/g, 'donde esta'], [/\bdonde lo pusieron\b/g, 'donde esta'], [/\bdonde lo dejaron\b/g, 'donde esta'],
+            [/\bcotizame\b/g, 'cotizacion'], [/\bcheca precios\b/g, 'compara proveedores'], [/\bcheca proveedor\b/g, 'busca proveedor'], [/\bque urge\b/g, 'prioridad urgente'],
+            [/\bjunta general\b/g, 'reunion general'], [/\bjunta con todos\b/g, 'reunion general']
         ];
         replacements.forEach(([regex, replacement]) => { output = output.replace(regex, replacement); });
         return output.replace(/\s+/g, ' ').trim();
@@ -260,7 +265,8 @@
     }
 
     function setAnswer(title, main, detail = '', cards = [], link = null) {
-        answerNode.innerHTML = `<div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cards.map(card => `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span></div>`).join('')}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}">${html(link.label)}</a>` : ''}`;
+        const external = link && /^https?:\/\//i.test(String(link.href || ''));
+        answerNode.innerHTML = `<div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cards.map(card => `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span></div>`).join('')}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}`;
     }
 
     function cachedUserId() {
@@ -1755,6 +1761,29 @@
             setAnswer('Año actual', String(date.year), capitalize(date.dateLong));
             return { handled:true, voice:message };
         }
+        if (/\b(reunion general|convoca(?:r)? una reunion|convoca(?:r)? reunion|reunir a todos|reunion con todos|junta general)\b/.test(norm)) {
+            if (window.SkilledChat?.openMeeting) {
+                window.SkilledChat.openMeeting();
+                const message='Abrí la convocatoria de reunión general. Revisa la hora y el mensaje antes de enviarla a los usuarios.';
+                setAnswer('Reunión general', message, 'La convocatoria no se envía automáticamente: primero debes confirmarla.', [{title:'Seguridad',detail:'Sky prepara la acción, pero una persona confirma el envío.'},{title:'Notificación',detail:'Los usuarios reciben aviso en el CRM y, si lo autorizaron, también en el navegador.'}]);
+                return {handled:true,voice:message};
+            }
+            const message='El módulo de comunicación todavía no está disponible en esta pantalla.';
+            setAnswer('Reunión general',message);
+            return {handled:true,voice:message};
+        }
+        if (/\b(busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea|googlear|busqueda web)\b/.test(norm)) {
+            let term=text(raw).replace(/^(?:sky[,;:\s-]*)?/i,'').replace(/\b(?:busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea(?:r)?|busqueda web)\b/ig,'').replace(/^[,:;\s-]+/,'').trim();
+            if (!term) {
+                const message='Dime qué quieres buscar. Por ejemplo: “busca en internet ficha técnica de cable THW”.';
+                setAnswer('Búsqueda en Internet',message,'Por seguridad Sky no ejecuta ni instala contenido de sitios externos.');
+                return {handled:true,voice:message};
+            }
+            const href=`https://www.google.com/search?q=${encodeURIComponent(term)}`;
+            const message=`Preparé una búsqueda web de ${term}.`;
+            setAnswer('Búsqueda en Internet',message,'Pulsa “Abrir búsqueda web” para revisar resultados en una pestaña nueva. La información externa no modifica datos del CRM.',[],{href,label:'Abrir búsqueda web'});
+            return {handled:true,voice:message};
+        }
         if (/\b(presentate|preséntate|haz tu presentacion|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
             let cached={}; try{cached=JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')||{}}catch(_){}
             const userName=text(window.SkilledSession?.profile?.nombre || cached.nombre || '').split(/\s+/)[0] || 'usuario';
@@ -1801,7 +1830,7 @@
         }
         if (/\b(que puedes hacer|ayuda|comandos|como te uso|que sabes hacer)\b/.test(norm)) {
             const config=profileConfig();
-            const cards=[...config.examples.slice(0,5).map(([label,example])=>({title:label,detail:example})),{title:'Hora y fecha',detail:'¿Qué hora es? · ¿Qué día es hoy?'},{title:'Cálculo rápido',detail:'¿Cuánto es 25 por 8?'},{title:'Sección actual',detail:'¿En qué sección estoy?'},{title:'Atajo',detail:'¿Cuál es tu atajo?'}];
+            const cards=[...config.examples.slice(0,5).map(([label,example])=>({title:label,detail:example})),{title:'Hora y fecha',detail:'¿Qué hora es? · ¿Qué día es hoy?'},{title:'Cálculo rápido',detail:'¿Cuánto es 25 por 8?'},{title:'Sección actual',detail:'¿En qué sección estoy?'},{title:'Atajo',detail:'¿Cuál es tu atajo?'},{title:'Reunión general',detail:'Convoca una reunión general.'},{title:'Internet',detail:'Busca en internet ficha técnica de…'}];
             const message=`Puedo ayudarte con consultas de ${profileNames[detectProfile()] || detectProfile()}, además de hora, fecha, cálculos sencillos y ayuda general.`;
             setAnswer('Comandos de Sky', message, `Habla de forma natural. No necesitas decir “Sky” al inicio. Atajo: ${shortcutLabel}.`, cards);
             return { handled:true, voice:message };

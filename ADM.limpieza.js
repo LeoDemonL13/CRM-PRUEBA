@@ -5,6 +5,7 @@ const categories=[
  {id:'proyectos',title:'Proyectos',desc:'Proyectos, planes de materiales, reservas, asignaciones de personal y relaciones de herramientas.',recommended:true},
  {id:'compras',title:'Compras y cotizaciones',desc:'Solicitudes de compra, cotizaciones, ofertas, solicitudes a proveedor, compras de tienda y notificaciones de prueba.',recommended:true},
  {id:'herramientas',title:'Herramientas',desc:'Catálogo de herramientas, unidades, asignaciones e historial asociado.',recommended:true},
+ {id:'unidades_herramientas',title:'Unidades de herramientas',desc:'Borra únicamente las unidades físicas, asignaciones e historial de unidades. Conserva el catálogo de herramientas.',recommended:false},
  {id:'existencias',title:'Existencias y reservas',desc:'Pone a cero la operación almacenada eliminando existencias y reservas, pero conserva el catálogo de materiales.',recommended:false},
  {id:'materiales',title:'Materiales e inventario',desc:'Catálogo de materiales y sus existencias. Conserva almacenes, racks, zonas y ubicaciones físicas.',recommended:true},
  {id:'vehiculos',title:'Vehículos',desc:'Flotilla, salidas, pasajeros y gastos vehiculares de prueba.',recommended:false},

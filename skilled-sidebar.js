@@ -912,7 +912,7 @@
     function ensureSky() {
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=23';
+        script.src = 'skilled-sky.js?v=25';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);
@@ -921,7 +921,7 @@
     function ensureChat() {
         if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-chat.js?v=23';
+        script.src = 'skilled-chat.js?v=25';
         script.defer = true;
         script.dataset.skilledChat = '1';
         document.head.appendChild(script);

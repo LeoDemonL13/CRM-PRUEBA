@@ -1952,6 +1952,15 @@
         return runTestCleanupRpc('crm_eliminar_movimiento_prueba', { p_request_id: requestId || null, p_movimiento_id: movementId }, 'No se pudo eliminar el movimiento de prueba.');
     }
 
+
+    async function deleteMovementHistoryTest(password) {
+        return runTestCleanupRpc('crm_borrar_historial_movimientos', { p_clave: text(password) }, 'No se pudo borrar el historial de movimientos.');
+    }
+
+    async function deleteToolUnitsTest(password) {
+        return runTestCleanupRpc('crm_borrar_unidades_herramientas', { p_clave: text(password) }, 'No se pudieron borrar las unidades de herramientas.');
+    }
+
     async function deleteMaterialRequestTest(id) {
         const requestId = Number(id);
         if (!requestId) throw new Error('Solicitud de material no válida.');
@@ -5065,6 +5074,8 @@
         deletePurchaseRequests,
         deletePurchaseRequestsTest,
         deleteMovementTest,
+        deleteMovementHistoryTest,
+        deleteToolUnitsTest,
         deleteMaterialRequestTest,
         deleteMaterialAdjustmentTest,
         deleteToolHistoryTest,

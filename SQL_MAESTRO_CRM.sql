@@ -3226,6 +3226,7 @@ begin
     select count(*) into n from public.materiales; r:=r||jsonb_build_object('materiales',n);
     if to_regclass('public.existencias_almacen') is not null then execute 'select count(*) from public.existencias_almacen' into n; else n:=0; end if; r:=r||jsonb_build_object('existencias',n);
     if to_regclass('public.herramientas_catalogo') is not null then execute 'select count(*) from public.herramientas_catalogo' into n; else n:=0; end if; r:=r||jsonb_build_object('herramientas',n);
+    if to_regclass('public.herramientas_unidades') is not null then execute 'select count(*) from public.herramientas_unidades' into n; else n:=0; end if; r:=r||jsonb_build_object('unidades_herramientas',n);
     if to_regclass('public.solicitudes_compra') is not null then execute 'select count(*) from public.solicitudes_compra' into n; else n:=0; end if; r:=r||jsonb_build_object('compras',n);
     if to_regclass('public.vehiculos') is not null then execute 'select count(*) from public.vehiculos' into n; else n:=0; end if; r:=r||jsonb_build_object('vehiculos',n);
     if to_regclass('public.rh_incidencias') is not null then execute 'select count(*) from public.rh_incidencias' into n; else n:=0; end if; r:=r||jsonb_build_object('rh_operacion',n);
@@ -3325,6 +3326,12 @@ begin
         delete from public.proyectos; get diagnostics n=row_count; result:=result||jsonb_build_object('proyectos',n);
     end if;
 
+    if 'unidades_herramientas'=any(c) and not ('herramientas'=any(c)) then
+        if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial where unidad_id is not null'; end if;
+        if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones'; end if;
+        if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades'; get diagnostics n=row_count; result:=result||jsonb_build_object('unidades_herramientas',n); end if;
+    end if;
+
     if 'herramientas'=any(c) then
         if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial'; end if;
         if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones'; end if;
@@ -3358,3 +3365,110 @@ commit;
 select 'OK' estado,'CRM-V24-LIMPIEZA-NOMINA-SUBGERENCIA-2026-08-09' version,
        case when exists(select 1 from public.perfiles_usuario p join auth.users u on u.id=p.id where lower(u.email)=lower('subgg@skilled.mx') and p.rol='subgerente' and p.activo=true) then 'OK' else 'REVISAR_USUARIO_SUBGERENTE' end subgerente,
        case when to_regclass('public.rh_nomina_periodos') is not null then 'OK' else 'FALTA' end nomina;
+
+
+-- ============================================================
+-- V25 · LIMPIEZA OPERATIVA, CHAT/NOTIFICACIONES Y REUNIONES
+-- ============================================================
+begin;
+
+create or replace function public.crm_borrar_historial_movimientos(p_clave text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','jefe_almacen']) then
+        raise exception using errcode='42501',message='Solo Administrador o Jefe de almacén puede borrar el historial de prueba.';
+    end if;
+    if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
+        raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
+    end if;
+    if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes'; end if;
+    if to_regclass('public.prestamos_material_proyecto') is not null then
+        begin execute 'delete from public.prestamos_material_proyecto'; exception when others then null; end;
+    end if;
+    delete from public.movimientos;
+    get diagnostics v_count=row_count;
+    return jsonb_build_object('ok',true,'eliminados',v_count,'advertencia','El historial fue eliminado. Las existencias actuales no se recalcularon automáticamente.');
+end;
+$$;
+revoke all on function public.crm_borrar_historial_movimientos(text) from public,anon;
+grant execute on function public.crm_borrar_historial_movimientos(text) to authenticated;
+
+create or replace function public.crm_borrar_unidades_herramientas(p_clave text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','jefe_almacen']) then
+        raise exception using errcode='42501',message='Solo Administrador o Jefe de almacén puede borrar unidades de prueba.';
+    end if;
+    if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
+        raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
+    end if;
+    if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial where unidad_id is not null'; end if;
+    if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones'; end if;
+    if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades'; get diagnostics v_count=row_count; end if;
+    return jsonb_build_object('ok',true,'eliminados',v_count);
+end;
+$$;
+revoke all on function public.crm_borrar_unidades_herramientas(text) from public,anon;
+grant execute on function public.crm_borrar_unidades_herramientas(text) to authenticated;
+
+create or replace function public.crm_convocar_reunion_general(
+    p_titulo text default 'Reunión general',
+    p_fecha timestamptz default null,
+    p_mensaje text default ''
+) returns bigint
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_id bigint;
+    v_title text:=left(btrim(coalesce(p_titulo,'Reunión general')),120);
+    v_note text:=left(btrim(coalesce(p_mensaje,'')),700);
+    v_date timestamptz:=coalesce(p_fecha,now()+interval '15 minutes');
+    v_author text;
+    v_payload text;
+begin
+    if auth.uid() is null then raise exception using errcode='42501',message='La sesión no está activa.'; end if;
+    if not public.crm_usuario_tiene_rol(array['administrador','jefe_almacen','rh','gerente_general','subgerente','compras']) then
+        raise exception using errcode='42501',message='Tu perfil no puede emitir convocatorias generales.';
+    end if;
+    select coalesce(nullif(btrim(nombre),''),'Usuario') into v_author from public.perfiles_usuario where id=auth.uid();
+    v_payload := '@@REUNION@@' || jsonb_build_object('titulo',v_title,'fecha',v_date,'nota',v_note,'convoca',coalesce(v_author,'Usuario'))::text;
+    perform public.crm_chat_limpiar();
+    insert into public.crm_chat_mensajes(autor_id,destinatario_id,mensaje,expira_at)
+    values(auth.uid(),null,v_payload,public.crm_chat_expira_hoy()) returning id into v_id;
+    return v_id;
+end;
+$$;
+revoke all on function public.crm_convocar_reunion_general(text,timestamptz,text) from public,anon;
+grant execute on function public.crm_convocar_reunion_general(text,timestamptz,text) to authenticated;
+
+do $$
+begin
+    if exists(select 1 from pg_publication where pubname='supabase_realtime')
+       and not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='crm_chat_mensajes') then
+        execute 'alter publication supabase_realtime add table public.crm_chat_mensajes';
+    end if;
+exception when insufficient_privilege then null;
+end $$;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V25-LIMPIEZA-CHAT-REUNIONES-2026-08-10',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' estado,'CRM-V25-LIMPIEZA-CHAT-REUNIONES-2026-08-10' version,
+       case when to_regprocedure('public.crm_borrar_historial_movimientos(text)') is not null then 'OK' else 'FALTA' end borrar_historial,
+       case when to_regprocedure('public.crm_borrar_unidades_herramientas(text)') is not null then 'OK' else 'FALTA' end borrar_unidades,
+       case when to_regprocedure('public.crm_convocar_reunion_general(text,timestamp with time zone,text)') is not null then 'OK' else 'FALTA' end reuniones;

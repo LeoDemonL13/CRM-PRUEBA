@@ -9,7 +9,7 @@
 <script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Solicitudes de material</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=22"></script>
+    <script src="skilled-supabase.js?v=25"></script>
 <script src="auth-guard.js?v=24"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -52,7 +52,7 @@ function alternarTema(){const claro=document.body.classList.toggle('tema-claro')
         </section>
     </main>
 </div>
-<script src="skilled-sidebar.js?v=24"></script>
+<script src="skilled-sidebar.js?v=25"></script>
 <script>
 (function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();
 let solicitudes=[];let reajustes=[];let tabActual='solicitudes';const currentRole=()=>{try{return String(window.SkilledSession?.role||JSON.parse(localStorage.getItem('skilled_profile_cache')||'{}').rol||'').toLowerCase()}catch(_){return String(window.SkilledSession?.role||'').toLowerCase()}};const canDeleteTest=()=>['administrador','jefe_almacen'].includes(currentRole());
@@ -70,7 +70,7 @@ async function cargarTodo(){document.getElementById('contenido').innerHTML='<div
 document.getElementById('buscar').addEventListener('input',render);document.getElementById('filtro-proyecto').addEventListener('change',render);document.getElementById('filtro-estado').addEventListener('change',render);cargarTodo();
 </script>
 
-<script src="skilled-sky.js?v=24" defer></script>
-<script src="skilled-performance.js?v=24" defer></script>
+<script src="skilled-sky.js?v=25" defer></script>
+<script src="skilled-performance.js?v=25" defer></script>
 </body>
 </html>
