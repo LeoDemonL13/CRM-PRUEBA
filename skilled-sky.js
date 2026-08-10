@@ -72,7 +72,15 @@
             [/\bque horas son\b/g, 'que hora es'], [/\bque horas es\b/g, 'que hora es'], [/\bdime la hora actual\b/g, 'que hora es'], [/\bhora actual\b/g, 'que hora es'],
             [/\bque fecha estamos\b/g, 'que fecha es hoy'], [/\ben que fecha estamos\b/g, 'que fecha es hoy'], [/\bque dia estamos\b/g, 'que dia es hoy'], [/\ba que dia estamos\b/g, 'que dia es hoy'],
             [/\borden compra\b/g, 'orden de compra'], [/\bbajo del minimo\b/g, 'bajo minimo'], [/\bbodega principal\b/g, 'bodega central'],
-            [/\brecursos humano\b/g, 'recursos humanos'], [/\bveiculos\b/g, 'vehiculos'], [/\berramientas\b/g, 'herramientas']
+            [/\brecursos humano\b/g, 'recursos humanos'], [/\bveiculos\b/g, 'vehiculos'], [/\berramientas\b/g, 'herramientas'],
+            [/\bque onda\b/g, 'hola'], [/\bque rollo\b/g, 'hola'], [/\bque pedo\b/g, 'hola'],
+            [/\bocupo saber\b/g, 'dime'], [/\bnecesito saber\b/g, 'dime'], [/\bme dices\b/g, 'dime'], [/\bdime cuanto queda\b/g, 'cuanto tenemos'],
+            [/\bcuanto nos queda\b/g, 'cuanto tenemos'], [/\bcuanto queda\b/g, 'cuanto tenemos'], [/\bcuanto hay de\b/g, 'cuanto tenemos de'],
+            [/\bque tenemos de\b/g, 'cuanto tenemos de'], [/\btenemos algo de\b/g, 'cuanto tenemos de'],
+            [/\bdonde dejaron\b/g, 'donde esta'], [/\bdonde guardaron\b/g, 'donde esta'], [/\bdonde quedo\b/g, 'donde esta'],
+            [/\bbuscame\b/g, 'busca'], [/\bcheca\b/g, 'revisa'], [/\bchecame\b/g, 'revisa'], [/\bchécame\b/g, 'revisa'],
+            [/\bcomo anda\b/g, 'como va'], [/\bcomo vamos con\b/g, 'estado de'], [/\bque falta de\b/g, 'pendiente de'],
+            [/\bla troca\b/g, 'pickup'], [/\btroca\b/g, 'pickup'], [/\bmonta cargas\b/g, 'montacargas'], [/\bgenny\b/g, 'generador movil']
         ];
         replacements.forEach(([regex, replacement]) => { output = output.replace(regex, replacement); });
         return output.replace(/\s+/g, ' ').trim();
@@ -142,6 +150,7 @@
     let cloudSpeechDetected = false;
     let voiceMode = 'automatico';
     let cache = { at: 0 };
+    let conversationContext = { material: null, vehicle: null, project: null };
     const ttl = 45000;
 
     function styles() {
@@ -195,10 +204,10 @@
                         </div>
                         <div id="sky-heard" class="sky-heard"><span>Micrófono:</span><strong>listo</strong></div>
                         <div id="sky-interpreted" class="sky-interpreted"><span>Interpreté:</span><strong>—</strong><em id="sky-listen-quality" class="sky-listen-quality"></em></div>
-                        <div class="sky-mic-help">Habla de forma natural y a una distancia cómoda del micrófono. Sky selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
+                        <div class="sky-mic-help">Habla como lo harías con un compañero: Sky entiende frases formales, abreviaciones y varios modismos comunes. Selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
                         <div class="sky-voice-row"><span id="sky-engine" class="sky-engine">Voz · automático</span><span id="sky-voice-meter" class="sky-voice-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
                         <div id="sky-answer" class="sky-answer"><div class="sky-answer-title">Respuesta verificada</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Sky consulta únicamente información autorizada para tu sesión y mantiene este asistente en modo lectura.</div></div>
-                        <div class="sky-examples"><div class="sky-examples-title">Prueba con · ${html(profileCodes[detectProfile()] || detectProfile().toUpperCase())}</div><div class="sky-chip-wrap">${[...config.examples, ['Hora','¿Qué hora es?'], ['Fecha','¿Qué día es hoy?'], ['Ayuda','¿Qué puedes hacer?']].map(([label,example]) => `<button class="sky-chip" data-sky-example="${html(example)}">${html(label)}</button>`).join('')}</div></div>
+                        <div class="sky-examples"><div class="sky-examples-title">Prueba con · ${html(profileCodes[detectProfile()] || detectProfile().toUpperCase())}</div><div class="sky-chip-wrap">${[...config.examples, ['Preséntate','Preséntate'], ['Hora','¿Qué hora es?'], ['Fecha','¿Qué día es hoy?'], ['Ayuda','¿Qué puedes hacer?']].map(([label,example]) => `<button class="sky-chip" data-sky-example="${html(example)}">${html(label)}</button>`).join('')}</div></div>
                     </div>
                 </section>`;
             document.body.appendChild(modal);
@@ -1291,6 +1300,7 @@
             return 'No encontré ese material en el catálogo.';
         }
         const material = match.best;
+        conversationContext.material = { codigo: text(material.codigo), descripcion: text(material.descripcion || material.desc) };
         const inventories = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(item => locationOnly ? Boolean(text(item.ubicacion)) || number(item.stock) > 0 : number(item.stock) !== 0 || Boolean(text(item.ubicacion)));
         const total = (material.almacenes || []).reduce((sum, item) => sum + number(item.stock), 0);
         const cards = inventories.map(item => ({ title: item.nombre || 'Almacén', detail: `${formatNumber(item.stock)} ${material.unidad || 'unidades'}${item.ubicacion ? ` · ${item.ubicacion}` : ' · sin ubicación específica'}` }));
@@ -1374,10 +1384,35 @@
         const norm = commandNormalize(raw);
         const types = ['pickup', 'camioneta', 'automovil', 'van', 'camion', 'motocicleta', 'montacargas', 'generador', 'maquinaria'];
         const type = types.find(item => norm.includes(item));
-        const rows = vehicles.filter(item => item.activo !== false && (!type || normalize(item.tipo).includes(type)));
+        const active = vehicles.filter(item => item.activo !== false);
+        const named = active
+            .map(item => {
+                const vehicleName = normalize(item.numeroEconomico);
+                const full = normalize([item.numeroEconomico,item.marca,item.modelo,item.placas,item.tipo].join(' '));
+                let score = 0;
+                if (vehicleName && norm.includes(vehicleName)) score += 120;
+                for (const token of norm.split(' ').filter(t => t.length > 2)) {
+                    if (vehicleName.includes(token)) score += 20;
+                    else if (full.includes(token)) score += 5;
+                }
+                return { item, score };
+            })
+            .filter(row => row.score > 20)
+            .sort((a,b) => b.score-a.score);
+        if (named.length && !/disponible|disponibles|cuantos|cuantas|flotilla|vehiculos/.test(norm)) {
+            const item=named[0].item;
+            conversationContext.vehicle = { nombre: text(item.numeroEconomico), id: item.id };
+            const state=normalize(item.estado)==='disponible'?'disponible':text(item.estado||'sin estado');
+            const main=`${item.numeroEconomico}: ${item.marca || ''} ${item.modelo || ''}`.trim();
+            setAnswer('Vehículo', main, `${item.tipo || 'Vehículo'} · ${state} · ${item.placas || 'sin placas'} · ${formatNumber(item.kilometraje)} km`,
+                [{title:'Nombre del vehículo',detail:item.numeroEconomico || 'Sin nombre'},{title:'Estado',detail:state},{title:'Responsable',detail:item.responsable || item.asignadoA || 'Sin asignación'}],
+                { href:'AL.vehiculos.html', label:'Abrir flotilla' });
+            return `El vehículo ${item.numeroEconomico} está ${state}. ${item.marca || ''} ${item.modelo || ''}.`;
+        }
+        const rows = active.filter(item => !type || normalize(item.tipo).includes(type));
         const available = rows.filter(item => normalize(item.estado) === 'disponible');
         const cards = available.slice(0, 6).map(item => ({ title: `${item.numeroEconomico} · ${item.marca} ${item.modelo}`, detail: `${item.tipo || 'vehículo'} · ${item.placas || 'sin placas'} · ${formatNumber(item.kilometraje)} km` }));
-        setAnswer('Vehículos', available.length ? `${available.length} vehículo${available.length === 1 ? '' : 's'} disponible${available.length === 1 ? '' : 's'}${type ? ` del tipo ${type}` : ''}.` : `No hay vehículos disponibles${type ? ` del tipo ${type}` : ''}.`, '', cards, { href: 'AL.vehiculos.html', label: 'Abrir flotilla' });
+        setAnswer('Vehículos', available.length ? `${available.length} vehículo${available.length === 1 ? '' : 's'} disponible${available.length === 1 ? '' : 's'}${type ? ` del tipo ${type}` : ''}.` : `No hay vehículos disponibles${type ? ` del tipo ${type}` : ''}.`, 'Puedes preguntarme directamente por el nombre de un vehículo.', cards, { href: 'AL.vehiculos.html', label: 'Abrir flotilla' });
         return available.length ? `Hay ${available.length} vehículos disponibles${type ? ` del tipo ${type}` : ''}.` : 'No hay vehículos disponibles con ese filtro.';
     }
 
@@ -1713,9 +1748,13 @@
             setAnswer('Año actual', String(date.year), capitalize(date.dateLong));
             return { handled:true, voice:message };
         }
-        if (/\b(quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
-            const message=`Soy Sky, el asistente del CRM de Skilled. En este momento estoy trabajando con el perfil de ${profileNames[detectProfile()] || detectProfile()}.`;
-            setAnswer('Soy Sky', message, 'Mis consultas respetan los permisos del usuario que inició sesión.');
+        if (/\b(presentate|preséntate|haz tu presentacion|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
+            let cached={}; try{cached=JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')||{}}catch(_){}
+            const userName=text(window.SkilledSession?.profile?.nombre || cached.nombre || '').split(/\s+/)[0] || 'usuario';
+            const area=profileNames[detectProfile()] || detectProfile();
+            const message=`Hola ${userName}. Soy Sky, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
+            setAnswer('Mucho gusto, soy Sky', message, `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
+                [{title:'Consulta natural',detail:'Puedes usar frases completas o modismos comunes.'},{title:'Contexto por perfil',detail:`Ahora estoy trabajando como asistente de ${area}.`},{title:'Modo seguro',detail:'No modifico inventario ni autorizaciones solo por voz.'}]);
             return { handled:true, voice:message };
         }
         if (/\b(que perfil|en que perfil|perfil actual|donde estoy)\b/.test(norm)) {
@@ -1779,6 +1818,12 @@
         if (/herramient|taladro|esmeril|soldador|multimetro|pinza|llave/.test(norm) || hasFuzzy(norm,['herramienta','herramientas'])) return answerTools(raw);
         if (/vehiculo|vehiculos|pickup|camioneta|automovil|van\b|camion\b|motocicleta|montacargas|generador|maquinaria/.test(norm) || hasFuzzy(norm,['vehiculo','vehiculos'])) return answerVehicles(raw);
         if ((/proyecto/.test(norm) || hasFuzzy(norm,['proyecto'])) && (/(avance|estado|costo|como|cuanto|entrega)/.test(norm) || hasFuzzy(norm,['avance','estado','costo','entrega']))) return answerProjects(raw);
+        const fleet = await loadData('vehicles');
+        const namedVehicle = fleet.find(item => {
+            const name=normalize(item.numeroEconomico);
+            return name && name.length>=3 && (norm.includes(name) || fuzzyIncludes(norm,name,1));
+        });
+        if (namedVehicle) return answerVehicles(raw);
         if (/donde|ubicacion|ubicado|localiza|encuentra/.test(norm) || hasFuzzy(norm,['donde esta','ubicacion','localiza'])) return answerMaterial(raw, true);
         return answerMaterial(raw, false);
     }
@@ -1845,8 +1890,23 @@
         return answerGeneric(raw, profile);
     }
 
+    function resolveFollowUp(rawValue) {
+        const original=text(rawValue);
+        const norm=commandNormalize(original);
+        if (conversationContext.material && /^(y\s+)?(donde|ubicacion|en que rack|donde esta|donde quedo)/.test(norm)) {
+            return `¿Dónde está ${conversationContext.material.codigo || conversationContext.material.descripcion}?`;
+        }
+        if (conversationContext.material && /^(y\s+)?(cuanto|cuantos|cuanta|cuantas|existencia|stock|queda|quedan)/.test(norm)) {
+            return `¿Cuánto tenemos de ${conversationContext.material.codigo || conversationContext.material.descripcion}?`;
+        }
+        if (conversationContext.vehicle && /^(y\s+)?(como esta|estado|disponible|kilometraje|cuantos km|donde esta)/.test(norm)) {
+            return `Vehículo ${conversationContext.vehicle.nombre} ${original}`;
+        }
+        return original;
+    }
+
     async function query(rawValue) {
-        const raw = text(rawValue);
+        const raw = resolveFollowUp(rawValue);
         if (!raw) return;
         stopListening(false);
         setStatus('Procesando consulta…', 'busy');

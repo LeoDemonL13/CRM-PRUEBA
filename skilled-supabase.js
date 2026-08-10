@@ -3418,7 +3418,7 @@
     async function saveVehicle(vehicle = {}, originalId = 0) {
         const currentYear = new Date().getFullYear() + 1;
         const year = text(vehicle.anio) === '' ? null : Math.trunc(number(vehicle.anio));
-        if (!text(vehicle.numeroEconomico ?? vehicle.numero_economico)) throw new Error('El número económico es obligatorio.');
+        if (!text(vehicle.numeroEconomico ?? vehicle.numero_economico)) throw new Error('El nombre del vehículo es obligatorio.');
         if (!text(vehicle.marca) || !text(vehicle.modelo)) throw new Error('Marca y modelo son obligatorios.');
         if (year != null && (year < 1950 || year > currentYear)) throw new Error('El año del vehículo no es válido.');
         const status = lower(vehicle.estado) || 'disponible';
@@ -3441,7 +3441,7 @@
             throw new Error('La distribución de asientos debe sumar la capacidad total de personas.');
         }
         const row = {
-            numero_economico: text(vehicle.numeroEconomico ?? vehicle.numero_economico).toUpperCase(),
+            numero_economico: text(vehicle.numeroEconomico ?? vehicle.numero_economico),
             placas: plates || null,
             vin: vin || null,
             marca: text(vehicle.marca),
@@ -3488,7 +3488,7 @@
             if (!direct.error && direct.data) result = direct;
             else if (['PGRST202', '42883'].includes(rpcError.code)) result = direct;
         }
-        if (result.error?.code === '23505') throw new Error('El número económico, las placas o el VIN ya están registrados.');
+        if (result.error?.code === '23505') throw new Error('El nombre del vehículo, las placas o el VIN ya están registrados.');
         if (result.error?.code === '42P01') throw new Error('La tabla de vehículos no está instalada. Ejecuta SQL_MAESTRO_CRM.sql.');
         if (result.error?.code === '42501') throw new Error('Tu perfil no tiene permiso para guardar o editar vehículos.');
         if (result.error?.code === '22P02') throw new Error('Uno de los campos numéricos o de fecha contiene un valor inválido.');

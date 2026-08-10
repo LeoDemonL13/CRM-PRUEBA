@@ -15,7 +15,7 @@ iframe{display:block;margin:20px auto 0;width:58mm;height:760px;border:1px solid
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="skilled-supabase.js?v=22"></script>
-<script src="auth-guard.js?v=22"></script>
+<script src="auth-guard.js?v=23"></script>
 </head>
 <body>
 <main>
@@ -41,6 +41,6 @@ const datos={
 document.getElementById('preview').srcdoc=SkilledTickets.crearHtmlTicket(datos,'58mm');
 document.getElementById('print').addEventListener('click',()=>SkilledTickets.imprimir(datos,'58mm'));
 </script>
-<script src="skilled-sky.js?v=22" defer></script>
+<script src="skilled-sky.js?v=23" defer></script>
 </body>
 </html>

@@ -911,9 +911,18 @@
     function ensureSky() {
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=16';
+        script.src = 'skilled-sky.js?v=23';
         script.defer = true;
         script.dataset.skilledSky = '1';
+        document.head.appendChild(script);
+    }
+
+    function ensureChat() {
+        if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
+        const script = document.createElement('script');
+        script.src = 'skilled-chat.js?v=23';
+        script.defer = true;
+        script.dataset.skilledChat = '1';
         document.head.appendChild(script);
     }
 
@@ -928,6 +937,7 @@
 
     window.addEventListener('skilled:sessionready', () => {
         ensureSky();
+        ensureChat();
         const role = currentRole();
         if (!document.getElementById('skilled-sidebar') || renderedRole !== role) {
             renderSidebar();
@@ -949,6 +959,7 @@
 
     function initialize() {
         ensureSky();
+        ensureChat();
         renderSidebar();
         normalizeBreadcrumbHome();
         setTimeout(updateRequestBadge, 250);

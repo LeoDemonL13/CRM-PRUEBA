@@ -1,0 +1,28 @@
+CRM SKILLED · V23 · 2026-08-09
+
+1. SKY
+- Reconocimiento e interpretación ampliados con expresiones y modismos de trabajo.
+- Comando “Preséntate” y presentación formal adaptada al perfil activo.
+- Seguimiento contextual básico: después de consultar un material puede entender “¿y dónde está?” o “¿y cuánto queda?”.
+- Sky reconoce el Nombre del vehículo y permite consultarlo por voz/texto.
+- Mi perfil muestra únicamente hasta 6 voces recomendadas con nombres simples.
+
+2. CHAT INTERNO TEMPORAL
+- Chat global disponible desde la cabecera de todos los perfiles actuales y futuros que carguen skilled-sidebar.js.
+- Canal General y conversaciones directas entre usuarios activos.
+- Historial diario visible desde las 01:00 y expiración a las 23:59:59 (America/Mexico_City).
+- Los mensajes expirados dejan de ser consultables y se eliminan durante la siguiente actividad de chat.
+- Compatible con computadora, tablet y teléfono.
+
+3. VEHÍCULOS
+- “No. económico” cambia visualmente a “Nombre del vehículo”.
+- Importación/exportación utiliza “Nombre del vehículo” manteniendo compatibilidad con plantillas antiguas.
+- La asignación de pasajeros ya no depende de selects montados encima de la carrocería.
+- Los asientos son interactivos y existe un panel externo claro para elegir el lugar de cada pasajero.
+
+4. GERENTE GENERAL
+- SQL maestro asigna la cuenta GG@skilled.mx al rol gerente_general si ya existe en Supabase Authentication.
+- Nombre/puesto/departamento se completan como Gerente General/Dirección si estaban vacíos.
+
+SQL
+- Continúa existiendo un único SQL oficial: SQL_MAESTRO_CRM.sql.
