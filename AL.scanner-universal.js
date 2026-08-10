@@ -93,16 +93,26 @@
     }
 
     async function showLocation(value){
+        const raw=String(value||'').trim().toUpperCase();
+        const positionMatch=raw.match(/^(0[1-9]|1[0-9]|20)-([1-9]\d*)-([A-Z])([1-9]\d*)$/);
+        const baseCode=positionMatch?`${positionMatch[1]}-${Number(positionMatch[2])}-${positionMatch[3]}`:raw;
         let query=SkilledDB.client.from('ubicaciones_almacen').select('*');
-        if(/^\d+$/.test(value))query=query.eq('id',Number(value));
-        else query=query.eq('codigo',value);
+        if(/^\d+$/.test(raw))query=query.eq('id',Number(raw));
+        else query=query.eq('codigo',baseCode);
         const {data,error}=await query.maybeSingle();
         if(error)throw error;
         if(!data)return false;
         const warehouses=await SkilledDB.listWarehouses();
         const warehouse=warehouses.find(row=>Number(row.id)===Number(data.almacen_id));
-        const body=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">Ubicación</p><p class="mt-1 text-base font-bold text-white">${html(data.nombre)}</p><p class="mt-1 font-mono text-xs text-blue-300">${html(data.codigo||data.id)}</p></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">Almacén</p><p class="mt-1 text-base font-bold text-white">${html(warehouse?.nombre||'Sin almacén')}</p><p class="mt-1 text-xs text-gray-500">${html(data.tipo)} · Consecutivos 1–${html(data.columnas)}</p></div></div>${data.nota?`<p class="mt-4 text-xs text-gray-300">${html(data.nota)}</p>`:''}`;
-        card('Ubicación encontrada',data.codigo||String(data.id),body,`<a href="AL.almacenes.html" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir almacenes</a>`);
+        let materials=[];
+        if(positionMatch){
+            const inventory=await SkilledDB.listWarehouseInventory({warehouseId:Number(data.almacen_id)});
+            materials=inventory.filter(row=>String(row.ubicacion||'').trim().toUpperCase()===raw);
+        }
+        const materialRows=positionMatch?(materials.length?`<div class="mt-4 rounded-xl border border-[#243257] overflow-hidden"><div class="px-4 py-3 border-b border-[#243257] flex items-center justify-between"><p class="text-xs font-bold text-white">Materiales en la posición</p><span class="text-[9px] text-blue-300">${materials.length}/7</span></div><div class="divide-y divide-[#1b2642]">${materials.map(item=>`<div class="px-4 py-3"><div class="flex items-start justify-between gap-3"><div><p class="font-mono text-[9px] text-blue-300">${html(item.codigo)}</p><p class="mt-1 text-xs font-semibold text-white">${html(item.descripcion||item.codigo)}</p></div><span class="text-[9px] text-gray-400 whitespace-nowrap">${Number(item.stock||0).toLocaleString('es-MX')} ${html(item.unidad||'')}</span></div></div>`).join('')}</div></div>`:`<div class="mt-4 rounded-xl border border-[#243257] p-5 text-center text-xs text-gray-500">La posición está libre.</div>`):'';
+        const shownCode=positionMatch?raw:(data.codigo||data.id);
+        const body=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">${positionMatch?'Posición':'Ubicación'}</p><p class="mt-1 text-base font-bold text-white">${html(data.nombre)}</p><p class="mt-1 font-mono text-xs text-blue-300">${html(shownCode)}</p></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">Almacén</p><p class="mt-1 text-base font-bold text-white">${html(warehouse?.nombre||'Sin almacén')}</p><p class="mt-1 text-xs text-gray-500">${html(data.tipo)} · Posiciones 1–${html(data.columnas)}</p></div></div>${materialRows}${data.nota?`<p class="mt-4 text-xs text-gray-300">${html(data.nota)}</p>`:''}`;
+        card(positionMatch?'Posición encontrada':'Ubicación encontrada',shownCode,body,`<a href="AL.almacenes.html" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir almacenes</a>`);
         return true;
     }
 

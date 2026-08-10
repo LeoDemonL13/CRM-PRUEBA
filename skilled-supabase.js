@@ -4,6 +4,7 @@
 
     const SUPABASE_URL = 'https://cuxnzqbszzrfnrinxbdp.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF';
+    const MAX_MATERIALS_PER_WAREHOUSE_POSITION = 7;
 
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         throw new Error('No se pudo cargar la librería de Supabase.');
@@ -647,16 +648,16 @@
             if (!check.ok) throw new Error(check.error);
             location = check.codigo;
 
-            const { data: occupied, error: occupiedError } = await client
+            const { data: occupants, error: occupantsError } = await client
                 .from('existencias_almacen')
                 .select('material_codigo')
                 .eq('almacen_id', warehouseId)
                 .eq('ubicacion', location)
                 .neq('material_codigo', code)
-                .limit(1);
-            assertNoError(occupiedError, 'No se pudo verificar la disponibilidad de la ubicación.');
-            if (occupied?.length) {
-                throw new Error(`${location} ya está asignada al material ${text(occupied[0].material_codigo)}.`);
+                .limit(MAX_MATERIALS_PER_WAREHOUSE_POSITION);
+            assertNoError(occupantsError, 'No se pudo verificar la capacidad de la posición.');
+            if ((occupants || []).length >= MAX_MATERIALS_PER_WAREHOUSE_POSITION) {
+                throw new Error(`${location} ya contiene ${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.`);
             }
         }
 
@@ -681,24 +682,35 @@
     }
 
     async function assignWarehouseMaterialsLocation(payload = {}) {
-        const codes = Array.isArray(payload.codigos) ? payload.codigos.map(text).filter(Boolean) : [];
+        const codes = [...new Set(Array.isArray(payload.codigos) ? payload.codigos.map(text).filter(Boolean) : [])];
         const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? payload.almacen_id ?? 0);
-        const location = text(payload.ubicacion ?? payload.location);
+        let location = text(payload.ubicacion ?? payload.location);
         if (!codes.length) throw new Error('Selecciona al menos un material.');
         if (!warehouseId) throw new Error('Selecciona un almacén válido.');
-        if (location && codes.length > 1) {
-            throw new Error('Cada material debe recibir un consecutivo de ubicación diferente.');
-        }
-        if (codes.length === 1) {
-            return [await assignWarehouseMaterialLocation({ codigo: codes[0], almacenId: warehouseId, ubicacion: location })];
+        if (location) {
+            const structures = await listWarehouseLocations({ warehouseId, activeOnly: true });
+            const check = validateWarehouseLocationAgainstStructure(location, warehouseId, structures);
+            if (!check.ok) throw new Error(check.error);
+            location = check.codigo;
+            const { data: occupants, error: occupantsError } = await client
+                .from('existencias_almacen')
+                .select('material_codigo')
+                .eq('almacen_id', warehouseId)
+                .eq('ubicacion', location);
+            assertNoError(occupantsError, 'No se pudo verificar la capacidad de la posición.');
+            const selected = new Set(codes.map(lower));
+            const external = (occupants || []).filter(row => !selected.has(lower(row.material_codigo)));
+            if (external.length + codes.length > MAX_MATERIALS_PER_WAREHOUSE_POSITION) {
+                throw new Error(`${location} admite un máximo de ${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.`);
+            }
         }
         const { data, error } = await client
             .from('existencias_almacen')
-            .update({ ubicacion: null, updated_at: new Date().toISOString() })
+            .update({ ubicacion: location || null, updated_at: new Date().toISOString() })
             .in('material_codigo', codes)
             .eq('almacen_id', warehouseId)
             .select('material_codigo,almacen_id,stock,stock_minimo,stock_medio,stock_maximo,ubicacion');
-        assertNoError(error, 'No se pudieron limpiar las ubicaciones de los materiales.');
+        assertNoError(error, 'No se pudieron actualizar las ubicaciones de los materiales.');
         return (data || []).map(row => ({
             codigo: text(row.material_codigo),
             almacenId: Number(row.almacen_id),
@@ -815,7 +827,12 @@
 
         const currentByCode = new Map(current.map(row => [lower(row.codigo), row]));
         const inventoryByKey = new Map(inventories.map(row => [`${lower(row.material_codigo)}\u0000${Number(row.almacen_id)}`, row]));
-        const inventoryByLocation = new Map(inventories.filter(row => text(row.ubicacion)).map(row => [`${Number(row.almacen_id)}\u0000${lower(row.ubicacion)}`, row]));
+        const inventoryByLocation = new Map();
+        inventories.filter(row => text(row.ubicacion)).forEach(row => {
+            const key = `${Number(row.almacen_id)}\u0000${lower(row.ubicacion)}`;
+            if (!inventoryByLocation.has(key)) inventoryByLocation.set(key, new Set());
+            inventoryByLocation.get(key).add(lower(row.material_codigo));
+        });
         const materialInputByCode = new Map();
         const inventoryInputByKey = new Map();
         const locationInputByKey = new Map();
@@ -854,19 +871,18 @@
 
             if (locationCheck.codigo) {
                 const locationKey = `${warehouseId}\u0000${lower(locationCheck.codigo)}`;
-                const occupied = inventoryByLocation.get(locationKey);
-                if (occupied && lower(occupied.material_codigo) !== lower(code)) {
+                const existingCodes = new Set(inventoryByLocation.get(locationKey) || []);
+                const inputCodes = new Set(locationInputByKey.get(locationKey) || []);
+                const codeKey = lower(code);
+                const combined = new Set([...existingCodes, ...inputCodes]);
+                combined.add(codeKey);
+                if (combined.size > MAX_MATERIALS_PER_WAREHOUSE_POSITION) {
                     omitted += 1;
-                    errors.push({ fila: fileRow, codigo: code, error: `${locationCheck.codigo} ya está ocupada por ${text(occupied.material_codigo)}.` });
+                    errors.push({ fila: fileRow, codigo: code, error: `${locationCheck.codigo} admite un máximo de ${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.` });
                     return;
                 }
-                const inputOccupant = locationInputByKey.get(locationKey);
-                if (inputOccupant && lower(inputOccupant) !== lower(code)) {
-                    omitted += 1;
-                    errors.push({ fila: fileRow, codigo: code, error: `${locationCheck.codigo} está repetida en el archivo para otro material.` });
-                    return;
-                }
-                locationInputByKey.set(locationKey, code);
+                inputCodes.add(codeKey);
+                locationInputByKey.set(locationKey, inputCodes);
             }
 
             const inventoryKey = `${lower(code)}\u0000${warehouseId}`;
@@ -1203,9 +1219,6 @@
         const normalizedProducts = products.map(item => {
             const product = item.producto || {};
             const codigo = text(item.codigo ?? product.codigo);
-            // Los materiales creados desde «Material no enlistado» usan el prefijo NL-.
-            // La detección por código es una segunda protección para que el indicador
-            // no se pierda al mover el objeto entre la interfaz, la lista y el RPC.
             const esNoListado = boolean(
                 item.esNoListado ?? item.es_no_listado ?? product.esNoListado ?? product.es_no_listado
             ) || /^NL-[A-Z0-9_-]+$/i.test(codigo);
@@ -1406,14 +1419,6 @@
                 return sum + number(row.cantidad_planeada) * price;
             }, 0);
 
-            /*
-             * Costo real del proyecto:
-             * - Entradas vinculadas al proyecto representan material comprado/ingresado para él.
-             * - Salidas y ajustes de disminución representan material efectivamente entregado.
-             * - Reingresos descuentan lo devuelto.
-             * - Para no duplicar una compra que después también se entrega, por cada material se
-             *   toma la mayor cantidad entre lo ingresado y lo entregado neto.
-             */
             const costByCode = new Map();
 
             projectMoves.forEach(row => {
@@ -1501,8 +1506,6 @@
                 consumido: consumed,
                 costoPlaneado: text(project.tipo_control) === 'presupuesto' ? Math.max(0, number(project.presupuesto_planeado)) : plannedCost,
 
-                // La interfaz conserva la propiedad costoConsumido por compatibilidad,
-                // pero ahora representa el costo real del proyecto sin duplicar entrada + salida.
                 costoConsumido: realProjectCost,
                 costoRealProyecto: realProjectCost,
                 costoIngresado: enteredCost,
@@ -1705,8 +1708,6 @@
             const markedManual = boolean(
                 line.esNoListado ?? line.es_no_listado ?? material.esNoListado ?? material.es_no_listado
             );
-            // Todo código que no exista realmente en public.materiales se trata como manual.
-            // Así nunca se viola la FK proyecto_materiales_material_codigo_fkey.
             const esNoListado = markedManual || !catalogCodes.has(lower(code));
             if (!code) throw new Error('Uno de los materiales no tiene código o referencia.');
 
@@ -4911,43 +4912,65 @@
         const activeStructures = structures.filter(item => /^(\d{2})-([1-9]\d*)-([A-Z])$/.test(text(item.codigo).toUpperCase()));
         if (!activeStructures.length) throw new Error('El almacén todavía no tiene racks, zonas y pisos configurados.');
 
-        const occupiedByBase = new Map();
-        const categoryByBase = new Map();
+        const positionCountsByBase = new Map();
+        const categoryCountsByBase = new Map();
+        const categoryCountsByPosition = new Map();
         inventory.forEach(item => {
             const location = text(item.ubicacion).toUpperCase();
             const match = location.match(/^(\d{2}-[1-9]\d*-[A-Z])(\d+)$/);
             if (!match) return;
             const base = match[1];
-            if (!occupiedByBase.has(base)) occupiedByBase.set(base, new Set());
-            occupiedByBase.get(base).add(Number(match[2]));
-            if (category && lower(item.categoria) === category) categoryByBase.set(base, (categoryByBase.get(base) || 0) + 1);
+            const position = Number(match[2]);
+            if (!positionCountsByBase.has(base)) positionCountsByBase.set(base, new Map());
+            const counts = positionCountsByBase.get(base);
+            counts.set(position, (counts.get(position) || 0) + 1);
+            if (category && lower(item.categoria) === category) {
+                categoryCountsByBase.set(base, (categoryCountsByBase.get(base) || 0) + 1);
+                const key = `${base}:${position}`;
+                categoryCountsByPosition.set(key, (categoryCountsByPosition.get(key) || 0) + 1);
+            }
         });
 
         const candidates = [];
         activeStructures.forEach(structure => {
             const base = text(structure.codigo).toUpperCase();
             const capacity = Math.max(1, Math.trunc(number(structure.columnas ?? structure.capacidadConsecutivos) || 20));
-            const occupied = occupiedByBase.get(base) || new Set();
+            const counts = positionCountsByBase.get(base) || new Map();
             let consecutive = 0;
+            let positionCount = 0;
+            let positionCategoryCount = 0;
+            let positionScore = -Infinity;
             for (let index = 1; index <= capacity; index += 1) {
-                if (!occupied.has(index)) { consecutive = index; break; }
+                const count = counts.get(index) || 0;
+                if (count >= MAX_MATERIALS_PER_WAREHOUSE_POSITION) continue;
+                const sameCategoryInPosition = categoryCountsByPosition.get(`${base}:${index}`) || 0;
+                const score = sameCategoryInPosition * 1000 + (count > 0 ? 100 : 0) + count;
+                if (score > positionScore) {
+                    consecutive = index;
+                    positionCount = count;
+                    positionCategoryCount = sameCategoryInPosition;
+                    positionScore = score;
+                }
             }
             if (!consecutive) return;
-            const sameCategory = categoryByBase.get(base) || 0;
-            const occupancy = occupied.size / capacity;
+            const sameCategory = categoryCountsByBase.get(base) || 0;
+            const occupiedPositions = [...counts.values()].filter(count => count > 0).length;
+            const freeCapacity = capacity * MAX_MATERIALS_PER_WAREHOUSE_POSITION - [...counts.values()].reduce((sum, count) => sum + count, 0);
             candidates.push({
                 structure,
                 base,
                 capacity,
-                occupied: occupied.size,
-                free: Math.max(0, capacity - occupied.size),
+                occupied: occupiedPositions,
+                free: Math.max(0, freeCapacity),
                 consecutive,
                 codigo: `${base}${consecutive}`,
                 sameCategory,
-                score: sameCategory * 100 - occupancy * 10
+                positionCount,
+                positionCategoryCount,
+                score: positionCategoryCount * 10000 + sameCategory * 100 + positionCount * 10 - occupiedPositions
             });
         });
-        if (!candidates.length) throw new Error('No quedan consecutivos libres en la estructura física configurada para este almacén.');
+        if (!candidates.length) throw new Error('No queda capacidad disponible en las posiciones físicas configuradas para este almacén.');
         candidates.sort((a, b) => b.score - a.score || compareWarehouseLocations({ ubicacion: `${a.base}1` }, { ubicacion: `${b.base}1` }));
         const best = candidates[0];
         return {
@@ -4968,7 +4991,7 @@
             materialesMismaCategoria: best.sameCategory,
             razon: best.sameCategory > 0
                 ? `Se priorizó una zona que ya contiene ${best.sameCategory} material${best.sameCategory === 1 ? '' : 'es'} de la misma categoría.`
-                : 'Se seleccionó el primer espacio libre con mejor disponibilidad dentro de la estructura configurada.'
+                : `Se seleccionó una posición con capacidad disponible. Actualmente contiene ${best.positionCount}/${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.`
         };
     }
 

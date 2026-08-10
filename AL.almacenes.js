@@ -17,6 +17,7 @@
     let assigningCode = '';
     let selectedRack = 0;
     let selectedZone = 0;
+    const MAX_MATERIALS_PER_POSITION = 7;
 
     function currentWarehouse() {
         return warehouses.find(item => Number(item.id) === Number(selectedWarehouse)) || null;
@@ -103,12 +104,12 @@
         };
     }
 
-    function occupiedBy(locationId, sequence, excludeCode = '') {
-        return inventory.find(item => {
+    function materialsInPosition(locationId, sequence, excludeCode = '') {
+        return inventory.filter(item => {
             if (item.codigo === excludeCode) return false;
             const state = materialLocationState(item);
             return Number(state.location?.id) === Number(locationId) && Number(state.consecutive) === Number(sequence);
-        }) || null;
+        });
     }
 
     function showToast(message, error = false) {
@@ -214,7 +215,7 @@
             return;
         }
         $('location-title').textContent = `Ubicaciones en ${warehouse.nombre}`;
-        $('location-subtitle').textContent = 'Arrastra cada material a un consecutivo libre dentro de su rack, zona y piso.';
+        $('location-subtitle').textContent = 'Arrastra materiales a cada posición física. Cada cajón admite hasta 7 tipos de material.';
         renderTable();
         renderVisual();
     }
@@ -233,7 +234,7 @@
                 <td class="px-4 py-3 text-center text-gray-400">1–${capacity(location)}</td>
                 <td class="px-4 py-3 text-center"><span class="rounded-full border border-blue-500/25 px-2 py-1 text-[9px] text-blue-300">${countMaterials(location)}</span></td>
                 <td class="px-4 py-3 max-w-xs truncate text-gray-500">${esc(location.nota || '—')}</td>
-                <td class="px-4 py-3"><div class="flex justify-end gap-2"><button data-qr-location="${location.id}" class="text-[10px] text-blue-400">QR</button><button data-edit-location="${location.id}" class="text-[10px] text-gray-400">Editar</button><button data-delete-location="${location.id}" class="text-[10px] text-rose-400">Eliminar</button></div></td>
+                <td class="px-4 py-3"><div class="flex justify-end gap-2"><button data-edit-location="${location.id}" class="text-[10px] text-gray-400">Editar</button><button data-delete-location="${location.id}" class="text-[10px] text-rose-400">Eliminar</button></div></td>
             </tr>`).join('')
             : '<tr><td colspan="7" class="px-4 py-12 text-center text-gray-500">Este almacén todavía no tiene zonas y pisos configurados.</td></tr>';
     }
@@ -247,7 +248,9 @@
         const slotMap = new Map();
         states.forEach(entry => {
             if (!entry.state.location || !entry.state.consecutive) return;
-            slotMap.set(`${entry.state.location.id}:${entry.state.consecutive}`, entry.item);
+            const key = `${entry.state.location.id}:${entry.state.consecutive}`;
+            if (!slotMap.has(key)) slotMap.set(key, []);
+            slotMap.get(key).push(entry.item);
         });
 
         $('metric-materials').textContent = inventory.length.toLocaleString('es-MX');
@@ -292,7 +295,8 @@
         const rackIndex = rackNumbers.indexOf(selectedRack);
         const rackCode = String(selectedRack).padStart(2, '0');
         const totalSlots = selectedGroup.locations.reduce((sum, location) => sum + capacity(location), 0);
-        const occupancy = totalSlots ? Math.round((selectedGroup.materialCount / totalSlots) * 100) : 0;
+        const occupiedPositions = new Set(states.filter(entry => parseBaseCode(entry.state.location?.codigo || '')?.rack === selectedRack && entry.state.consecutive).map(entry => `${entry.state.location.id}:${entry.state.consecutive}`)).size;
+        const occupancy = totalSlots ? Math.round((occupiedPositions / totalSlots) * 100) : 0;
         const prevRack = rackNumbers[rackIndex - 1] || '';
         const nextRack = rackNumbers[rackIndex + 1] || '';
 
@@ -319,7 +323,7 @@
             <div class="rack-selected-summary">
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap"><h3 class="text-base font-bold text-white">Rack ${rackCode}</h3><span class="text-[9px] text-emerald-400">${selectedGroup.materialCount} material${selectedGroup.materialCount === 1 ? '' : 'es'}</span></div>
-                    <p class="mt-1 text-[9px] text-gray-500">${zones.length} zona${zones.length === 1 ? '' : 's'} · ${selectedGroup.locations.length} niveles configurados · ${totalSlots.toLocaleString('es-MX')} posiciones</p>
+                    <p class="mt-1 text-[9px] text-gray-500">${zones.length} zona${zones.length === 1 ? '' : 's'} · ${selectedGroup.locations.length} niveles · ${occupiedPositions}/${totalSlots.toLocaleString('es-MX')} posiciones ocupadas</p>
                 </div>
                 <div class="rack-occupancy"><span>${occupancy}% ocupado</span><div><i style="width:${Math.min(100, occupancy)}%"></i></div></div>
                 <button type="button" data-delete-rack="${selectedRack}" class="rack-delete">Eliminar rack</button>
@@ -343,22 +347,24 @@
         $('location-boards').innerHTML = visibleLocations.length
             ? `<section class="rack-physical-view">
                 <div class="rack-physical-header">
-                    <div><p class="text-sm font-bold text-white">Rack ${rackCode} · Zona ${selectedZone}</p><p class="mt-1 text-[9px] text-gray-500">Los pisos están ordenados de arriba hacia abajo: A es el nivel superior. Desliza horizontalmente para ver todos los consecutivos.</p></div>
+                    <div><p class="text-sm font-bold text-white">Rack ${rackCode} · Zona ${selectedZone}</p><p class="mt-1 text-[9px] text-gray-500">Cada posición representa un cajón. Puede contener hasta 7 tipos de material y tiene su propia etiqueta QR.</p></div>
                     <span class="rack-floor-count">${visibleLocations.length} piso${visibleLocations.length === 1 ? '' : 's'}</span>
                 </div>
                 <div class="rack-frame">
                     ${visibleLocations.map((location, floorIndex) => {
                         const max = capacity(location);
                         const base = parseBaseCode(location.codigo);
-                        const used = countMaterials(location);
+                        let occupied = 0;
+                        let materialTotal = 0;
                         let cells = '';
                         for (let sequence = 1; sequence <= max; sequence += 1) {
-                            const inCell = slotMap.get(`${location.id}:${sequence}`);
+                            const inCell = slotMap.get(`${location.id}:${sequence}`) || [];
                             const finalCode = slotValue(location, sequence);
-                            cells += `<div class="location-cell ${inCell ? 'is-occupied' : ''}" data-location-id="${location.id}" data-sequence="${sequence}">
-                                <div class="location-cell-title">${esc(finalCode)}</div>
-                                <div class="mt-1 text-[8px] text-gray-600">Posición ${sequence}</div>
-                                <div class="mt-2">${inCell ? materialCard(inCell, true) : '<p class="location-free">Libre</p>'}</div>
+                            if (inCell.length) occupied += 1;
+                            materialTotal += inCell.length;
+                            cells += `<div class="location-cell ${inCell.length ? 'is-occupied' : ''}" data-location-id="${location.id}" data-sequence="${sequence}">
+                                <div class="location-cell-head"><div><div class="location-cell-title">${esc(finalCode)}</div><div class="mt-1 text-[8px] text-gray-600">Posición ${sequence} · ${inCell.length}/${MAX_MATERIALS_PER_POSITION}</div></div><button type="button" data-qr-position="${location.id}" data-qr-sequence="${sequence}" class="position-qr-button" title="Etiqueta QR de esta posición">QR</button></div>
+                                <div class="slot-materials">${inCell.length ? inCell.map(item => materialCard(item, true)).join('') : '<p class="location-free">Libre</p>'}</div>
                             </div>`;
                         }
                         return `<article class="rack-floor-card">
@@ -366,8 +372,8 @@
                                 <span class="rack-floor-order">${floorIndex === 0 && base?.piso === 'A' ? 'SUPERIOR' : `NIVEL ${floorIndex + 1}`}</span>
                                 <strong>Piso ${esc(base?.piso || '?')}</strong>
                                 <span class="material-code">${esc(location.codigo || '')}</span>
-                                <small>${used}/${max} ocupadas</small>
-                                <div class="rack-floor-tools"><button data-qr-location="${location.id}" class="rack-floor-tool" title="Imprimir QR">▣</button><button data-edit-location="${location.id}" class="rack-floor-tool" title="Editar piso">✎</button></div>
+                                <small>${occupied}/${max} posiciones · ${materialTotal} materiales</small>
+                                <div class="rack-floor-tools"><button data-edit-location="${location.id}" class="rack-floor-tool" title="Editar piso">✎</button></div>
                             </div>
                             <div class="rack-slot-scroll">${cells}</div>
                         </article>`;
@@ -433,9 +439,9 @@
     async function assignLocation(code, location, sequence) {
         const item = inventory.find(row => row.codigo === code);
         if (!item || !location) return;
-        const occupied = occupiedBy(location.id, sequence, code);
-        if (occupied) {
-            showToast(`${slotValue(location, sequence)} ya está ocupada por ${occupied.codigo}.`, true);
+        const occupants = materialsInPosition(location.id, sequence, code);
+        if (occupants.length >= MAX_MATERIALS_PER_POSITION) {
+            showToast(`${slotValue(location, sequence)} ya contiene ${MAX_MATERIALS_PER_POSITION} tipos de material.`, true);
             return;
         }
         const value = slotValue(location, sequence);
@@ -485,8 +491,9 @@
         const max = capacity(location);
         const options = [];
         for (let sequence = 1; sequence <= max; sequence += 1) {
-            const occupied = location ? occupiedBy(location.id, sequence, assigningCode) : null;
-            options.push(`<option value="${sequence}" ${occupied ? 'disabled' : ''}>${sequence} — ${occupied ? `Ocupado por ${esc(occupied.codigo)}` : 'Disponible'}</option>`);
+            const occupants = location ? materialsInPosition(location.id, sequence, assigningCode) : [];
+            const full = occupants.length >= MAX_MATERIALS_PER_POSITION;
+            options.push(`<option value="${sequence}" ${full ? 'disabled' : ''}>Posición ${sequence} — ${occupants.length}/${MAX_MATERIALS_PER_POSITION} materiales</option>`);
         }
         $('assign-consecutive').innerHTML = options.join('');
         const available = options.length ? Math.min(Math.max(Number(selectedSequence) || 1, 1), max) : 1;
@@ -561,7 +568,7 @@
         };
         if (!payload.nombre) return showToast('Escribe el nombre de la ubicación.', true);
         if (!parsed) return showToast('Usa el código base RR-Z-P, por ejemplo 01-1-A. El rack debe estar entre 01 y 20.', true);
-        if (!Number.isInteger(Number(payload.columnas)) || Number(payload.columnas) < 1) return showToast('La capacidad de consecutivos debe ser un número entero mayor que cero.', true);
+        if (!Number.isInteger(Number(payload.columnas)) || Number(payload.columnas) < 1) return showToast('La cantidad de posiciones debe ser un número entero mayor que cero.', true);
         try {
             await SkilledDB.saveWarehouseLocation(payload, editingLocation);
             closeModal('location-modal');
@@ -599,7 +606,7 @@
         const count = (values.rackEnd - values.rackStart + 1) * (values.zoneEnd - values.zoneStart + 1) * (values.floorB - values.floorA + 1);
         const first = `${String(values.rackStart).padStart(2, '0')}-${values.zoneStart}-${values.floorStart}`;
         const last = `${String(values.rackEnd).padStart(2, '0')}-${values.zoneEnd}-${String.fromCharCode(values.floorB)}`;
-        $('structure-preview').innerHTML = `Se crearán o actualizarán <strong class="text-white">${count}</strong> combinaciones de rack, zona y piso: desde <strong class="font-mono text-blue-300">${first}</strong> hasta <strong class="font-mono text-blue-300">${last}</strong>. Cada combinación tendrá consecutivos del <strong class="text-white">1 al ${values.capacityValue}</strong>. El piso A es el nivel superior y las letras avanzan hacia abajo.`;
+        $('structure-preview').innerHTML = `Se crearán o actualizarán <strong class="text-white">${count}</strong> combinaciones de rack, zona y piso: desde <strong class="font-mono text-blue-300">${first}</strong> hasta <strong class="font-mono text-blue-300">${last}</strong>. Cada piso tendrá posiciones físicas del <strong class="text-white">1 al ${values.capacityValue}</strong>. Cada posición admite hasta ${MAX_MATERIALS_PER_POSITION} tipos de material. El piso A es el nivel superior.`;
     }
 
     function openStructure() {
@@ -630,7 +637,7 @@
                         estado: 'Activo',
                         filas: 1,
                         columnas: values.capacityValue,
-                        nota: `Piso ${letter} contado de arriba hacia abajo. Consecutivos 1-${values.capacityValue}.`
+                        nota: `Piso ${letter} contado de arriba hacia abajo. Posiciones 1-${values.capacityValue}. Hasta ${MAX_MATERIALS_PER_POSITION} tipos de material por posición.`
                     });
                 }
             }
@@ -712,16 +719,22 @@
         }
     }
 
-    function printQr(id) {
-        const location = locations.find(row => Number(row.id) === Number(id));
+    function printQrPosition(locationId, sequence) {
+        const location = locations.find(row => Number(row.id) === Number(locationId));
         const warehouse = currentWarehouse();
         if (!location || !warehouse) return;
-        const value = `SKILLED|UBICACION|${location.codigo || location.id}`;
-        $('qr-title').textContent = location.nombre;
+        const position = slotValue(location, sequence);
+        const materials = materialsInPosition(location.id, sequence);
+        const value = `SKILLED|UBICACION|${position}`;
+        $('qr-title').textContent = `Posición ${position}`;
         $('qr-subtitle').textContent = warehouse.nombre;
-        $('qr-code').textContent = location.codigo || value;
+        $('qr-code').textContent = position;
+        $('qr-material-count').textContent = `${materials.length}/${MAX_MATERIALS_PER_POSITION} materiales`;
+        $('qr-materials').innerHTML = materials.length
+            ? materials.map(item => `<div class="qr-material-row"><strong>${esc(item.codigo)}</strong><span>${esc(item.descripcion || item.codigo)}</span></div>`).join('')
+            : '<div class="qr-empty">Posición libre</div>';
         $('qr-container').innerHTML = '';
-        new QRCode($('qr-container'), { text: value, width: 180, height: 180 });
+        new QRCode($('qr-container'), { text: value, width: 176, height: 176 });
         openModal('qr-modal');
     }
 
@@ -761,8 +774,8 @@
         }
         const deleteRack = event.target.closest('[data-delete-rack]');
         if (deleteRack) removeRack(deleteRack.dataset.deleteRack);
-        const qr = event.target.closest('[data-qr-location]');
-        if (qr) printQr(qr.dataset.qrLocation);
+        const qr = event.target.closest('[data-qr-position]');
+        if (qr) printQrPosition(qr.dataset.qrPosition, Number(qr.dataset.qrSequence));
         const assign = event.target.closest('[data-assign-code]');
         if (assign) {
             event.preventDefault();
@@ -790,7 +803,7 @@
         const location = currentLocations().find(item => Number(item.id) === Number($('assign-location').value));
         if (!location) return showToast('Selecciona una ubicación.', true);
         const sequence = Number($('assign-consecutive').value);
-        if (!sequence) return showToast('Selecciona un consecutivo disponible.', true);
+        if (!sequence) return showToast('Selecciona una posición disponible.', true);
         await assignLocation(assigningCode, location, sequence);
         closeModal('assign-modal');
     });
