@@ -4,9 +4,9 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
-    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas' };
-    const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', proyectos: 'Proyectos', consulta: 'Consulta' };
-    const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', proyectos: 'PR', consulta: 'CN' };
+    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente' };
+    const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', proyectos: 'Proyectos', consulta: 'Consulta' };
+    const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', proyectos: 'PR', consulta: 'CN' };
     const customProfiles = new Map();
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
@@ -22,7 +22,7 @@
         const remembered = String(sessionStorage.getItem('skilled_active_profile') || '').toLowerCase();
         if (remembered) return remembered;
         const role = currentRole();
-        if (role === 'compras' || role === 'rh' || role === 'finanzas' || role === 'proyectos' || role === 'consulta') return role;
+        if (['compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(role)) return role;
         return 'almacen';
     }
     function profileConfig(profile = detectProfile()) {
@@ -31,6 +31,8 @@
             compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Qué cotizaciones requieren atención?', examples: [['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Buscar proveedor','Busca al proveedor ABB'],['Proyectos','¿Qué proyectos están activos?'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?']] },
             rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
+            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Resumen ejecutivo de proyectos, materiales, sueldos, gasto real y desviaciones contra lo planeado.', placeholder: 'Ej. ¿Cuánto se ha gastado en el proyecto 2508?', examples: [['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Materiales vs sueldos','Compara materiales y sueldos del proyecto 2508'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
+            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Seguimiento ejecutivo de proyectos, materiales, sueldos y desviaciones contra lo planeado.', placeholder: 'Ej. ¿Qué proyectos están sobre presupuesto?', examples: [['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Materiales vs sueldos','Compara materiales y sueldos del proyecto 2508'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -552,6 +554,8 @@
             compras: ['cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar proveedores','orden de compra','requisicion','proveedor','recepcion','servicio','tienda','comprar','pago','vencimiento','rfc'],
             rh: ['trabajador','colaborador','personal','empleado','ausencia','vacaciones','incapacidad','documento','contrato','capacitacion','incidencia','asistencia'],
             finanzas: ['presupuesto','costo','consumido','planeado','gasto','finanzas','avance','cuenta por pagar'],
+            gerente_general: ['proyecto','proyectos','gasto','materiales','sueldos','nomina','planeado','real','desviacion','presupuesto','direccion'],
+            subgerente: ['proyecto','proyectos','gasto','materiales','sueldos','nomina','planeado','real','desviacion','presupuesto','direccion'],
             proyectos: ['avance','costo','solicitud','material','entrega','picking','ruta','responsable']
         };
         [...commonWords, ...(profileWords[detectProfile()] || [])].forEach(word => { if (normalized.includes(word)) score += 3.5; });
@@ -672,6 +676,8 @@
             compras:['cotizaciones por revisar','busca cotizacion','comparar proveedores','mejor precio y plazo','ordenes de compra pendientes','busca proveedor','servicios por vencer'],
             rh:['trabajadores activos','busca trabajador','quien esta ausente hoy','documentos por vencer','proyectos sin personal'],
             finanzas:['costo consumido del proyecto','presupuesto del proyecto','proyectos con mayor costo'],
+            gerente_general:['cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
+            subgerente:['cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
             proyectos:['como va el proyecto','costo del proyecto','prepara la ruta del proyecto','solicitudes de material pendientes']
         };
         return [...common, ...(profilePhrases[profile] || [])];
@@ -1762,6 +1768,41 @@
         return answerMaterial(raw, false);
     }
 
+    async function answerExecutive(raw) {
+        const norm = commandNormalize(raw);
+        const rows = await SkilledDB.getExecutiveProjectSummary();
+        const prefix = detectProfile() === 'gerente_general' ? 'GG' : 'SG';
+        if (!Array.isArray(rows) || !rows.length) {
+            setAnswer('Resumen ejecutivo', 'Todavía no hay proyectos disponibles para el análisis ejecutivo.', '', [], { href: `${prefix}.proyectos.html`, label: 'Abrir proyectos' });
+            return 'Todavía no hay proyectos disponibles para el análisis ejecutivo.';
+        }
+        const candidate = rows.find(row => [row.proyecto,row.nombre,row.cliente].some(value => value && norm.includes(commandNormalize(value)))) || null;
+        if (candidate && /proyecto|gasto|gastado|material|sueldo|nomina|planeado|presupuesto|costo|desviacion/.test(norm)) {
+            const mat = number(candidate.material_real), pay = number(candidate.nomina_real), real = number(candidate.total_real), planned = number(candidate.total_planeado), dev = number(candidate.desviacion_total);
+            const cards = [
+                { title: 'Materiales', detail: `${currency(mat)} reales · ${currency(candidate.material_planeado)} planeados` },
+                { title: 'Sueldos', detail: `${currency(pay)} devengados · ${currency(candidate.nomina_planeada)} planeados` },
+                { title: 'Total real', detail: currency(real) },
+                { title: 'Planeado', detail: currency(planned) },
+                { title: 'Desviación', detail: `${dev > 0 ? '+' : ''}${currency(dev)}` }
+            ];
+            const state = dev > 0 ? 'por encima de lo planeado' : dev < 0 ? 'por debajo de lo planeado' : 'en línea con lo planeado';
+            setAnswer('Costo ejecutivo del proyecto', `${candidate.proyecto} · ${candidate.nombre || 'Proyecto'}: ${currency(real)} de gasto acumulado.`, `Materiales ${currency(mat)} · sueldos ${currency(pay)}. El proyecto está ${state}.`, cards, { href: `${prefix}.proyectos.html?proyecto=${encodeURIComponent(candidate.proyecto)}`, label: 'Mostrar más detalles' });
+            return `El proyecto ${candidate.proyecto} lleva ${currency(real)} de gasto acumulado: ${currency(mat)} en materiales y ${currency(pay)} en sueldos. Está ${state}.`;
+        }
+        if (/sobre|exced|desviacion|fuera.*planeado|arriba.*planeado|presupuesto/.test(norm)) {
+            const over = rows.filter(row => number(row.desviacion_total) > 0).sort((a,b) => number(b.desviacion_total)-number(a.desviacion_total));
+            setAnswer('Proyectos sobre lo planeado', over.length ? `${over.length} proyecto${over.length===1?' está':'s están'} por encima de lo planeado.` : 'Ningún proyecto está por encima de lo planeado.', 'La desviación considera materiales y sueldos del proyecto.', over.slice(0,7).map(row => ({ title: `${row.proyecto} · ${row.nombre || 'Proyecto'}`, detail: `${currency(row.total_real)} real · ${currency(row.total_planeado)} planeado · +${currency(row.desviacion_total)}` })), { href: `${prefix}.proyectos.html`, label: 'Abrir análisis de proyectos' });
+            return over.length ? `Hay ${over.length} proyectos por encima de lo planeado.` : 'Ningún proyecto está por encima de lo planeado.';
+        }
+        const mat = rows.reduce((sum,row)=>sum+number(row.material_real),0), pay = rows.reduce((sum,row)=>sum+number(row.nomina_real),0), real = rows.reduce((sum,row)=>sum+number(row.total_real),0), planned=rows.reduce((sum,row)=>sum+number(row.total_planeado),0);
+        const active = rows.filter(row => !/complet|cerrad|cancelad/i.test(text(row.estado))).length;
+        setAnswer('Resumen ejecutivo', `${active} proyectos activos · ${currency(real)} de gasto acumulado.`, `Materiales ${currency(mat)} · sueldos ${currency(pay)} · planeado ${currency(planned)}.`, [
+            { title:'Proyectos activos',detail:String(active) }, { title:'Materiales',detail:currency(mat) }, { title:'Sueldos',detail:currency(pay) }, { title:'Total real',detail:currency(real) }, { title:'Total planeado',detail:currency(planned) }
+        ], { href: `${prefix}.proyectos.html`, label: 'Ver proyectos y costos' });
+        return `Hay ${active} proyectos activos. El gasto acumulado es ${currency(real)}: ${currency(mat)} en materiales y ${currency(pay)} en sueldos.`;
+    }
+
     async function answerGeneric(raw, profile) {
         const adapter = customProfiles.get(profile);
         if (adapter?.query) return adapter.query({ raw, normalized: normalize(raw), SkilledDB, setAnswer, loadData, formatNumber, currency, dateOnly });
@@ -1776,6 +1817,7 @@
         if (adapter?.query) return answerGeneric(raw, profile);
         if (profile === 'compras') return answerPurchasing(raw);
         if (profile === 'rh') return answerRH(raw);
+        if (profile === 'gerente_general' || profile === 'subgerente') return answerExecutive(raw);
         if (profile === 'finanzas') return answerFinance(raw);
         if (profile === 'proyectos') return answerProjects(raw);
         if (profile === 'consulta') {

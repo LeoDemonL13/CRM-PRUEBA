@@ -2160,6 +2160,17 @@
             fechaRequerida: text(row.fecha_requerida),
             estadoCompras: text(row.estado_compras) || 'no_revisada',
             estado_compras: text(row.estado_compras) || 'no_revisada',
+            cotizacionId: text(row.cotizacion_id),
+            cotizacion_id: text(row.cotizacion_id),
+            cotizacionItemId: Number(row.cotizacion_item_id || 0) || null,
+            cotizacion_item_id: Number(row.cotizacion_item_id || 0) || null,
+            proveedorId: Number(row.proveedor_id || 0) || null,
+            proveedor_id: Number(row.proveedor_id || 0) || null,
+            precioCotizado: number(row.precio_cotizado),
+            precio_cotizado: number(row.precio_cotizado),
+            moneda: text(row.moneda) || 'MXN',
+            plazoEntregaDias: number(row.plazo_entrega_dias),
+            plazo_entrega_dias: number(row.plazo_entrega_dias),
             motivoNoViable: text(row.motivo_no_viable),
             motivo_no_viable: text(row.motivo_no_viable),
             fechaCompra: text(row.fecha_compra),
@@ -2191,8 +2202,10 @@
         const status = text(options.estado ?? options.status);
         const warehouseId = Number(options.almacenId ?? options.warehouseId ?? 0);
         const activeOnly = Boolean(options.activeOnly);
+        const quotationId = text(options.cotizacionId ?? options.quotationId);
         if (status) query = query.eq('estado', status);
         if (warehouseId) query = query.eq('almacen_id', warehouseId);
+        if (quotationId) query = query.eq('cotizacion_id', quotationId);
         if (activeOnly) query = query.in('estado', ['pendiente', 'autorizada', 'ordenada', 'parcial']);
 
         const { data, error } = await query;
@@ -4935,6 +4948,42 @@
         };
     }
 
+    async function getExecutiveProjectSummary() {
+        const { data, error } = await client.rpc('crm_resumen_ejecutivo_proyectos');
+        assertNoError(error, 'No se pudo consultar el resumen ejecutivo de proyectos. Ejecuta SQL_MAESTRO_CRM.sql V22.');
+        return (Array.isArray(data) ? data : []).map(row => ({
+            proyecto: text(row.proyecto), nombre: text(row.nombre), cliente: text(row.cliente), responsable: text(row.responsable),
+            estado: text(row.estado), fechaInicio: text(row.fecha_inicio), fechaEntrega: text(row.fecha_entrega),
+            material_planeado: number(row.material_planeado), material_real: number(row.material_real),
+            nomina_planeada: number(row.nomina_planeada), nomina_real: number(row.nomina_real),
+            total_planeado: number(row.total_planeado), total_real: number(row.total_real), desviacion_total: number(row.desviacion_total)
+        }));
+    }
+
+    async function getExecutiveProjectDetail(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Selecciona un proyecto.');
+        const { data, error } = await client.rpc('crm_detalle_ejecutivo_proyecto', { p_proyecto: project });
+        assertNoError(error, 'No se pudo consultar el detalle financiero del proyecto.');
+        if (!data || typeof data !== 'object') throw new Error('El proyecto no devolvió información financiera.');
+        return data;
+    }
+
+    async function listQuotationPurchaseOrders(quotationId = '') {
+        let query = client.from('solicitudes_compra').select('*').order('created_at', { ascending: true });
+        if (text(quotationId)) query = query.eq('cotizacion_id', text(quotationId));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las órdenes vinculadas a la cotización.');
+        const warehouses = await listWarehouses();
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        return (data || []).map(row => ({
+            ...purchaseRequestFromDb(row, warehouseById),
+            cotizacionId: text(row.cotizacion_id), cotizacionItemId: Number(row.cotizacion_item_id || 0) || null,
+            proveedorId: Number(row.proveedor_id || 0) || null, precioCotizado: number(row.precio_cotizado),
+            moneda: text(row.moneda) || 'MXN', plazoEntregaDias: number(row.plazo_entrega_dias)
+        }));
+    }
+
     async function healthCheck() {
         const { error } = await client.from('materiales').select('codigo').limit(1);
         assertNoError(error, 'No se pudo conectar con Supabase.');
@@ -4949,6 +4998,8 @@
         suggestWarehouseMaterialLocation,
         buildProjectPickingRoute,
         listOperationalAlerts,
+        getExecutiveProjectSummary,
+        getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,
         assignWarehouseMaterialsLocation,
         updateWarehouseInventoryLevels,
@@ -5067,6 +5118,7 @@
         saveEmailTemplate,
         deleteEmailTemplate,
         approveQuotation,
+        listQuotationPurchaseOrders,
         listStoreRequests,
         saveStoreRequest,
         deleteStoreRequest,

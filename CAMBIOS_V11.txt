@@ -1,0 +1,49 @@
+CRM SKILLED · V11 · SKY Y AUTOMATIZACIONES DE ALMACÉN
+
+1. SKY · ASISTENTE DE CONSULTA
+- Botón Sky disponible en las pantallas del perfil Almacén.
+- Consulta por texto o por micrófono cuando el navegador ofrece reconocimiento de voz.
+- Responde por voz usando síntesis de voz del navegador.
+- Consultas habilitadas:
+  * existencias de materiales y desglose por almacén;
+  * ubicación física del material;
+  * materiales bajo mínimo;
+  * estado/avance de órdenes de compra;
+  * herramientas disponibles, asignadas y devoluciones vencidas;
+  * vehículos disponibles;
+  * preparación de una ruta de picking por proyecto.
+- Busca materiales por código, descripción, categoría, marca y modismos/sinónimos del catálogo.
+- Los números se obtienen de Supabase. Sky no genera ni ejecuta SQL y no modifica inventario por voz.
+- En equipos sin reconocimiento de voz, Sky sigue funcionando escribiendo la consulta.
+
+2. CENTRO INTELIGENTE DE ALMACÉN
+Nuevo apartado: AL.automatizaciones.html
+- Atención requerida: mínimos, compras pendientes, ubicaciones pendientes, herramientas vencidas y documentos vehiculares próximos.
+- Ubicación inteligente: propone el primer consecutivo libre RR-Z-PC y prioriza pisos que ya contienen materiales de la misma categoría. La asignación requiere botón y confirmación humana.
+- Picking por proyecto: genera recorrido ordenado por almacén, rack, zona, piso y consecutivo; muestra faltantes y existencias sin ubicación; permite copiar la ruta.
+- Verificación de recepción por OC: permite seleccionar una OC, escanear códigos y comparar recibido contra pendiente antes de abrir el registro definitivo de Entrada.
+- Devoluciones de herramientas: muestra resguardos con fecha vencida.
+
+3. INICIO DE ALMACÉN
+- Se agregó un bloque compacto de Atención requerida con datos actuales del CRM y acceso al Centro inteligente.
+
+4. ENTRADAS
+- AL.movimientos.html admite parámetros para abrir directamente Entrada con una OC y almacén precargados desde el verificador de recepción.
+
+5. AUTOMATIZACIONES YA EXISTENTES QUE SE CONSERVAN
+- Bajo mínimo calcula cantidad sugerida para volver a stock máximo y permite generar solicitudes/OC.
+- Toma física mantiene flujo guiado de escaneo, comparación de diferencias y ajustes confirmados.
+
+6. SEGURIDAD
+- Sky es de solo lectura.
+- Ninguna frase de voz elimina, ajusta, mueve, recibe o despacha material.
+- Ubicación sugerida solo se guarda mediante confirmación explícita.
+- El escaneo de recepción solo verifica; la existencia se modifica al registrar la Entrada por el flujo normal.
+
+7. RESUMEN PROGRAMADO
+- El Centro inteligente genera el resumen operativo en vivo al abrirlo o recargarlo.
+- No se configuró envío automático externo a una hora determinada porque aún no existe un canal de entrega definido (correo, WhatsApp, Telegram, etc.). Esto evita agregar credenciales o servicios externos sin autorización.
+
+8. BASE DE DATOS
+- Esta versión no requiere cambios de esquema.
+- Se conserva un solo archivo SQL oficial: SQL_MAESTRO_CRM.sql.

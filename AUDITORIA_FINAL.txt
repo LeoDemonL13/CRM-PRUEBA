@@ -1,0 +1,5 @@
+HTML: 67
+JavaScript externos con error: 0
+JavaScript internos con error: 0
+Referencias locales faltantes: 0
+Páginas con IDs duplicados: 0

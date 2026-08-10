@@ -34,16 +34,18 @@
     }
     function pageProfileKey() {
         const requested = String(new URLSearchParams(location.search).get('perfil') || '').toLowerCase();
-        if (['almacen','compras','rh','finanzas','proyectos','consulta'].includes(requested)) return requested;
+        if (['almacen','compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(requested)) return requested;
         const file = currentFile().toLowerCase();
         if (file.startsWith('co.')) return 'compras';
         if (file.startsWith('rh.')) return 'rh';
         if (file.startsWith('fi.')) return 'finanzas';
+        if (file.startsWith('gg.')) return 'gerente_general';
+        if (file.startsWith('sg.')) return 'subgerente';
         if (file.startsWith('al.')) return 'almacen';
         const bodyProfile = String(document.body?.dataset?.profile || document.documentElement?.dataset?.profile || '').toLowerCase();
-        if (['almacen','compras','rh','finanzas','proyectos','consulta'].includes(bodyProfile)) return bodyProfile;
+        if (['almacen','compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(bodyProfile)) return bodyProfile;
         const remembered = sessionStorage.getItem('skilled_active_profile');
-        return ['almacen','compras','rh','finanzas','proyectos','consulta'].includes(remembered) ? remembered : '';
+        return ['almacen','compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(remembered) ? remembered : '';
     }
     function sidebarProfileKey(role = currentRole()) {
         const pageProfile = pageProfileKey();
@@ -55,6 +57,8 @@
         if (value === 'compras') return 'compras';
         if (value === 'rh') return 'rh';
         if (value === 'finanzas') return 'finanzas';
+        if (value === 'gerente_general') return 'gerente_general';
+        if (value === 'subgerente') return 'subgerente';
         if (value === 'proyectos') return 'proyectos';
         if (value === 'consulta') return 'consulta';
         return 'almacen';
@@ -114,6 +118,8 @@
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
         ],
         finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
+        gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
+        subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
     };
@@ -326,9 +332,11 @@
         administrador:['*'],
         jefe_almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html'],
         almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html'],
-        compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html'],
+        compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html'],
         rh:['rh.inicio.html','rh.personal.html','rh.proyectos.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html'],
         finanzas:['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html'],
+        gerente_general:['gg.inicio.html','gg.proyectos.html','perfil.html'],
+        subgerente:['sg.inicio.html','sg.proyectos.html','perfil.html'],
         proyectos:['al.proyectos.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','perfil.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html']
     };
@@ -451,7 +459,9 @@
         proyectos: 'Proyectos',
         consulta: 'Consulta',
         rh: 'Recursos Humanos',
-        finanzas: 'Finanzas'
+        finanzas: 'Finanzas',
+        gerente_general: 'Gerencia General',
+        subgerente: 'Subgerencia'
     };
 
     function profileInitials(value) {

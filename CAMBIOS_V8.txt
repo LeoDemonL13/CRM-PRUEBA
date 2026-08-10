@@ -1,0 +1,8 @@
+CRM V8
+
+- Vista de asientos rediseñada con cabina y posición específica según tipo de vehículo.
+- Siluetas superiores con proporción realista; pickup separa cabina y caja, camión separa cabina y carga, van usa área longitudinal, motocicleta/montacargas/equipo usan disposición propia.
+- Distribución automática sensible al tipo de vehículo.
+- Fichas de flotilla compactadas para mostrar más unidades sin ocupar toda la pantalla.
+- Login aislado del tema de los perfiles: siempre permanece oscuro.
+- No requiere cambios SQL.

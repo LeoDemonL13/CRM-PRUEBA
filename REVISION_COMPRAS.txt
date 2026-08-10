@@ -1,0 +1,41 @@
+REVISIÓN TÉCNICA DEL PERFIL COMPRAS
+===================================
+
+ALCANCE FUNCIONAL
+-----------------
+- Inicio de Compras con indicadores operativos.
+- Lectura controlada de materiales, existencias, almacenes, proyectos e historial.
+- Proveedores derivados del catálogo de Almacén y directorio editable.
+- Vista por proveedor con material, proveedor, contacto y costo.
+- Requisiciones y órdenes con decisión de compra.
+- Hacer compra con separación automática por proveedor.
+- Información de entrega reutilizable.
+- Tienda para compras generales.
+- Servicios recurrentes, pagos y alertas personalizadas.
+- Envío automático mediante Edge Function opcional y correo manual de respaldo.
+
+SEGURIDAD
+---------
+- El rol Compras no recibe permiso para modificar stock ni registrar movimientos.
+- Las tablas nuevas usan RLS.
+- La Edge Function valida usuario activo con rol compras o administrador.
+- La clave de correo queda en secretos de Supabase y no en el navegador.
+- Los datos incorporados al correo se escapan para impedir HTML no autorizado.
+
+PRUEBAS ESTÁTICAS
+-----------------
+- Todos los JavaScript externos pasan node --check.
+- Todos los scripts internos de los HTML pasan node --check.
+- No existen referencias locales faltantes.
+- No existen identificadores HTML duplicados.
+- Los identificadores usados por los JavaScript de Compras existen en sus páginas.
+
+PRUEBAS QUE REQUIEREN SUPABASE REAL
+-----------------------------------
+- Ejecutar el SQL y confirmar políticas RLS.
+- Crear/editar proveedor.
+- Cambiar decisión de una orden.
+- Generar una solicitud por proveedor.
+- Desplegar la Edge Function y enviar un correo real.
+- Crear alerta de servicio y registrar su pago.
+- Confirmar la recepción desde el perfil Almacén.

@@ -1,0 +1,9 @@
+CRM V9
+
+- Login permanentemente oscuro y aislado del tema de los perfiles.
+- Tema claro/oscuro guardado por perfil: Almacén, Compras, RH, Finanzas, etc.
+- Tipo de vehículo convertido a catálogo cerrado.
+- Importación de vehículos rechaza tipos no permitidos.
+- Plantilla de vehículos actualizada a tipos canónicos.
+- Iconos SVG sustituyen abreviaturas de letras en las tarjetas de Compras.
+- Dimensionamiento de nube a 3 años añadido a NUBE_Y_DESPLIEGUE.md.

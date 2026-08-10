@@ -1,0 +1,9 @@
+AUDITORÍA DEL MÓDULO RH
+
+- 68 páginas HTML revisadas.
+- 0 errores de sintaxis en JavaScript externo.
+- 0 errores de sintaxis en JavaScript interno.
+- 0 referencias locales faltantes.
+- 0 páginas con identificadores duplicados.
+
+La auditoría es estructural. Las políticas RLS, el guardado, la importación, la creación de proyectos y las asignaciones deben probarse contra el proyecto real de Supabase después de ejecutar SQL_MAESTRO_CRM.sql.

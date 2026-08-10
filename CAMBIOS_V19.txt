@@ -1,0 +1,9 @@
+CRM V19 · Rediseño profesional de estructura vehicular
+
+- Se conservaron los asientos de V17/V18.
+- Se reconstruyeron las carrocerías superiores con volumen, cristales, capó, cabina, puertas, ruedas, luces, espejos y áreas de carga.
+- Pickup incorpora caja, rieles, piso, pasos de rueda y portón trasero.
+- Automóvil, SUV, van, camión, motocicleta, montacargas, generador y maquinaria tienen geometría propia.
+- La cabina incorpora un piso técnico, tablero y consola detrás de los asientos.
+- La vista se hizo más compacta para evitar que el vehículo domine el modal.
+- No requiere SQL.

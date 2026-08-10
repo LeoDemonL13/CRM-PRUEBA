@@ -1,0 +1,13 @@
+CRM V15 · Sky reconocimiento reforzado
+
+- Capa de corrección fonética en español antes de interpretar comandos.
+- Selección de hasta 10 alternativas por segmento y combinación contextual ampliada.
+- Vocabulario dinámico por perfil y datos reales del CRM.
+- Corrección de errores comunes como tuvo/tubo, pulga/pulgada, erramienta/herramienta, veiculo/vehiculo y variaciones similares.
+- Sky muestra por separado lo que escuchó y, cuando aplica, lo que interpretó.
+- Espera de silencio ampliada y vocabulario preparado antes de iniciar el reconocimiento.
+- Más comandos generales: sección actual, usuario de sesión y atajo de Sky.
+- Nombres visibles de voces clasificados por voz masculina/femenina cuando el nombre técnico permite identificarlo; las voces no identificables reciben nombres neutros.
+- No se muestran proveedor, idioma ni nombre técnico de las voces.
+- No requiere cambios en SQL_MAESTRO_CRM.sql.
+- Aprendizaje local de correcciones: si el usuario corrige una frase escuchada y consulta, Sky recuerda la pronunciación para próximas ocasiones en ese dispositivo.

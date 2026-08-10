@@ -1,7 +1,16 @@
 (function () {
     'use strict';
 
-    const file = (location.pathname.split('/').pop() || 'inicio.html').toLowerCase();
+    function pageNameFromPath(pathname = location.pathname) {
+        let raw = '';
+        try { raw = decodeURIComponent(String(pathname || '').split('/').pop() || ''); } catch (_) { raw = String(pathname || '').split('/').pop() || ''; }
+        raw = raw.trim().toLowerCase();
+        if (!raw) return 'index.html';
+        if (!raw.endsWith('.html') && !raw.endsWith('.htm')) raw += '.html';
+        return raw;
+    }
+
+    const file = pageNameFromPath();
     const publicPages = new Set(['login.html', 'index.html', 'limpiar-cache.html']);
     if (publicPages.has(file)) return;
 
@@ -9,9 +18,11 @@
         administrador: ['*'],
         jefe_almacen: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.etiqueta.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','al.prueba-ticket.html'],
         almacen: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.etiqueta.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html'],
-        compras: ['co.inicio.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.ordenes-compra.html','al.reportes.html'],
+        compras: ['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','al.ordenes-compra.html','al.reportes.html'],
         rh: ['rh.inicio.html','rh.personal.html','rh.proyectos.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html'],
         finanzas: ['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.reportes.html','al.proyectos.html'],
+        gerente_general: ['gg.inicio.html','gg.proyectos.html','perfil.html'],
+        subgerente: ['sg.inicio.html','sg.proyectos.html','perfil.html'],
         proyectos: ['al.proyectos.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','al.catalogo.html','perfil.html'],
         consulta: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html']
     };
@@ -23,6 +34,8 @@
         compras: 'CO.inicio.html',
         rh: 'RH.inicio.html',
         finanzas: 'FI.inicio.html',
+        gerente_general: 'GG.inicio.html',
+        subgerente: 'SG.inicio.html',
         proyectos: 'AL.proyectos.html',
         consulta: 'AL.inicio.html'
     };
@@ -51,9 +64,19 @@
         return false;
     }
 
+    function normalizePageTarget(target) {
+        const value = String(target || '').trim().toLowerCase();
+        if (!value) return file;
+        if (value.includes('/') || value.startsWith('http')) {
+            try { return pageNameFromPath(new URL(value, location.origin).pathname); } catch (_) {}
+        }
+        return value.endsWith('.html') || value.endsWith('.htm') ? value : `${value}.html`;
+    }
+
     function allowedFor(role, target = file) {
         const allowed = access[role] || access.consulta;
-        return allowed.includes('*') || allowed.includes(target);
+        const normalizedTarget = normalizePageTarget(target);
+        return allowed.includes('*') || allowed.includes(normalizedTarget);
     }
 
     function exposeSession(user, profile, role, cached = false, degraded = false) {
@@ -120,6 +143,14 @@
         });
     }
 
+    function withTimeout(value, milliseconds, message) {
+        let timer = 0;
+        const timeout = new Promise((_, reject) => {
+            timer = window.setTimeout(() => reject(new Error(message)), milliseconds);
+        });
+        return Promise.race([Promise.resolve(value), timeout]).finally(() => window.clearTimeout(timer));
+    }
+
     function applyNavigation(client, allowed) {
         const run = () => {
             addScannerLinks();
@@ -146,18 +177,22 @@
         }
 
         try {
-            const { data: { session }, error: sessionError } = await client.auth.getSession();
+            const { data: { session }, error: sessionError } = await withTimeout(client.auth.getSession(), 10000, 'La validación de sesión excedió el tiempo de espera.');
             if (sessionError || !session) {
                 clearProfileCache();
                 redirectToLogin('sesion_requerida');
                 return;
             }
 
-            const { data: profile, error: profileError } = await client
-                .from('perfiles_usuario')
-                .select('*')
-                .eq('id', session.user.id)
-                .maybeSingle();
+            const { data: profile, error: profileError } = await withTimeout(
+                client
+                    .from('perfiles_usuario')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .maybeSingle(),
+                12000,
+                'La consulta del perfil excedió el tiempo de espera.'
+            );
 
             if (profileError) {
                 if (canUseCache) {
@@ -191,7 +226,7 @@
             applyNavigation(client, access[role] || access.consulta);
             window.dispatchEvent(new CustomEvent('skilled:sessionready', { detail: window.SkilledSession }));
         } catch (error) {
-            console.error('No se pudo validar la sesión:', error);
+            console.error('No se pudo validar la sesión:', error, { pagina: file, ruta: location.pathname });
             if (canUseCache) {
                 exposeSession({ email: cached.email || '' }, cached, cachedRole, true, true);
                 applyNavigation(client, access[cachedRole] || access.consulta);

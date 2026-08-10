@@ -1,9 +1,9 @@
--- SQL MAESTRO CRM SKILLED · V21 · 2026-08-07
+-- SQL MAESTRO CRM SKILLED · V22 · 2026-08-07
 -- ÚNICO SQL OFICIAL DEL PROYECTO. No combinar con scripts SQL antiguos por separado.
 -- Incluye la migración del flujo de cotizaciones de Compras al final del archivo.
 
 -- SQL MAESTRO CRM SKILLED
--- Base acumulativa actualizada hasta V21 · 2026-08-07
+-- Base acumulativa actualizada hasta V22 · 2026-08-07
 -- Sustituye los SQL sueltos de actualización. Ejecutar completo sobre la base actual del CRM.
 
 
@@ -48,7 +48,7 @@ alter table public.perfiles_usuario add column if not exists departamento text;
 alter table public.perfiles_usuario add column if not exists foto_url text;
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
-check (rol in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','consulta'));
+check (rol in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','gerente_general','subgerente','consulta'));
 
 
 
@@ -161,7 +161,7 @@ grant usage,select on sequence public.rh_proyecto_asignaciones_id_seq to authent
 alter table public.proyectos enable row level security;
 drop policy if exists "RH consulta proyectos" on public.proyectos;
 create policy "RH consulta proyectos" on public.proyectos for select to authenticated using (
-    exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','rh','jefe_almacen','almacen','proyectos','finanzas'))
+    exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','rh','jefe_almacen','almacen','proyectos','finanzas','gerente_general','subgerente'))
 );
 drop policy if exists "RH administra proyectos" on public.proyectos;
 create policy "RH administra proyectos" on public.proyectos for all to authenticated using (
@@ -1221,7 +1221,7 @@ $$;
 
 alter table public.perfiles_usuario
     add constraint perfiles_usuario_rol_check
-    check (rol in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','consulta'));
+    check (rol in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','gerente_general','subgerente','consulta'));
 
 create or replace function public.crm_usuario_tiene_rol(p_roles text[])
 returns boolean
@@ -1257,7 +1257,7 @@ declare
     v_perfil public.perfiles_usuario%rowtype;
     v_jwt_role text := coalesce(current_setting('request.jwt.claim.role', true), '');
 begin
-    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','consulta') then
+    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','gerente_general','subgerente','consulta') then
         raise exception 'Rol no válido: %', p_rol;
     end if;
 
@@ -2602,3 +2602,282 @@ select
     case when to_regclass('public.co_cotizaciones') is not null then 'OK' else 'FALTA' end as cotizaciones,
     case when to_regclass('public.co_proveedor_materiales') is not null then 'OK' else 'FALTA' end as catalogo_proveedor_material,
     case when to_regclass('public.co_plantillas_correo') is not null then 'OK' else 'FALTA' end as plantillas_correo;
+
+-- ============================================================================
+-- CRM V22 · DIRECCIÓN + FLUJO COTIZACIÓN -> ORDEN DE COMPRA
+-- ============================================================================
+begin;
+
+alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
+alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
+check (rol in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','gerente_general','subgerente','consulta'));
+
+create or replace function public.crm_asignar_rol_por_correo(
+    p_correo text,
+    p_rol text,
+    p_activo boolean default true
+)
+returns public.perfiles_usuario
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+    v_usuario_id uuid;
+    v_perfil public.perfiles_usuario%rowtype;
+    v_jwt_role text := coalesce(current_setting('request.jwt.claim.role', true), '');
+begin
+    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','rh','finanzas','gerente_general','subgerente','consulta') then
+        raise exception 'Rol no válido: %', p_rol;
+    end if;
+    if auth.uid() is not null then
+        if not public.crm_usuario_tiene_rol(array['administrador']) then
+            raise exception using errcode='42501', message='Solo un administrador activo puede asignar roles.';
+        end if;
+    elsif session_user not in ('postgres','supabase_admin') and v_jwt_role <> 'service_role' then
+        raise exception using errcode='42501', message='La asignación de roles requiere administrador o service_role.';
+    end if;
+    select id into v_usuario_id from auth.users where lower(email)=lower(btrim(p_correo)) limit 1;
+    if v_usuario_id is null then raise exception 'No existe un usuario con el correo %',p_correo; end if;
+    insert into public.perfiles_usuario(id,nombre,rol,activo)
+    select u.id,coalesce(nullif(u.raw_user_meta_data->>'nombre',''),split_part(u.email,'@',1)),p_rol,p_activo
+    from auth.users u where u.id=v_usuario_id
+    on conflict(id) do update set rol=excluded.rol,activo=excluded.activo,updated_at=now()
+    returning * into v_perfil;
+    return v_perfil;
+end;
+$$;
+revoke all on function public.crm_asignar_rol_por_correo(text,text,boolean) from public,anon;
+grant execute on function public.crm_asignar_rol_por_correo(text,text,boolean) to authenticated,service_role;
+
+alter table public.rh_proyecto_asignaciones add column if not exists porcentaje_dedicacion numeric(5,2) not null default 100;
+alter table public.rh_proyecto_asignaciones drop constraint if exists rh_proyecto_asignaciones_dedicacion_check;
+alter table public.rh_proyecto_asignaciones add constraint rh_proyecto_asignaciones_dedicacion_check check (porcentaje_dedicacion > 0 and porcentaje_dedicacion <= 100);
+
+alter table public.solicitudes_compra add column if not exists cotizacion_id uuid references public.co_cotizaciones(id) on update cascade on delete set null;
+alter table public.solicitudes_compra add column if not exists cotizacion_item_id bigint references public.co_cotizacion_items(id) on update cascade on delete set null;
+alter table public.solicitudes_compra add column if not exists proveedor_id bigint references public.co_proveedores(id) on update cascade on delete set null;
+alter table public.solicitudes_compra add column if not exists precio_cotizado numeric(16,4) not null default 0;
+alter table public.solicitudes_compra add column if not exists moneda text not null default 'MXN';
+alter table public.solicitudes_compra add column if not exists plazo_entrega_dias integer not null default 0;
+create index if not exists solicitudes_compra_cotizacion_idx on public.solicitudes_compra(cotizacion_id,cotizacion_item_id);
+create index if not exists solicitudes_compra_orden_estado_idx on public.solicitudes_compra(orden_compra,estado);
+
+alter table public.co_cotizaciones add column if not exists oc_generada_at timestamptz;
+
+-- La aprobación comercial genera de inmediato las líneas de OC en estado PENDIENTE.
+-- Así Almacén puede ver "OC pendiente autorización" sin esperar otro proceso manual.
+create or replace function public.co_aprobar_cotizacion(p_cotizacion_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_cot public.co_cotizaciones%rowtype;
+    v_item record;
+    v_offer public.co_cotizacion_ofertas%rowtype;
+    v_provider_id bigint;
+    v_provider_name text;
+    v_provider_contact text;
+    v_missing integer;
+    v_saved integer := 0;
+    v_orders text[] := array[]::text[];
+    v_order text;
+    v_request_id bigint;
+begin
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','compras')) then
+        raise exception 'Solo Compras o Administrador puede aprobar una cotización.';
+    end if;
+    select * into v_cot from public.co_cotizaciones where id=p_cotizacion_id for update;
+    if not found then raise exception 'No se encontró la cotización.'; end if;
+    select count(*) into v_missing from public.co_cotizacion_items where cotizacion_id=p_cotizacion_id and oferta_seleccionada_id is null;
+    if v_missing>0 then raise exception 'Falta seleccionar proveedor para % material(es).',v_missing; end if;
+
+    for v_item in
+        select id,material_codigo,descripcion,marca,unidad,cantidad,almacen_id,almacen_nombre,existencia_actual,stock_minimo,stock_medio,stock_maximo,oferta_seleccionada_id
+        from public.co_cotizacion_items where cotizacion_id=p_cotizacion_id order by id
+    loop
+        select * into v_offer from public.co_cotizacion_ofertas where id=v_item.oferta_seleccionada_id and cotizacion_item_id=v_item.id for update;
+        if not found then raise exception 'La oferta seleccionada del material % ya no existe.',v_item.material_codigo; end if;
+        v_provider_id := v_offer.proveedor_id;
+        if v_provider_id is null then
+            v_provider_name := btrim(coalesce(v_offer.proveedor_temporal_nombre,''));
+            if v_provider_name='' then raise exception 'La oferta temporal del material % no tiene proveedor.',v_item.material_codigo; end if;
+            select id into v_provider_id from public.co_proveedores
+            where lower(btrim(coalesce(nombre_comercial,razon_social)))=lower(v_provider_name) or lower(btrim(razon_social))=lower(v_provider_name)
+            order by id limit 1;
+            if v_provider_id is null then
+                insert into public.co_proveedores(razon_social,nombre_comercial,contacto,email,telefono,categoria,estado,notas)
+                values(v_provider_name,v_provider_name,v_offer.proveedor_temporal_contacto,v_offer.proveedor_temporal_email,v_offer.proveedor_temporal_telefono,'Materiales','activo','Alta automática desde cotización '||v_cot.folio)
+                returning id into v_provider_id;
+            end if;
+            update public.co_cotizacion_ofertas set proveedor_id=v_provider_id,updated_at=now() where id=v_offer.id;
+        end if;
+        select coalesce(nullif(nombre_comercial,''),razon_social),contacto into v_provider_name,v_provider_contact from public.co_proveedores where id=v_provider_id;
+
+        insert into public.co_proveedor_materiales(proveedor_id,material_codigo,descripcion,marca,precio_unitario,moneda,plazo_entrega_dias,cantidad_minima,vigencia_hasta,ultima_cotizacion,fuente,activo,notas,updated_at)
+        values(v_provider_id,v_item.material_codigo,v_item.descripcion,v_item.marca,v_offer.precio_unitario,v_offer.moneda,v_offer.plazo_entrega_dias,v_offer.cantidad_minima,v_offer.vigencia_hasta,current_date,'cotizacion_aceptada',true,v_offer.observaciones,now())
+        on conflict(proveedor_id,material_codigo) do update set descripcion=excluded.descripcion,marca=excluded.marca,precio_unitario=excluded.precio_unitario,moneda=excluded.moneda,plazo_entrega_dias=excluded.plazo_entrega_dias,cantidad_minima=excluded.cantidad_minima,vigencia_hasta=excluded.vigencia_hasta,ultima_cotizacion=excluded.ultima_cotizacion,fuente='cotizacion_aceptada',activo=true,notas=excluded.notas,updated_at=now();
+
+        update public.co_cotizacion_items set proveedor_seleccionado_id=v_provider_id,estado='seleccionado',updated_at=now() where id=v_item.id;
+        update public.co_cotizacion_ofertas set estado=case when id=v_offer.id then 'seleccionada' else 'descartada' end,updated_at=now() where cotizacion_item_id=v_item.id;
+
+        v_order := 'OC-' || regexp_replace(v_cot.folio,'^COT-','','i') || '-P' || v_provider_id::text;
+        if not (v_order = any(v_orders)) then v_orders := array_append(v_orders,v_order); end if;
+
+        select id into v_request_id from public.solicitudes_compra
+        where material_codigo=v_item.material_codigo and coalesce(almacen_id,0)=coalesce(v_item.almacen_id,0)
+          and estado in ('pendiente','autorizada','ordenada','parcial')
+        order by created_at desc limit 1;
+
+        if v_request_id is null then
+            insert into public.solicitudes_compra(
+                folio,material_codigo,descripcion,unidad,almacen_id,almacen_nombre,existencia_actual,stock_minimo,stock_medio,stock_maximo,
+                cantidad_solicitada,cantidad_recibida,prioridad,estado,proveedor,contacto_proveedor,orden_compra,grupo_orden,motivo,solicitado_por,
+                fecha_requerida,fecha_orden_compra,referencia,estado_compras,cotizacion_id,cotizacion_item_id,proveedor_id,precio_cotizado,moneda,plazo_entrega_dias,created_at,updated_at
+            ) values(
+                'SC-'||to_char(clock_timestamp(),'YYYYMMDDHH24MISSMS')||'-'||v_item.id::text,
+                v_item.material_codigo,v_item.descripcion,v_item.unidad,v_item.almacen_id,v_item.almacen_nombre,v_item.existencia_actual,v_item.stock_minimo,v_item.stock_medio,v_item.stock_maximo,
+                v_item.cantidad,0,case when v_cot.prioridad in ('critica','urgente','alta') then 'urgente' else 'normal' end,'pendiente',v_provider_name,v_provider_contact,v_order,v_order,
+                'Generada desde cotización '||v_cot.folio,v_cot.solicitado_por,v_cot.fecha_requerida,current_date,v_cot.referencia,'en_revision',
+                p_cotizacion_id,v_item.id,v_provider_id,v_offer.precio_unitario,coalesce(v_offer.moneda,'MXN'),coalesce(v_offer.plazo_entrega_dias,0),now(),now()
+            );
+        else
+            update public.solicitudes_compra set proveedor=v_provider_name,contacto_proveedor=v_provider_contact,orden_compra=v_order,grupo_orden=v_order,
+                motivo='Vinculada a cotización '||v_cot.folio,fecha_orden_compra=current_date,estado_compras='en_revision',cotizacion_id=p_cotizacion_id,cotizacion_item_id=v_item.id,
+                proveedor_id=v_provider_id,precio_cotizado=v_offer.precio_unitario,moneda=coalesce(v_offer.moneda,'MXN'),plazo_entrega_dias=coalesce(v_offer.plazo_entrega_dias,0),updated_at=now()
+            where id=v_request_id;
+        end if;
+        v_saved := v_saved+1;
+    end loop;
+
+    update public.co_cotizaciones set estado='aprobada',aprobada_por=auth.uid(),aprobada_at=now(),revisada_por=coalesce(revisada_por,auth.uid()),revisada_at=coalesce(revisada_at,now()),oc_generada_at=now(),updated_at=now() where id=p_cotizacion_id;
+    return jsonb_build_object('ok',true,'cotizacion_id',p_cotizacion_id,'folio',v_cot.folio,'materiales',v_saved,'ordenes',to_jsonb(v_orders),'estado_oc','pendiente_autorizacion');
+end;
+$$;
+revoke all on function public.co_aprobar_cotizacion(uuid) from public,anon;
+grant execute on function public.co_aprobar_cotizacion(uuid) to authenticated;
+
+-- Resumen ejecutivo: materiales + nómina por proyecto.
+create or replace function public.crm_resumen_ejecutivo_proyectos()
+returns table(
+    proyecto text,nombre text,cliente text,responsable text,estado text,fecha_inicio date,fecha_entrega date,
+    material_planeado numeric,material_real numeric,nomina_planeada numeric,nomina_real numeric,total_planeado numeric,total_real numeric,desviacion_total numeric
+)
+language plpgsql
+security definer
+set search_path=public
+as $$
+begin
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','gerente_general','subgerente')) then
+        raise exception using errcode='42501',message='Este resumen está disponible solo para Dirección.';
+    end if;
+    return query
+    with plan_lines as (
+        select pm.proyecto_numero,pm.material_codigo codigo,coalesce(pm.cantidad_planeada,0)::numeric cantidad,
+               coalesce(nullif(pm.precio_unitario,0),m.precio,0)::numeric precio
+        from public.proyecto_materiales pm left join public.materiales m on m.codigo=pm.material_codigo
+        union all
+        select pn.proyecto_numero,pn.codigo_manual,coalesce(pn.cantidad_planeada,0)::numeric,
+               coalesce(pn.precio_unitario,0)::numeric
+        from public.proyecto_materiales_no_listados pn
+    ), material_plan as (
+        select proyecto_numero,sum(cantidad*precio)::numeric material_planeado from plan_lines group by proyecto_numero
+    ), move_code as (
+        select mv.proyecto proyecto_numero,coalesce(nullif(mv.material_codigo,''),nullif(mv.codigo_manual,'')) codigo,
+               sum(case when lower(coalesce(mv.tipo,''))='entrada' then coalesce(mv.cantidad,0) else 0 end)::numeric entrada,
+               sum(case when lower(coalesce(mv.tipo,''))='salida' then coalesce(mv.cantidad,0)
+                        when lower(coalesce(mv.tipo,''))='reingreso' then -coalesce(mv.cantidad,0)
+                        when lower(coalesce(mv.tipo,''))='ajuste' and lower(coalesce(mv.ajuste_accion,''))='disminuir' then coalesce(mv.cantidad,0)
+                        else 0 end)::numeric entregado,
+               max(coalesce(nullif(mv.precio_unitario,0),m.precio,0))::numeric precio
+        from public.movimientos mv left join public.materiales m on m.codigo=mv.material_codigo
+        where nullif(btrim(coalesce(mv.proyecto,'')),'') is not null
+        group by mv.proyecto,coalesce(nullif(mv.material_codigo,''),nullif(mv.codigo_manual,''))
+    ), material_real as (
+        select proyecto_numero,sum(greatest(coalesce(entrada,0),greatest(coalesce(entregado,0),0))*coalesce(precio,0))::numeric material_real
+        from move_code group by proyecto_numero
+    ), payroll as (
+        select a.proyecto_numero,
+          sum((case when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*greatest(coalesce(rp.horas_jornada_diaria,8)-coalesce(rp.horas_comida_diaria,1),0)
+                    else coalesce(nullif(rp.salario_semanal_calculado,0),rp.tarifa_pago,rp.salario,0)/greatest(coalesce(rp.dias_laborales_semana,6),1) end)
+              * greatest(0,(coalesce(a.fecha_fin,p.fecha_entrega,current_date)-a.fecha_inicio+1)) * greatest(coalesce(rp.dias_laborales_semana,6),1)/7.0
+              * coalesce(a.porcentaje_dedicacion,100)/100.0)::numeric nomina_planeada,
+          sum((case when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*greatest(coalesce(rp.horas_jornada_diaria,8)-coalesce(rp.horas_comida_diaria,1),0)
+                    else coalesce(nullif(rp.salario_semanal_calculado,0),rp.tarifa_pago,rp.salario,0)/greatest(coalesce(rp.dias_laborales_semana,6),1) end)
+              * greatest(0,(least(current_date,coalesce(a.fecha_fin,p.fecha_entrega,current_date))-a.fecha_inicio+1)) * greatest(coalesce(rp.dias_laborales_semana,6),1)/7.0
+              * coalesce(a.porcentaje_dedicacion,100)/100.0)::numeric nomina_real
+        from public.rh_proyecto_asignaciones a join public.rh_personal rp on rp.id=a.personal_id join public.proyectos p on p.numero_proyecto=a.proyecto_numero
+        where a.estado<>'cancelado'
+        group by a.proyecto_numero
+    )
+    select p.numero_proyecto,p.nombre_proyecto,p.cliente,p.responsable_skilled,p.estado,p.fecha_asignacion,p.fecha_entrega,
+      coalesce(mp.material_planeado,0),coalesce(mr.material_real,0),coalesce(py.nomina_planeada,0),coalesce(py.nomina_real,0),
+      coalesce(mp.material_planeado,0)+coalesce(py.nomina_planeada,0),coalesce(mr.material_real,0)+coalesce(py.nomina_real,0),
+      (coalesce(mr.material_real,0)+coalesce(py.nomina_real,0))-(coalesce(mp.material_planeado,0)+coalesce(py.nomina_planeada,0))
+    from public.proyectos p left join material_plan mp on mp.proyecto_numero=p.numero_proyecto left join material_real mr on mr.proyecto_numero=p.numero_proyecto left join payroll py on py.proyecto_numero=p.numero_proyecto
+    order by p.fecha_entrega nulls last,p.numero_proyecto;
+end;
+$$;
+revoke all on function public.crm_resumen_ejecutivo_proyectos() from public,anon;
+grant execute on function public.crm_resumen_ejecutivo_proyectos() to authenticated;
+
+create or replace function public.crm_detalle_ejecutivo_proyecto(p_proyecto text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_summary record; v_materiales jsonb; v_personal jsonb;
+begin
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','gerente_general','subgerente')) then
+        raise exception using errcode='42501',message='Este detalle está disponible solo para Dirección.';
+    end if;
+    select * into v_summary from public.crm_resumen_ejecutivo_proyectos() s where s.proyecto=p_proyecto;
+    if not found then raise exception 'No se encontró el proyecto %.',p_proyecto; end if;
+
+    with plan_lines as (
+        select pm.material_codigo codigo,coalesce(m.descripcion,pm.material_codigo) descripcion,coalesce(pm.cantidad_planeada,0)::numeric cantidad_planeada,
+               coalesce(nullif(pm.precio_unitario,0),m.precio,0)::numeric precio from public.proyecto_materiales pm left join public.materiales m on m.codigo=pm.material_codigo where pm.proyecto_numero=p_proyecto
+        union all
+        select pn.codigo_manual,coalesce(nullif(pn.descripcion,''),pn.codigo_manual),coalesce(pn.cantidad_planeada,0)::numeric,coalesce(pn.precio_unitario,0)::numeric from public.proyecto_materiales_no_listados pn where pn.proyecto_numero=p_proyecto
+    ), moves as (
+        select coalesce(nullif(mv.material_codigo,''),nullif(mv.codigo_manual,'')) codigo,
+               sum(case when lower(coalesce(mv.tipo,''))='entrada' then coalesce(mv.cantidad,0) else 0 end)::numeric entrada,
+               sum(case when lower(coalesce(mv.tipo,''))='salida' then coalesce(mv.cantidad,0) when lower(coalesce(mv.tipo,''))='reingreso' then -coalesce(mv.cantidad,0) when lower(coalesce(mv.tipo,''))='ajuste' and lower(coalesce(mv.ajuste_accion,''))='disminuir' then coalesce(mv.cantidad,0) else 0 end)::numeric entregado,
+               max(coalesce(nullif(mv.precio_unitario,0),m.precio,0))::numeric precio
+        from public.movimientos mv left join public.materiales m on m.codigo=mv.material_codigo where mv.proyecto=p_proyecto
+        group by coalesce(nullif(mv.material_codigo,''),nullif(mv.codigo_manual,''))
+    ), combined as (
+        select coalesce(pl.codigo,mv.codigo) codigo,coalesce(pl.descripcion,coalesce(mat.descripcion,mv.codigo)) descripcion,coalesce(pl.cantidad_planeada,0) cantidad_planeada,
+               greatest(coalesce(mv.entrada,0),greatest(coalesce(mv.entregado,0),0)) cantidad_real,
+               coalesce(pl.precio,mv.precio,0) precio_plan,coalesce(mv.precio,pl.precio,0) precio_real
+        from plan_lines pl full join moves mv on lower(mv.codigo)=lower(pl.codigo) left join public.materiales mat on mat.codigo=mv.codigo
+    )
+    select coalesce(jsonb_agg(jsonb_build_object('codigo',codigo,'descripcion',descripcion,'cantidad_planeada',cantidad_planeada,'cantidad_real',cantidad_real,'costo_planeado',cantidad_planeada*precio_plan,'costo_real',cantidad_real*precio_real,'diferencia',(cantidad_real*precio_real)-(cantidad_planeada*precio_plan)) order by codigo),'[]'::jsonb) into v_materiales from combined;
+
+    select coalesce(jsonb_agg(jsonb_build_object(
+        'numero_empleado',rp.numero_empleado,'nombre',btrim(rp.nombre||' '||rp.apellidos),'puesto',rp.puesto,'rol_proyecto',a.rol_proyecto,'fecha_inicio',a.fecha_inicio,
+        'fecha_fin',coalesce(a.fecha_fin,p.fecha_entrega),'porcentaje_dedicacion',coalesce(a.porcentaje_dedicacion,100),
+        'costo_planeado',(case when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*greatest(coalesce(rp.horas_jornada_diaria,8)-coalesce(rp.horas_comida_diaria,1),0) else coalesce(nullif(rp.salario_semanal_calculado,0),rp.tarifa_pago,rp.salario,0)/greatest(coalesce(rp.dias_laborales_semana,6),1) end)*greatest(0,(coalesce(a.fecha_fin,p.fecha_entrega,current_date)-a.fecha_inicio+1))*greatest(coalesce(rp.dias_laborales_semana,6),1)/7.0*coalesce(a.porcentaje_dedicacion,100)/100.0,
+        'costo_real',(case when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*greatest(coalesce(rp.horas_jornada_diaria,8)-coalesce(rp.horas_comida_diaria,1),0) else coalesce(nullif(rp.salario_semanal_calculado,0),rp.tarifa_pago,rp.salario,0)/greatest(coalesce(rp.dias_laborales_semana,6),1) end)*greatest(0,(least(current_date,coalesce(a.fecha_fin,p.fecha_entrega,current_date))-a.fecha_inicio+1))*greatest(coalesce(rp.dias_laborales_semana,6),1)/7.0*coalesce(a.porcentaje_dedicacion,100)/100.0
+    ) order by rp.apellidos,rp.nombre),'[]'::jsonb) into v_personal
+    from public.rh_proyecto_asignaciones a join public.rh_personal rp on rp.id=a.personal_id join public.proyectos p on p.numero_proyecto=a.proyecto_numero
+    where a.proyecto_numero=p_proyecto and a.estado<>'cancelado';
+
+    return jsonb_build_object('proyecto',v_summary.proyecto,'nombre',v_summary.nombre,'cliente',v_summary.cliente,'responsable',v_summary.responsable,'estado',v_summary.estado,
+      'material_planeado',v_summary.material_planeado,'material_real',v_summary.material_real,'nomina_planeada',v_summary.nomina_planeada,'nomina_real',v_summary.nomina_real,
+      'total_planeado',v_summary.total_planeado,'total_real',v_summary.total_real,'desviacion_total',v_summary.desviacion_total,'materiales',v_materiales,'personal',v_personal);
+end;
+$$;
+revoke all on function public.crm_detalle_ejecutivo_proyecto(text) from public,anon;
+grant execute on function public.crm_detalle_ejecutivo_proyecto(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at) values('CRM-V22-DIRECCION-COTIZACIONES-2026-08-07',now()) on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' estado,'CRM-V22-DIRECCION-COTIZACIONES-2026-08-07' version,
+       case when to_regprocedure('public.crm_resumen_ejecutivo_proyectos()') is not null then 'OK' else 'FALTA' end direccion,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='solicitudes_compra' and column_name='cotizacion_id') then 'OK' else 'FALTA' end enlace_cotizacion_oc;

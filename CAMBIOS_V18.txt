@@ -1,0 +1,8 @@
+CRM V18 · Estructuras superiores de vehículos
+
+- Se conservaron los asientos de V17.
+- Se rehizo la vista superior de automóvil, camioneta/SUV, pickup, van, camión, motocicleta, montacargas, generador y maquinaria.
+- Camioneta ya no comparte silueta con Pickup.
+- Se añadieron ruedas, espejos, cristales, capó, techo, puertas, paneles, luces y áreas de carga según el tipo.
+- Se reajustaron únicamente las zonas de cabina para alinear los asientos con cada carrocería.
+- No requiere SQL.

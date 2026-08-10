@@ -68,7 +68,7 @@
 </section>
 </div>
 </main>
-<script src="skilled-supabase.js?v=11"></script>
+<script src="skilled-supabase.js?v=22"></script>
 <script>
 (function(){
 const form=document.getElementById('login-form');
@@ -80,7 +80,7 @@ const password=document.getElementById('password');
 const toggle=document.getElementById('toggle-password');
 const params=new URLSearchParams(location.search);
 const particles=document.getElementById('particles');
-const roleHomes={administrador:'AL.inicio.html',jefe_almacen:'AL.inicio.html',almacen:'AL.inicio.html',compras:'CO.inicio.html',rh:'RH.inicio.html',finanzas:'FI.inicio.html',proyectos:'AL.proyectos.html',consulta:'AL.inicio.html'};
+const roleHomes={administrador:'AL.inicio.html',jefe_almacen:'AL.inicio.html',almacen:'AL.inicio.html',compras:'CO.inicio.html',rh:'RH.inicio.html',finanzas:'FI.inicio.html',gerente_general:'GG.inicio.html',subgerente:'SG.inicio.html',proyectos:'AL.proyectos.html',consulta:'AL.inicio.html'};
 for(let i=0;i<30;i+=1){const p=document.createElement('i');p.className='particle';p.style.left=`${Math.random()*100}%`;p.style.setProperty('--duration',`${13+Math.random()*20}s`);p.style.setProperty('--delay',`-${Math.random()*24}s`);p.style.opacity=(.18+Math.random()*.36).toFixed(2);particles.appendChild(p)}
 function show(text,type){message.className=`login-message ${type==='error'?'border-rose-500/35 bg-rose-950/25 text-rose-300':'border-amber-500/35 bg-amber-950/20 text-amber-300'}`;message.textContent=text;message.classList.remove('hidden')}
 function setLoading(value){button.disabled=value;button.classList.toggle('is-loading',value);buttonText.textContent=value?'Validando acceso…':'Entrar al CRM'}

@@ -1,0 +1,24 @@
+CRM V7 — 2026-08-07
+
+1. Edición de vehículos
+- Corregida la causa real del editor: faltaba la función setValue en AL.vehiculos.js.
+- Apertura del editor reforzada con control de errores y modal forzado sobre la interfaz.
+- Los botones de edición se enlazan directamente después de renderizar la flotilla.
+- Se conserva el historial al modificar la ficha.
+
+2. Vista de vehículos
+- Tarjetas rediseñadas en formato horizontal responsivo.
+- Mejor jerarquía de número económico, modelo, placas/VIN, estado, uso, kilometraje, base y capacidad.
+- Resumen de documentación, asientos y acciones.
+- Diseño adaptable a computadora, tablet y teléfono.
+
+3. Navegación por perfil
+- El estado compacto/expandido se guarda por perfil funcional, no por rol global.
+- AL, RH, CO y FI mantienen preferencias independientes.
+- Los accesos compartidos conservan el contexto mediante ?perfil=.
+- Un administrador ve la navegación correspondiente al módulo en el que está trabajando.
+- Actualizado el versionado de skilled-sidebar.js a v7 en todas las páginas para evitar caché antigua.
+
+4. SQL
+- Se mantiene un único archivo SQL_MAESTRO_CRM.sql.
+- Marcador de versión actualizado a CRM-V7-MAESTRO-2026-08-07.
