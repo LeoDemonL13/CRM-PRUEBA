@@ -26,8 +26,8 @@
         cantidad:number(row.cantidad),
         unidad:text(row.unidad),
         categoria:text(row.categoria_manual),
-        esNoListado:bool(row.es_no_listado),
-        es_no_listado:bool(row.es_no_listado),
+        esNoListado:bool(row.es_no_listado)||/^NL-/i.test(text(row.material_codigo||row.codigo_manual)),
+        es_no_listado:bool(row.es_no_listado)||/^NL-/i.test(text(row.material_codigo||row.codigo_manual)),
         proyecto:text(row.proyecto),
         proyectoDestino:text(row.proyecto_destino),
         proyecto_destino:text(row.proyecto_destino),
@@ -93,18 +93,96 @@
             almacenId:Number(row.almacen_id),
             almacen:names.get(Number(row.almacen_id))||'',
             stock:number(row.stock),
-            ubicacion:text(row.ubicacion)
+            ubicacion:text(row.ubicacion),
+            fuenteReserva:'existencias_proyecto_almacen'
         }));
+    }
+    function historicalReserveRows(project,movements,authoritativeRows=[]){
+        const value=text(project);
+        const authoritative=new Set((authoritativeRows||[]).map(row=>`${lower(row.codigo)}|${lower(row.almacen)}`));
+        const warehouseTotals=new Map();
+        const warehouseLabels=new Map();
+        const descriptions=new Map();
+        const warehouseName=(move,positive)=>{
+            const raw=positive
+                ? text(move.bodegaDestino||move.bodega_destino||move.bodegaOrigen||move.bodega_origen)
+                : text(move.bodegaOrigen||move.bodega_origen||move.bodegaDestino||move.bodega_destino);
+            return raw||'Sin almacén';
+        };
+        const add=(code,warehouse,amount,move)=>{
+            const normalizedCode=text(code);
+            if(!normalizedCode||!Number.isFinite(amount)||Math.abs(amount)<0.000001)return;
+            const key=`${lower(normalizedCode)}|${lower(warehouse)}`;
+            warehouseTotals.set(key,(warehouseTotals.get(key)||0)+amount);
+            if(!warehouseLabels.has(key))warehouseLabels.set(key,text(warehouse)||'Sin almacén');
+            if(!descriptions.has(lower(normalizedCode)))descriptions.set(lower(normalizedCode),{
+                codigo:normalizedCode,
+                descripcion:text(move?.descripcion||move?.desc||normalizedCode),
+                unidad:text(move?.unidad),
+                categoria:text(move?.categoria),
+                esNoListado:bool(move?.esNoListado??move?.es_no_listado)||/^NL-/i.test(normalizedCode)
+            });
+        };
+        (movements||[]).forEach(move=>{
+            if(text(move.proyecto)!==value)return;
+            const code=text(move.codigo);
+            if(!code)return;
+            const qty=Math.max(0,number(move.cantidad));
+            if(!qty)return;
+            const type=lower(move.tipo);
+            const adjustment=lower(move.ajusteAccion||move.ajuste_accion);
+            const entryOrigin=lower(move.origenEntrada||move.origen_entrada);
+            if(type==='entrada'){
+                // Con proyecto, toda entrada es reserva salvo que se marcara expresamente como stock general.
+                if(entryOrigin!=='ingreso_nuevo_almacen')add(code,warehouseName(move,true),qty,move);
+            }else if(type==='salida'){
+                add(code,warehouseName(move,false),-qty,move);
+            }else if(type==='ajuste'){
+                add(code,warehouseName(move,adjustment!=='disminuir'),adjustment==='disminuir'?-qty:qty,move);
+            }else if(type==='traspaso'||type==='reingreso'||type==='prestamo'){
+                add(code,warehouseName(move,false),-qty,move);
+            }
+        });
+        const rows=[];
+        warehouseTotals.forEach((stock,key)=>{
+            if(stock<=0.000001)return;
+            const [codeKey,warehouseKey]=key.split('|');
+            const info=descriptions.get(codeKey)||{};
+            const isManual=Boolean(info.esNoListado)||/^nl-/i.test(codeKey);
+            // Para materiales catalogados, la tabla de existencias es la fuente oficial.
+            // El historial solo actúa como respaldo cuando falta la fila de existencias (datos legacy).
+            if(!isManual&&authoritative.has(key))return;
+            rows.push({
+                id:`hist:${value}:${codeKey}:${warehouseKey}`,
+                proyecto:value,
+                codigo:info.codigo||codeKey,
+                almacenId:0,
+                almacen:warehouseLabels.get(key)||(warehouseKey==='sin almacén'?'Sin almacén':warehouseKey),
+                stock:number(stock),
+                ubicacion:'',
+                descripcion:info.descripcion||info.codigo||codeKey,
+                unidad:info.unidad||'',
+                categoria:info.categoria||'',
+                esNoListado:isManual,
+                es_no_listado:isManual,
+                fuenteReserva:isManual?'historial_no_listado':'historial_legacy'
+            });
+        });
+        return rows;
     }
     async function listProjectMovementPlan(project,options={}){
         const value=text(project);
         if(!value)throw new Error('Falta el número del proyecto.');
-        const [plan,movements,materials,projectStocks]=await Promise.all([
+        const [plan,movements,materials,projectStocksStored]=await Promise.all([
             base.listProjectPlan(value),
             listMovements({project:value}),
             base.listMaterials(),
             listProjectStocks(value)
         ]);
+        const projectStocks=[
+            ...projectStocksStored,
+            ...historicalReserveRows(value,movements,projectStocksStored)
+        ];
         const materialByCode=new Map(materials.map(item=>[lower(item.codigo),item]));
         const projectByCode=new Map();
         const projectCodeByKey=new Map();
@@ -226,7 +304,7 @@
                 if(!hasOutsideHistory&&(planCodes.has(key)||reservedTotal<=0))return;
                 const first=moves[0]||{};
                 const code=text(first.codigo||projectCodeByKey.get(key)||materialByCode.get(key)?.codigo||key);
-                const material=materialByCode.get(key)||{codigo:code,descripcion:text(first.descripcion)||code,desc:text(first.descripcion)||code,categoria:text(first.categoria),unidad:text(first.unidad),precio:number(first.precio),almacenes:[]};
+                const material=materialByCode.get(key)||{codigo:code,descripcion:text(first.descripcion)||code,desc:text(first.descripcion)||code,categoria:text(first.categoria),unidad:text(first.unidad),precio:number(first.precio),almacenes:[],esNoListado:bool(first.esNoListado??first.es_no_listado)||/^NL-/i.test(code),es_no_listado:bool(first.esNoListado??first.es_no_listado)||/^NL-/i.test(code)};
                 rows.push(enrich({
                     id:`fuera:${code}`,
                     proyecto:value,

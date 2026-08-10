@@ -1609,8 +1609,8 @@
                 bodegaDestino:projectTransfer&&text(item.traspasoModo||item.traspaso_modo)==='proyecto'?'':text(item.bodegaDestino||destination),
                 recibeNombre:text(item.recibeNombre||receiver),
                 recibeTipo:text(item.recibeTipo||'persona'),
-                esNoListado:Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado),
-                es_no_listado:Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado)
+                esNoListado:Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado)||/^NL-/i.test(text(item.codigo||product.codigo)),
+                es_no_listado:Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado)||/^NL-/i.test(text(item.codigo||product.codigo))
             };
         });
     }

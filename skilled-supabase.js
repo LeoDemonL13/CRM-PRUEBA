@@ -1268,13 +1268,22 @@
             });
         }
 
-        let { data, error } = await client.rpc('crm_registrar_movimientos_v12141', {
+        let { data, error } = await client.rpc('crm_registrar_movimientos_v33', {
             p_request_id: requestId,
             p_tipo: type,
             p_motivo: text(payload.motivo),
             p_fecha: isoDate,
             p_productos: normalizedProducts
         });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) {
+            ({ data, error } = await client.rpc('crm_registrar_movimientos_v12141', {
+                p_request_id: requestId,
+                p_tipo: type,
+                p_motivo: text(payload.motivo),
+                p_fecha: isoDate,
+                p_productos: normalizedProducts
+            }));
+        }
         if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) {
             ({ data, error } = await client.rpc('registrar_movimientos', {
                 p_request_id: requestId,

@@ -1,0 +1,24 @@
+CRM V33 · Materiales no enlistados y reserva exclusiva de proyectos
+Fecha: 2026-08-10
+
+1. Movimientos no enlistados
+- El servidor reconoce cualquier código NL-* como material no enlistado aunque una bandera del navegador se pierda.
+- Se añade el RPC crm_registrar_movimientos_v33 y el frontend lo usa como primera opción.
+- Un material no enlistado puede registrarse sin existir en el catálogo.
+
+2. Reserva exclusiva de proyecto
+- Las entradas no enlistadas asociadas a un proyecto y a la opción de ingreso exclusivo se contabilizan como reserva del proyecto sin darse de alta en el catálogo general.
+- Las reservas legacy se reconstruyen desde el historial de movimientos cuando no existe una fila de existencias de proyecto.
+- Esto permite visualizar entradas exclusivas ya registradas previamente.
+- Las salidas de un material no enlistado validan la reserva disponible del proyecto antes de registrarse.
+
+3. Compatibilidad
+- Los materiales catalogados siguen usando existencias_proyecto_almacen como fuente oficial.
+- El historial solo actúa como respaldo para existencias legacy faltantes.
+- Se actualizan versiones de caché a v33 para skilled-supabase.js, AL.movimientos.js y AL.stock-proyectos.js.
+
+Instalación
+1. Respaldar Supabase.
+2. Ejecutar SQL_MAESTRO_CRM.sql de V33.
+3. Publicar CRM_WEB_PRODUCCION_V33 en GitHub/Cloudflare Pages.
+4. Esperar Deployment Success y hacer Ctrl+F5.
