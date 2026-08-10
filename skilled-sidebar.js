@@ -919,7 +919,7 @@
     function ensureSky() {
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=25';
+        script.src = 'skilled-sky.js?v=35';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);

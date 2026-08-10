@@ -3,15 +3,17 @@
     const text=value=>String(value??'').trim();
     const lower=value=>text(value).toLocaleLowerCase('es-MX');
     const html=value=>text(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    const $=id=>document.getElementById(id);
     let scanner=null;
     let active=false;
     let last='';
     let lastAt=0;
     let currentTicket=null;
+    let recent=[];
 
     function parse(value){
         const raw=text(value);
-        if(!raw)return{type:'empty',value:''};
+        if(!raw)return{type:'empty',value:'',raw:''};
         try{
             const data=JSON.parse(raw);
             const type=lower(data.tipo||data.type||data.entidad||data.entity);
@@ -26,14 +28,56 @@
     }
 
     function setStatus(message,type='info'){
-        const node=document.getElementById('scanner-status');
+        const node=$('scanner-status');
+        const dot=$('scanner-status-dot');
+        const stateDot=$('scanner-state-dot');
+        const mode=$('scanner-mode-state');
         const colors={info:'text-gray-400',ok:'text-emerald-400',error:'text-rose-400',warn:'text-amber-400'};
-        node.className=`text-xs ${colors[type]||colors.info}`;
-        node.textContent=message;
+        const dots={info:'bg-gray-500',ok:'bg-emerald-400',error:'bg-rose-400',warn:'bg-amber-400'};
+        if(node){node.className=`text-xs leading-relaxed ${colors[type]||colors.info}`;node.textContent=message}
+        if(dot)dot.className=`mt-1 w-2 h-2 rounded-full shrink-0 ${dots[type]||dots.info}`;
+        if(stateDot)stateDot.className=`w-2 h-2 rounded-full ${active?'bg-emerald-400':dots[type]||dots.info}`;
+        if(mode)mode.textContent=active?'Cámara activa':type==='error'?'Revisar':type==='warn'?'Atención':'En espera';
+    }
+
+    function setCameraState(isActive){
+        active=Boolean(isActive);
+        const start=$('btn-start-scanner');
+        const stop=$('btn-stop-scanner');
+        const idle=$('scanner-idle');
+        if(start){start.disabled=active;start.textContent=active?'Cámara activa':'Iniciar cámara'}
+        if(stop)stop.disabled=!active;
+        if(idle)idle.classList.toggle('hidden',active);
+        const stateDot=$('scanner-state-dot');
+        const mode=$('scanner-mode-state');
+        if(stateDot)stateDot.className=`w-2 h-2 rounded-full ${active?'bg-emerald-400':'bg-gray-500'}`;
+        if(mode)mode.textContent=active?'Cámara activa':'En espera';
     }
 
     function card(title,subtitle,body,actions=''){
-        document.getElementById('scanner-result').innerHTML=`<div class="rounded-2xl border border-[#243257] bg-[#0d1425] overflow-hidden"><div class="px-5 py-4 border-b border-[#243257]"><p class="text-sm font-bold text-white">${html(title)}</p><p class="mt-1 text-[11px] text-gray-500">${html(subtitle)}</p></div><div class="p-5">${body}</div>${actions?`<div class="px-5 py-4 border-t border-[#243257] flex flex-wrap justify-end gap-2">${actions}</div>`:''}</div>`;
+        const target=$('scanner-result');
+        if(!target)return;
+        target.className='min-h-[455px] p-5 block';
+        target.innerHTML=`<div class="rounded-2xl border border-[#243257] bg-[#0d1425] overflow-hidden"><div class="px-5 py-4 border-b border-[#243257] flex items-start justify-between gap-4"><div><p class="text-sm font-bold text-white">${html(title)}</p><p class="mt-1 text-[11px] text-gray-500 break-all">${html(subtitle)}</p></div><span class="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[9px] font-bold text-emerald-300"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>LEÍDO</span></div><div class="p-5">${body}</div>${actions?`<div class="px-5 py-4 border-t border-[#243257] flex flex-wrap justify-end gap-2">${actions}</div>`:''}</div>`;
+    }
+
+    function renderHistory(){
+        const target=$('scanner-history');
+        if(!target)return;
+        if(!recent.length){
+            target.innerHTML='<p class="py-5 text-center text-xs text-gray-600">Todavía no hay lecturas recientes.</p>';
+            return;
+        }
+        target.innerHTML=`<div class="space-y-2">${recent.map((item,index)=>`<button type="button" onclick="consultarScannerReciente(${index})" class="w-full text-left rounded-xl border border-[#1d2949] bg-[#0a1122] px-3.5 py-3 hover:border-blue-500/40 hover:bg-[#0d1629] transition"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded-md border border-[#243257] text-[8px] font-bold uppercase tracking-wide text-blue-300">${html(item.kind)}</span><span class="text-[9px] text-gray-600">${html(item.time)}</span></div><p class="mt-2 font-mono text-[10px] text-gray-300 truncate">${html(item.raw)}</p></div><svg class="w-4 h-4 text-gray-600 shrink-0 mt-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div></button>`).join('')}</div>`;
+    }
+
+    function remember(raw,kind){
+        const code=text(raw);
+        if(!code)return;
+        recent=recent.filter(item=>item.raw!==code);
+        recent.unshift({raw:code,kind:kind||'Código',time:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
+        recent=recent.slice(0,8);
+        renderHistory();
     }
 
     async function queryTicket(value){
@@ -74,7 +118,7 @@
             productos:rows.map(row=>({producto:{codigo:row.material_codigo||row.codigo_manual,descripcion:row.descripcion,desc:row.descripcion,unidad:row.unidad},cantidad:Number(row.cantidad)||0}))
         };
         const products=rows.map(row=>`<tr class="border-b border-[#1b2642]"><td class="py-2 pr-3 font-mono text-[10px] text-blue-300">${html(row.material_codigo||row.codigo_manual)}</td><td class="py-2 pr-3 text-xs text-gray-200">${html(row.descripcion)}</td><td class="py-2 text-right text-xs font-bold">${html(row.cantidad)} ${html(row.unidad)}</td></tr>`).join('');
-        const body=`<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5"><div class="rounded-xl bg-[#060a14] border border-[#1b2642] p-3"><p class="text-[9px] uppercase text-gray-500">Tipo</p><p class="mt-1 text-xs font-bold text-white">${html(first.tipo)}</p></div><div class="rounded-xl bg-[#060a14] border border-[#1b2642] p-3"><p class="text-[9px] uppercase text-gray-500">Proyecto</p><p class="mt-1 text-xs font-bold text-white">${html(first.proyecto||'Sin proyecto')}</p></div><div class="rounded-xl bg-[#060a14] border border-[#1b2642] p-3"><p class="text-[9px] uppercase text-gray-500">Fecha</p><p class="mt-1 text-xs font-bold text-white">${html(new Date(first.fecha).toLocaleString('es-MX'))}</p></div></div><div class="overflow-x-auto"><table class="w-full"><thead><tr class="text-left text-[9px] uppercase text-gray-500 border-b border-[#243257]"><th class="pb-2">Código</th><th class="pb-2">Material</th><th class="pb-2 text-right">Cantidad</th></tr></thead><tbody>${products}</tbody></table></div>`;
+        const body=`<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5"><div class="rounded-xl bg-[#060a14] border border-[#1b2642] p-3"><p class="text-[9px] uppercase text-gray-500">Tipo</p><p class="mt-1 text-xs font-bold text-white">${html(first.tipo)}</p></div><div class="rounded-xl bg-[#060a14] border border-[#1b2642] p-3"><p class="text-[9px] uppercase text-gray-500">Proyecto</p><p class="mt-1 text-xs font-bold text-white">${html(first.proyecto||'Sin proyecto')}</p></div><div class="rounded-xl bg-[#060a14] border border-[#1b2642] p-3"><p class="text-[9px] uppercase text-gray-500">Fecha</p><p class="mt-1 text-xs font-bold text-white">${html(first.fecha?new Date(first.fecha).toLocaleString('es-MX'):'—')}</p></div></div><div class="overflow-x-auto"><table class="w-full"><thead><tr class="text-left text-[9px] uppercase text-gray-500 border-b border-[#243257]"><th class="pb-2">Código</th><th class="pb-2">Material</th><th class="pb-2 text-right">Cantidad</th></tr></thead><tbody>${products}</tbody></table></div>`;
         const actions=`<button type="button" onclick="imprimirTicketEscaneado('carta')" class="px-4 py-2.5 rounded-lg border border-[#243257] bg-[#10172a] text-xs font-semibold text-gray-200">Tamaño carta</button><button type="button" onclick="imprimirTicketEscaneado('58mm')" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Ticket 58 mm</button>`;
         card('Movimiento encontrado',first.referencia||first.folio_entrega||first.request_id,body,actions);
         return true;
@@ -93,7 +137,7 @@
     }
 
     async function showLocation(value){
-        const raw=String(value||'').trim().toUpperCase();
+        const raw=text(value).toUpperCase();
         const positionMatch=raw.match(/^(0[1-9]|1[0-9]|20)-([1-9]\d*)-([A-Z])([1-9]\d*)$/);
         const baseCode=positionMatch?`${positionMatch[1]}-${Number(positionMatch[2])}-${positionMatch[3]}`:raw;
         let query=SkilledDB.client.from('ubicaciones_almacen').select('*');
@@ -107,11 +151,12 @@
         let materials=[];
         if(positionMatch){
             const inventory=await SkilledDB.listWarehouseInventory({warehouseId:Number(data.almacen_id)});
-            materials=inventory.filter(row=>String(row.ubicacion||'').trim().toUpperCase()===raw);
+            materials=inventory.filter(row=>text(row.ubicacion).toUpperCase()===raw);
         }
-        const materialRows=positionMatch?(materials.length?`<div class="mt-4 rounded-xl border border-[#243257] overflow-hidden"><div class="px-4 py-3 border-b border-[#243257] flex items-center justify-between"><p class="text-xs font-bold text-white">Materiales en la posición</p><span class="text-[9px] text-blue-300">${materials.length}/7</span></div><div class="divide-y divide-[#1b2642]">${materials.map(item=>`<div class="px-4 py-3"><div class="flex items-start justify-between gap-3"><div><p class="font-mono text-[9px] text-blue-300">${html(item.codigo)}</p><p class="mt-1 text-xs font-semibold text-white">${html(item.descripcion||item.codigo)}</p></div><span class="text-[9px] text-gray-400 whitespace-nowrap">${Number(item.stock||0).toLocaleString('es-MX')} ${html(item.unidad||'')}</span></div></div>`).join('')}</div></div>`:`<div class="mt-4 rounded-xl border border-[#243257] p-5 text-center text-xs text-gray-500">La posición está libre.</div>`):'';
+        const filled=Math.min(materials.length,7);
+        const materialRows=positionMatch?(materials.length?`<div class="mt-4 rounded-xl border border-[#243257] overflow-hidden"><div class="px-4 py-3 border-b border-[#243257] flex items-center justify-between gap-3"><div><p class="text-xs font-bold text-white">Contenido del cajón</p><p class="mt-1 text-[9px] text-gray-500">Cada renglón corresponde a un tipo de material.</p></div><span class="text-[9px] font-bold ${filled>=7?'text-amber-300':'text-blue-300'}">${filled}/7 tipos</span></div><div class="divide-y divide-[#1b2642]">${materials.map((item,index)=>`<div class="px-4 py-3"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-[#111b31] border border-[#243257] text-[8px] text-gray-400 flex items-center justify-center shrink-0">${index+1}</span><p class="font-mono text-[9px] text-blue-300 truncate">${html(item.codigo)}</p></div><p class="mt-1.5 text-xs font-semibold text-white">${html(item.descripcion||item.codigo)}</p></div><span class="text-[9px] text-gray-400 whitespace-nowrap">${Number(item.stock||0).toLocaleString('es-MX')} ${html(item.unidad||'')}</span></div></div>`).join('')}</div></div>`:`<div class="mt-4 rounded-xl border border-dashed border-[#243257] p-6 text-center"><p class="text-xs font-semibold text-gray-400">Cajón disponible</p><p class="mt-1 text-[10px] text-gray-600">No hay materiales asignados a esta posición.</p></div>`):'';
         const shownCode=positionMatch?raw:(data.codigo||data.id);
-        const body=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">${positionMatch?'Posición':'Ubicación'}</p><p class="mt-1 text-base font-bold text-white">${html(data.nombre)}</p><p class="mt-1 font-mono text-xs text-blue-300">${html(shownCode)}</p></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">Almacén</p><p class="mt-1 text-base font-bold text-white">${html(warehouse?.nombre||'Sin almacén')}</p><p class="mt-1 text-xs text-gray-500">${html(data.tipo)} · Posiciones 1–${html(data.columnas)}</p></div></div>${materialRows}${data.nota?`<p class="mt-4 text-xs text-gray-300">${html(data.nota)}</p>`:''}`;
+        const body=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">${positionMatch?'Posición':'Ubicación'}</p><p class="mt-1 text-base font-bold text-white">${html(positionMatch?`Cajón ${shownCode}`:data.nombre)}</p><p class="mt-1 font-mono text-xs text-blue-300">${html(shownCode)}</p></div><div class="rounded-xl border border-[#243257] bg-[#060a14] p-4"><p class="text-[9px] uppercase text-gray-500">Almacén</p><p class="mt-1 text-base font-bold text-white">${html(warehouse?.nombre||'Sin almacén')}</p><p class="mt-1 text-xs text-gray-500">${positionMatch?`${materials.length} tipo${materials.length===1?'':'s'} de material`:`${html(data.tipo)} · Posiciones 1–${html(data.columnas)}`}</p></div></div>${materialRows}${data.nota?`<p class="mt-4 text-xs text-gray-300">${html(data.nota)}</p>`:''}`;
         card(positionMatch?'Posición encontrada':'Ubicación encontrada',shownCode,body,`<a href="AL.almacenes.html" class="px-4 py-2.5 rounded-lg bg-blue-600 text-xs font-semibold text-white">Abrir almacenes</a>`);
         return true;
     }
@@ -138,37 +183,42 @@
 
     async function resolve(value){
         const now=Date.now();
-        if(text(value)===last&&now-lastAt<1000)return;
+        if(text(value)===last&&now-lastAt<900)return;
         last=text(value);
         lastAt=now;
         const parsed=parse(value);
         if(parsed.type==='empty')return;
-        setStatus('Consultando Supabase…');
-        document.getElementById('scanner-code').value=parsed.raw;
+        setStatus('Consultando información…');
+        const input=$('scanner-code');
+        if(input)input.value=parsed.raw;
         try{
             let found=false;
-            if(['ticket','movimiento','entrada','salida','ajuste','traspaso','reingreso'].includes(parsed.type))found=await showTicket(parsed.value);
-            else if(['material','producto'].includes(parsed.type))found=await showMaterial(parsed.value);
-            else if(['ubicacion','ubicación','location'].includes(parsed.type))found=await showLocation(parsed.value);
-            else if(['proyecto','project'].includes(parsed.type))found=await showProject(parsed.value);
-            else if(['categoria','categoría','category'].includes(parsed.type))found=await showCategory(parsed.value);
+            let kind='Código';
+            if(['ticket','movimiento','entrada','salida','ajuste','traspaso','reingreso'].includes(parsed.type)){found=await showTicket(parsed.value);kind='Ticket'}
+            else if(['material','producto'].includes(parsed.type)){found=await showMaterial(parsed.value);kind='Material'}
+            else if(['ubicacion','ubicación','location','posicion','posición'].includes(parsed.type)){found=await showLocation(parsed.value);kind='Posición'}
+            else if(['proyecto','project'].includes(parsed.type)){found=await showProject(parsed.value);kind='Proyecto'}
+            else if(['categoria','categoría','category'].includes(parsed.type)){found=await showCategory(parsed.value);kind='Categoría'}
             else{
                 found=await showTicket(parsed.value);
-                if(!found)found=await showMaterial(parsed.value);
-                if(!found)found=await showLocation(parsed.value);
-                if(!found)found=await showProject(parsed.value);
-                if(!found)found=await showCategory(parsed.value);
+                if(found)kind='Ticket';
+                if(!found){found=await showMaterial(parsed.value);if(found)kind='Material'}
+                if(!found){found=await showLocation(parsed.value);if(found)kind='Posición'}
+                if(!found){found=await showProject(parsed.value);if(found)kind='Proyecto'}
+                if(!found){found=await showCategory(parsed.value);if(found)kind='Categoría'}
             }
             if(!found){
                 currentTicket=null;
-                card('Código no encontrado',parsed.value,'<p class="text-sm text-gray-400">No coincide con un ticket, material, ubicación, proyecto o categoría registrada.</p>');
+                card('Código no encontrado',parsed.value,'<div class="rounded-xl border border-dashed border-[#243257] p-6 text-center"><p class="text-sm font-semibold text-gray-300">Sin coincidencias</p><p class="mt-2 text-xs text-gray-500 leading-relaxed">No coincide con un ticket, material, posición, proyecto o categoría registrada.</p></div>');
                 setStatus('No se encontró información para el código leído.','error');
+                remember(parsed.raw,'Sin coincidencia');
                 return;
             }
-            setStatus('Código leído correctamente.','ok');
+            remember(parsed.raw,kind);
+            setStatus(`${kind} identificado correctamente.`,'ok');
         }catch(error){
             currentTicket=null;
-            card('Error al consultar',parsed.value,`<p class="text-sm text-rose-300">${html(error.message||error)}</p>`);
+            card('Error al consultar',parsed.value,`<div class="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4"><p class="text-sm text-rose-300">${html(error.message||error)}</p></div>`);
             setStatus('Ocurrió un error durante la consulta.','error');
         }
     }
@@ -181,20 +231,21 @@
     window.iniciarScannerUniversal=async function(){
         if(active)return;
         if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname)){
-            setStatus('La cámara requiere HTTPS. Usa el lector físico mientras publicas el CRM.','warn');
+            setStatus('La cámara requiere HTTPS. Puedes seguir usando el lector USB o la captura manual.','warn');
             return;
         }
         if(typeof Html5Qrcode!=='function'){
-            setStatus('No se cargó la librería de escaneo.','error');
+            setStatus('No se cargó el componente de lectura. Recarga la página e inténtalo de nuevo.','error');
             return;
         }
         try{
+            setStatus('Solicitando acceso a la cámara…');
             scanner=scanner||new Html5Qrcode('universal-reader');
             await scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.min(w*.82,360),height:Math.min(h*.52,240)}),aspectRatio:1.333},code=>resolve(code),()=>{});
-            active=true;
-            document.getElementById('btn-start-scanner').textContent='Cámara activa';
-            setStatus('Cámara activa. Centra el código dentro del recuadro.','ok');
+            setCameraState(true);
+            setStatus('Cámara activa. Centra el código dentro del marco.','ok');
         }catch(error){
+            setCameraState(false);
             setStatus(`No se pudo abrir la cámara: ${error.message||error}`,'error');
         }
     };
@@ -203,20 +254,36 @@
         if(scanner&&active){
             try{await scanner.stop()}catch(error){}
         }
-        active=false;
-        document.getElementById('btn-start-scanner').textContent='Iniciar cámara';
-        setStatus('Cámara detenida.');
+        setCameraState(false);
+        setStatus('Cámara detenida. Puedes usar el lector USB o iniciar otra lectura.');
     };
 
     window.procesarScannerManual=function(event){
         if(event&&event.key!=='Enter')return;
-        event?.preventDefault();
-        const input=document.getElementById('scanner-code');
-        const value=text(input.value);
+        if(event)event.preventDefault();
+        const input=$('scanner-code');
+        const value=text(input?.value);
         if(value)resolve(value);
+        else setStatus('Escribe o escanea un código antes de consultar.','warn');
+    };
+
+    window.consultarScannerReciente=function(index){
+        const item=recent[Number(index)];
+        if(!item)return;
+        last='';
+        resolve(item.raw);
+    };
+
+    window.limpiarHistorialScanner=function(){
+        recent=[];
+        renderHistory();
     };
 
     window.addEventListener('beforeunload',()=>{if(scanner&&active)scanner.stop().catch(()=>{})});
-    const params=new URLSearchParams(location.search);
-    if(params.get('codigo'))setTimeout(()=>resolve(params.get('codigo')),400);
+    document.addEventListener('DOMContentLoaded',()=>{
+        setCameraState(false);
+        renderHistory();
+        const params=new URLSearchParams(location.search);
+        if(params.get('codigo'))setTimeout(()=>resolve(params.get('codigo')),400);
+    });
 })();

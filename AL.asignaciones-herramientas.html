@@ -15,7 +15,7 @@
 <script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Asignaciones de herramientas</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=34"></script>
+<script src="skilled-supabase.js?v=35"></script>
 <script src="auth-guard.js?v=24"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -72,7 +72,7 @@ function exportAssignments(){const rows=assignments.map(item=>({'Código interno
 ['search','status','destination','project-filter'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));$('global-search').addEventListener('input',event=>{$('search').value=event.target.value;render()});$('refresh').addEventListener('click',load);$('new-assignment').addEventListener('click',openAssignment);$('export').addEventListener('click',exportAssignments);$('to-project').addEventListener('click',()=>setDestination('proyecto'));$('to-person').addEventListener('click',()=>setDestination('persona'));$('assignment-project').addEventListener('change',updateProjectRequirement);$('unit-search').addEventListener('input',renderUnits);$('clear-units').addEventListener('click',()=>{selectedUnits.clear();renderUnits()});$('close-assignment').addEventListener('click',closeAssignment);$('cancel-assignment').addEventListener('click',closeAssignment);$('assignment-form').addEventListener('submit',saveAssignment);$('assignment-modal').addEventListener('click',event=>{if(event.target===$('assignment-modal'))closeAssignment()});$('close-return').addEventListener('click',closeReturn);$('cancel-return').addEventListener('click',closeReturn);$('return-form').addEventListener('submit',saveReturn);$('return-modal').addEventListener('click',event=>{if(event.target===$('return-modal'))closeReturn()});load().then(()=>{const params=new URLSearchParams(location.search);const q=params.get('q');if(q){$('search').value=q;$('global-search').value=q;render()}if(params.get('nueva')==='1')openAssignment()});
 </script>
 <script src="AL.asignaciones-herramientas.js?v=31"></script>
-<script src="skilled-sky.js?v=30" defer></script>
+<script src="skilled-sky.js?v=35" defer></script>
 <script src="skilled-performance.js?v=25" defer></script>
 </body>
 </html>

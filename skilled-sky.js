@@ -27,7 +27,7 @@
     }
     function profileConfig(profile = detectProfile()) {
         const base = {
-            almacen: { title: 'Sky · Asistente de almacén', subtitle: 'Existencias, ubicaciones, mínimos, herramientas, proyectos y flotilla.', placeholder: 'Ej. ¿Cuántos tubos de 1 pulgada tenemos?', examples: [['Existencia de material','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación de material','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas pendientes','¿Qué herramientas están vencidas?'],['Vehículos disponibles','¿Qué vehículos están disponibles?']] },
+            almacen: { title: 'Sky · Asistente de almacén', subtitle: 'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos y flotilla.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia de material','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación de material','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas pendientes','¿Qué herramientas están vencidas?'],['Vehículos disponibles','¿Qué vehículos están disponibles?']] },
             compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Qué cotizaciones requieren atención?', examples: [['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Buscar proveedor','Busca al proveedor ABB'],['Proyectos','¿Qué proyectos están activos?'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?']] },
             rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
@@ -37,7 +37,7 @@
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
         if (base[profile]) return base[profile];
-        const label = profileNames[profile] || profile.replace(/[_-]+/g, ' ').replace(/\w/g, value => value.toUpperCase());
+        const label = profileNames[profile] || profile.replace(/[_-]+/g, ' ').replace(/\b\w/g, value => value.toUpperCase());
         return { title: `Sky · Asistente de ${label}`, subtitle: 'Asistente contextual del CRM. Este perfil puede registrar sus propias consultas en Sky.', placeholder: `Pregunta algo sobre ${label}`, examples: [['Ayuda del perfil',`¿Qué puede hacer Sky en ${label}?`],['Buscar en CRM','Busca información disponible para este perfil']] };
     }
     const shortcutLabel = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? '⌥ + S' : 'Alt + S';
@@ -253,10 +253,22 @@
         modal.classList.add('is-open');
         primeRecognitionVocabulary();
         ensureCloudVoice(false).then(ready => {
-            if (ready) setVoiceEngine('cloud');
-            else if (recognition) setVoiceEngine('browser');
-            else setVoiceEngine('error');
-        }).catch(() => {});
+            if (ready) {
+                setVoiceEngine('cloud');
+                setStatus('Listo para consultar. Voz avanzada disponible.');
+                setHeard('micrófono listo');
+            } else if (recognition) {
+                setVoiceEngine('browser');
+                setStatus('Listo para consultar. El micrófono usará el reconocimiento del navegador.');
+                setHeard('micrófono listo');
+            } else {
+                setVoiceEngine('automatico');
+                setStatus('Listo para consultar por texto. La voz avanzada es opcional.');
+                setHeard('consulta por texto disponible');
+            }
+        }).catch(() => {
+            if (recognition) setVoiceEngine('browser');
+        });
         setTimeout(() => transcriptInput?.focus(), 60);
     }
 
@@ -802,17 +814,23 @@
     function cloudVoiceProblemMessage() {
         const code = text(cloudVoiceStatus?.codigo);
         const detail = text(cloudVoiceStatus?.mensaje);
-        if (code === 'missing_function') return 'Sky Voz avanzada todavía no está publicada en Supabase. El micrófono funciona, pero falta desplegar la función sky-transcribir.';
-        if (code === 'missing_key') return 'Sky Voz avanzada ya está publicada, pero falta configurar la clave de transcripción en los secretos de Supabase.';
-        if (code === 'auth') return 'Sky Voz avanzada está publicada, pero la sesión actual no pudo autorizar la función. Cierra sesión, vuelve a entrar y reintenta.';
-        if (code === 'not_configured') return detail || 'Sky Voz avanzada existe, pero aún requiere configuración del servidor.';
-        return detail ? `Sky Voz avanzada no está disponible: ${detail}` : 'Sky Voz avanzada todavía no está disponible en el servidor.';
+        if (code === 'missing_function') return 'La voz avanzada es opcional y todavía no está desplegada en Supabase.';
+        if (code === 'missing_key') return 'La voz avanzada es opcional y todavía no tiene una clave de transcripción configurada.';
+        if (code === 'auth') return 'La voz avanzada no pudo validar la sesión actual.';
+        if (code === 'not_configured') return detail || 'La voz avanzada todavía requiere configuración del servidor.';
+        return detail || 'La voz avanzada no está disponible en este momento.';
     }
 
     function showVoiceSetupState() {
-        setVoiceEngine('error', 'Voz · servidor pendiente');
-        setStatus(cloudVoiceProblemMessage(), 'error');
-        setHeard('micrófono disponible · falta habilitar transcripción');
+        if (recognition) {
+            setVoiceEngine('browser');
+            setStatus('Usando el reconocimiento de voz del navegador. La voz avanzada es opcional.');
+            setHeard('micrófono listo');
+            return;
+        }
+        setVoiceEngine('automatico');
+        setStatus('Puedes seguir usando Sky por texto. Para voz en este navegador hace falta habilitar la voz avanzada.');
+        setHeard('consulta por texto disponible');
     }
 
     function voiceContextPrompt() {
@@ -1302,6 +1320,49 @@
         const ranked = materials.map(material => ({ material, score: rankMaterial(material, rawQuery) })).filter(item => item.score > 0).sort((a, b) => b.score - a.score || text(a.material.descripcion).localeCompare(text(b.material.descripcion), 'es'));
         if (!ranked.length) return { best: null, alternatives: [] };
         return { best: ranked[0].material, alternatives: ranked.slice(1, 4).map(item => item.material), score: ranked[0].score };
+    }
+
+    const materialFamilyIgnore = new Set(['tipo','tipos','variedad','variedades','opcion','opciones','coincidencia','coincidencias','coincide','coinciden','diferente','diferentes','catalogo','lista','listado','muestra','muestrame','mostrar','busca','buscar','encuentra','encontrar','tengo','tenemos','registrado','registrados','registrada','registradas','disponible','disponibles']);
+
+    function materialFamilyQuery(rawQuery) {
+        const tokens = normalize(rawQuery).split(' ').filter(Boolean).filter(token => !stopWords.has(token) && !materialFamilyIgnore.has(token));
+        return tokens.join(' ').trim();
+    }
+
+    function isMaterialFamilyQuery(rawQuery) {
+        const norm = commandNormalize(rawQuery);
+        if (/\b(tipos?|variedades?|coincidencias?|opciones?)\b/.test(norm)) return true;
+        if (/\b(cuales|que)\b.*\b(tubos|cables|tornillos|tuercas|rondanas|arandelas|abrazaderas|conectores|terminales|brocas|pernos|taquetes|mangueras|valvulas|codos|niples|reducciones)\b/.test(norm)) return true;
+        if (/\b(busca|buscar|muestra|mostrar|lista|listar)\b.*\b(materiales?|tubos|cables|tornillos|tuercas|rondanas|arandelas|abrazaderas|conectores|terminales|brocas|pernos|taquetes|mangueras|valvulas|codos|niples|reducciones)\b/.test(norm)) return true;
+        return false;
+    }
+
+    async function answerMaterialFamily(raw) {
+        const materials = await loadData('materials');
+        const queryText = materialFamilyQuery(raw);
+        const ranked = materials.map(material => ({ material, score: rankMaterial(material, queryText || raw) })).filter(item => item.score > 8).sort((a,b) => b.score - a.score || text(a.material.descripcion || a.material.desc).localeCompare(text(b.material.descripcion || b.material.desc), 'es'));
+        const seen = new Set();
+        const matches = ranked.map(item => item.material).filter(material => {
+            const key = normalize(material.codigo || material.descripcion || material.desc);
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        if (!matches.length) {
+            setAnswer('Coincidencias de materiales', 'No encontré materiales que coincidan con esa familia o descripción.', 'Prueba con una palabra del nombre, medida, marca, categoría o código.', [], { href: 'AL.catalogo.html', label: 'Abrir catálogo' });
+            return 'No encontré coincidencias de materiales para esa consulta.';
+        }
+        const totalStock = matches.reduce((sum, material) => sum + (Array.isArray(material.almacenes) ? material.almacenes.reduce((subtotal,row) => subtotal + number(row.stock), 0) : number(material.stock)), 0);
+        const cards = matches.slice(0, 12).map(material => {
+            const stock = Array.isArray(material.almacenes) ? material.almacenes.reduce((sum,row) => sum + number(row.stock), 0) : number(material.stock);
+            const locations = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(row => number(row.stock) > 0 || text(row.ubicacion)).slice(0, 2).map(row => `${row.nombre || 'Almacén'}${row.ubicacion ? ` · ${row.ubicacion}` : ''}`).join(' / ');
+            return { title: `${material.codigo || 'Sin código'} · ${material.descripcion || material.desc || 'Material'}`, detail: `${formatNumber(stock)} ${material.unidad || 'unidades'}${locations ? ` · ${locations}` : ''}` };
+        });
+        const queryLabel = queryText || normalize(raw);
+        const detail = `${formatNumber(totalStock)} unidades acumuladas entre las coincidencias. ${matches.length > cards.length ? `Se muestran las primeras ${cards.length} de ${matches.length}.` : 'Se muestran todas las coincidencias encontradas.'}`;
+        setAnswer('Coincidencias de materiales', `${matches.length} tipo${matches.length === 1 ? '' : 's'} de material coinciden con “${queryLabel}”.`, detail, cards, { href: `AL.catalogo.html?buscar=${encodeURIComponent(queryLabel)}`, label: 'Ver coincidencias en catálogo' });
+        const spoken = matches.slice(0, 6).map(material => material.descripcion || material.desc || material.codigo).filter(Boolean);
+        return `Encontré ${matches.length} tipo${matches.length === 1 ? '' : 's'} que coinciden con ${queryLabel}. ${spoken.length ? `Entre ellos: ${spoken.join(', ')}.` : ''}`;
     }
 
     function purchaseKey(value) {
@@ -1884,6 +1945,7 @@
             return name && name.length>=3 && (norm.includes(name) || fuzzyIncludes(norm,name,1));
         });
         if (namedVehicle) return answerVehicles(raw);
+        if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
         if (/donde|ubicacion|ubicado|localiza|encuentra/.test(norm) || hasFuzzy(norm,['donde esta','ubicacion','localiza'])) return answerMaterial(raw, true);
         return answerMaterial(raw, false);
     }
@@ -1943,6 +2005,7 @@
         if (profile === 'consulta') {
             const norm = commandNormalize(raw);
             if (/proyecto/.test(norm)) return answerProjects(raw);
+            if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicado|localiza/.test(norm)) return answerMaterial(raw, true);
             return answerMaterial(raw, false);
         }

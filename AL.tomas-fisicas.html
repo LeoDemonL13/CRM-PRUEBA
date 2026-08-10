@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="interfaz.css">
 <script src="navegacion-suave.js?v=24"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=34"></script>
+<script src="skilled-supabase.js?v=35"></script>
 <script src="auth-guard.js?v=24"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,6 +64,6 @@ async function exportarConteo(){if(!materiales.length)return alert('Selecciona u
 async function finalizarConteo(){const id=Number(document.getElementById('almacen').value);const name=document.getElementById('almacen').selectedOptions[0]?.textContent||'';const responsable=t(document.getElementById('responsable').value);if(!id)return alert('Selecciona un almacén.');if(!responsable)return alert('Escribe el responsable del conteo.');const changes=materiales.map(x=>({material:x,count:conteos.get(x.codigo),diff:conteos.has(x.codigo)&&conteos.get(x.codigo)!==''?n(conteos.get(x.codigo))-n(x.stockAlmacen):0})).filter(x=>x.diff!==0);if(!changes.length)return alert('No hay diferencias para registrar.');if(!confirm(`Se registrarán ${changes.length} ajustes en ${name}. Esta acción modificará existencias. ¿Continuar?`))return;const button=document.getElementById('btn-finalizar');button.disabled=true;button.textContent='Registrando...';try{const products=changes.map(({material,diff})=>({producto:material,codigo:material.codigo,descripcion:material.descripcion,unidad:material.unidad,cantidad:Math.abs(diff),ajusteAccion:diff>0?'aumentar':'disminuir',ajuste_accion:diff>0?'aumentar':'disminuir',bodegaOrigen:diff<0?name:'',bodegaDestino:diff>0?name:'',ubicacion:material.ubicacion||'',precio:material.precio||0}));await SkilledDB.registerMovement({tipo_movimiento:'ajuste',motivo:`Toma física realizada por ${responsable}`,productos});localStorage.removeItem(claveBorrador());alert('Las diferencias se registraron correctamente.');await cargarMateriales()}catch(error){alert(error.message)}finally{button.disabled=false;button.textContent='Registrar diferencias'}}
 document.getElementById('busqueda-global').addEventListener('input',render);document.getElementById('categoria').addEventListener('change',render);document.getElementById('solo-diferencias').addEventListener('change',render);document.getElementById('codigo-rapido').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();buscarCodigoRapido()}});Object.assign(window,{cargarMateriales,actualizarConteo,guardarBorrador,limpiarBorrador,ponerExistenciaSistema,limpiarConteosVisibles,buscarCodigoRapido,exportarConteo,finalizarConteo});iniciar();
 </script>
-<script src="skilled-sky.js?v=30" defer></script>
+<script src="skilled-sky.js?v=35" defer></script>
 <script src="skilled-performance.js?v=25" defer></script>
 </body></html>

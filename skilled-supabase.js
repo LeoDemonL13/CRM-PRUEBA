@@ -4271,7 +4271,7 @@
     function skyVoiceStatusCode(message = '', available = false, configured = false) {
         const value = text(message).toLowerCase();
         if (available && configured) return 'ready';
-        if (/openai_api_key|falta configurar.*clave|api key/.test(value)) return 'missing_key';
+        if (/groq_api_key|openai_api_key|falta configurar.*clave|api key|requiere.*key/.test(value)) return 'missing_key';
         if (/no está desplegada|not found|404|function.*not.*found|failed to send a request/.test(value)) return 'missing_function';
         if (/sesión|jwt|token|unauthorized|401/.test(value)) return 'auth';
         return available ? 'not_configured' : 'unavailable';
@@ -4293,7 +4293,8 @@
                 codigo: skyVoiceStatusCode(mensaje, disponible, configurado),
                 mensaje,
                 version: text(data?.version),
-                modelo: text(data?.model)
+                modelo: text(data?.model),
+                proveedor: text(data?.provider)
             };
         } catch (error) {
             const mensaje = errorMessage(error);
@@ -4312,7 +4313,7 @@
         if (error) throw new Error(await edgeFunctionErrorDetail(error, 'No se pudo transcribir el audio.'));
         const transcript = text(data?.text ?? data?.transcript);
         if (!transcript) throw new Error(text(data?.error) || 'No se reconoció una frase en el audio.');
-        return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model) };
+        return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model), proveedor: text(data?.provider) };
     }
 
     function quotationRequestFromDb(row) {

@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <link rel="stylesheet" href="interfaz.css">
 <script src="navegacion-suave.js?v=24"></script>
-<title>Skilled - Estado de herramientas</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="skilled-supabase.js?v=34"></script>
+<title>Skilled - Estado de herramientas</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="skilled-supabase.js?v=35"></script>
 <script src="auth-guard.js?v=24"></script><script src="https://cdn.tailwindcss.com"></script><style>
 .tool-metrics{grid-template-columns:repeat(5,minmax(128px,190px));justify-content:start;gap:10px;margin-top:14px}
 .tool-metrics .profile-metric{min-height:82px;padding:12px 14px;border-radius:11px}
@@ -28,6 +28,6 @@ function render(){const rows=filtered();$('loading').classList.add('hidden');$('
 async function changeStatus(id,status){const item=units.find(row=>row.id===id);if(!item)return;const detail=prompt(`Motivo del cambio a ${labels[status]||status}:`,'');if(detail===null)return;try{await SkilledDB.setToolUnitStatus(id,status,detail);SkilledToolTickets.mostrar({tipo:status==='mantenimiento'?'mantenimiento':'estado',folio:`HER-${id}-${Date.now()}`,fecha:new Date().toISOString(),destino:labels[status]||status,responsable:'Control de herramientas',observaciones:detail,items:[{unidad:item}]});await load()}catch(error){alert(error.message)}}
 async function load(){try{[units,assignments,tools]=await Promise.all([SkilledDB.listToolUnits({includeInactive:true}),SkilledDB.listToolAssignments(),SkilledDB.listTools({includeInactive:true})]);$('tool').innerHTML='<option value="">Todas las herramientas</option>'+tools.map(item=>`<option value="${item.id}">${esc(item.descripcion)} — ${esc(item.sku)}</option>`).join('');render()}catch(error){$('loading').innerHTML=`<span class="text-rose-400">${esc(error.message)}</span>`}}
 ['search','status','tool'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));$('global-search').addEventListener('input',event=>{$('search').value=event.target.value;render()});$('refresh').addEventListener('click',load);load();
-</script><script src="skilled-sky.js?v=30" defer></script>
+</script><script src="skilled-sky.js?v=35" defer></script>
 <script src="skilled-performance.js?v=25" defer></script>
 </body></html>
