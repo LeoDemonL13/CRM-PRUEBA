@@ -1934,7 +1934,10 @@
         if (error && ['PGRST202', '42883'].includes(error.code)) {
             throw new Error('La limpieza segura todavía no está instalada. Ejecuta la versión más reciente de SQL_MAESTRO_CRM.sql y vuelve a intentarlo.');
         }
-        if (error?.code === '42501') throw new Error('Tu perfil no tiene permiso para eliminar registros de prueba.');
+        if (error?.code === '42501') throw new Error(error.message || 'Tu perfil no tiene permiso para eliminar registros de prueba.');
+        if (error && /DELETE requires a WHERE clause/i.test(String(error.message || ''))) {
+            throw new Error('La base de datos todavía tiene la versión anterior de la limpieza. Ejecuta SQL_MAESTRO_CRM.sql V27 y vuelve a intentarlo.');
+        }
         assertNoError(error, errorMessage);
         return data && typeof data === 'object' ? data : { ok: true };
     }
@@ -1943,6 +1946,10 @@
         const requestIds = (Array.isArray(ids) ? ids : [ids]).map(Number).filter(Boolean);
         if (!requestIds.length) throw new Error('Selecciona al menos una orden de compra.');
         return runTestCleanupRpc('crm_eliminar_orden_compra_prueba', { p_ids: requestIds }, 'No se pudo eliminar la orden de compra de prueba.');
+    }
+
+    async function deleteAllPurchaseOrdersTest(password) {
+        return runTestCleanupRpc('crm_borrar_ordenes_compra_prueba', { p_clave: text(password) }, 'No se pudieron borrar las órdenes de compra de prueba.');
     }
 
     async function deleteMovementTest(payload = {}) {
@@ -5073,6 +5080,7 @@
         updatePurchaseRequests,
         deletePurchaseRequests,
         deletePurchaseRequestsTest,
+        deleteAllPurchaseOrdersTest,
         deleteMovementTest,
         deleteMovementHistoryTest,
         deleteToolUnitsTest,

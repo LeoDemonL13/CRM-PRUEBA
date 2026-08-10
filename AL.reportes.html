@@ -4,11 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#060814">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="application-name" content="Skilled CRM">
+<meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <link rel="stylesheet" href="interfaz.css">
 <script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Centro de reportes</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=25"></script>
+<script src="skilled-supabase.js?v=27"></script>
 <script src="auth-guard.js?v=24"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -17,7 +24,7 @@
 <style>
 *{box-sizing:border-box}body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#060814;color:#d7deeb}.lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.card{background:#090d1a;border:1px solid #161f38;border-radius:14px}.input{width:100%;background:#060a14;border:1px solid #243257;border-radius:9px;padding:10px 12px;color:#e5e7eb;font-size:12px}.input:focus{outline:none;border-color:#3b82f6}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:700;transition:.18s}.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}.btn-secondary{background:#10172a;border:1px solid #243257;color:#d7deeb}.btn-secondary:hover{background:#151f36}.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}.btn:disabled{opacity:.42;cursor:not-allowed}.notice{display:none;margin-bottom:16px;border:1px solid rgba(59,130,246,.35);background:rgba(30,64,175,.12);color:#bfdbfe;border-radius:10px;padding:10px 12px;font-size:11px}.notice.error{border-color:rgba(244,63,94,.35);background:rgba(136,19,55,.15);color:#fecdd3}.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:999px;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}body.tema-claro{background:#f2f4f9;color:#111827}body.tema-claro .card,body.tema-claro header,body.tema-claro aside{background:#fff!important;border-color:#d7dfeb!important}body.tema-claro .input{background:#fff;border-color:#cdd7e6;color:#111827}body.tema-claro .text-white{color:#111827!important}body.tema-claro .text-gray-400,body.tema-claro .text-gray-500{color:#64748b!important}
 </style>
-<script src="skilled-sidebar.js?v=26" defer></script>
+<script src="skilled-sidebar.js?v=25" defer></script>
 </head>
 <body class="min-h-screen flex overflow-x-hidden">
 <aside class="w-[260px] h-screen sticky top-0 bg-[#090d1a] border-r border-[#161f38] flex-col justify-between hidden lg:flex shrink-0">

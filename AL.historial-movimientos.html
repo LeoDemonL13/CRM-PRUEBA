@@ -5,12 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#060814">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="application-name" content="Skilled CRM">
+<meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <link rel="stylesheet" href="interfaz.css">
 <script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Historial de Movimientos</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=25"></script>
+    <script src="skilled-supabase.js?v=27"></script>
 <script src="auth-guard.js?v=24"></script>
     <script src="AL.ticket-materiales.js"></script>
     <script src="AL.stock-proyectos.js"></script>
@@ -81,7 +88,7 @@
 
         body.tema-claro input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
     </style>
-    <script src="skilled-sidebar.js?v=26" defer></script>
+    <script src="skilled-sidebar.js?v=27" defer></script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v3');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -275,16 +282,10 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 self-start sm:self-center">
-                    <button type="button" id="delete-all-history-top" class="hidden text-xs flex items-center gap-1.5 border border-rose-500/30 bg-rose-950/15 hover:bg-rose-950/30 px-4 py-2.5 rounded-lg transition font-semibold text-rose-300">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6"/></svg>
-                        Borrar historial
-                    </button>
-                    <a href="AL.movimientos.html" class="text-xs text-white flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-lg transition font-semibold shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                        Registrar movimiento
-                    </a>
-                </div>
+                <a href="AL.movimientos.html" class="text-xs text-white flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-lg transition font-semibold self-start sm:self-center shadow-[0_4px_12px_rgba(37,99,235,0.25)]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                    Registrar movimiento
+                </a>
             </div>
 
             
@@ -735,12 +736,15 @@
         }
 
         function actualizarAccionesLimpiezaHistorial() {
-            const allowed = canDeleteTest();
-            ['delete-all-history-test','delete-all-history-top'].forEach(id => {
-                const button = document.getElementById(id);
-                if (button) button.classList.toggle('hidden', !allowed);
-            });
+            const button = document.getElementById('delete-all-history-test');
+            if (!button) return;
+            button.classList.toggle('hidden', !canDeleteTest());
         }
+
+        const deleteAllHistoryButton = document.getElementById('delete-all-history-test');
+        if (deleteAllHistoryButton) deleteAllHistoryButton.addEventListener('click', borrarHistorialCompletoPrueba);
+        window.addEventListener('skilled:sessionready', actualizarAccionesLimpiezaHistorial);
+        setTimeout(actualizarAccionesLimpiezaHistorial, 250);
 
         function renderBajoMinimo() {
             const lista = document.getElementById('bajominimo-lista');
@@ -796,20 +800,12 @@
         const productoInicial = new URLSearchParams(window.location.search).get('producto');
         if (productoInicial) document.getElementById('historial_search').value = productoInicial;
         cambiarTab('historial');
-        ['delete-all-history-test','delete-all-history-top'].forEach(id => {
-            document.getElementById(id)?.addEventListener('click', borrarHistorialCompletoPrueba);
-        });
-        actualizarAccionesLimpiezaHistorial();
-        window.addEventListener('skilled:sessionready', () => {
-            actualizarAccionesLimpiezaHistorial();
-            renderHistorial();
-        });
         cargarCatalogo();
         cargarHistorial();
     </script>
 <script src="AL.historial.js"></script>
 
-<script src="skilled-sky.js?v=25" defer></script>
-<script src="skilled-performance.js?v=25" defer></script>
+<script src="skilled-sky.js?v=27" defer></script>
+<script src="skilled-performance.js?v=27" defer></script>
 </body>
 </html>

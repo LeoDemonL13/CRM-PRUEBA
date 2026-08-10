@@ -3262,91 +3262,91 @@ begin
         raise exception 'Para borrar Proyectos también selecciona Historial de movimientos, porque existen movimientos relacionados.';
     end if;
 
-    if 'chat'=any(c) and to_regclass('public.crm_chat_mensajes') is not null then execute 'delete from public.crm_chat_mensajes'; get diagnostics n=row_count; result:=result||jsonb_build_object('chat',n); end if;
+    if 'chat'=any(c) and to_regclass('public.crm_chat_mensajes') is not null then execute 'delete from public.crm_chat_mensajes where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('chat',n); end if;
 
     if 'vehiculos'=any(c) then
-        if to_regclass('public.vehiculos_viaje_pasajeros') is not null then execute 'delete from public.vehiculos_viaje_pasajeros'; end if;
-        if to_regclass('public.vehiculos_gastos') is not null then execute 'delete from public.vehiculos_gastos'; end if;
-        if to_regclass('public.vehiculos_viajes') is not null then execute 'delete from public.vehiculos_viajes'; end if;
-        if to_regclass('public.vehiculos') is not null then execute 'delete from public.vehiculos'; get diagnostics n=row_count; result:=result||jsonb_build_object('vehiculos',n); end if;
+        if to_regclass('public.vehiculos_viaje_pasajeros') is not null then execute 'delete from public.vehiculos_viaje_pasajeros where true'; end if;
+        if to_regclass('public.vehiculos_gastos') is not null then execute 'delete from public.vehiculos_gastos where true'; end if;
+        if to_regclass('public.vehiculos_viajes') is not null then execute 'delete from public.vehiculos_viajes where true'; end if;
+        if to_regclass('public.vehiculos') is not null then execute 'delete from public.vehiculos where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('vehiculos',n); end if;
     end if;
 
     if 'personal_rh'=any(c) then
-        if to_regclass('public.rh_nomina_envios') is not null then execute 'delete from public.rh_nomina_envios'; end if;
-        if to_regclass('public.rh_nomina_detalles') is not null then execute 'delete from public.rh_nomina_detalles'; end if;
-        if to_regclass('public.rh_nomina_periodos') is not null then execute 'delete from public.rh_nomina_periodos'; end if;
-        if to_regclass('public.rh_proyecto_asignaciones') is not null then execute 'delete from public.rh_proyecto_asignaciones'; end if;
-        if to_regclass('public.rh_capacitacion_participantes') is not null then execute 'delete from public.rh_capacitacion_participantes'; end if;
-        if to_regclass('public.rh_documentos') is not null then execute 'delete from public.rh_documentos'; end if;
-        if to_regclass('public.rh_incidencias') is not null then execute 'delete from public.rh_incidencias'; end if;
-        delete from public.rh_personal; get diagnostics n=row_count; result:=result||jsonb_build_object('personal_rh',n);
+        if to_regclass('public.rh_nomina_envios') is not null then execute 'delete from public.rh_nomina_envios where true'; end if;
+        if to_regclass('public.rh_nomina_detalles') is not null then execute 'delete from public.rh_nomina_detalles where true'; end if;
+        if to_regclass('public.rh_nomina_periodos') is not null then execute 'delete from public.rh_nomina_periodos where true'; end if;
+        if to_regclass('public.rh_proyecto_asignaciones') is not null then execute 'delete from public.rh_proyecto_asignaciones where true'; end if;
+        if to_regclass('public.rh_capacitacion_participantes') is not null then execute 'delete from public.rh_capacitacion_participantes where true'; end if;
+        if to_regclass('public.rh_documentos') is not null then execute 'delete from public.rh_documentos where true'; end if;
+        if to_regclass('public.rh_incidencias') is not null then execute 'delete from public.rh_incidencias where true'; end if;
+        delete from public.rh_personal where true; get diagnostics n=row_count; result:=result||jsonb_build_object('personal_rh',n);
     end if;
 
     if 'rh_operacion'=any(c) then
-        if to_regclass('public.rh_nomina_envios') is not null then execute 'delete from public.rh_nomina_envios'; end if;
-        if to_regclass('public.rh_nomina_detalles') is not null then execute 'delete from public.rh_nomina_detalles'; end if;
-        if to_regclass('public.rh_nomina_periodos') is not null then execute 'delete from public.rh_nomina_periodos'; end if;
-        if to_regclass('public.rh_capacitacion_participantes') is not null then execute 'delete from public.rh_capacitacion_participantes'; end if;
-        if to_regclass('public.rh_capacitaciones') is not null then execute 'delete from public.rh_capacitaciones'; end if;
-        if to_regclass('public.rh_documentos') is not null then execute 'delete from public.rh_documentos'; end if;
-        if to_regclass('public.rh_incidencias') is not null then execute 'delete from public.rh_incidencias'; get diagnostics n=row_count; result:=result||jsonb_build_object('rh_operacion',n); end if;
+        if to_regclass('public.rh_nomina_envios') is not null then execute 'delete from public.rh_nomina_envios where true'; end if;
+        if to_regclass('public.rh_nomina_detalles') is not null then execute 'delete from public.rh_nomina_detalles where true'; end if;
+        if to_regclass('public.rh_nomina_periodos') is not null then execute 'delete from public.rh_nomina_periodos where true'; end if;
+        if to_regclass('public.rh_capacitacion_participantes') is not null then execute 'delete from public.rh_capacitacion_participantes where true'; end if;
+        if to_regclass('public.rh_capacitaciones') is not null then execute 'delete from public.rh_capacitaciones where true'; end if;
+        if to_regclass('public.rh_documentos') is not null then execute 'delete from public.rh_documentos where true'; end if;
+        if to_regclass('public.rh_incidencias') is not null then execute 'delete from public.rh_incidencias where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('rh_operacion',n); end if;
     end if;
 
     if 'compras'=any(c) then
-        if to_regclass('public.co_solicitud_proveedor_items') is not null then execute 'delete from public.co_solicitud_proveedor_items'; end if;
-        if to_regclass('public.co_solicitudes_proveedor') is not null then execute 'delete from public.co_solicitudes_proveedor'; end if;
-        if to_regclass('public.co_cotizacion_ofertas') is not null then execute 'delete from public.co_cotizacion_ofertas'; end if;
-        if to_regclass('public.co_cotizacion_items') is not null then execute 'delete from public.co_cotizacion_items'; end if;
-        if to_regclass('public.co_cotizaciones') is not null then execute 'delete from public.co_cotizaciones'; end if;
-        if to_regclass('public.co_tienda_solicitudes') is not null then execute 'delete from public.co_tienda_solicitudes'; end if;
-        if to_regclass('public.co_servicio_pagos') is not null then execute 'delete from public.co_servicio_pagos'; end if;
-        if to_regclass('public.reajustes_solicitud_material') is not null then execute 'delete from public.reajustes_solicitud_material'; end if;
-        if to_regclass('public.solicitudes_compra') is not null then execute 'delete from public.solicitudes_compra'; get diagnostics n=row_count; result:=result||jsonb_build_object('compras',n); end if;
-        if to_regclass('public.notificaciones_sistema') is not null then execute 'delete from public.notificaciones_sistema'; end if;
+        if to_regclass('public.co_solicitud_proveedor_items') is not null then execute 'delete from public.co_solicitud_proveedor_items where true'; end if;
+        if to_regclass('public.co_solicitudes_proveedor') is not null then execute 'delete from public.co_solicitudes_proveedor where true'; end if;
+        if to_regclass('public.co_cotizacion_ofertas') is not null then execute 'delete from public.co_cotizacion_ofertas where true'; end if;
+        if to_regclass('public.co_cotizacion_items') is not null then execute 'delete from public.co_cotizacion_items where true'; end if;
+        if to_regclass('public.co_cotizaciones') is not null then execute 'delete from public.co_cotizaciones where true'; end if;
+        if to_regclass('public.co_tienda_solicitudes') is not null then execute 'delete from public.co_tienda_solicitudes where true'; end if;
+        if to_regclass('public.co_servicio_pagos') is not null then execute 'delete from public.co_servicio_pagos where true'; end if;
+        if to_regclass('public.reajustes_solicitud_material') is not null then execute 'delete from public.reajustes_solicitud_material where true'; end if;
+        if to_regclass('public.solicitudes_compra') is not null then execute 'delete from public.solicitudes_compra where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('compras',n); end if;
+        if to_regclass('public.notificaciones_sistema') is not null then execute 'delete from public.notificaciones_sistema where true'; end if;
     end if;
 
     if 'existencias'=any(c) then
-        if to_regclass('public.existencias_proyecto_almacen') is not null then execute 'delete from public.existencias_proyecto_almacen'; end if;
-        if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes'; end if;
-        if to_regclass('public.existencias_almacen') is not null then execute 'delete from public.existencias_almacen'; get diagnostics n=row_count; result:=result||jsonb_build_object('existencias',n); end if;
+        if to_regclass('public.existencias_proyecto_almacen') is not null then execute 'delete from public.existencias_proyecto_almacen where true'; end if;
+        if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes where true'; end if;
+        if to_regclass('public.existencias_almacen') is not null then execute 'delete from public.existencias_almacen where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('existencias',n); end if;
     end if;
 
     if has_moves then
-        delete from public.movimientos; get diagnostics n=row_count; result:=result||jsonb_build_object('historial_movimientos',n);
-        if to_regclass('public.prestamos_material_proyecto') is not null then execute 'delete from public.prestamos_material_proyecto'; end if;
-        if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes'; end if;
+        delete from public.movimientos where true; get diagnostics n=row_count; result:=result||jsonb_build_object('historial_movimientos',n);
+        if to_regclass('public.prestamos_material_proyecto') is not null then execute 'delete from public.prestamos_material_proyecto where true'; end if;
+        if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes where true'; end if;
     end if;
 
     if 'proyectos'=any(c) then
-        if to_regclass('public.rh_proyecto_asignaciones') is not null then execute 'delete from public.rh_proyecto_asignaciones'; end if;
-        if to_regclass('public.proyecto_herramientas') is not null then execute 'delete from public.proyecto_herramientas'; end if;
-        if to_regclass('public.existencias_proyecto_almacen') is not null then execute 'delete from public.existencias_proyecto_almacen'; end if;
-        if to_regclass('public.proyecto_materiales_no_listados') is not null then execute 'delete from public.proyecto_materiales_no_listados'; end if;
-        if to_regclass('public.proyecto_materiales') is not null then execute 'delete from public.proyecto_materiales'; end if;
-        delete from public.proyectos; get diagnostics n=row_count; result:=result||jsonb_build_object('proyectos',n);
+        if to_regclass('public.rh_proyecto_asignaciones') is not null then execute 'delete from public.rh_proyecto_asignaciones where true'; end if;
+        if to_regclass('public.proyecto_herramientas') is not null then execute 'delete from public.proyecto_herramientas where true'; end if;
+        if to_regclass('public.existencias_proyecto_almacen') is not null then execute 'delete from public.existencias_proyecto_almacen where true'; end if;
+        if to_regclass('public.proyecto_materiales_no_listados') is not null then execute 'delete from public.proyecto_materiales_no_listados where true'; end if;
+        if to_regclass('public.proyecto_materiales') is not null then execute 'delete from public.proyecto_materiales where true'; end if;
+        delete from public.proyectos where true; get diagnostics n=row_count; result:=result||jsonb_build_object('proyectos',n);
     end if;
 
     if 'unidades_herramientas'=any(c) and not ('herramientas'=any(c)) then
         if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial where unidad_id is not null'; end if;
-        if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones'; end if;
-        if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades'; get diagnostics n=row_count; result:=result||jsonb_build_object('unidades_herramientas',n); end if;
+        if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones where true'; end if;
+        if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('unidades_herramientas',n); end if;
     end if;
 
     if 'herramientas'=any(c) then
-        if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial'; end if;
-        if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones'; end if;
-        if to_regclass('public.proyecto_herramientas') is not null then execute 'delete from public.proyecto_herramientas'; end if;
-        if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades'; end if;
-        if to_regclass('public.herramientas_catalogo') is not null then execute 'delete from public.herramientas_catalogo'; get diagnostics n=row_count; result:=result||jsonb_build_object('herramientas',n); end if;
+        if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial where true'; end if;
+        if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones where true'; end if;
+        if to_regclass('public.proyecto_herramientas') is not null then execute 'delete from public.proyecto_herramientas where true'; end if;
+        if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades where true'; end if;
+        if to_regclass('public.herramientas_catalogo') is not null then execute 'delete from public.herramientas_catalogo where true'; get diagnostics n=row_count; result:=result||jsonb_build_object('herramientas',n); end if;
     end if;
 
     if 'materiales'=any(c) then
-        if to_regclass('public.co_proveedor_materiales') is not null then execute 'delete from public.co_proveedor_materiales'; end if;
-        if to_regclass('public.existencias_proyecto_almacen') is not null then execute 'delete from public.existencias_proyecto_almacen'; end if;
-        if to_regclass('public.proyecto_materiales') is not null then execute 'delete from public.proyecto_materiales'; end if;
-        if to_regclass('public.existencias_almacen') is not null then execute 'delete from public.existencias_almacen'; end if;
-        if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes'; end if;
-        delete from public.materiales; get diagnostics n=row_count; result:=result||jsonb_build_object('materiales',n);
+        if to_regclass('public.co_proveedor_materiales') is not null then execute 'delete from public.co_proveedor_materiales where true'; end if;
+        if to_regclass('public.existencias_proyecto_almacen') is not null then execute 'delete from public.existencias_proyecto_almacen where true'; end if;
+        if to_regclass('public.proyecto_materiales') is not null then execute 'delete from public.proyecto_materiales where true'; end if;
+        if to_regclass('public.existencias_almacen') is not null then execute 'delete from public.existencias_almacen where true'; end if;
+        if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes where true'; end if;
+        delete from public.materiales where true; get diagnostics n=row_count; result:=result||jsonb_build_object('materiales',n);
     end if;
 
     insert into public.crm_limpieza_auditoria(categorias,resultado) values(c,result);
@@ -3386,11 +3386,11 @@ begin
     if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
         raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
     end if;
-    if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes'; end if;
+    if to_regclass('public.ubicaciones_pendientes') is not null then execute 'delete from public.ubicaciones_pendientes where true'; end if;
     if to_regclass('public.prestamos_material_proyecto') is not null then
-        begin execute 'delete from public.prestamos_material_proyecto'; exception when others then null; end;
+        begin execute 'delete from public.prestamos_material_proyecto where true'; exception when others then null; end;
     end if;
-    delete from public.movimientos;
+    delete from public.movimientos where true;
     get diagnostics v_count=row_count;
     return jsonb_build_object('ok',true,'eliminados',v_count,'advertencia','El historial fue eliminado. Las existencias actuales no se recalcularon automáticamente.');
 end;
@@ -3413,8 +3413,8 @@ begin
         raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
     end if;
     if to_regclass('public.herramientas_historial') is not null then execute 'delete from public.herramientas_historial where unidad_id is not null'; end if;
-    if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones'; end if;
-    if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades'; get diagnostics v_count=row_count; end if;
+    if to_regclass('public.herramientas_asignaciones') is not null then execute 'delete from public.herramientas_asignaciones where true'; end if;
+    if to_regclass('public.herramientas_unidades') is not null then execute 'delete from public.herramientas_unidades where true'; get diagnostics v_count=row_count; end if;
     return jsonb_build_object('ok',true,'eliminados',v_count);
 end;
 $$;
@@ -3511,13 +3511,13 @@ begin
     end if;
 
     if to_regclass('public.ubicaciones_pendientes') is not null then
-        begin execute 'delete from public.ubicaciones_pendientes'; exception when others then null; end;
+        begin execute 'delete from public.ubicaciones_pendientes where true'; exception when others then null; end;
     end if;
     if to_regclass('public.prestamos_material_proyecto') is not null then
-        begin execute 'delete from public.prestamos_material_proyecto'; exception when others then null; end;
+        begin execute 'delete from public.prestamos_material_proyecto where true'; exception when others then null; end;
     end if;
 
-    delete from public.movimientos;
+    delete from public.movimientos where true;
     get diagnostics v_count=row_count;
 
     return jsonb_build_object(
@@ -3538,3 +3538,148 @@ commit;
 
 select 'OK' estado,'CRM-V26-HISTORIAL-NOMINA-DIRECCION-2026-08-10' version,
        case when to_regprocedure('public.crm_borrar_historial_movimientos(text)') is not null then 'OK' else 'FALTA' end borrar_historial;
+
+
+-- ============================================================
+-- V27 · BORRADO SEGURO DE PRUEBAS + COMPRAS
+-- ============================================================
+begin;
+
+create or replace function public.crm_borrar_historial_movimientos(p_clave text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_count integer:=0;
+    v_allowed boolean:=false;
+begin
+    select exists(
+        select 1
+        from public.perfiles_usuario p
+        where p.id=auth.uid()
+          and p.activo=true
+          and (
+              lower(btrim(coalesce(p.rol,''))) in ('administrador','jefe_almacen','admin_almacen','administrador_almacen')
+              or (
+                  lower(btrim(coalesce(p.rol,'')))='almacen'
+                  and lower(btrim(coalesce(p.puesto,''))) like '%jefe%almac%'
+              )
+          )
+    ) into v_allowed;
+
+    if not v_allowed then
+        raise exception using errcode='42501',message='Solo Administrador o Jefe de almacén puede borrar el historial de movimientos.';
+    end if;
+
+    if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
+        raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
+    end if;
+
+    if to_regclass('public.ubicaciones_pendientes') is not null then
+        begin execute 'delete from public.ubicaciones_pendientes where true'; exception when others then null; end;
+    end if;
+    if to_regclass('public.prestamos_material_proyecto') is not null then
+        begin execute 'delete from public.prestamos_material_proyecto where true'; exception when others then null; end;
+    end if;
+
+    delete from public.movimientos where true;
+    get diagnostics v_count=row_count;
+
+    return jsonb_build_object(
+        'ok',true,
+        'eliminados',v_count,
+        'advertencia','El historial fue eliminado. Las existencias actuales no se recalcularon automáticamente.'
+    );
+end;
+$$;
+revoke all on function public.crm_borrar_historial_movimientos(text) from public,anon;
+grant execute on function public.crm_borrar_historial_movimientos(text) to authenticated;
+
+create or replace function public.crm_eliminar_orden_compra_prueba(p_ids bigint[])
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,storage
+as $$
+declare
+    v_paths text[]:=array[]::text[];
+    v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','compras','jefe_almacen']) then
+        raise exception using errcode='42501',message='Solo Administrador, Compras o Jefe de almacén puede eliminar órdenes de prueba.';
+    end if;
+    if p_ids is null or cardinality(p_ids)=0 then
+        raise exception 'Selecciona una orden de compra.';
+    end if;
+
+    select coalesce(array_agg(distinct pdf_path) filter(where coalesce(btrim(pdf_path),'')<>''),array[]::text[])
+      into v_paths
+      from public.solicitudes_compra
+     where id=any(p_ids);
+
+    delete from public.solicitudes_compra where id=any(p_ids);
+    get diagnostics v_count=row_count;
+
+    if cardinality(v_paths)>0 then
+        delete from storage.objects
+         where bucket_id='ordenes-compra'
+           and name=any(v_paths);
+    end if;
+
+    return jsonb_build_object('ok',true,'eliminados',v_count,'pdf_eliminados',cardinality(v_paths));
+end;
+$$;
+revoke all on function public.crm_eliminar_orden_compra_prueba(bigint[]) from public,anon;
+grant execute on function public.crm_eliminar_orden_compra_prueba(bigint[]) to authenticated;
+
+create or replace function public.crm_borrar_ordenes_compra_prueba(p_clave text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,storage
+as $$
+declare
+    v_paths text[]:=array[]::text[];
+    v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','compras']) then
+        raise exception using errcode='42501',message='Solo Administrador o Compras puede borrar todas las órdenes de prueba.';
+    end if;
+    if md5(coalesce(p_clave,''))<>'81dc9bdb52d04dc20036dbd8313ed055' then
+        raise exception using errcode='42501',message='La contraseña de limpieza es incorrecta.';
+    end if;
+
+    select coalesce(array_agg(distinct pdf_path) filter(where coalesce(btrim(pdf_path),'')<>''),array[]::text[])
+      into v_paths
+      from public.solicitudes_compra;
+
+    delete from public.solicitudes_compra where true;
+    get diagnostics v_count=row_count;
+
+    if cardinality(v_paths)>0 then
+        delete from storage.objects
+         where bucket_id='ordenes-compra'
+           and name=any(v_paths);
+    end if;
+
+    return jsonb_build_object(
+        'ok',true,
+        'eliminados',v_count,
+        'pdf_eliminados',cardinality(v_paths)
+    );
+end;
+$$;
+revoke all on function public.crm_borrar_ordenes_compra_prueba(text) from public,anon;
+grant execute on function public.crm_borrar_ordenes_compra_prueba(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V27-BORRADO-SEGURO-COMPRAS-FAVICON-2026-08-10',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' estado,'CRM-V27-BORRADO-SEGURO-COMPRAS-FAVICON-2026-08-10' version,
+       case when to_regprocedure('public.crm_borrar_historial_movimientos(text)') is not null then 'OK' else 'FALTA' end borrar_historial,
+       case when to_regprocedure('public.crm_borrar_ordenes_compra_prueba(text)') is not null then 'OK' else 'FALTA' end borrar_ordenes;

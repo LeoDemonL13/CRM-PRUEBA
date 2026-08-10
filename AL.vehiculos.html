@@ -4,11 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#060814">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="application-name" content="Skilled CRM">
+<meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <link rel="stylesheet" href="interfaz.css">
 <script src="navegacion-suave.js?v=24"></script>
 <title>Skilled - Vehículos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=25"></script>
+<script src="skilled-supabase.js?v=27"></script>
 <script src="auth-guard.js?v=24"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -192,7 +199,7 @@ body.tema-claro .seat-assignment-row-v23 select{background:#fff;color:#1e293b;bo
 
 <div id="expense-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4"><div class="crm-modal max-w-2xl"><div class="crm-modal-header"><div><h2 class="text-base font-bold text-white">Registrar gasto vehicular</h2><p class="mt-1 text-[11px] text-gray-500">Gasolina, casetas, mantenimiento, refacciones u otros gastos.</p></div><button id="close-expense" class="crm-icon-button text-xl">×</button></div><form id="expense-form" class="p-5"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><label class="crm-label sm:col-span-2">Vehículo *<select id="expense-vehicle" class="field mt-2" required><option value="">Selecciona...</option></select></label><label class="crm-label">Fecha<input id="expense-date" type="date" class="field mt-2"></label><label class="crm-label">Tipo<select id="expense-type" class="field mt-2"><option value="gasolina">Gasolina</option><option value="diesel">Diésel</option><option value="carga_electrica">Carga eléctrica</option><option value="casetas">Casetas</option><option value="estacionamiento">Estacionamiento</option><option value="mantenimiento">Mantenimiento</option><option value="refacciones">Refacciones</option><option value="lavado">Lavado</option><option value="otro">Otro</option></select></label><label class="crm-label">Litros / unidades<input id="expense-liters" type="number" min="0" step="any" class="field mt-2"></label><label class="crm-label">Importe ($) *<input id="expense-amount" type="number" min="0" step="any" class="field mt-2" required></label><label class="crm-label">Odómetro<input id="expense-mileage" type="number" min="0" class="field mt-2"></label><label class="crm-label">Proveedor<input id="expense-vendor" class="field mt-2"></label><label class="crm-label sm:col-span-2">Comprobante / folio<input id="expense-receipt" class="field mt-2"></label><label class="crm-label sm:col-span-2">Notas<textarea id="expense-notes" rows="2" class="field mt-2"></textarea></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" id="cancel-expense" class="crm-secondary">Cancelar</button><button class="crm-primary">Guardar gasto</button></div></form></div></div>
 
-<script src="skilled-sidebar.js?v=26" defer></script><script src="AL.vehiculos.js?v=24"></script>
+<script src="skilled-sidebar.js?v=25" defer></script><script src="AL.vehiculos.js?v=24"></script>
 <script src="skilled-sky.js?v=25" defer></script>
 <!-- V24 styles injected before closing body by browser are valid for this static module -->
 <style id="vehicle-seat-v24-fix">
