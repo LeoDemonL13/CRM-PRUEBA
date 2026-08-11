@@ -3039,29 +3039,108 @@
     async function createIncompleteMaterial(payload = {}) {
         const code = text(payload.codigo);
         const description = text(payload.descripcion ?? payload.desc);
-        const category = text(payload.categoria);
-        const unit = text(payload.unidad);
-        if (!code || !description || !category || !unit) {
-            throw new Error('Código, descripción, categoría y unidad son obligatorios.');
+        const rawCategory = text(payload.categoria);
+        const rawUnit = text(payload.unidad);
+        const category = rawCategory || 'Sin clasificar';
+        const unit = rawUnit || 'pieza';
+        const price = number(payload.precio);
+        const origin = text(payload.origen ?? payload.origenAlta) || 'alta_manual';
+        if (!code || !description) {
+            throw new Error('Código y descripción son obligatorios.');
         }
         await ensureCategoryExists(category);
-        const existingMaterials = await listMaterials();
-        const existing = existingMaterials.find(item => lower(item.codigo) === lower(code));
-        if (existing) return existing;
+        const currentResult = await client.from('materiales').select('*').eq('codigo', code).maybeSingle();
+        assertNoError(currentResult.error, 'No se pudo consultar el catálogo.');
+        if (currentResult.data) return materialFromDb(currentResult.data);
         const { data, error } = await client.rpc('crear_material_incompleto', {
             p_codigo: code,
             p_descripcion: description,
             p_categoria: category,
             p_unidad: unit,
-            p_precio: number(payload.precio),
-            p_origen: text(payload.origen ?? payload.origenAlta) || 'alta_manual'
+            p_precio: price,
+            p_origen: origin
         });
         assertNoError(error, 'No se pudo crear el material incompleto.');
         const finalCode = text(data || code);
-        const materials = await listMaterials();
-        const material = materials.find(item => lower(item.codigo) === lower(finalCode));
-        if (!material) throw new Error('El material se creó, pero no pudo recuperarse del catálogo.');
-        return material;
+        const pending = [];
+        if (!rawCategory) pending.push('categoria');
+        if (!rawUnit) pending.push('unidad');
+        if (price <= 0) pending.push('precio');
+        pending.push('imagen');
+        const updateResult = await client.from('materiales').update({
+            es_incompleto: true,
+            origen_alta: origin,
+            campos_pendientes: [...new Set(pending)],
+            activo: true,
+            updated_at: new Date().toISOString()
+        }).eq('codigo', finalCode);
+        assertNoError(updateResult.error, 'El material se creó, pero no pudo marcarse como información incompleta.');
+        const createdResult = await client.from('materiales').select('*').eq('codigo', finalCode).maybeSingle();
+        assertNoError(createdResult.error, 'El material se creó, pero no pudo recuperarse del catálogo.');
+        if (!createdResult.data) throw new Error('El material se creó, pero no pudo recuperarse del catálogo.');
+        return materialFromDb(createdResult.data);
+    }
+
+    async function syncProjectUnlistedMaterials(projectNumber = '') {
+        let query = client.from('proyecto_materiales_no_listados').select('*').order('id', { ascending: true });
+        const project = text(projectNumber);
+        if (project) query = query.eq('proyecto_numero', project);
+        const manualResult = await query;
+        if (manualResult.error) {
+            const message = lower(manualResult.error.message || manualResult.error.details || '');
+            if (message.includes('proyecto_materiales_no_listados') && (message.includes('does not exist') || message.includes('not found'))) {
+                return { revisados: 0, migrados: 0, creados: 0 };
+            }
+            assertNoError(manualResult.error, 'No se pudieron revisar los materiales no enlistados de proyectos.');
+        }
+        const rows = manualResult.data || [];
+        if (!rows.length) return { revisados: 0, migrados: 0, creados: 0 };
+        const catalogResult = await client.from('materiales').select('*');
+        assertNoError(catalogResult.error, 'No se pudo consultar el catálogo para completar los materiales de proyecto.');
+        const catalog = new Map((catalogResult.data || []).map(row => [lower(row.codigo), row]));
+        let migrated = 0;
+        let created = 0;
+        for (const row of rows) {
+            const code = text(row.codigo_manual);
+            if (!code) continue;
+            let materialRow = catalog.get(lower(code));
+            if (!materialRow) {
+                const material = await createIncompleteMaterial({
+                    codigo: code,
+                    descripcion: text(row.descripcion) || code,
+                    categoria: text(row.categoria),
+                    unidad: text(row.unidad),
+                    precio: number(row.precio_unitario),
+                    origen: 'plan_proyecto_migrado'
+                });
+                const fresh = await client.from('materiales').select('*').eq('codigo', material.codigo).maybeSingle();
+                assertNoError(fresh.error, `No se pudo recuperar ${code} del catálogo.`);
+                materialRow = fresh.data;
+                if (materialRow) catalog.set(lower(code), materialRow);
+                created += 1;
+            }
+            const planRow = {
+                proyecto_numero: text(row.proyecto_numero),
+                material_codigo: text(materialRow?.codigo || code),
+                cantidad_planeada: number(row.cantidad_planeada),
+                cantidad_entregada: number(row.cantidad_entregada),
+                cantidad_sobrante: number(row.cantidad_sobrante),
+                unidad: text(row.unidad) || text(materialRow?.unidad) || null,
+                precio_unitario: number(row.precio_unitario) || number(materialRow?.precio),
+                observaciones: text(row.observaciones) || null,
+                estado_solicitud: text(row.estado_solicitud) || 'pendiente',
+                aprobada_por: row.aprobada_por || null,
+                aprobada_at: row.aprobada_at || null,
+                rechazo_motivo: text(row.rechazo_motivo) || null,
+                updated_at: new Date().toISOString()
+            };
+            const upsert = await client.from('proyecto_materiales').upsert(planRow, { onConflict: 'proyecto_numero,material_codigo' });
+            assertNoError(upsert.error, `No se pudo vincular ${code} al catálogo del proyecto.`);
+            const remove = await client.from('proyecto_materiales_no_listados').delete().eq('id', row.id);
+            assertNoError(remove.error, `No se pudo retirar la referencia anterior de ${code}.`);
+            migrated += 1;
+        }
+        return { revisados: rows.length, migrados: migrated, creados: created };
     }
 
     async function listProjectPlanV12(projectNumber) {
@@ -5340,6 +5419,7 @@
         listProjectMovementPlan,
         saveProjectPlan: saveProjectPlanV12,
         createIncompleteMaterial,
+        syncProjectUnlistedMaterials,
         listMaterialRequests,
         setMaterialRequestStatus,
         createMaterialAdjustment,
