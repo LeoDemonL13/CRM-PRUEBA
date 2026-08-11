@@ -12,13 +12,13 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=38">
-<script src="navegacion-suave.js?v=38"></script>
+<link rel="stylesheet" href="interfaz.css?v=39">
+<script src="navegacion-suave.js?v=39"></script>
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=38"></script>
-<script src="auth-guard.js?v=38"></script>
+    <script src="skilled-supabase.js?v=39"></script>
+<script src="auth-guard.js?v=39"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -103,8 +103,8 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=38" defer></script>
-<script src="skilled-search.js?v=38"></script>
+    <script src="skilled-sidebar.js?v=39" defer></script>
+<script src="skilled-search.js?v=39"></script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -244,7 +244,7 @@
     </aside>
 
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a]">
+        <header class="skilled-app-header h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a]">
             <div class="flex items-center gap-4 w-full max-w-md">
                 <div class="relative w-full">
                     <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span>
@@ -1111,7 +1111,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=38');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=39');
             }
             return cliente;
         }
@@ -2486,6 +2486,6 @@ ${proyecto}`);
 <script src="AL.proyectos.js?v=31"></script>
 
 
-<script src="skilled-performance.js?v=38" defer></script>
+<script src="skilled-performance.js?v=39" defer></script>
 </body>
 </html>

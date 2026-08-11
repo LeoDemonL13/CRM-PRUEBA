@@ -67,7 +67,10 @@
     }
     const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente']);
     function skyAllowed() {
-        return skyProfiles.has(pageProfileKey());
+        const profile=pageProfileKey();
+        const allowed=skyProfiles.has(profile);
+        document.documentElement.dataset.skyAllowed=allowed?'1':'0';
+        return allowed;
     }
     function sidebarStorageKey(role = currentRole()) {
         return `skilled_sidebar_compact_${sidebarProfileKey(role)}`;
@@ -929,11 +932,12 @@
         if (!skyAllowed()) {
             document.getElementById('sky-open')?.remove();
             document.getElementById('sky-overlay')?.remove();
+            document.querySelectorAll('[data-skilled-sky]').forEach(node=>node.remove());
             return;
         }
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=38';
+        script.src = 'skilled-sky.js?v=39';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);

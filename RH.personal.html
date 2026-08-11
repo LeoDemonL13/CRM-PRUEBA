@@ -12,23 +12,23 @@
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Personal RH</title>
-<link rel="stylesheet" href="interfaz.css?v=38">
+<link rel="stylesheet" href="interfaz.css?v=39">
 <link rel="stylesheet" href="importaciones.css">
-<script src="navegacion-suave.js?v=38"></script>
+<script src="navegacion-suave.js?v=39"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=38"></script>
-<script src="auth-guard.js?v=38"></script>
+<script src="skilled-supabase.js?v=39"></script>
+<script src="auth-guard.js?v=39"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 .rh-tab{border:1px solid #243257;background:#0b1325;color:#8794aa;border-radius:9px;padding:8px 12px;font-size:10px;font-weight:700}.rh-tab.is-active{border-color:rgba(139,92,246,.45);background:rgba(139,92,246,.13);color:#ddd6fe}.rh-section{display:none}.rh-section.is-active{display:grid}.rh-avatar{width:38px;height:38px;border-radius:11px;border:1px solid #2b3b5c;background:#101a30;display:flex;align-items:center;justify-content:center;font-weight:800;color:#a5b4fc;overflow:hidden}.rh-avatar img{width:100%;height:100%;object-fit:cover}
 </style>
-<script src="skilled-search.js?v=38"></script>
+<script src="skilled-search.js?v=39"></script>
 </head>
 <body class="area-rh profile-page min-h-screen flex overflow-x-hidden">
 <aside></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
-<header class="h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30">
+<header class="skilled-app-header h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30">
     <div class="relative w-full max-w-md"><input id="global-search" class="field pl-9" placeholder="Buscar colaborador, puesto o departamento..."></div>
     <div class="flex items-center gap-3"><button id="refresh" class="crm-icon-button" data-skilled-refresh></button><button class="crm-icon-button" data-skilled-theme></button></div>
 </header>
@@ -115,8 +115,8 @@
 </div>
 
 <script src="RH.personal.js?v=31"></script>
-<script src="skilled-sidebar.js?v=38"></script>
+<script src="skilled-sidebar.js?v=39"></script>
 <script>{const p=new URLSearchParams(location.search);if(p.get('nuevo')==='1')setTimeout(()=>document.getElementById('new-person')?.click(),450);if(p.get('importar')==='1')setTimeout(()=>document.getElementById('import-people')?.click(),500);}</script>
-<script src="skilled-performance.js?v=38" defer></script>
+<script src="skilled-performance.js?v=39" defer></script>
 </body>
 </html>

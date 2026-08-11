@@ -37,8 +37,8 @@
             compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Qué cotizaciones requieren atención?', examples: [['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Buscar proveedor','Busca al proveedor ABB'],['Proyectos','¿Qué proyectos están activos?'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?']] },
             rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
-            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Resumen ejecutivo de proyectos, materiales, sueldos, gasto real y desviaciones contra lo planeado.', placeholder: 'Ej. ¿Cuánto se ha gastado en el proyecto 2508?', examples: [['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Materiales vs sueldos','Compara materiales y sueldos del proyecto 2508'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
-            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Seguimiento ejecutivo de proyectos, materiales, sueldos y desviaciones contra lo planeado.', placeholder: 'Ej. ¿Qué proyectos están sobre presupuesto?', examples: [['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Materiales vs sueldos','Compara materiales y sueldos del proyecto 2508'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
+            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Resumen ejecutivo de proyectos, materiales, sueldos, gasto real, desviaciones y alertas operativas.', placeholder: 'Ej. ¿Qué requiere atención hoy?', examples: [['Prioridades','¿Qué requiere atención hoy?'],['Alertas operativas','¿Qué alertas operativas tenemos?'],['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Materiales vs sueldos','Compara materiales y sueldos del proyecto 2508'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
+            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Seguimiento ejecutivo de proyectos, entregas, desviaciones y alertas operativas.', placeholder: 'Ej. ¿Qué debo revisar primero?', examples: [['Prioridades','¿Qué debo revisar primero?'],['Alertas operativas','¿Qué pendientes operativos tenemos?'],['Próximas entregas','¿Qué proyectos entregan primero?'],['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -172,13 +172,17 @@
     let cache = { at: 0 };
     const aiQueryCache = new Map();
     let aiRetryAfter = 0;
-    let conversationContext = { material: null, vehicle: null, project: null };
+    const conversationKey=()=>`skilled_sky_context_${detectProfile()}`;
+    function loadConversationContext(){try{const value=JSON.parse(sessionStorage.getItem(conversationKey())||'null');return value&&typeof value==='object'?value:{}}catch(_){return{}}}
+    let conversationContext = Object.assign({ material:null, vehicle:null, project:null, supplier:null, lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 },loadConversationContext());
+    function saveConversationContext(){conversationContext.updatedAt=Date.now();try{sessionStorage.setItem(conversationKey(),JSON.stringify(conversationContext))}catch(_){}}
+    function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
     const ttl = 45000;
 
     function styles() {
-        if (document.getElementById('sky-style-v38')) return;
+        if (document.getElementById('sky-style-v39')) return;
         const style = document.createElement('style');
-        style.id = 'sky-style-v38';
+        style.id = 'sky-style-v39';
         style.textContent = `
             .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.76);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{width:min(760px,100%);max-height:min(780px,92vh);overflow:auto;border:1px solid #28406a;border-radius:20px;background:linear-gradient(160deg,#0e172b,#080e1c 55%,#091221);box-shadow:0 35px 110px rgba(0,0,0,.58)}.sky-head{padding:20px 22px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:48px;height:48px;border-radius:15px;border:1px solid rgba(96,165,250,.38);background:radial-gradient(circle at 36% 30%,#60a5fa 0 7%,#2563eb 24%,#0b1631 64%);box-shadow:inset 0 0 25px rgba(96,165,250,.18),0 0 28px rgba(37,99,235,.15)}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:22px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:15px;background:rgba(6,12,24,.68);min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:11px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:999px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}}@media(max-width:640px){.sky-header-button span[data-sky-label]{display:none}.sky-header-button{width:36px;padding:0;justify-content:center}.sky-header-button .sky-pulse{display:none}.sky-input-row{grid-template-columns:1fr auto}.sky-input-row .sky-action.primary{grid-column:1/-1}.sky-grid{grid-template-columns:1fr}.sky-body{padding:17px}.sky-head{padding:17px}.sky-modal{border-radius:16px}}@keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
         `;
@@ -1421,7 +1425,7 @@
             return 'No encontré ese material en el catálogo.';
         }
         const material = match.best;
-        conversationContext.material = { codigo: text(material.codigo), descripcion: text(material.descripcion || material.desc) };
+        conversationContext.material = { codigo: text(material.codigo), descripcion: text(material.descripcion || material.desc) };saveConversationContext();
         const inventories = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(item => locationOnly ? Boolean(text(item.ubicacion)) || number(item.stock) > 0 : number(item.stock) !== 0 || Boolean(text(item.ubicacion)));
         const total = (material.almacenes || []).reduce((sum, item) => sum + number(item.stock), 0);
         const cards = inventories.map(item => ({ title: item.nombre || 'Almacén', detail: `${formatNumber(item.stock)} ${material.unidad || 'unidades'}${item.ubicacion ? ` · ${item.ubicacion}` : ' · sin ubicación específica'}` }));
@@ -1523,7 +1527,7 @@
             .sort((a,b) => b.score-a.score);
         if (named.length && !/disponible|disponibles|cuantos|cuantas|flotilla|vehiculos/.test(norm)) {
             const item=named[0].item;
-            conversationContext.vehicle = { nombre: text(item.nombreVehiculo || item.numeroEconomico), id: item.id };
+            conversationContext.vehicle = { nombre: text(item.nombreVehiculo || item.numeroEconomico), id: item.id };saveConversationContext();
             const state=normalize(item.estado)==='disponible'?'disponible':text(item.estado||'sin estado');
             const displayName = text(item.nombreVehiculo || item.numeroEconomico) || 'Vehículo';
             const main=`${displayName}: ${item.marca || ''} ${item.modelo || ''}`.trim();
@@ -1815,7 +1819,7 @@
             setAnswer('Proyectos', `${active.length} proyectos están activos actualmente.`, 'Indica un número o nombre para consultar avance, costo y fechas.', active.slice(0, 7).map(item => ({ title: `${item.proyecto} · ${item.nombreProyecto || 'Proyecto'}`, detail: `${item.estado || 'activo'} · avance ${formatNumber(item.avance)}% · entrega ${dateOnly(item.fechaEntrega)}` })), { href: `AL.proyectos.html${profileParam}`, label: 'Abrir proyectos' });
             return `Hay ${active.length} proyectos activos.`;
         }
-        conversationContext.project = { proyecto: text(project.proyecto), nombre: text(project.nombreProyecto) };
+        conversationContext.project = { proyecto: text(project.proyecto), nombre: text(project.nombreProyecto) };saveConversationContext();
         const cards = [
             { title: 'Estado', detail: project.estado || 'sin estado' },
             { title: 'Avance', detail: `${formatNumber(project.avance)}%` },
@@ -1991,38 +1995,60 @@
     }
 
     async function answerExecutive(raw) {
-        const norm = commandNormalize(raw);
-        const rows = await SkilledDB.getExecutiveProjectSummary();
-        const prefix = detectProfile() === 'gerente_general' ? 'GG' : 'SG';
-        if (!Array.isArray(rows) || !rows.length) {
-            setAnswer('Resumen ejecutivo', 'Todavía no hay proyectos disponibles para el análisis ejecutivo.', '', [], { href: `${prefix}.proyectos.html`, label: 'Abrir proyectos' });
-            return 'Todavía no hay proyectos disponibles para el análisis ejecutivo.';
+        const norm=commandNormalize(raw);
+        const rows=await SkilledDB.getExecutiveProjectSummary();
+        const prefix=detectProfile()==='gerente_general'?'GG':'SG';
+        if(!Array.isArray(rows)||!rows.length){setAnswer('Resumen ejecutivo','Todavía no hay proyectos disponibles para el análisis ejecutivo.','',[],{href:`${prefix}.proyectos.html`,label:'Abrir proyectos'});return'Todavía no hay proyectos disponibles para el análisis ejecutivo.'}
+        const now=new Date();now.setHours(0,0,0,0);
+        const closed=row=>/complet|cerrad|cancelad/i.test(text(row.estado));
+        const daysTo=row=>{if(!row.fechaEntrega)return null;const d=new Date(`${row.fechaEntrega}T12:00:00`);if(Number.isNaN(d.getTime()))return null;return Math.ceil((d-now)/86400000)};
+        const utilization=row=>number(row.total_planeado)>0?number(row.total_real)/number(row.total_planeado)*100:number(row.total_real)>0?100:0;
+        const active=rows.filter(row=>!closed(row));
+        const candidate=rows.find(row=>[row.proyecto,row.nombre,row.cliente,row.responsable].some(value=>value&&norm.includes(commandNormalize(value))))||null;
+        if(!candidate&&/alerta|pendiente.*oper|operacion|operación|bajo.*min|sin.*ubicacion|sin.*ubicación|herramient.*venc|flotilla|document.*vehiculo|document.*vehículo|compras.*pend/.test(norm)&&window.SkilledDB?.listOperationalAlerts){
+            const alerts=await SkilledDB.listOperationalAlerts();
+            const summary=alerts?.summary||{},low=number(summary.bajoMinimo),purchases=number(summary.comprasPendientes),locations=number(summary.ubicacionesPendientes),tools=number(summary.herramientasVencidas),vehicles=number(summary.documentosVehiculo),total=low+purchases+locations+tools+vehicles;
+            const cards=[{title:'Bajo mínimo',detail:String(low)},{title:'Compras pendientes',detail:String(purchases)},{title:'Sin ubicación',detail:String(locations)},{title:'Herramientas vencidas',detail:String(tools)},{title:'Flotilla · documentos',detail:String(vehicles)}];
+            const highest=cards.slice().sort((a,b)=>number(b.detail)-number(a.detail))[0];
+            setAnswer('Alertas operativas',total?`${total} señales operativas requieren seguimiento.`:'No detecté alertas operativas en los criterios actuales.',total?`La mayor concentración está en ${highest.title.toLowerCase()} (${highest.detail}).`:'Bajo mínimo, compras, ubicaciones, herramientas y flotilla no presentan pendientes en este resumen.',cards,{href:`${prefix}.inicio.html`,label:'Abrir tablero ejecutivo'});
+            return total?`Hay ${total} señales operativas. La mayor concentración está en ${highest.title.toLowerCase()}, con ${highest.detail}.`:'No detecté alertas operativas en el resumen actual.';
         }
-        const candidate = rows.find(row => [row.proyecto,row.nombre,row.cliente].some(value => value && norm.includes(commandNormalize(value)))) || null;
-        if (candidate && /proyecto|gasto|gastado|material|sueldo|nomina|planeado|presupuesto|costo|desviacion/.test(norm)) {
-            const mat = number(candidate.material_real), pay = number(candidate.nomina_real), real = number(candidate.total_real), planned = number(candidate.total_planeado), dev = number(candidate.desviacion_total);
-            const cards = [
-                { title: 'Materiales', detail: `${currency(mat)} reales · ${currency(candidate.material_planeado)} planeados` },
-                { title: 'Sueldos', detail: `${currency(pay)} devengados · ${currency(candidate.nomina_planeada)} planeados` },
-                { title: 'Total real', detail: currency(real) },
-                { title: 'Planeado', detail: currency(planned) },
-                { title: 'Desviación', detail: `${dev > 0 ? '+' : ''}${currency(dev)}` }
-            ];
-            const state = dev > 0 ? 'por encima de lo planeado' : dev < 0 ? 'por debajo de lo planeado' : 'en línea con lo planeado';
-            setAnswer('Costo ejecutivo del proyecto', `${candidate.proyecto} · ${candidate.nombre || 'Proyecto'}: ${currency(real)} de gasto acumulado.`, `Materiales ${currency(mat)} · sueldos ${currency(pay)}. El proyecto está ${state}.`, cards, { href: `${prefix}.proyectos.html?proyecto=${encodeURIComponent(candidate.proyecto)}`, label: 'Mostrar más detalles' });
-            return `El proyecto ${candidate.proyecto} lleva ${currency(real)} de gasto acumulado: ${currency(mat)} en materiales y ${currency(pay)} en sueldos. Está ${state}.`;
+        if(candidate&&/proyecto|gasto|gastado|material|sueldo|nomina|planeado|presupuesto|costo|desviacion|avance|como va|cómo va/.test(norm)){
+            conversationContext.project={proyecto:text(candidate.proyecto),nombre:text(candidate.nombre)};saveConversationContext();
+            const mat=number(candidate.material_real),pay=number(candidate.nomina_real),real=number(candidate.total_real),planned=number(candidate.total_planeado),dev=number(candidate.desviacion_total),use=utilization(candidate),days=daysTo(candidate);
+            const cards=[{title:'Gasto real',detail:currency(real)},{title:'Planeado',detail:currency(planned)},{title:'Materiales',detail:`${currency(mat)} · ${real>0?Math.round(mat/real*100):0}% del gasto`},{title:'Sueldos',detail:`${currency(pay)} · ${real>0?Math.round(pay/real*100):0}% del gasto`},{title:'Desviación',detail:`${dev>0?'+':''}${currency(dev)}`},{title:'Entrega',detail:days===null?'Sin fecha':days<0?`${Math.abs(days)} días vencida`:days===0?'Hoy':`${days} días · ${dateOnly(candidate.fechaEntrega)}`}];
+            const state=dev>0?'por encima de lo planeado':dev<0?'por debajo de lo planeado':'en línea con lo planeado';
+            setAnswer('Análisis ejecutivo del proyecto',`${candidate.proyecto} · ${candidate.nombre||'Proyecto'} lleva ${currency(real)} de gasto acumulado.`,`Utilización ${Math.round(use)}% · ${state}. ${candidate.responsable?`Responsable: ${candidate.responsable}.`:''}`,cards,{href:`${prefix}.proyectos.html?proyecto=${encodeURIComponent(candidate.proyecto)}`,label:'Abrir detalle ejecutivo'});
+            return`El proyecto ${candidate.proyecto} lleva ${currency(real)} de gasto, utiliza ${Math.round(use)} por ciento de lo planeado y está ${state}.`;
         }
-        if (/sobre|exced|desviacion|fuera.*planeado|arriba.*planeado|presupuesto/.test(norm)) {
-            const over = rows.filter(row => number(row.desviacion_total) > 0).sort((a,b) => number(b.desviacion_total)-number(a.desviacion_total));
-            setAnswer('Proyectos sobre lo planeado', over.length ? `${over.length} proyecto${over.length===1?' está':'s están'} por encima de lo planeado.` : 'Ningún proyecto está por encima de lo planeado.', 'La desviación considera materiales y sueldos del proyecto.', over.slice(0,7).map(row => ({ title: `${row.proyecto} · ${row.nombre || 'Proyecto'}`, detail: `${currency(row.total_real)} real · ${currency(row.total_planeado)} planeado · +${currency(row.desviacion_total)}` })), { href: `${prefix}.proyectos.html`, label: 'Abrir análisis de proyectos' });
-            return over.length ? `Hay ${over.length} proyectos por encima de lo planeado.` : 'Ningún proyecto está por encima de lo planeado.';
+        if(/requiere.*atencion|requiere.*atención|critico|crítico|riesgo|prioridad|prioridades|preocup|atras/.test(norm)){
+            const risk=active.map(row=>{const days=daysTo(row),dev=number(row.desviacion_total),use=utilization(row);let score=dev>0?Math.min(70,20+dev/Math.max(1,number(row.total_planeado))*100):0;if(days!==null&&days<0)score+=60;else if(days!==null&&days<=7)score+=35;else if(days!==null&&days<=14)score+=18;if(use>=100)score+=25;return{row,score,days,use}}).filter(item=>item.score>0).sort((a,b)=>b.score-a.score).slice(0,7);
+            setAnswer('Prioridades ejecutivas',risk.length?`${risk.length} proyectos concentran la atención inmediata.`:'No detecté proyectos con señales críticas en los datos actuales.',risk.length?'La prioridad combina desviación contra lo planeado y cercanía o vencimiento de la fecha de entrega.':'Los proyectos activos están dentro de los criterios actuales.',risk.map(item=>({title:`${item.row.proyecto} · ${item.row.nombre||'Proyecto'}`,detail:`${item.row.desviacion_total>0?`+${currency(item.row.desviacion_total)} desviación`:'dentro de plan'} · ${item.days===null?'sin fecha':item.days<0?`${Math.abs(item.days)} días vencido`:`entrega en ${item.days} días`} · ${Math.round(item.use)}% utilizado`})),{href:`${prefix}.proyectos.html?riesgo=atencion`,label:'Abrir proyectos prioritarios'});
+            return risk.length?`Detecté ${risk.length} proyectos que requieren atención prioritaria.`:'No detecté proyectos críticos con los datos actuales.';
         }
-        const mat = rows.reduce((sum,row)=>sum+number(row.material_real),0), pay = rows.reduce((sum,row)=>sum+number(row.nomina_real),0), real = rows.reduce((sum,row)=>sum+number(row.total_real),0), planned=rows.reduce((sum,row)=>sum+number(row.total_planeado),0);
-        const active = rows.filter(row => !/complet|cerrad|cancelad/i.test(text(row.estado))).length;
-        setAnswer('Resumen ejecutivo', `${active} proyectos activos · ${currency(real)} de gasto acumulado.`, `Materiales ${currency(mat)} · sueldos ${currency(pay)} · planeado ${currency(planned)}.`, [
-            { title:'Proyectos activos',detail:String(active) }, { title:'Materiales',detail:currency(mat) }, { title:'Sueldos',detail:currency(pay) }, { title:'Total real',detail:currency(real) }, { title:'Total planeado',detail:currency(planned) }
-        ], { href: `${prefix}.proyectos.html`, label: 'Ver proyectos y costos' });
-        return `Hay ${active} proyectos activos. El gasto acumulado es ${currency(real)}: ${currency(mat)} en materiales y ${currency(pay)} en sueldos.`;
+        if(/proxim|próxim|entrega|vence|vencim|fecha/.test(norm)&&!/gasto|costo|presupuesto/.test(norm)){
+            const upcoming=active.map(row=>({row,days:daysTo(row)})).filter(item=>item.days!==null).sort((a,b)=>a.days-b.days).slice(0,7);
+            setAnswer('Próximas entregas',upcoming.length?`Estas son las ${upcoming.length} entregas más próximas.`:'No hay fechas de entrega registradas para proyectos activos.','Se ordenan por la fecha comprometida más cercana.',upcoming.map(item=>({title:`${item.row.proyecto} · ${item.row.nombre||'Proyecto'}`,detail:`${dateOnly(item.row.fechaEntrega)} · ${item.days<0?`${Math.abs(item.days)} días vencido`:item.days===0?'vence hoy':`faltan ${item.days} días`} · ${item.row.responsable||'responsable pendiente'}`})),{href:`${prefix}.proyectos.html?orden=entrega`,label:'Ver calendario de proyectos'});
+            return upcoming.length?`La entrega más próxima es ${upcoming[0].row.proyecto}, ${upcoming[0].days<0?'ya vencida':upcoming[0].days===0?'para hoy':`en ${upcoming[0].days} días`}.`:'No hay fechas de entrega registradas.';
+        }
+        if(/mayor|mas alto|más alto|top|costoso|gasto mas|gasto más/.test(norm)&&/gasto|costo|consumo|real/.test(norm)){
+            const top=[...rows].sort((a,b)=>number(b.total_real)-number(a.total_real)).slice(0,7);
+            setAnswer('Proyectos con mayor gasto',`Estos son los ${top.length} proyectos con mayor gasto real acumulado.`,'El total combina materiales y sueldos devengados.',top.map(row=>({title:`${row.proyecto} · ${row.nombre||'Proyecto'}`,detail:`${currency(row.total_real)} real · ${currency(row.total_planeado)} planeado · ${Math.round(utilization(row))}% utilizado`})),{href:`${prefix}.proyectos.html?orden=gasto`,label:'Abrir análisis de costos'});
+            return top.length?`El proyecto con mayor gasto es ${top[0].proyecto}, con ${currency(top[0].total_real)}.`:'No hay gasto registrado.';
+        }
+        if(/sobre|exced|desviacion|desviación|fuera.*planeado|arriba.*planeado|presupuesto/.test(norm)){
+            const over=rows.filter(row=>number(row.desviacion_total)>0).sort((a,b)=>number(b.desviacion_total)-number(a.desviacion_total));
+            setAnswer('Proyectos sobre lo planeado',over.length?`${over.length} proyecto${over.length===1?' está':'s están'} por encima de lo planeado.`:'Ningún proyecto está por encima de lo planeado.','La desviación considera materiales y sueldos del proyecto.',over.slice(0,7).map(row=>({title:`${row.proyecto} · ${row.nombre||'Proyecto'}`,detail:`${currency(row.total_real)} real · ${currency(row.total_planeado)} planeado · +${currency(row.desviacion_total)}`})),{href:`${prefix}.proyectos.html?riesgo=sobre_plan`,label:'Abrir proyectos sobre plan'});
+            return over.length?`Hay ${over.length} proyectos por encima de lo planeado.`:'Ningún proyecto está por encima de lo planeado.';
+        }
+        if(/material.*sueldo|sueldo.*material|nomina.*material|material.*nomina|compara.*gasto/.test(norm)){
+            const mat=rows.reduce((sum,row)=>sum+number(row.material_real),0),pay=rows.reduce((sum,row)=>sum+number(row.nomina_real),0),real=mat+pay;
+            setAnswer('Composición del gasto',`${currency(real)} de gasto real acumulado en los proyectos.`,`Materiales representan ${real?Math.round(mat/real*100):0}% y sueldos ${real?Math.round(pay/real*100):0}%.`,[{title:'Materiales',detail:currency(mat)},{title:'Sueldos',detail:currency(pay)},{title:'Total',detail:currency(real)}],{href:`${prefix}.proyectos.html`,label:'Ver detalle por proyecto'});
+            return`El gasto acumulado es ${currency(real)}: ${currency(mat)} en materiales y ${currency(pay)} en sueldos.`;
+        }
+        const mat=rows.reduce((sum,row)=>sum+number(row.material_real),0),pay=rows.reduce((sum,row)=>sum+number(row.nomina_real),0),real=rows.reduce((sum,row)=>sum+number(row.total_real),0),planned=rows.reduce((sum,row)=>sum+number(row.total_planeado),0),over=rows.filter(row=>number(row.desviacion_total)>0).length,due=active.filter(row=>{const days=daysTo(row);return days!==null&&days<=14}).length;
+        setAnswer('Resumen ejecutivo',`${active.length} proyectos activos · ${currency(real)} de gasto acumulado.`,`Planeado ${currency(planned)} · ${over} sobre plan · ${due} con entrega dentro de 14 días o vencida.`,[{title:'Proyectos activos',detail:String(active.length)},{title:'Gasto real',detail:currency(real)},{title:'Planeado',detail:currency(planned)},{title:'Materiales',detail:currency(mat)},{title:'Sueldos',detail:currency(pay)},{title:'Atención',detail:`${over} sobre plan · ${due} entregas próximas`}],{href:`${prefix}.proyectos.html`,label:'Ver tablero de proyectos'});
+        return`Hay ${active.length} proyectos activos. El gasto acumulado es ${currency(real)} y ${over} proyectos están por encima de lo planeado.`;
     }
 
     async function answerGeneric(raw, profile) {
@@ -2047,30 +2073,35 @@
         if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
-        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|sueldo|nomina|planeado|real|desviacion|presupuesto/.test(norm)) return true;
+        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|herramient.*venc|sin.*ubicacion|sin.*ubicación/.test(norm)) return true;
         if (profile === 'proyectos' && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable/.test(norm)) return true;
         return false;
     }
 
     function shouldUseSkyAI(raw, profile = detectProfile()) {
         if (!window.SkilledDB?.interpretSkyQuery || Date.now() < aiRetryAfter || skyDataSaverActive()) return false;
-        const words = commandNormalize(raw).split(' ').filter(Boolean);
-        if (words.length < 6) return false;
-        return !hasStrongLocalIntent(raw, profile);
+        const norm=commandNormalize(raw);
+        const words=norm.split(' ').filter(Boolean);
+        if(words.length<3)return false;
+        const followup=/^(y|tambien|también|ahora|ese|esa|esos|esas|el mismo|la misma)/.test(norm)||/(compara|comparame|compárame|resume|resumen|prioridad|prioridades|critico|crítico|riesgo|mayor|menor|mas alto|más alto|menos|cerca de entrega|requiere atencion|requiere atención)/.test(norm);
+        if(followup)return true;
+        if(words.length>=7)return true;
+        return !hasStrongLocalIntent(raw,profile)&&words.length>=4;
     }
 
     async function interpretWithSkyAI(raw, profile = detectProfile()) {
         if (!shouldUseSkyAI(raw, profile)) return null;
-        const key = `${profile}|${commandNormalize(raw)}`;
+        const context={lastIntent:conversationContext.lastIntent,lastEntity:conversationContext.lastEntity,lastQuery:conversationContext.lastQuery};
+        const key = `${profile}|${commandNormalize(raw)}|${commandNormalize(context.lastEntity)}`;
         if (aiQueryCache.has(key)) return aiQueryCache.get(key);
         try {
-            const plan = await SkilledDB.interpretSkyQuery(raw, { profile });
-            if (!plan?.intent || Number(plan.confidence || 0) < .62 || plan.intent === 'unknown') return null;
+            const plan = await SkilledDB.interpretSkyQuery(raw, { profile, context });
+            if (!plan?.intent || Number(plan.confidence || 0) < .58 || plan.intent === 'unknown') return null;
             aiQueryCache.set(key, plan);
-            if (aiQueryCache.size > 40) aiQueryCache.delete(aiQueryCache.keys().next().value);
+            if (aiQueryCache.size > 48) aiQueryCache.delete(aiQueryCache.keys().next().value);
             return plan;
         } catch (error) {
-            aiRetryAfter = Date.now() + Math.max(120000, Number(error?.retryAfterMs) || 0);
+            aiRetryAfter = Date.now() + Math.max(90000, Number(error?.retryAfterMs) || 0);
             return null;
         }
     }
@@ -2079,6 +2110,7 @@
         if (!plan) return null;
         const profile = detectProfile();
         const queryText = text(plan.query || plan.entity || raw) || raw;
+        rememberConversation(plan.intent, plan.entity || queryText, queryText);
         if (plan.intent === 'material_family') return answerMaterialFamily(queryText);
         if (plan.intent === 'material_stock') return answerMaterial(queryText, false);
         if (plan.intent === 'material_location') return answerMaterial(queryText, true);
@@ -2133,6 +2165,7 @@
         if (conversationContext.project && /^(y\s+)?(como va|como anda|cuanto lleva|cuanto se ha gastado|gasto|costo|avance|cuando entrega|fecha de entrega|y ese)/.test(norm)) {
             return `Proyecto ${conversationContext.project.proyecto || conversationContext.project.nombre} ${original}`;
         }
+        if(conversationContext.lastEntity&&/^(y\s+)?(ese|esa|esos|esas|el mismo|la misma|ahora|tambien|también|y cuanto|y cuánto|y donde|y dónde|comparalo|compáralo|comparala|compárala)/.test(norm))return `${conversationContext.lastEntity} ${original}`;
         return original;
     }
 
@@ -2155,6 +2188,7 @@
                 }
                 if (!voice) voice = await dispatchByProfile(cleanRaw);
             }
+            rememberConversation(conversationContext.lastIntent,conversationContext.lastEntity,cleanRaw);
             setStatus(usedAI ? 'Consulta completada con interpretación avanzada.' : 'Consulta completada.');
             if (voice) speak(voice);
         } catch (error) {
