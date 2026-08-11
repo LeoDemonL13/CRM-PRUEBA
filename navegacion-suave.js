@@ -25,6 +25,6 @@ document.addEventListener('focusin',event=>{const anchor=event.target.closest?.(
 document.addEventListener('pointerdown',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,true)},{passive:true,capture:true});
 document.addEventListener('touchstart',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,true)},{passive:true,capture:true});
 document.addEventListener('click',event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const anchor=event.target.closest?.('a[href]');if(!targetUrl(anchor))return;beginProgress()},false);
-async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=39',{scope:'./',updateViaCache:'none'});registration.update().catch(()=>{})}catch(_){}}
+async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=40',{scope:'./',updateViaCache:'none'});registration.update().catch(()=>{})}catch(_){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enableServiceWorker,{once:true});else enableServiceWorker();
 })();
