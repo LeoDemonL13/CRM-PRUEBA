@@ -4336,13 +4336,8 @@
     async function interpretSkyQuery(value, options = {}) {
         const input = text(value).slice(0, 700);
         if (!input) throw new Error('Falta la consulta a interpretar.');
-        const context = options.context && typeof options.context === 'object' ? {
-            lastIntent: text(options.context.lastIntent).slice(0, 80),
-            lastEntity: text(options.context.lastEntity).slice(0, 240),
-            lastQuery: text(options.context.lastQuery).slice(0, 500)
-        } : {};
         const { data, error } = await client.functions.invoke('sky-transcribir', {
-            body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta', context }
+            body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta' }
         });
         if (error) throw await edgeFunctionFailure(error, 'No se pudo usar Sky IA.');
         if (data?.ok !== true) throw new Error(text(data?.error) || 'Sky IA no devolvió una interpretación válida.');

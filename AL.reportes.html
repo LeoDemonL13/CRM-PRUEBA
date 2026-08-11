@@ -11,12 +11,12 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=39">
-<script src="navegacion-suave.js?v=39"></script>
+<link rel="stylesheet" href="interfaz.css?v=38">
+<script src="navegacion-suave.js?v=38"></script>
 <title>Skilled - Centro de reportes</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=39"></script>
-<script src="auth-guard.js?v=39"></script>
+<script src="skilled-supabase.js?v=38"></script>
+<script src="auth-guard.js?v=38"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -24,8 +24,8 @@
 <style>
 *{box-sizing:border-box}body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#060814;color:#d7deeb}.lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.card{background:#090d1a;border:1px solid #161f38;border-radius:14px}.input{width:100%;background:#060a14;border:1px solid #243257;border-radius:9px;padding:10px 12px;color:#e5e7eb;font-size:12px}.input:focus{outline:none;border-color:#3b82f6}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:700;transition:.18s}.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}.btn-secondary{background:#10172a;border:1px solid #243257;color:#d7deeb}.btn-secondary:hover{background:#151f36}.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}.btn:disabled{opacity:.42;cursor:not-allowed}.notice{display:none;margin-bottom:16px;border:1px solid rgba(59,130,246,.35);background:rgba(30,64,175,.12);color:#bfdbfe;border-radius:10px;padding:10px 12px;font-size:11px}.notice.error{border-color:rgba(244,63,94,.35);background:rgba(136,19,55,.15);color:#fecdd3}.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:999px;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}body.tema-claro{background:#f2f4f9;color:#111827}body.tema-claro .card,body.tema-claro header,body.tema-claro aside{background:#fff!important;border-color:#d7dfeb!important}body.tema-claro .input{background:#fff;border-color:#cdd7e6;color:#111827}body.tema-claro .text-white{color:#111827!important}body.tema-claro .text-gray-400,body.tema-claro .text-gray-500{color:#64748b!important}
 </style>
-<script src="skilled-sidebar.js?v=39" defer></script>
-<script src="skilled-search.js?v=39"></script>
+<script src="skilled-sidebar.js?v=38" defer></script>
+<script src="skilled-search.js?v=38"></script>
 </head>
 <body class="min-h-screen flex overflow-x-hidden">
 <aside class="w-[260px] h-screen sticky top-0 bg-[#090d1a] border-r border-[#161f38] flex-col justify-between hidden lg:flex shrink-0">
@@ -151,7 +151,7 @@
         </div>
     </aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
-<header class="skilled-app-header h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a] sticky top-0 z-30">
+<header class="h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a] sticky top-0 z-30">
   <div class="flex items-center gap-4 w-full max-w-xl"><div class="relative w-full"><span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span><input id="busquedaGlobal" type="search" placeholder="Buscar proyecto, material o referencia..." class="w-full bg-[#0d1425] text-xs text-gray-300 rounded-lg pl-9 pr-4 py-2 border border-[#1b2642] focus:outline-none focus:border-blue-500 transition"></div></div>
   <div class="flex items-center gap-5 ml-5"><button id="btnActualizarTop" type="button" title="Actualizar" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg></button><button type="button" onclick="alternarTema()" title="Cambiar tema" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z"/></svg></button><div class="flex items-center gap-3 border-l border-[#161f38] pl-5"><div class="text-right hidden sm:block"><div class="text-xs font-bold text-white">Almacen</div><div class="text-[10px] text-gray-500 font-medium">Inventario</div></div><div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 text-white flex items-center justify-center font-bold text-sm">A</div></div></div>
 </header>
@@ -171,6 +171,6 @@
 <script src="AL.reportes.js?v=31"></script>
 
 
-<script src="skilled-performance.js?v=39" defer></script>
+<script src="skilled-performance.js?v=38" defer></script>
 </body>
 </html>

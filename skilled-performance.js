@@ -15,7 +15,7 @@ if(!document.getElementById('skilled-performance-style')){
  const style=document.createElement('style');
  style.id='skilled-performance-style';
  style.textContent=`
- html{overflow-x:hidden}body{max-width:100vw}img,video,canvas,svg{max-width:100%}img{height:auto}table{max-width:100%}.skilled-app-header{position:sticky!important;top:0!important;z-index:120!important;flex:0 0 64px!important;min-height:64px!important;transform:translateZ(0);backface-visibility:hidden;isolation:isolate}
+ html{overflow-x:hidden}body{max-width:100vw}img,video,canvas,svg{max-width:100%}img{height:auto}table{max-width:100%}
  .crm-workspace-overlay{box-sizing:border-box!important;min-width:0!important}
  .crm-workspace-dialog{box-sizing:border-box!important;min-width:0!important;container-type:inline-size}
  @media(min-width:1024px){
@@ -75,15 +75,7 @@ function adaptDialogs(scope=document){
   if(size)dialog.classList.add(size);
  });
 }
-function pinHeaders(scope=document){
- const candidates=[];
- if(scope===document){document.querySelectorAll('body>div>header,body>main>header').forEach(node=>candidates.push(node));}
- else if(scope?.matches?.('header'))candidates.push(scope);
- else scope?.querySelectorAll?.('header')?.forEach(node=>{if(!node.closest('.profile-modal,.crm-modal,.crm-workspace-dialog'))candidates.push(node)});
- candidates.forEach(header=>{if(header.closest('.profile-modal,.crm-modal,.crm-workspace-dialog'))return;header.classList.add('skilled-app-header')});
-}
 function optimizeImages(scope=document){
- pinHeaders(scope);
  adaptDialogs(scope);
  const images=scope.querySelectorAll?scope.querySelectorAll('img'):[];
  images.forEach((img,index)=>{

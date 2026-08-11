@@ -10,12 +10,12 @@
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Requisiciones de compra</title>
-<link rel="stylesheet" href="interfaz.css?v=39"><script src="navegacion-suave.js?v=39"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="skilled-supabase.js?v=39"></script><script src="auth-guard.js?v=39"></script><script src="https://cdn.tailwindcss.com"></script>
-<script src="skilled-search.js?v=39"></script>
+<link rel="stylesheet" href="interfaz.css?v=38"><script src="navegacion-suave.js?v=38"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="skilled-supabase.js?v=38"></script><script src="auth-guard.js?v=38"></script><script src="https://cdn.tailwindcss.com"></script>
+<script src="skilled-search.js?v=38"></script>
 </head>
 <body class="area-co profile-page min-h-screen flex overflow-x-hidden"><aside></aside><div class="flex-1 min-w-0 flex flex-col min-h-screen">
-<header class="skilled-app-header h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30"><div class="relative w-full max-w-lg"><input id="global-search" class="field pl-9" placeholder="Buscar folio, material, almacén, proveedor o solicitante..."></div><div class="flex items-center gap-3"><button id="refresh" class="crm-icon-button" data-skilled-refresh></button><button class="crm-icon-button" data-skilled-theme></button></div></header>
+<header class="h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30"><div class="relative w-full max-w-lg"><input id="global-search" class="field pl-9" placeholder="Buscar folio, material, almacén, proveedor o solicitante..."></div><div class="flex items-center gap-3"><button id="refresh" class="crm-icon-button" data-skilled-refresh></button><button class="crm-icon-button" data-skilled-theme></button></div></header>
 <main class="profile-shell flex-1">
 <nav class="profile-breadcrumb"><a href="CO.inicio.html">Compras</a><span>›</span><span class="text-gray-300 font-semibold">Requisiciones</span></nav>
 <section class="profile-hero"><div class="profile-hero-content"><div class="profile-hero-main"><div class="profile-hero-icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></div><div><span class="profile-kicker">CO · Solicitudes internas</span><h1 class="profile-title">Requisiciones de compra</h1><p class="profile-subtitle">Valida necesidades de materiales, prioridad, almacén y fecha requerida antes de integrarlas en una orden de compra.</p></div></div><div class="profile-actions"><button id="authorize-selected" class="crm-secondary" disabled>Autorizar selección</button><a href="CO.ordenes-compra.html" class="crm-primary">Ir a órdenes</a></div></div></section>
@@ -26,6 +26,6 @@
 <section id="table-wrap" class="profile-card hidden overflow-x-auto"><table class="profile-table min-w-[1280px]"><thead><tr><th class="w-10"><input id="select-all" type="checkbox"></th><th>Folio / fecha</th><th>Material</th><th>Almacén</th><th>Actual / niveles</th><th>Solicitado / pendiente</th><th>Prioridad</th><th>Estado</th><th class="text-right">Acciones</th></tr></thead><tbody id="tbody"></tbody></table></section>
 </main></div>
 <div id="detail-modal" class="crm-workspace-overlay fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4"><section class="crm-workspace-dialog profile-modal max-w-3xl"><header class="profile-modal-header"><div><span class="profile-kicker">Detalle de requisición</span><h2 id="detail-title" class="mt-2 text-lg font-bold text-white"></h2><p id="detail-subtitle" class="mt-1 text-xs text-gray-500"></p></div><button id="close-detail" class="crm-icon-button text-xl">×</button></header><div id="detail-body" class="p-5"></div><footer class="profile-modal-footer"><button id="cancel-request" class="profile-action-button danger mr-auto">Cancelar requisición</button><button id="approve-request" class="profile-action-button primary">Autorizar</button><a id="open-order" href="CO.ordenes-compra.html" class="crm-primary">Abrir en órdenes</a></footer></section></div>
-<script src="CO.requisiciones.js?v=31"></script><script src="skilled-sidebar.js?v=39"></script>
-<script src="skilled-performance.js?v=39" defer></script>
+<script src="CO.requisiciones.js?v=31"></script><script src="skilled-sidebar.js?v=38"></script>
+<script src="skilled-performance.js?v=38" defer></script>
 </body></html>
