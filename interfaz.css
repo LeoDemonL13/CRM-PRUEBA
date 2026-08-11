@@ -220,3 +220,19 @@ header{padding-left:10px!important;padding-right:10px!important}
 html,body{overscroll-behavior-x:none}
 @media(max-width:640px){input,select,textarea{font-size:16px!important}}
 @supports(padding:max(0px)){@media(max-width:1023px){body{padding-bottom:env(safe-area-inset-bottom)}}}
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.13s;animation-timing-function:ease-out;background:var(--crm-page-bg,#060814)}
+html[data-crm-theme="claro"]::view-transition-old(root),html[data-crm-theme="claro"]::view-transition-new(root){background:#f2f4f9}
+.skilled-app-header{position:sticky!important;top:0!important;z-index:120!important;flex:0 0 64px!important;min-height:64px!important;transform:translateZ(0);backface-visibility:hidden;isolation:isolate;view-transition-name:crm-header}
+body>div.flex-1>main,body>div.min-w-0>main{view-transition-name:crm-main}
+#skilled-sidebar{view-transition-name:crm-sidebar}
+::view-transition-old(crm-header),::view-transition-new(crm-header),::view-transition-old(crm-sidebar),::view-transition-new(crm-sidebar){animation-duration:.08s}
+::view-transition-old(crm-main){animation:crmOldMain .09s ease-out both}
+::view-transition-new(crm-main){animation:crmNewMain .13s ease-out both}
+@keyframes crmOldMain{to{opacity:.94}}
+@keyframes crmNewMain{from{opacity:.94}to{opacity:1}}
+html.crm-route-pending body{cursor:progress}
+html.crm-route-pending .skilled-app-header,html.crm-route-pending #skilled-sidebar{opacity:1!important}
+@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root),::view-transition-old(crm-main),::view-transition-new(crm-main){animation-duration:.001ms!important}}
+
+html[data-sky-allowed="0"] #sky-open,html[data-sky-allowed="0"] #sky-overlay,html[data-sky-allowed="0"] [data-skilled-sky]{display:none!important}

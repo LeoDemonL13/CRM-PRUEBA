@@ -12,11 +12,11 @@
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Nómina RH</title>
-<link rel="stylesheet" href="interfaz.css?v=38">
-<script src="navegacion-suave.js?v=38"></script>
+<link rel="stylesheet" href="interfaz.css?v=39">
+<script src="navegacion-suave.js?v=39"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=38"></script>
-<script src="auth-guard.js?v=38"></script>
+<script src="skilled-supabase.js?v=39"></script>
+<script src="auth-guard.js?v=39"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 .payroll-card{border:1px solid #1b2944;background:linear-gradient(155deg,#0b1222,#090d1a);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.08)}
@@ -37,12 +37,12 @@ body.tema-claro .payroll-card,body.tema-claro .payroll-summary-card{background:#
 @media(max-width:1150px){.payroll-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.payroll-detail-row{grid-template-columns:minmax(190px,1.5fr) repeat(2,minmax(100px,.7fr))}.payroll-detail-row .payroll-actions{grid-column:1/-1}.payroll-hide-tablet{display:none}.payroll-period-sidebar{position:static;max-height:none}}
 @media(max-width:700px){.payroll-summary-grid{grid-template-columns:1fr}.payroll-summary-card{min-height:78px}.payroll-detail-row{display:flex;flex-direction:column;align-items:stretch}.payroll-detail-row>div{width:100%}.payroll-card{border-radius:12px}.payroll-detail-head{flex-direction:column}}
 </style>
-<script src="skilled-search.js?v=38"></script>
+<script src="skilled-search.js?v=39"></script>
 </head>
 <body class="area-rh profile-page min-h-screen flex overflow-x-hidden">
 <aside></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
-<header class="h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
+<header class="skilled-app-header h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
   <div class="min-w-0"><p class="text-[9px] uppercase tracking-[.18em] text-violet-300 font-bold">RH · Nómina</p><p class="text-xs text-gray-500">Periodos, revisión y entrega de comprobantes</p></div>
   <div class="flex items-center gap-2"><button id="refresh" class="crm-icon-button" data-skilled-refresh></button><button class="crm-icon-button" data-skilled-theme></button></div>
 </header>
@@ -101,7 +101,7 @@ body.tema-claro .payroll-card,body.tema-claro .payroll-summary-card{background:#
 </div>
 
 <script src="RH.nomina.js?v=26"></script>
-<script src="skilled-sidebar.js?v=38"></script>
-<script src="skilled-performance.js?v=38" defer></script>
+<script src="skilled-sidebar.js?v=39"></script>
+<script src="skilled-performance.js?v=39" defer></script>
 </body>
 </html>

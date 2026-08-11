@@ -11,12 +11,12 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=38">
-<script src="navegacion-suave.js?v=38"></script>
+<link rel="stylesheet" href="interfaz.css?v=39">
+<script src="navegacion-suave.js?v=39"></script>
 <title>Skilled - Vehículos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=38"></script>
-<script src="auth-guard.js?v=38"></script>
+<script src="skilled-supabase.js?v=39"></script>
+<script src="auth-guard.js?v=39"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -145,13 +145,13 @@ body.tema-claro .seat-assignment-row-v23 select{background:#fff;color:#1e293b;bo
 @media(max-width:700px){.seat-assignment-grid-v23{grid-template-columns:1fr}.seat-assignment-row-v23{grid-template-columns:minmax(0,1fr) 140px}}
 
 </style>
-<script src="skilled-search.js?v=38"></script>
+<script src="skilled-search.js?v=39"></script>
 </head>
 <body class="min-h-screen flex overflow-x-hidden">
 <script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
 <aside></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
-<header class="h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30"><div class="relative w-full max-w-md"><input id="global-search" class="field pl-10" placeholder="Buscar vehículo, salida, proyecto, pasajero o gasto..."></div><div class="flex items-center gap-3 ml-4"><button id="refresh" class="crm-icon-button" title="Actualizar"></button><button type="button" onclick="alternarTema()" class="crm-icon-button" title="Cambiar tema"></button><div class="border-l border-[#161f38] pl-4 flex items-center gap-3"><div class="hidden sm:block text-right"><div class="text-xs font-bold text-white">Almacén</div><div class="text-[10px] text-gray-500">Operación vehicular</div></div><div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 flex items-center justify-center text-xs font-bold">V</div></div></div></header>
+<header class="skilled-app-header h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30"><div class="relative w-full max-w-md"><input id="global-search" class="field pl-10" placeholder="Buscar vehículo, salida, proyecto, pasajero o gasto..."></div><div class="flex items-center gap-3 ml-4"><button id="refresh" class="crm-icon-button" title="Actualizar"></button><button type="button" onclick="alternarTema()" class="crm-icon-button" title="Cambiar tema"></button><div class="border-l border-[#161f38] pl-4 flex items-center gap-3"><div class="hidden sm:block text-right"><div class="text-xs font-bold text-white">Almacén</div><div class="text-[10px] text-gray-500">Operación vehicular</div></div><div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 flex items-center justify-center text-xs font-bold">V</div></div></div></header>
 <main class="flex-1 p-6 md:p-8 max-w-[1550px] mx-auto w-full">
 <nav class="text-[11px] text-gray-500 mb-3 flex items-center gap-2"><a href="AL.inicio.html">Inicio</a><span>›</span><span>Activos</span><span>›</span><span class="text-gray-300 font-semibold">Vehículos</span></nav>
 <section class="vehicle-hero panel p-5 mb-6"><div class="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5"><div class="flex items-start gap-4"><div class="w-12 h-12 rounded-xl bg-blue-950/20 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0"><svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 13l2-5a2 2 0 012-1h10a2 2 0 012 1l2 5v6h-2v-2H5v2H3v-6z"/><path d="M5 13h14M7 16h.01M17 16h.01"/></svg></div><div><span class="crm-label-uppercase text-blue-300">Flotilla y entregas</span><h1 class="mt-1 text-2xl font-bold text-white">Control diario de vehículos</h1><p class="mt-1 text-sm text-gray-500 max-w-3xl">Administra la flotilla, registra salidas y regresos, pasajeros, kilometraje, gasolina, casetas y otros gastos.</p></div></div><div class="flex flex-wrap gap-2"><button id="vehicle-template-main" class="crm-secondary">Descargar plantilla</button><button id="import-vehicles" class="crm-secondary text-blue-300">Importar vehículos</button><button id="export" class="crm-secondary">Exportar operación</button><button id="new-expense" class="crm-secondary">Registrar gasto</button><button id="new-trip" class="crm-secondary text-blue-300">Nueva salida</button><button id="new-vehicle" class="crm-primary"><span class="text-base">＋</span>Nuevo vehículo</button></div></div></section>
@@ -200,7 +200,7 @@ body.tema-claro .seat-assignment-row-v23 select{background:#fff;color:#1e293b;bo
 
 <div id="expense-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4"><div class="crm-modal max-w-2xl"><div class="crm-modal-header"><div><h2 class="text-base font-bold text-white">Registrar gasto vehicular</h2><p class="mt-1 text-[11px] text-gray-500">Gasolina, casetas, mantenimiento, refacciones u otros gastos.</p></div><button id="close-expense" class="crm-icon-button text-xl">×</button></div><form id="expense-form" class="p-5"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><label class="crm-label sm:col-span-2">Vehículo *<select id="expense-vehicle" class="field mt-2" required><option value="">Selecciona...</option></select></label><label class="crm-label">Fecha<input id="expense-date" type="date" class="field mt-2"></label><label class="crm-label">Tipo<select id="expense-type" class="field mt-2"><option value="gasolina">Gasolina</option><option value="diesel">Diésel</option><option value="carga_electrica">Carga eléctrica</option><option value="casetas">Casetas</option><option value="estacionamiento">Estacionamiento</option><option value="mantenimiento">Mantenimiento</option><option value="refacciones">Refacciones</option><option value="lavado">Lavado</option><option value="otro">Otro</option></select></label><label class="crm-label">Litros / unidades<input id="expense-liters" type="number" min="0" step="any" class="field mt-2"></label><label class="crm-label">Importe ($) *<input id="expense-amount" type="number" min="0" step="any" class="field mt-2" required></label><label class="crm-label">Odómetro<input id="expense-mileage" type="number" min="0" class="field mt-2"></label><label class="crm-label">Proveedor<input id="expense-vendor" class="field mt-2"></label><label class="crm-label sm:col-span-2">Comprobante / folio<input id="expense-receipt" class="field mt-2"></label><label class="crm-label sm:col-span-2">Notas<textarea id="expense-notes" rows="2" class="field mt-2"></textarea></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" id="cancel-expense" class="crm-secondary">Cancelar</button><button class="crm-primary">Guardar gasto</button></div></form></div></div>
 
-<script src="skilled-sidebar.js?v=38" defer></script><script src="AL.vehiculos.js?v=31"></script>
+<script src="skilled-sidebar.js?v=39" defer></script><script src="AL.vehiculos.js?v=31"></script>
 
 <!-- V24 styles injected before closing body by browser are valid for this static module -->
 <style id="vehicle-seat-v24-fix">
@@ -212,5 +212,5 @@ body.tema-claro .seat-assignment-panel-v24{background:#f8fbff;border-color:#c9d8
 @media(max-width:480px){.seat-assignment-row-v24{grid-template-columns:1fr}.seat-assignment-row-v24 select{min-height:40px;font-size:11px}.seat-person-v24 strong{font-size:11px}.trip-seat-map-v23 .vehicle-seat-shell{transform:scale(.82);margin-bottom:-72px}}
 </style>
 
-<script src="skilled-performance.js?v=38" defer></script>
+<script src="skilled-performance.js?v=39" defer></script>
 </body></html>
