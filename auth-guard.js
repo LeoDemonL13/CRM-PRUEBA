@@ -21,8 +21,9 @@
         compras: ['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','al.ordenes-compra.html','al.reportes.html'],
         rh: ['rh.inicio.html','rh.personal.html','rh.proyectos.html','proy.importar.html','rh.nomina.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html'],
         finanzas: ['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.reportes.html','al.proyectos.html'],
-        gerente_general: ['gg.inicio.html','gg.proyectos.html','al.vehiculos.html','perfil.html'],
-        subgerente: ['sg.inicio.html','sg.proyectos.html','al.vehiculos.html','perfil.html'],
+        gerente_general: ['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
+        subgerente: ['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html'],
+        tsi: ['tsi.inicio.html','perfil.html'],
         proyectos: ['al.proyectos.html','proy.importar.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','al.catalogo.html','perfil.html'],
         consulta: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html']
     };
@@ -36,6 +37,7 @@
         finanzas: 'FI.inicio.html',
         gerente_general: 'GG.inicio.html',
         subgerente: 'SG.inicio.html',
+        tsi: 'TSI.inicio.html',
         proyectos: 'AL.proyectos.html',
         consulta: 'AL.inicio.html'
     };
@@ -136,7 +138,7 @@
             const poll = () => {
                 if (window.SkilledDB?.client) return resolve(window.SkilledDB.client);
                 attempts += 1;
-                if (attempts >= 160) return reject(new Error('No se pudo iniciar la conexión con Supabase.'));
+                if (attempts >= 300) return reject(new Error('No se pudo iniciar la conexión con Supabase.'));
                 window.setTimeout(poll, 50);
             };
             poll();

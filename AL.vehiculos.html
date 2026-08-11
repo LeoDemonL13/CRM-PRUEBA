@@ -11,12 +11,12 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=40">
-<script src="navegacion-suave.js?v=40"></script>
+<link rel="stylesheet" href="interfaz.css?v=43">
+<script src="navegacion-suave.js?v=43"></script>
 <title>Skilled - Vehículos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=40"></script>
-<script src="auth-guard.js?v=40"></script>
+<script src="skilled-supabase.js?v=43"></script>
+<script src="auth-guard.js?v=43"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -145,7 +145,7 @@ body.tema-claro .seat-assignment-row-v23 select{background:#fff;color:#1e293b;bo
 @media(max-width:700px){.seat-assignment-grid-v23{grid-template-columns:1fr}.seat-assignment-row-v23{grid-template-columns:minmax(0,1fr) 140px}}
 
 </style>
-<script src="skilled-search.js?v=40"></script>
+<script src="skilled-search.js?v=43"></script>
 </head>
 <body class="min-h-screen flex overflow-x-hidden">
 <script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
@@ -200,7 +200,7 @@ body.tema-claro .seat-assignment-row-v23 select{background:#fff;color:#1e293b;bo
 
 <div id="expense-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4"><div class="crm-modal max-w-2xl"><div class="crm-modal-header"><div><h2 class="text-base font-bold text-white">Registrar gasto vehicular</h2><p class="mt-1 text-[11px] text-gray-500">Gasolina, casetas, mantenimiento, refacciones u otros gastos.</p></div><button id="close-expense" class="crm-icon-button text-xl">×</button></div><form id="expense-form" class="p-5"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><label class="crm-label sm:col-span-2">Vehículo *<select id="expense-vehicle" class="field mt-2" required><option value="">Selecciona...</option></select></label><label class="crm-label">Fecha<input id="expense-date" type="date" class="field mt-2"></label><label class="crm-label">Tipo<select id="expense-type" class="field mt-2"><option value="gasolina">Gasolina</option><option value="diesel">Diésel</option><option value="carga_electrica">Carga eléctrica</option><option value="casetas">Casetas</option><option value="estacionamiento">Estacionamiento</option><option value="mantenimiento">Mantenimiento</option><option value="refacciones">Refacciones</option><option value="lavado">Lavado</option><option value="otro">Otro</option></select></label><label class="crm-label">Litros / unidades<input id="expense-liters" type="number" min="0" step="any" class="field mt-2"></label><label class="crm-label">Importe ($) *<input id="expense-amount" type="number" min="0" step="any" class="field mt-2" required></label><label class="crm-label">Odómetro<input id="expense-mileage" type="number" min="0" class="field mt-2"></label><label class="crm-label">Proveedor<input id="expense-vendor" class="field mt-2"></label><label class="crm-label sm:col-span-2">Comprobante / folio<input id="expense-receipt" class="field mt-2"></label><label class="crm-label sm:col-span-2">Notas<textarea id="expense-notes" rows="2" class="field mt-2"></textarea></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" id="cancel-expense" class="crm-secondary">Cancelar</button><button class="crm-primary">Guardar gasto</button></div></form></div></div>
 
-<script src="skilled-sidebar.js?v=40" defer></script><script src="AL.vehiculos.js?v=31"></script>
+<script src="skilled-sidebar.js?v=43" defer></script><script src="AL.vehiculos.js?v=43"></script>
 
 <!-- V24 styles injected before closing body by browser are valid for this static module -->
 <style id="vehicle-seat-v24-fix">
@@ -212,5 +212,5 @@ body.tema-claro .seat-assignment-panel-v24{background:#f8fbff;border-color:#c9d8
 @media(max-width:480px){.seat-assignment-row-v24{grid-template-columns:1fr}.seat-assignment-row-v24 select{min-height:40px;font-size:11px}.seat-person-v24 strong{font-size:11px}.trip-seat-map-v23 .vehicle-seat-shell{transform:scale(.82);margin-bottom:-72px}}
 </style>
 
-<script src="skilled-performance.js?v=40" defer></script>
+<script src="skilled-performance.js?v=43" defer></script>
 </body></html>

@@ -12,13 +12,13 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=42">
-<script src="navegacion-suave.js?v=42"></script>
+<link rel="stylesheet" href="interfaz.css?v=43">
+<script src="navegacion-suave.js?v=43"></script>
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=42"></script>
-<script src="auth-guard.js?v=42"></script>
+    <script src="skilled-supabase.js?v=43"></script>
+<script src="auth-guard.js?v=43"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -103,8 +103,8 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=42" defer></script>
-<script src="skilled-search.js?v=42"></script>
+    <script src="skilled-sidebar.js?v=43" defer></script>
+<script src="skilled-search.js?v=43"></script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -1111,7 +1111,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=42');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=43');
             }
             return cliente;
         }
@@ -2486,9 +2486,9 @@ ${proyecto}`);
 
         cargarProyectos();
     </script>
-<script src="AL.proyectos.js?v=31"></script>
+<script src="AL.proyectos.js?v=43"></script>
 
 
-<script src="skilled-performance.js?v=42" defer></script>
+<script src="skilled-performance.js?v=43" defer></script>
 </body>
 </html>

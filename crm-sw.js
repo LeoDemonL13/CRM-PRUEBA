@@ -1,3 +1,4 @@
-const CACHE_PREFIX='skilled-crm-';
-self.addEventListener('install',event=>{event.waitUntil(self.skipWaiting())});
-self.addEventListener('activate',event=>{event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith(CACHE_PREFIX)).map(key=>caches.delete(key)));await self.clients.claim()})())});
+'use strict';
+const RELEASE='43';
+self.addEventListener('install',event=>{self.skipWaiting()});
+self.addEventListener('activate',event=>{event.waitUntil((async()=>{try{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('skilled-crm-')).map(key=>caches.delete(key)))}catch(_){}await self.clients.claim()})())});

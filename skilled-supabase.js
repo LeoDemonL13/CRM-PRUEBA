@@ -3060,7 +3060,11 @@
             p_precio: price,
             p_origen: origin
         });
-        assertNoError(error, 'No se pudo crear el material incompleto.');
+        if (error) {
+            const codeValue = text(error.code);
+            if (['PGRST202','42883','PGRST204','42703'].includes(codeValue)) throw new Error('Falta aplicar la actualización SQL V43 para registrar materiales incompletos.');
+            assertNoError(error, 'No se pudo crear el material incompleto.');
+        }
         const finalCode = text(data || code);
         const pending = [];
         if (!rawCategory) pending.push('categoria');
@@ -3080,108 +3084,77 @@
         if (!createdResult.data) throw new Error('El material se creó, pero no pudo recuperarse del catálogo.');
         return materialFromDb(createdResult.data);
     }
-
     async function syncProjectUnlistedMaterials(projectNumber = '') {
         let query = client.from('proyecto_materiales_no_listados').select('*').order('id', { ascending: true });
         const project = text(projectNumber);
         if (project) query = query.eq('proyecto_numero', project);
         const manualResult = await query;
         if (manualResult.error) {
+            const code = text(manualResult.error.code);
             const message = lower(manualResult.error.message || manualResult.error.details || '');
-            if (message.includes('proyecto_materiales_no_listados') && (message.includes('does not exist') || message.includes('not found'))) {
-                return { revisados: 0, migrados: 0, creados: 0 };
-            }
-            assertNoError(manualResult.error, 'No se pudieron revisar los materiales no enlistados de proyectos.');
+            if (['42P01','PGRST205','PGRST204'].includes(code) || message.includes('does not exist') || message.includes('not found')) return { revisados: 0, creados: 0, requiereSql: false };
+            return { revisados: 0, creados: 0, requiereSql: true, error: errorMessage(manualResult.error) };
         }
         const rows = manualResult.data || [];
-        if (!rows.length) return { revisados: 0, migrados: 0, creados: 0 };
-        const catalogResult = await client.from('materiales').select('*');
-        assertNoError(catalogResult.error, 'No se pudo consultar el catálogo para completar los materiales de proyecto.');
-        const catalog = new Map((catalogResult.data || []).map(row => [lower(row.codigo), row]));
-        let migrated = 0;
+        if (!rows.length) return { revisados: 0, creados: 0, requiereSql: false };
+        const catalogResult = await client.from('materiales').select('codigo');
+        if (catalogResult.error) return { revisados: rows.length, creados: 0, requiereSql: true, error: errorMessage(catalogResult.error) };
+        const catalog = new Set((catalogResult.data || []).map(row => lower(row.codigo)));
         let created = 0;
+        let requiresSql = false;
+        let lastError = '';
         for (const row of rows) {
             const code = text(row.codigo_manual);
-            if (!code) continue;
-            let materialRow = catalog.get(lower(code));
-            if (!materialRow) {
+            if (!code || catalog.has(lower(code))) continue;
+            try {
                 const material = await createIncompleteMaterial({
                     codigo: code,
                     descripcion: text(row.descripcion) || code,
                     categoria: text(row.categoria),
                     unidad: text(row.unidad),
                     precio: number(row.precio_unitario),
-                    origen: 'plan_proyecto_migrado'
+                    origen: 'proyecto_no_listado_legacy'
                 });
-                const fresh = await client.from('materiales').select('*').eq('codigo', material.codigo).maybeSingle();
-                assertNoError(fresh.error, `No se pudo recuperar ${code} del catálogo.`);
-                materialRow = fresh.data;
-                if (materialRow) catalog.set(lower(code), materialRow);
+                catalog.add(lower(material.codigo || code));
                 created += 1;
+            } catch (error) {
+                requiresSql = true;
+                lastError = errorMessage(error);
             }
-            const planRow = {
-                proyecto_numero: text(row.proyecto_numero),
-                material_codigo: text(materialRow?.codigo || code),
-                cantidad_planeada: number(row.cantidad_planeada),
-                cantidad_entregada: number(row.cantidad_entregada),
-                cantidad_sobrante: number(row.cantidad_sobrante),
-                unidad: text(row.unidad) || text(materialRow?.unidad) || null,
-                precio_unitario: number(row.precio_unitario) || number(materialRow?.precio),
-                observaciones: text(row.observaciones) || null,
-                estado_solicitud: text(row.estado_solicitud) || 'pendiente',
-                aprobada_por: row.aprobada_por || null,
-                aprobada_at: row.aprobada_at || null,
-                rechazo_motivo: text(row.rechazo_motivo) || null,
-                updated_at: new Date().toISOString()
-            };
-            const upsert = await client.from('proyecto_materiales').upsert(planRow, { onConflict: 'proyecto_numero,material_codigo' });
-            assertNoError(upsert.error, `No se pudo vincular ${code} al catálogo del proyecto.`);
-            const remove = await client.from('proyecto_materiales_no_listados').delete().eq('id', row.id);
-            assertNoError(remove.error, `No se pudo retirar la referencia anterior de ${code}.`);
-            migrated += 1;
         }
-        return { revisados: rows.length, migrados: migrated, creados: created };
+        return { revisados: rows.length, creados: created, requiereSql: requiresSql, error: lastError };
     }
-
     async function listProjectPlanV12(projectNumber) {
         const project = text(projectNumber);
         if (!project) throw new Error('Falta el número del proyecto.');
-        const [lineResult, materials] = await Promise.all([
+        const [lineResult, manualResult, materials] = await Promise.all([
             client.from('proyecto_materiales').select('*').eq('proyecto_numero', project).order('id', { ascending: true }),
+            client.from('proyecto_materiales_no_listados').select('*').eq('proyecto_numero', project).order('id', { ascending: true }),
             listMaterials()
         ]);
         assertNoError(lineResult.error, 'No se pudo consultar el plan del proyecto.');
+        const manualMissing = manualResult.error && ['42P01','PGRST205','PGRST204'].includes(text(manualResult.error.code));
+        if (manualResult.error && !manualMissing) assertNoError(manualResult.error, 'No se pudieron consultar los materiales no enlistados del proyecto.');
         const materialByCode = new Map(materials.map(item => [lower(item.codigo), item]));
-        return (lineResult.data || []).map(row => {
+        const listedCodes = new Set((lineResult.data || []).map(row => lower(row.material_codigo)));
+        const listed = (lineResult.data || []).map(row => {
             const material = materialByCode.get(lower(row.material_codigo)) || {
-                codigo: text(row.material_codigo),
-                descripcion: text(row.material_codigo),
-                desc: text(row.material_codigo),
-                unidad: text(row.unidad),
-                precio: number(row.precio_unitario),
-                stock: 0,
-                imagen: ''
+                codigo: text(row.material_codigo), descripcion: text(row.material_codigo), desc: text(row.material_codigo), unidad: text(row.unidad), precio: number(row.precio_unitario), stock: 0, imagen: ''
             };
             return {
-                id: row.id,
-                proyecto: text(row.proyecto_numero),
-                codigo: text(row.material_codigo),
-                cantidadPlaneada: number(row.cantidad_planeada),
-                cantidadEntregada: number(row.cantidad_entregada),
-                cantidadSobrante: number(row.cantidad_sobrante),
-                unidad: text(row.unidad) || text(material.unidad),
-                precioUnitario: number(row.precio_unitario) || number(material.precio),
-                observaciones: text(row.observaciones),
-                esNoListado: false,
-                esIncompleto: boolean(material.esIncompleto ?? material.es_incompleto),
-                estadoSolicitud: text(row.estado_solicitud) || 'pendiente',
-                estado_solicitud: text(row.estado_solicitud) || 'pendiente',
-                aprobadaPor: text(row.aprobada_por),
-                aprobadaAt: row.aprobada_at || null,
-                rechazoMotivo: text(row.rechazo_motivo),
-                material
+                id: row.id, proyecto: text(row.proyecto_numero), codigo: text(row.material_codigo), cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), observaciones: text(row.observaciones), esNoListado: false, esIncompleto: boolean(material.esIncompleto ?? material.es_incompleto), estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material
             };
         });
+        const manual = (manualMissing ? [] : (manualResult.data || [])).filter(row => !listedCodes.has(lower(row.codigo_manual))).map(row => {
+            const code = text(row.codigo_manual);
+            const material = materialByCode.get(lower(code)) || {
+                codigo: code, descripcion: text(row.descripcion) || code, desc: text(row.descripcion) || code, categoria: text(row.categoria), unidad: text(row.unidad) || 'pieza', precio: number(row.precio_unitario), stock: 0, imagen: '', esIncompleto: true, es_incompleto: true
+            };
+            return {
+                id: `manual-${row.id}`, legacyId: row.id, proyecto: text(row.proyecto_numero), codigo: code, cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), observaciones: text(row.observaciones), esNoListado: true, es_no_listado: true, esIncompleto: true, estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material: { ...material, esNoListado: true, es_no_listado: true, esIncompleto: true }
+            };
+        });
+        return [...listed, ...manual];
     }
 
     async function listProjectMovementPlan(projectNumber, options = {}) {
@@ -3276,70 +3249,69 @@
         }
         return rows;
     }
-
     async function saveProjectPlanV12(projectNumber, lines) {
         const project = text(projectNumber);
         if (!project) throw new Error('Falta el número del proyecto.');
         const input = Array.isArray(lines) ? lines : [];
-        const currentResult = await client
-            .from('proyecto_materiales')
-            .select('material_codigo,estado_solicitud,aprobada_por,aprobada_at,rechazo_motivo')
-            .eq('proyecto_numero', project);
+        const [currentResult, legacyResult, catalog] = await Promise.all([
+            client.from('proyecto_materiales').select('material_codigo,estado_solicitud,aprobada_por,aprobada_at,rechazo_motivo').eq('proyecto_numero', project),
+            client.from('proyecto_materiales_no_listados').select('*').eq('proyecto_numero', project),
+            listMaterials()
+        ]);
         assertNoError(currentResult.error, 'No se pudo consultar el plan actual.');
+        const legacyMissing = legacyResult.error && ['42P01','PGRST205','PGRST204'].includes(text(legacyResult.error.code));
+        if (legacyResult.error && !legacyMissing) assertNoError(legacyResult.error, 'No se pudieron consultar los materiales no enlistados actuales.');
         const currentByCode = new Map((currentResult.data || []).map(row => [lower(row.material_codigo), row]));
-        const catalog = await listMaterials();
+        const legacyRows = legacyMissing ? [] : (legacyResult.data || []);
+        const legacyByCode = new Map(legacyRows.map(row => [lower(row.codigo_manual), row]));
         const catalogByCode = new Map(catalog.map(item => [lower(item.codigo), item]));
-        const rows = [];
-
+        const listedRows = [];
+        const manualRows = [];
         for (const line of input) {
             const sourceMaterial = line.material || {};
             let code = text(line.codigo ?? sourceMaterial.codigo);
-            let material = sourceMaterial;
+            let material = catalogByCode.get(lower(code)) || sourceMaterial;
             if (!code) throw new Error('Uno de los materiales no tiene código o referencia.');
-            const exists = catalogByCode.get(lower(code));
-            if (!exists) {
-                material = await createIncompleteMaterial({
-                    codigo: code,
-                    descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc),
-                    categoria: text(line.categoria ?? sourceMaterial.categoria),
-                    unidad: text(line.unidad ?? sourceMaterial.unidad),
-                    precio: number(line.precioUnitario ?? sourceMaterial.precio),
-                    origen: 'plan_proyecto'
-                });
+            if (!catalogByCode.has(lower(code))) {
+                material = await createIncompleteMaterial({ codigo: code, descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc) || code, categoria: text(line.categoria ?? sourceMaterial.categoria), unidad: text(line.unidad ?? sourceMaterial.unidad), precio: number(line.precioUnitario ?? sourceMaterial.precio), origen: 'plan_proyecto' });
                 code = material.codigo;
-            } else {
-                material = exists;
+                catalogByCode.set(lower(code), material);
             }
             const planned = number(line.cantidadPlaneada ?? line.cantidad_planeada);
             if (planned <= 0) throw new Error(`La cantidad requerida de ${code} debe ser mayor a cero.`);
-            const current = currentByCode.get(lower(code));
-            rows.push({
-                proyecto_numero: project,
-                material_codigo: code,
-                cantidad_planeada: planned,
-                cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada),
-                cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante),
-                unidad: text(line.unidad ?? material.unidad) || null,
-                precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio),
-                observaciones: text(line.observaciones ?? line.notas) || null,
-                estado_solicitud: current ? (text(current.estado_solicitud) || 'pendiente') : 'pendiente',
-                aprobada_por: current?.aprobada_por || null,
-                aprobada_at: current?.aprobada_at || null,
-                rechazo_motivo: current?.rechazo_motivo || null,
-                updated_at: new Date().toISOString()
-            });
+            const legacy = legacyByCode.get(lower(code));
+            const keepLegacy = Boolean(line.esNoListado ?? line.es_no_listado) || (legacy && !currentByCode.has(lower(code)));
+            if (keepLegacy && !legacyMissing) {
+                manualRows.push({
+                    proyecto_numero: project, codigo_manual: code, descripcion: text(line.descripcion ?? material.descripcion ?? material.desc) || code, categoria: text(line.categoria ?? material.categoria) || null, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada ?? legacy?.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante ?? legacy?.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: text(legacy?.estado_solicitud) || text(line.estadoSolicitud) || 'pendiente', aprobada_por: legacy?.aprobada_por || null, aprobada_at: legacy?.aprobada_at || null, rechazo_motivo: legacy?.rechazo_motivo || null, updated_at: new Date().toISOString()
+                });
+            } else {
+                const current = currentByCode.get(lower(code));
+                listedRows.push({ proyecto_numero: project, material_codigo: code, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: current ? (text(current.estado_solicitud) || 'pendiente') : 'pendiente', aprobada_por: current?.aprobada_por || null, aprobada_at: current?.aprobada_at || null, rechazo_motivo: current?.rechazo_motivo || null, updated_at: new Date().toISOString() });
+            }
         }
-
-        if (rows.length) {
-            const { error } = await client.from('proyecto_materiales').upsert(rows, { onConflict: 'proyecto_numero,material_codigo' });
-            assertNoError(error, 'No se pudo guardar el plan del proyecto.');
+        if (listedRows.length) {
+            const result = await client.from('proyecto_materiales').upsert(listedRows, { onConflict: 'proyecto_numero,material_codigo' });
+            assertNoError(result.error, 'No se pudo guardar el plan del proyecto.');
         }
-        const keep = new Set(rows.map(row => lower(row.material_codigo)));
+        if (manualRows.length && !legacyMissing) {
+            const result = await client.from('proyecto_materiales_no_listados').upsert(manualRows, { onConflict: 'proyecto_numero,codigo_manual' });
+            assertNoError(result.error, 'No se pudieron conservar los materiales no enlistados anteriores.');
+        }
+        const keepListed = new Set(listedRows.map(row => lower(row.material_codigo)));
+        const keepManual = new Set(manualRows.map(row => lower(row.codigo_manual)));
         for (const existing of (currentResult.data || [])) {
-            if (!keep.has(lower(existing.material_codigo))) {
-                const { error } = await client.from('proyecto_materiales')
-                    .delete().eq('proyecto_numero', project).eq('material_codigo', existing.material_codigo);
-                assertNoError(error, `No se pudo quitar ${existing.material_codigo} del plan.`);
+            if (!keepListed.has(lower(existing.material_codigo))) {
+                const result = await client.from('proyecto_materiales').delete().eq('proyecto_numero', project).eq('material_codigo', existing.material_codigo);
+                assertNoError(result.error, `No se pudo quitar ${existing.material_codigo} del plan.`);
+            }
+        }
+        if (!legacyMissing) {
+            for (const existing of legacyRows) {
+                if (!keepManual.has(lower(existing.codigo_manual))) {
+                    const result = await client.from('proyecto_materiales_no_listados').delete().eq('id', existing.id);
+                    assertNoError(result.error, `No se pudo quitar ${existing.codigo_manual} del plan.`);
+                }
             }
         }
         return listProjectPlanV12(project);
@@ -5221,9 +5193,21 @@
     }
 
 
+    async function listExecutiveVehicles(options = {}) {
+        const { data, error } = await client.rpc('crm_direccion_vehiculos');
+        assertNoError(error, 'No se pudo consultar la flotilla para Dirección. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
+        let vehicles = (Array.isArray(data) ? data : []).map(row => vehicleFromDb(row));
+        if (options.includeInactive !== true) vehicles = vehicles.filter(item => item.activo !== false);
+        const status = lower(options.estado ?? options.status);
+        const project = text(options.proyecto ?? options.project);
+        if (status) vehicles = vehicles.filter(item => lower(item.estado) === status);
+        if (project) vehicles = vehicles.filter(item => lower(item.proyecto) === lower(project));
+        return vehicles;
+    }
+
     async function listExecutiveSkyMaterials() {
         const { data, error } = await client.rpc('crm_sky_direccion_materiales');
-        assertNoError(error, 'No se pudo consultar el catálogo ejecutivo para Sky. Ejecuta la actualización SQL V41.');
+        assertNoError(error, 'No se pudo consultar el catálogo ejecutivo para Sky. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
         const rows = Array.isArray(data) ? data : [];
         return rows.map(row => ({
             codigo: text(row.codigo),
@@ -5264,13 +5248,13 @@
     async function listExecutiveSkyPeople(projectNumber = '') {
         const project = text(projectNumber);
         const { data, error } = await client.rpc('crm_sky_direccion_personal', { p_proyecto: project || null });
-        assertNoError(error, 'No se pudo consultar personal ejecutivo para Sky. Ejecuta la actualización SQL V41.');
+        assertNoError(error, 'No se pudo consultar personal ejecutivo para Sky. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
         return Array.isArray(data) ? data : [];
     }
 
     async function getExecutiveSkyPurchasing() {
         const { data, error } = await client.rpc('crm_sky_direccion_compras');
-        assertNoError(error, 'No se pudo consultar Compras para Sky. Ejecuta la actualización SQL V41.');
+        assertNoError(error, 'No se pudo consultar Compras para Sky. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
         return data && typeof data === 'object' ? data : { proveedores: [], solicitudes: [], cotizaciones: [] };
     }
 
@@ -5324,6 +5308,7 @@
         suggestWarehouseMaterialLocation,
         buildProjectPickingRoute,
         listOperationalAlerts,
+        listExecutiveVehicles,
         listExecutiveSkyMaterials,
         listExecutiveSkyPeople,
         getExecutiveSkyPurchasing,

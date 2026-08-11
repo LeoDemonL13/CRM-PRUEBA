@@ -12,11 +12,11 @@
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="interfaz.css?v=40">
+<link rel="stylesheet" href="interfaz.css?v=43">
 <script>document.documentElement.classList.remove('tema-claro');document.documentElement.dataset.crmTheme='oscuro';document.documentElement.style.colorScheme='dark';</script>
 <title>Skilled CRM — Iniciar sesión</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:dark;--blue:#2f73f1;--blue-soft:#68a7ff;--red:#ea0029;--panel:#091226;--line:rgba(101,136,194,.28)}
@@ -51,9 +51,8 @@
 @media(max-width:700px){body{overflow:auto}.login-stage{padding:18px}.login-orbit{padding:22px 0}.orbit-ring{display:none}.login-card{border-radius:21px}.login-header,.login-form{padding-left:23px;padding-right:23px}.logo-shell{width:min(210px,88%);height:82px;margin:0 auto 3px}.login-logo{width:154px;max-height:60px}}
 @media(prefers-reduced-motion:reduce){.login-scene::before,.scene-grid,.glow,.particle,.orbit-ring,.logo-shell::before,.login-card::after,.security-pill i{animation:none!important}.login-orbit{animation:none}}
 </style>
-<script src="navegacion-suave.js?v=40"></script>
-<script src="skilled-search.js?v=40"></script>
-</head>
+<script src="skilled-search.js?v=43"></script>
+<script>(async()=>{try{const release='43';if(localStorage.getItem('skilled_crm_release')===release)return;if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.map(item=>item.unregister()))}if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>/^skilled-crm/i.test(key)).map(key=>caches.delete(key)))}localStorage.setItem('skilled_crm_release',release);if(!new URLSearchParams(location.search).has('cache'))location.replace('login.html?cache='+release)}catch(_){}})();</script></head>
 <body class="login-dark">
 <div class="login-scene" aria-hidden="true">
 <div class="scene-grid"></div><div class="scanline"></div><div class="glow blue"></div><div class="glow red"></div><div id="particles"></div>
@@ -77,7 +76,7 @@
 </section>
 </div>
 </main>
-<script src="skilled-supabase.js?v=40"></script>
+<script src="skilled-supabase.js?v=43"></script>
 <script>
 (function(){
 const form=document.getElementById('login-form');
@@ -89,7 +88,7 @@ const password=document.getElementById('password');
 const toggle=document.getElementById('toggle-password');
 const params=new URLSearchParams(location.search);
 const particles=document.getElementById('particles');
-const roleHomes={administrador:'AL.inicio.html',jefe_almacen:'AL.inicio.html',almacen:'AL.inicio.html',compras:'CO.inicio.html',rh:'RH.inicio.html',finanzas:'FI.inicio.html',gerente_general:'GG.inicio.html',subgerente:'SG.inicio.html',proyectos:'AL.proyectos.html',consulta:'AL.inicio.html'};
+const roleHomes={administrador:'AL.inicio.html',jefe_almacen:'AL.inicio.html',almacen:'AL.inicio.html',compras:'CO.inicio.html',rh:'RH.inicio.html',finanzas:'FI.inicio.html',gerente_general:'GG.inicio.html',subgerente:'SG.inicio.html',tsi:'TSI.inicio.html',proyectos:'AL.proyectos.html',consulta:'AL.inicio.html'};
 for(let i=0;i<30;i+=1){const p=document.createElement('i');p.className='particle';p.style.left=`${Math.random()*100}%`;p.style.setProperty('--duration',`${13+Math.random()*20}s`);p.style.setProperty('--delay',`-${Math.random()*24}s`);p.style.opacity=(.18+Math.random()*.36).toFixed(2);particles.appendChild(p)}
 function show(text,type){message.className=`login-message ${type==='error'?'border-rose-500/35 bg-rose-950/25 text-rose-300':'border-amber-500/35 bg-amber-950/20 text-amber-300'}`;message.textContent=text;message.classList.remove('hidden')}
 function setLoading(value){button.disabled=value;button.classList.toggle('is-loading',value);buttonText.textContent=value?'Validando acceso…':'Entrar al CRM'}
@@ -129,6 +128,6 @@ location.replace(destination(profile));
 validateExistingSession();
 })();
 </script>
-<script src="skilled-performance.js?v=40" defer></script>
+<script src="skilled-performance.js?v=43" defer></script>
 </body>
 </html>
