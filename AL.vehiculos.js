@@ -1,3 +1,4 @@
+(function(){const profile=new URLSearchParams(location.search).get('perfil');if(profile==='gerente_general'||profile==='subgerente'){const home=profile==='gerente_general'?'GG.inicio.html':'SG.inicio.html';document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('a[href="AL.inicio.html"]').forEach(a=>a.href=home);});}})();
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);

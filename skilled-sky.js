@@ -37,8 +37,8 @@
             compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Qué cotizaciones requieren atención?', examples: [['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Buscar proveedor','Busca al proveedor ABB'],['Proyectos','¿Qué proyectos están activos?'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?']] },
             rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
-            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Resumen ejecutivo de proyectos, materiales, sueldos, gasto real, desviaciones y alertas operativas.', placeholder: 'Ej. ¿Qué requiere atención hoy?', examples: [['Prioridades','¿Qué requiere atención hoy?'],['Alertas operativas','¿Qué alertas operativas tenemos?'],['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Materiales vs sueldos','Compara materiales y sueldos del proyecto 2508'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
-            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Seguimiento ejecutivo de proyectos, entregas, desviaciones y alertas operativas.', placeholder: 'Ej. ¿Qué debo revisar primero?', examples: [['Prioridades','¿Qué debo revisar primero?'],['Alertas operativas','¿Qué pendientes operativos tenemos?'],['Próximas entregas','¿Qué proyectos entregan primero?'],['Gasto de proyecto','¿Cuánto se ha gastado en el proyecto 2508?'],['Sobre presupuesto','¿Qué proyectos están sobre lo planeado?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
+            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Prioridades','¿Qué requiere atención hoy?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Vehículos','¿Qué vehículos están disponibles?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
+            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Prioridades','¿Qué debo revisar primero?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Vehículos','¿Qué vehículos están disponibles?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -306,6 +306,17 @@
     }
 
     function setAnswer(title, main, detail = '', cards = [], link = null) {
+        const profile = detectProfile();
+        if (link && (profile === 'gerente_general' || profile === 'subgerente')) {
+            const target = String(link.href || '');
+            const ownPrefix = profile === 'gerente_general' ? 'GG.' : 'SG.';
+            if (/^AL\.vehiculos\.html/i.test(target)) {
+                const separator = target.includes('?') ? '&' : '?';
+                link = { ...link, href: `${target}${target.includes('perfil=') ? '' : `${separator}perfil=${profile}`}` };
+            } else if (!target.startsWith(ownPrefix) && !/^perfil\.html/i.test(target) && !/^https?:\/\//i.test(target)) {
+                link = null;
+            }
+        }
         const external = link && /^https?:\/\//i.test(String(link.href || ''));
         answerNode.innerHTML = `<div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cards.map(card => `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span></div>`).join('')}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}`;
     }
@@ -738,8 +749,8 @@
             compras:['cotizaciones por revisar','busca cotizacion','comparar proveedores','mejor precio y plazo','ordenes de compra pendientes','busca proveedor','servicios por vencer'],
             rh:['trabajadores activos','busca trabajador','quien esta ausente hoy','documentos por vencer','proyectos sin personal'],
             finanzas:['costo consumido del proyecto','presupuesto del proyecto','proyectos con mayor costo'],
-            gerente_general:['cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
-            subgerente:['cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
+            gerente_general:['cuantos tipos de tubos tengo','cuantas personas tengo en el proyecto','cuantas compras estan pendientes','que vehiculos estan disponibles','cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
+            subgerente:['cuantos tipos de tubos tengo','cuantas personas tengo en el proyecto','cuantas compras estan pendientes','que vehiculos estan disponibles','cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
             proyectos:['como va el proyecto','costo del proyecto','prepara la ruta del proyecto','solicitudes de material pendientes']
         };
         return [...common, ...(profilePhrases[profile] || [])];
@@ -1296,7 +1307,7 @@
         if (fresh && cache[key]) return cache[key];
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
         const loaders = {
-            materials: () => SkilledDB.listMaterials(),
+            materials: () => ['gerente_general','subgerente'].includes(detectProfile()) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : SkilledDB.listMaterials(),
             low: () => SkilledDB.listLowStock(),
             purchases: () => SkilledDB.listPurchaseRequests({}),
             tools: () => SkilledDB.listTools(),
@@ -1994,17 +2005,76 @@
         return answerMaterial(raw, false);
     }
 
+    function executiveProjectCandidate(rows, raw) {
+        const norm = commandNormalize(raw);
+        const explicit = (norm.match(/\b\d{3,12}\b/g) || []).find(value => rows.some(row => text(row.proyecto) === text(value)));
+        if (explicit) return rows.find(row => text(row.proyecto) === text(explicit)) || null;
+        return rows.find(row => [row.proyecto,row.nombre,row.cliente,row.responsable].some(value => value && norm.includes(commandNormalize(value)))) || null;
+    }
+
+    async function answerExecutivePeople(raw, projectRows = []) {
+        const norm = commandNormalize(raw);
+        const candidate = executiveProjectCandidate(projectRows, raw);
+        const rows = await SkilledDB.listExecutiveSkyPeople(candidate?.proyecto || '');
+        if (candidate) {
+            const cards = rows.slice(0, 10).map(item => ({ title: item.nombre || item.numero_empleado || 'Colaborador', detail: `${item.puesto || 'Sin puesto'}${item.rol_proyecto ? ` · ${item.rol_proyecto}` : ''}${item.porcentaje_dedicacion ? ` · ${formatNumber(item.porcentaje_dedicacion)}%` : ''}` }));
+            setAnswer('Personal del proyecto', rows.length ? `${candidate.proyecto} · ${candidate.nombre || 'Proyecto'} tiene ${rows.length} persona${rows.length === 1 ? '' : 's'} activa${rows.length === 1 ? '' : 's'} asignada${rows.length === 1 ? '' : 's'}.` : `${candidate.proyecto} · ${candidate.nombre || 'Proyecto'} no tiene personal activo asignado.`, rows.length ? 'La consulta es de solo lectura y toma las asignaciones activas registradas por RH.' : 'RH todavía no registra asignaciones activas para este proyecto.', cards);
+            return rows.length ? `El proyecto ${candidate.proyecto} tiene ${rows.length} personas activas asignadas. ${rows.slice(0,6).map(item => item.nombre).filter(Boolean).join(', ')}.` : `El proyecto ${candidate.proyecto} no tiene personal activo asignado.`;
+        }
+        const tokens = searchTokens(raw, ['cuanto','cuantos','cuanta','cuantas','persona','personas','personal','trabajador','trabajadores','colaborador','colaboradores','empleado','empleados','activo','activos','tenemos','tengo','hay','rh','recursos','humanos']);
+        if (tokens.length) {
+            const matches = rows.filter(item => matchesTokens([item.numero_empleado,item.nombre,item.puesto,item.departamento], tokens));
+            const cards = matches.slice(0, 10).map(item => ({ title: item.nombre || item.numero_empleado || 'Colaborador', detail: `${item.numero_empleado || 'sin número'} · ${item.puesto || 'sin puesto'} · ${item.departamento || 'sin departamento'}` }));
+            setAnswer('Personal', matches.length ? `${matches.length} persona${matches.length === 1 ? '' : 's'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré personal activo con ese criterio.', 'Consulta ejecutiva de solo lectura.', cards);
+            return matches.length ? `Encontré ${matches.length} personas activas relacionadas.` : 'No encontré personal activo con ese criterio.';
+        }
+        setAnswer('Personal activo', `${rows.length} trabajador${rows.length === 1 ? '' : 'es'} activo${rows.length === 1 ? '' : 's'} registrado${rows.length === 1 ? '' : 's'} en RH.`, 'Sky puede consultar personal y asignaciones sin mostrar el módulo de RH.', []);
+        return `Hay ${rows.length} trabajadores activos registrados en Recursos Humanos.`;
+    }
+
+    async function answerExecutivePurchasing(raw) {
+        const norm = commandNormalize(raw);
+        const data = await SkilledDB.getExecutiveSkyPurchasing();
+        const providers = Array.isArray(data.proveedores) ? data.proveedores : [];
+        const requests = Array.isArray(data.solicitudes) ? data.solicitudes : [];
+        const quotations = Array.isArray(data.cotizaciones) ? data.cotizaciones : [];
+        if (/proveedor|rfc|contacto/.test(norm)) {
+            const tokens = searchTokens(raw, ['proveedor','proveedores','rfc','contacto','busca','buscar','dime','del','de']);
+            const matches = providers.filter(item => !tokens.length || matchesTokens([item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.categoria], tokens));
+            const cards = matches.slice(0, 10).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'sin contacto'}${item.telefono ? ` · ${item.telefono}` : ''}` }));
+            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré un proveedor con ese criterio.', 'Consulta ejecutiva de solo lectura.', cards);
+            return matches.length ? `Encontré ${matches.length} proveedores relacionados.` : 'No encontré ese proveedor.';
+        }
+        const closedRequest = item => /recibid|cerrad|cancelad|rechazad|realizada|complet/i.test(normalize(item.estado_compras || item.estado));
+        const openRequests = requests.filter(item => !closedRequest(item));
+        const openQuotes = quotations.filter(item => !/aprobada|rechazada|cerrada/i.test(normalize(item.estado)));
+        if (/cotiz/.test(norm)) {
+            const cards = openQuotes.slice(0, 10).map(item => ({ title: item.folio || 'Cotización', detail: `${item.estado || 'solicitada'} · ${item.prioridad || 'normal'}${item.fecha_requerida ? ` · requerida ${dateOnly(item.fecha_requerida)}` : ''}` }));
+            setAnswer('Cotizaciones', openQuotes.length ? `${openQuotes.length} cotización${openQuotes.length === 1 ? '' : 'es'} sigue${openQuotes.length === 1 ? '' : 'n'} abierta${openQuotes.length === 1 ? '' : 's'}.` : 'No hay cotizaciones abiertas.', 'Consulta ejecutiva de solo lectura.', cards);
+            return openQuotes.length ? `Hay ${openQuotes.length} cotizaciones abiertas.` : 'No hay cotizaciones abiertas.';
+        }
+        const cards = openRequests.slice(0, 10).map(item => ({ title: item.orden_compra || item.folio || item.material_codigo || 'Compra pendiente', detail: `${item.estado_compras || item.estado || 'pendiente'} · ${item.proveedor || item.proveedor_nombre || 'proveedor pendiente'}` }));
+        setAnswer('Compras', `${openRequests.length} solicitud${openRequests.length === 1 ? '' : 'es'} u orden${openRequests.length === 1 ? '' : 'es'} pendiente${openRequests.length === 1 ? '' : 's'} y ${openQuotes.length} cotización${openQuotes.length === 1 ? '' : 'es'} abierta${openQuotes.length === 1 ? '' : 's'}.`, 'Sky consulta Compras sin habilitar sus pantallas en Dirección.', cards);
+        return `Hay ${openRequests.length} compras pendientes y ${openQuotes.length} cotizaciones abiertas.`;
+    }
+
     async function answerExecutive(raw) {
         const norm=commandNormalize(raw);
         const rows=await SkilledDB.getExecutiveProjectSummary();
         const prefix=detectProfile()==='gerente_general'?'GG':'SG';
+        if (/vehiculo|vehículos|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas|flotilla/.test(norm)) return answerVehicles(raw);
+        if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
+        if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg|codigo|código/.test(norm)) return answerMaterial(raw, true);
+        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg/.test(norm)) return answerMaterial(raw, false);
+        if (/persona|personas|personal|trabajador|trabajadores|colaborador|colaboradores|empleado|empleados|recursos humanos|\brh\b|equipo.*proyecto|cuadrilla/.test(norm)) return answerExecutivePeople(raw, rows);
+        if (/proveedor|proveedores|cotiz|orden.*compra|compras? pendiente|solicitud.*compra|\boc\b|rfc|contacto.*proveedor/.test(norm)) return answerExecutivePurchasing(raw);
         if(!Array.isArray(rows)||!rows.length){setAnswer('Resumen ejecutivo','Todavía no hay proyectos disponibles para el análisis ejecutivo.','',[],{href:`${prefix}.proyectos.html`,label:'Abrir proyectos'});return'Todavía no hay proyectos disponibles para el análisis ejecutivo.'}
         const now=new Date();now.setHours(0,0,0,0);
         const closed=row=>/complet|cerrad|cancelad/i.test(text(row.estado));
         const daysTo=row=>{if(!row.fechaEntrega)return null;const d=new Date(`${row.fechaEntrega}T12:00:00`);if(Number.isNaN(d.getTime()))return null;return Math.ceil((d-now)/86400000)};
         const utilization=row=>number(row.total_planeado)>0?number(row.total_real)/number(row.total_planeado)*100:number(row.total_real)>0?100:0;
         const active=rows.filter(row=>!closed(row));
-        const candidate=rows.find(row=>[row.proyecto,row.nombre,row.cliente,row.responsable].some(value=>value&&norm.includes(commandNormalize(value))))||null;
+        const candidate=executiveProjectCandidate(rows,raw);
         if(!candidate&&/alerta|pendiente.*oper|operacion|operación|bajo.*min|sin.*ubicacion|sin.*ubicación|herramient.*venc|flotilla|document.*vehiculo|document.*vehículo|compras.*pend/.test(norm)&&window.SkilledDB?.listOperationalAlerts){
             const alerts=await SkilledDB.listOperationalAlerts();
             const summary=alerts?.summary||{},low=number(summary.bajoMinimo),purchases=number(summary.comprasPendientes),locations=number(summary.ubicacionesPendientes),tools=number(summary.herramientasVencidas),vehicles=number(summary.documentosVehiculo),total=low+purchases+locations+tools+vehicles;
@@ -2073,7 +2143,7 @@
         if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
-        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|herramient.*venc|sin.*ubicacion|sin.*ubicación/.test(norm)) return true;
+        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|herramient.*venc|sin.*ubicacion|sin.*ubicación/.test(norm)) return true;
         if (profile === 'proyectos' && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable/.test(norm)) return true;
         return false;
     }
@@ -2115,7 +2185,7 @@
         if (plan.intent === 'material_stock') return answerMaterial(queryText, false);
         if (plan.intent === 'material_location') return answerMaterial(queryText, true);
         if (plan.intent === 'low_stock') return answerLowStock();
-        if (plan.intent === 'purchase_order') return profile === 'compras' ? answerPurchasing(raw) : answerPurchase(raw);
+        if (plan.intent === 'purchase_order') return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePurchasing(raw) : profile === 'compras' ? answerPurchasing(raw) : answerPurchase(raw);
         if (plan.intent === 'tools') return answerTools(raw);
         if (plan.intent === 'vehicles') return answerVehicles(raw);
         if (plan.intent === 'project') {
@@ -2123,8 +2193,8 @@
             if (profile === 'finanzas') return answerFinance(raw);
             return answerProjects(raw);
         }
-        if (['supplier','quotation','store','service'].includes(plan.intent)) return answerPurchasing(raw);
-        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return answerRH(raw);
+        if (['supplier','quotation','store','service'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePurchasing(raw) : answerPurchasing(raw);
+        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePeople(raw, await SkilledDB.getExecutiveProjectSummary()) : answerRH(raw);
         if (plan.intent === 'finance') return answerFinance(raw);
         if (plan.intent === 'executive') return answerExecutive(raw);
         return null;

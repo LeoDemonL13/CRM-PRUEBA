@@ -5141,6 +5141,60 @@
         };
     }
 
+
+    async function listExecutiveSkyMaterials() {
+        const { data, error } = await client.rpc('crm_sky_direccion_materiales');
+        assertNoError(error, 'No se pudo consultar el catálogo ejecutivo para Sky. Ejecuta la actualización SQL V41.');
+        const rows = Array.isArray(data) ? data : [];
+        return rows.map(row => ({
+            codigo: text(row.codigo),
+            descripcion: text(row.descripcion),
+            desc: text(row.descripcion),
+            categoria: text(row.categoria),
+            tipoCable: text(row.tipo_cable),
+            tipo_cable: text(row.tipo_cable),
+            tamano: text(row.tamano_mm2),
+            tamano_mm2: text(row.tamano_mm2),
+            unidad: text(row.unidad),
+            stock: number(row.stock),
+            stockMinimo: number(row.stock_minimo),
+            stock_minimo: number(row.stock_minimo),
+            stockMedio: number(row.stock_medio),
+            stock_medio: number(row.stock_medio),
+            stockMaximo: number(row.stock_maximo),
+            stock_maximo: number(row.stock_maximo),
+            marca: text(row.marca),
+            proveedor: text(row.proveedor),
+            modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : [],
+            almacenes: Array.isArray(row.almacenes) ? row.almacenes.map(item => ({
+                id: Number(item.id || 0),
+                nombre: text(item.nombre),
+                stock: number(item.stock),
+                stockMinimo: number(item.stockMinimo ?? item.stock_minimo),
+                stock_minimo: number(item.stockMinimo ?? item.stock_minimo),
+                stockMedio: number(item.stockMedio ?? item.stock_medio),
+                stock_medio: number(item.stockMedio ?? item.stock_medio),
+                stockMaximo: number(item.stockMaximo ?? item.stock_maximo),
+                stock_maximo: number(item.stockMaximo ?? item.stock_maximo),
+                ubicacion: text(item.ubicacion)
+            })) : [],
+            activo: true
+        }));
+    }
+
+    async function listExecutiveSkyPeople(projectNumber = '') {
+        const project = text(projectNumber);
+        const { data, error } = await client.rpc('crm_sky_direccion_personal', { p_proyecto: project || null });
+        assertNoError(error, 'No se pudo consultar personal ejecutivo para Sky. Ejecuta la actualización SQL V41.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getExecutiveSkyPurchasing() {
+        const { data, error } = await client.rpc('crm_sky_direccion_compras');
+        assertNoError(error, 'No se pudo consultar Compras para Sky. Ejecuta la actualización SQL V41.');
+        return data && typeof data === 'object' ? data : { proveedores: [], solicitudes: [], cotizaciones: [] };
+    }
+
     async function getExecutiveProjectSummary() {
         const { data, error } = await client.rpc('crm_resumen_ejecutivo_proyectos');
         assertNoError(error, 'No se pudo consultar el resumen ejecutivo de proyectos. Ejecuta SQL_MAESTRO_CRM.sql V22.');
@@ -5191,6 +5245,9 @@
         suggestWarehouseMaterialLocation,
         buildProjectPickingRoute,
         listOperationalAlerts,
+        listExecutiveSkyMaterials,
+        listExecutiveSkyPeople,
+        getExecutiveSkyPurchasing,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,

@@ -130,8 +130,8 @@
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
         ],
         finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
-        gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
-        subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
+        gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report']]},{title:'Operación compartida',items:[['AL.vehiculos.html?perfil=gerente_general','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
+        subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report']]},{title:'Operación compartida',items:[['AL.vehiculos.html?perfil=subgerente','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
     };
@@ -348,8 +348,8 @@
         compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html'],
         rh:['rh.inicio.html','rh.personal.html','rh.proyectos.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html'],
         finanzas:['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html'],
-        gerente_general:['gg.inicio.html','gg.proyectos.html','perfil.html'],
-        subgerente:['sg.inicio.html','sg.proyectos.html','perfil.html'],
+        gerente_general:['gg.inicio.html','gg.proyectos.html','al.vehiculos.html','perfil.html'],
+        subgerente:['sg.inicio.html','sg.proyectos.html','al.vehiculos.html','perfil.html'],
         proyectos:['al.proyectos.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','perfil.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html']
     };
@@ -759,7 +759,7 @@
             if (name === 'vehicles') rows.forEach(item => addEntry(entries, {
                 type: 'Vehículo', symbol: 'V', title: `${item.numeroEconomico || 'Vehículo'} · ${item.marca || ''} ${item.modelo || ''}`,
                 subtitle: `${item.placas || 'Sin placas'} · ${item.estado || 'disponible'} · ${item.proyecto ? `Proyecto ${item.proyecto}` : item.asignadoA || 'Sin asignar'}`,
-                url: `AL.vehiculos.html?q=${encodeURIComponent(item.numeroEconomico || item.placas || item.vin || '')}`,
+                url: `AL.vehiculos.html?q=${encodeURIComponent(item.numeroEconomico || item.placas || item.vin || '')}${['gerente_general','subgerente','rh'].includes(sidebarProfileKey())?`&perfil=${encodeURIComponent(sidebarProfileKey())}`:''}`,
                 terms: [item.numeroEconomico,item.placas,item.vin,item.marca,item.modelo,item.anio,item.tipo,item.estado,item.almacenBaseNombre,item.proyecto,item.asignadoA,item.responsable,item.aseguradora,item.polizaSeguro].join(' ')
             }));
             if (name === 'warehouses') rows.forEach(item => addEntry(entries, {
@@ -937,7 +937,7 @@
         }
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=40';
+        script.src = 'skilled-sky.js?v=41';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);
