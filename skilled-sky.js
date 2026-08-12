@@ -4,11 +4,11 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
-    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente' };
-    const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', proyectos: 'Proyectos', consulta: 'Consulta' };
-    const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', proyectos: 'PR', consulta: 'CN' };
+    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo' };
+    const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', consulta: 'Consulta' };
+    const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', consulta: 'CN' };
     const customProfiles = new Map();
-    const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente']);
+    const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente','sky_demo']);
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
@@ -25,11 +25,14 @@
         const remembered = String(sessionStorage.getItem('skilled_active_profile') || '').toLowerCase();
         if (remembered) return remembered;
         const role = currentRole();
-        if (['compras','rh','finanzas','gerente_general','subgerente','proyectos','consulta'].includes(role)) return role;
+        if (['compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','consulta'].includes(role)) return role;
         return 'almacen';
     }
     function skyAllowed() {
         return skyProfiles.has(detectProfile());
+    }
+    function isExecutiveReadProfile(profile = detectProfile()) {
+        return ['gerente_general','subgerente','sky_demo'].includes(profile);
     }
     function profileConfig(profile = detectProfile()) {
         const base = {
@@ -39,6 +42,7 @@
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
             gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
             subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
+            sky_demo: { title: 'Sky · Modo presentación', subtitle: 'Asistente transversal de solo lectura para mostrar cómo Sky puede apoyar a las distintas áreas de Skilled.', placeholder: 'Ej. Soy planeador, ¿en qué me puedes ayudar?', examples: [['Planeación','Soy planeador, ¿en qué me puedes ayudar?'],['Finanzas','Soy de Finanzas, ¿en qué me puedes ayudar?'],['Logística','Soy de Logística, ¿en qué me puedes ayudar?'],['Compras','Soy de Compras, ¿en qué me puedes ayudar?'],['RH','Soy de RH, ¿en qué me puedes ayudar?'],['Almacén','Soy de Almacén, ¿en qué me puedes ayudar?'],['Quién te creó','¿Quién te está creando?']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -178,7 +182,7 @@
     let aiRetryAfter = 0;
     const conversationKey=()=>`skilled_sky_context_${detectProfile()}`;
     function loadConversationContext(){try{const value=JSON.parse(sessionStorage.getItem(conversationKey())||'null');return value&&typeof value==='object'?value:{}}catch(_){return{}}}
-    let conversationContext = Object.assign({ material:null, vehicle:null, project:null, supplier:null, lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 },loadConversationContext());
+    let conversationContext = Object.assign({ material:null, vehicle:null, project:null, supplier:null, area:'', lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 },loadConversationContext());
     function saveConversationContext(){conversationContext.updatedAt=Date.now();try{sessionStorage.setItem(conversationKey(),JSON.stringify(conversationContext))}catch(_){}}
     function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
     const ttl = 45000;
@@ -211,7 +215,8 @@
             button.type = 'button';
             button.className = 'sky-header-button';
             button.title = `Consultar Sky · ${shortcutLabel}`;
-            button.innerHTML = `<span class="sky-pulse"></span><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Sky</span><kbd class="sky-shortcut-badge">${shortcutLabel}</kbd>`;
+            const demoLabel=detectProfile()==='sky_demo'?'Hablar con Sky':'Sky';
+            button.innerHTML = `<span class="sky-pulse"></span><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>${demoLabel}</span><kbd class="sky-shortcut-badge">${shortcutLabel}</kbd>`;
             actions.insertBefore(button, actions.firstChild);
             button.addEventListener('click', open);
         }
@@ -287,7 +292,7 @@
         if(/rh\.equipos|equipos/.test(page))extra.push(['Resguardo','¿Qué equipo tiene asignado Leobardo?'],['Disponibles','¿Qué computadoras están disponibles?']);
         if(/proyecto/.test(page))extra.push(['Resumen proyecto','Dame un resumen del proyecto 26001'],['Personal','¿Cuántas personas tiene el proyecto 26001?']);
         if(/vehiculo/.test(page))extra.push(['Flotilla','¿Qué vehículos están disponibles?'],['Estado','¿Qué vehículos requieren atención?']);
-        if(profile==='gerente_general'||profile==='subgerente')extra.push(['Resumen ejecutivo','Dame un resumen ejecutivo'],['Atención','¿Qué requiere atención hoy?']);
+        if(isExecutiveReadProfile(profile))extra.push(['Resumen ejecutivo','Dame un resumen ejecutivo'],['Atención','¿Qué requiere atención hoy?']);
         const base=[...extra,...config.examples,['Aquí','¿Qué puedes hacer aquí?'],['Ir a','¿A qué apartados me puedes llevar?'],['Preséntate','Preséntate'],['Ayuda','¿Qué puedes hacer?']];
         const seen=new Set();return base.filter(([label,example])=>{const key=commandNormalize(example);if(seen.has(key))return false;seen.add(key);return true}).slice(0,12);
     }
@@ -304,7 +309,7 @@
         while(historyNode.children.length>6)historyNode.firstElementChild.remove();historyNode.scrollTop=historyNode.scrollHeight;
     }
     function clearSkyConversation(){
-        activeQuestion='';conversationContext={material:null,vehicle:null,project:null,supplier:null,lastIntent:'',lastEntity:'',lastQuery:'',updatedAt:0};saveConversationContext();if(historyNode)historyNode.innerHTML='';if(transcriptInput)transcriptInput.value='';const config=profileConfig();setAnswer('Nueva conversación','Listo. Empezamos una consulta nueva.',config.subtitle);setStatus('Listo para consultar.');
+        activeQuestion='';conversationContext={material:null,vehicle:null,project:null,supplier:null,area:'',lastIntent:'',lastEntity:'',lastQuery:'',updatedAt:0};saveConversationContext();if(historyNode)historyNode.innerHTML='';if(transcriptInput)transcriptInput.value='';const config=profileConfig();setAnswer('Nueva conversación','Listo. Empezamos una consulta nueva.',config.subtitle);setStatus('Listo para consultar.');
     }
 
     function navigationOptions(profile=detectProfile()){
@@ -314,7 +319,8 @@
             rh:{inicio:'RH.inicio.html',personal:'RH.personal.html',trabajadores:'RH.personal.html',proyectos:'RH.proyectos.html',asistencias:'RH.asistencias.html',documentos:'RH.documentos.html',nomina:'RH.nomina.html',capacitacion:'RH.capacitacion.html','equipos y resguardos':'RH.equipos.html',equipos:'RH.equipos.html',resguardos:'RH.equipos.html'},
             finanzas:{inicio:'FI.inicio.html',presupuestos:'FI.presupuestos.html',gastos:'FI.gastos.html','cuentas por pagar':'FI.cuentas-pagar.html',reportes:'FI.reportes.html'},
             gerente_general:{inicio:'GG.inicio.html',proyectos:'GG.proyectos.html',vehiculos:'GG.vehiculos.html'},
-            subgerente:{inicio:'SG.inicio.html',proyectos:'SG.proyectos.html',vehiculos:'SG.vehiculos.html'}
+            subgerente:{inicio:'SG.inicio.html',proyectos:'SG.proyectos.html',vehiculos:'SG.vehiculos.html'},
+            sky_demo:{inicio:'SKY.inicio.html',sky:'SKY.inicio.html','modo presentacion':'SKY.inicio.html'}
         };
         const map={...common,...(maps[profile]||{})};
         if(map.documentos==='RH.documentos.html,')map.documentos='RH.documentos.html';
@@ -375,13 +381,17 @@
     }
     function setAnswer(title, main, detail = '', cards = [], link = null) {
         const profile = detectProfile();
-        if (link && (profile === 'gerente_general' || profile === 'subgerente')) {
+        if (link && isExecutiveReadProfile(profile)) {
             const target = String(link.href || '');
-            const ownPrefix = profile === 'gerente_general' ? 'GG.' : 'SG.';
-            if (/^AL\.vehiculos(?:\.html)?/i.test(target)) {
-                link = { ...link, href: profile === 'gerente_general' ? 'GG.vehiculos.html' : 'SG.vehiculos.html' };
-            } else if (!target.startsWith(ownPrefix) && !/^perfil\.html/i.test(target) && !/^https?:\/\//i.test(target)) {
-                link = null;
+            if (profile === 'sky_demo') {
+                if (!/^SKY\.inicio(?:\.html)?/i.test(target) && !/^perfil\.html/i.test(target) && !/^https?:\/\//i.test(target)) link = null;
+            } else {
+                const ownPrefix = profile === 'gerente_general' ? 'GG.' : 'SG.';
+                if (/^AL\.vehiculos(?:\.html)?/i.test(target)) {
+                    link = { ...link, href: profile === 'gerente_general' ? 'GG.vehiculos.html' : 'SG.vehiculos.html' };
+                } else if (!target.startsWith(ownPrefix) && !/^perfil\.html/i.test(target) && !/^https?:\/\//i.test(target)) {
+                    link = null;
+                }
             }
         }
         const external = link && /^https?:\/\//i.test(String(link.href || ''));
@@ -596,7 +606,7 @@
             });
         } else if (profile === 'rh') {
             (Array.isArray(cache.rhPeople) ? cache.rhPeople : []).slice(0,900).forEach(item => [item.numero_empleado,item.nombre,item.apellidos,item.puesto,item.departamento].forEach(push));
-        } else if (profile === 'gerente_general' || profile === 'subgerente') {
+        } else if (isExecutiveReadProfile(profile)) {
             (Array.isArray(cache.materials) ? cache.materials : []).slice(0,1400).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
             (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0,300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
             (Array.isArray(cache.projectDetails) ? cache.projectDetails : []).slice(0,700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
@@ -926,7 +936,7 @@
             if (profile === 'compras') await Promise.all([loadData('coSuppliers'), loadData('coServices'), loadData('coQuotations')]);
             else if (profile === 'rh') await loadData('rhPeople');
             else if (profile === 'finanzas' || profile === 'proyectos') await loadData('projectDetails');
-            else if (profile === 'gerente_general' || profile === 'subgerente') await Promise.allSettled([loadData('materials'), loadData('vehicles')]);
+            else if (isExecutiveReadProfile(profile)) await Promise.allSettled([loadData('materials'), loadData('vehicles')]);
             else if (profile === 'almacen' || profile === 'consulta') await Promise.all([loadData('materials'), loadData('tools'), loadData('vehicles'), loadData('projects')]);
             else await loadData('materials');
             vocabularyPrimedProfile = profile;
@@ -1475,12 +1485,12 @@
         if (fresh && cache[key]) return cache[key];
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
         const loaders = {
-            materials: () => ['gerente_general','subgerente'].includes(detectProfile()) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : SkilledDB.listMaterials(),
+            materials: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : SkilledDB.listMaterials(),
             low: () => SkilledDB.listLowStock(),
             purchases: () => SkilledDB.listPurchaseRequests({}),
             tools: () => SkilledDB.listTools(),
             assignments: () => SkilledDB.listToolAssignments({}),
-            vehicles: () => ['gerente_general','subgerente'].includes(detectProfile()) && typeof SkilledDB.listExecutiveVehicles === 'function' ? SkilledDB.listExecutiveVehicles() : SkilledDB.listVehicles(),
+            vehicles: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveVehicles === 'function' ? SkilledDB.listExecutiveVehicles() : SkilledDB.listVehicles(),
             projects: () => SkilledDB.listProjectOptions(),
             projectDetails: () => SkilledDB.listProjects(),
             coSuppliers: () => tableRows('co_proveedores'),
@@ -2098,14 +2108,203 @@
         const result = op==='+'?a+b:op==='-'?a-b:op==='*'?a*b:a/b;
         return { a,b,op,result };
     }
+
+    const skyAreaCatalog = {
+        planeacion: {
+            label:'Planeación',
+            aliases:['planeador','planeadora','planeacion','planeación'],
+            intro:'Si eres de Planeación, por el momento puedo ayudarte a reunir información de proyectos y cruzarla con las áreas que ya están conectadas al CRM.',
+            abilities:[
+                ['Proyectos','Estado, avance, responsables y fechas de entrega registradas.'],
+                ['Materiales','Material planeado, existencias, ubicaciones y solicitudes relacionadas.'],
+                ['Personal','Personas asignadas a un proyecto y funciones registradas por RH.'],
+                ['Compras','Pendientes, proveedores y cotizaciones vinculadas cuando la información está disponible.'],
+                ['Logística','Vehículos disponibles y estado actual de la flotilla.']
+            ],
+            examples:['¿Cómo va el proyecto 26001?','¿Cuántas personas tiene el proyecto 26001?','¿Qué materiales tenemos para el proyecto 26001?']
+        },
+        finanzas: {
+            label:'Finanzas',
+            aliases:['finanzas','financiero','financiera','contabilidad'],
+            intro:'Si eres de Finanzas, por el momento puedo ayudarte principalmente con la información económica de proyectos que ya está conectada al CRM.',
+            abilities:[
+                ['Presupuesto','Comparar lo planeado contra lo consumido por proyecto.'],
+                ['Composición del gasto','Separar materiales y sueldos registrados.'],
+                ['Desviaciones','Detectar proyectos por encima de lo planeado o que requieren atención.'],
+                ['Fechas','Relacionar costo, avance y cercanía de la entrega.'],
+                ['Crecimiento','Gastos y cuentas por pagar se ampliarán conforme esos módulos tengan más datos transaccionales conectados.']
+            ],
+            examples:['¿Cómo va el presupuesto del proyecto 26001?','¿Qué proyecto tiene mayor gasto?','¿Qué proyectos están por encima de lo planeado?']
+        },
+        logistica: {
+            label:'Logística',
+            aliases:['logistica','logística','logistico','logística vehicular'],
+            intro:'Si eres de Logística, puedo ayudarte a consultar la flotilla y relacionarla con la operación que ya está registrada.',
+            abilities:[
+                ['Vehículos','Disponibilidad, estado, nombre, placas, kilometraje y responsable registrado.'],
+                ['Proyectos','Consultar el proyecto y su situación general antes de coordinar un movimiento.'],
+                ['Personal','Revisar cuántas personas están asignadas a un proyecto.'],
+                ['Materiales','Consultar existencias y ubicaciones para apoyar una preparación o traslado.'],
+                ['Alertas','Identificar información operativa pendiente que pueda afectar una entrega.']
+            ],
+            examples:['¿Qué vehículos están disponibles?','¿Cómo está la camioneta Ford?','¿Cuántas personas van en el proyecto 26001?']
+        },
+        compras: {
+            label:'Compras',
+            aliases:['compras','comprador','compradora','abastecimiento'],
+            intro:'Si eres de Compras, puedo ayudarte a consultar proveedores, cotizaciones y necesidades de compra sin tener que buscar dato por dato.',
+            abilities:[
+                ['Proveedores','Buscar quién vende un material y mostrar contacto, correo, teléfono o WhatsApp registrado.'],
+                ['Cotizaciones','Consultar solicitudes y cotizaciones que requieren atención.'],
+                ['Órdenes','Revisar órdenes y solicitudes de compra registradas.'],
+                ['Materiales','Relacionar proveedor, precio referencial, plazo y material cuando existe esa relación.'],
+                ['Comunicación','Ayudarte a localizar los datos necesarios para contactar al proveedor.']
+            ],
+            examples:['¿Quién vende tubo conduit?','Dame el WhatsApp y correo de ABB','¿Qué compras están pendientes?']
+        },
+        rh: {
+            label:'Recursos Humanos',
+            aliases:['recursos humanos','rh','rrhh','capital humano'],
+            intro:'Si eres de Recursos Humanos, puedo ayudarte a consultar personal y varios controles que ya existen dentro de RH.',
+            abilities:[
+                ['Personal','Trabajadores activos, puesto, departamento y búsqueda de colaboradores.'],
+                ['Proyectos','Personal asignado a proyectos y proyectos sin personal registrado.'],
+                ['Asistencias','Incidencias, permisos, vacaciones e incapacidades registradas.'],
+                ['Documentos','Vencimientos de documentos y contratos.'],
+                ['Resguardos','Equipos de cómputo y materiales de oficina asignados a cada trabajador.'],
+                ['Capacitación','Cursos programados o en curso.']
+            ],
+            examples:['¿Cuántos trabajadores activos tenemos?','¿Qué equipo tiene asignado Leobardo?','¿Quién está ausente hoy?']
+        },
+        almacen: {
+            label:'Almacén',
+            aliases:['almacen','almacén','almacenista','inventario'],
+            intro:'Si eres de Almacén, puedo ayudarte a encontrar materiales y responder consultas operativas con la información registrada.',
+            abilities:[
+                ['Materiales','Existencias, categorías, medidas, marcas y coincidencias por nombre o código.'],
+                ['Ubicaciones','Almacén, ubicación específica, rack, zona o posición cuando está registrada.'],
+                ['Mínimos','Materiales agotados o por debajo del mínimo.'],
+                ['Herramientas','Disponibilidad y asignaciones registradas.'],
+                ['Proyectos','Estado, materiales y solicitudes relacionadas.'],
+                ['Vehículos','Disponibilidad y estado de la flotilla.']
+            ],
+            examples:['¿Cuánto tubo de una pulgada tenemos?','¿Dónde está el alcohol isopropílico?','¿Qué materiales están bajo mínimo?']
+        },
+        coordinacion: {
+            label:'Coordinación',
+            aliases:['coordinacion','coordinación','coordinador','coordinadora'],
+            intro:'Si eres de Coordinación, puedo servirte como punto de consulta entre proyectos, personal, materiales, compras y logística.',
+            abilities:[
+                ['Proyectos','Estado, avance, responsables y entregas próximas.'],
+                ['Personal','Cuadrillas o personas asignadas a un proyecto.'],
+                ['Materiales','Existencias, ubicaciones y situación de materiales.'],
+                ['Compras','Pendientes y proveedores relacionados.'],
+                ['Vehículos','Disponibilidad para apoyar la operación.']
+            ],
+            examples:['Dame un resumen del proyecto 26001','¿Cuántas personas tiene el proyecto 26001?','¿Qué requiere atención hoy?']
+        },
+        tsi: {
+            label:'TSI',
+            aliases:['tsi','sistemas','tecnologias de la informacion','tecnología de la información','soporte tecnico','soporte técnico'],
+            intro:'Si eres de TSI, puedo ayudarte a explicar el CRM, orientar sobre sus apartados y apoyar consultas generales de la operación durante esta etapa de crecimiento.',
+            abilities:[
+                ['Orientación','Explicar para qué sirve cada área y cómo se relacionan los módulos.'],
+                ['Consulta','Localizar información autorizada durante una revisión o demostración.'],
+                ['Diagnóstico','Ayudar a describir una incidencia y ubicar el apartado involucrado.'],
+                ['Búsqueda','Encontrar materiales, proyectos, personal, proveedores o vehículos cuando el modo de consulta lo autoriza.'],
+                ['Crecimiento','Mis capacidades técnicas irán aumentando conforme se conecten más funciones de TSI.']
+            ],
+            examples:['¿Qué puedes consultar del CRM?','Explícame cómo se relacionan Compras y Almacén','¿Qué puede hacer Sky por ahora?']
+        },
+        direccion: {
+            label:'Dirección',
+            aliases:['gerencia general','gerente general','subgerencia','subgerente','direccion','dirección','gerencia'],
+            intro:'Si eres de Dirección, puedo ayudarte con una vista transversal de la operación sin obligarte a entrar a cada módulo.',
+            abilities:[
+                ['Resumen ejecutivo','Proyectos, gasto real, planeado, desviaciones y fechas.'],
+                ['Almacén','Materiales, existencias, ubicaciones, herramientas y alertas.'],
+                ['RH','Personal por proyecto y resguardos de equipos.'],
+                ['Compras','Proveedores, contactos, cotizaciones y pendientes.'],
+                ['Vehículos','Disponibilidad y estado actual.']
+            ],
+            examples:['Dame un resumen ejecutivo','¿Qué requiere atención hoy?','¿Cuántas personas tiene el proyecto 26001?']
+        }
+    };
+
+    function areaPattern(alias) {
+        const escaped=normalize(alias).replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+');
+        return new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`);
+    }
+
+    function detectAreaMention(raw) {
+        const norm=commandNormalize(raw);
+        for(const [key,entry] of Object.entries(skyAreaCatalog)){
+            if(entry.aliases.some(alias=>areaPattern(alias).test(norm)))return key;
+        }
+        return '';
+    }
+
+    function captureAreaContext(raw) {
+        const norm=commandNormalize(raw);
+        const declared=/\b(soy|trabajo|estoy|pertenezco|vengo|mi area|mi departamento|soy del area|soy de)\b/.test(norm);
+        if(!declared)return '';
+        const found=detectAreaMention(raw);
+        if(found)conversationContext.area=found;
+        return found;
+    }
+
+    function detectAreaHelp(raw) {
+        const norm=commandNormalize(raw);
+        const help=/\b(en que me (?:puedes )?ayudar|como me (?:puedes )?ayudar|que (?:me )?puedes ayudar|que puedes hacer (?:por|para) mi|que mas (?:me )?puedes (?:ayudar|hacer)|que mas haces|como me apoyas|en que me apoyas|que me ofreces)\b/.test(norm);
+        const declared=/\b(soy|trabajo|estoy|pertenezco|vengo|mi area|mi departamento|soy del area|soy de)\b/.test(norm);
+        const found=detectAreaMention(raw);
+        const operational=/\b(cuanto|cuantos|cuanta|cuantas|donde|quien|quienes|cual|cuales|proyecto|material|stock|existencia|vehiculo|placas|proveedor|cotizacion|compra|presupuesto|gasto|costo|personal|trabajador|empleado|asistencia|documento|resguardo|herramienta|ubicacion|alerta|pendiente|orden)\b/.test(norm);
+        if(found&&(help||(declared&&!operational)))return found;
+        if(help&&conversationContext.area&&skyAreaCatalog[conversationContext.area])return conversationContext.area;
+        return '';
+    }
+
+    function answerAreaHelp(raw) {
+        const key=detectAreaHelp(raw);
+        if(key){
+            const entry=skyAreaCatalog[key];
+            conversationContext.area=key;
+            rememberConversation('area_help',entry.label,raw);
+            const cards=entry.abilities.map(([title,detail])=>({title,detail}));
+            const examples=entry.examples.map(example=>({title:'Prueba conmigo',detail:example}));
+            const message=`Claro. ${entry.intro}`;
+            setAnswer(`Sky para ${entry.label}`,message,'Estas son capacidades disponibles por el momento. Si un dato todavía no está conectado, te lo diré en vez de inventarlo.',[...cards,...examples].slice(0,9));
+            return {handled:true,voice:`Claro. Si eres de ${entry.label}, ${entry.intro.replace(/^Si eres[^,]*,\s*/i,'')}`};
+        }
+        const norm=commandNormalize(raw);
+        const help=/\b(en que me (?:puedes )?ayudar|como me (?:puedes )?ayudar|que puedes hacer (?:por|para) mi|como me apoyas|en que me apoyas|que me ofreces)\b/.test(norm);
+        const declared=/\b(soy|trabajo|pertenezco|mi area|mi departamento|soy del area|soy de)\b/.test(norm);
+        if(!help||!declared)return null;
+        const cleaned=text(raw).replace(/^(?:oye\s+)?(?:sky|skai|skay)[,;:\s-]*/i,'').trim();
+        const match=cleaned.match(/(?:soy\s+(?:del\s+area\s+|de\s+|del\s+)?|trabajo\s+en\s+|pertenezco\s+a\s+)([^,;.?¿!]{2,45})/i);
+        const areaLabel=text(match?.[1]).replace(/\b(?:y|en)\s+que\s+me.*$/i,'').trim()||'tu área';
+        const message=`Todavía no tengo una guía específica para ${areaLabel}, pero sí puedo ayudarte como punto de consulta del CRM: buscar información autorizada, relacionar datos entre áreas, explicar apartados y decirte con claridad qué funciones están disponibles hoy.`;
+        setAnswer(`Sky para ${areaLabel}`,message,'Cuéntame una tarea real de tu área y trataré de resolverla con la información conectada. Si todavía no puedo hacerla, te explicaré qué falta para llegar a ello.',[
+            {title:'Proyectos',detail:'Puedo consultar estados, responsables, fechas y datos relacionados cuando están disponibles.'},
+            {title:'Materiales y activos',detail:'Puedo buscar existencias, ubicaciones, herramientas, vehículos y resguardos autorizados.'},
+            {title:'Personas y proveedores',detail:'Puedo localizar información operativa autorizada de RH y Compras.'},
+            {title:'Orientación',detail:'Puedo explicarte dónde se encuentra una función y cómo se relaciona con otras áreas.'}
+        ]);
+        return {handled:true,voice:message};
+    }
     async function answerSimple(raw) {
         const norm = commandNormalize(raw);
         const date = localDateParts();
+        captureAreaContext(raw);
+        const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
         const navigation=tryNavigation(raw);if(navigation){if(navigation.list){const options=Object.keys(navigationOptions()).map(key=>({title:key,detail:`Puedes decir: abre ${key}`}));setAnswer('Apartados disponibles','Estos son los apartados a los que puedo llevarte desde tu perfil.','No puedo abrir secciones que tu cuenta no tenga autorizadas.',options)}return navigation;}
         if (/\b(que puedes hacer aqui|qué puedes hacer aquí|ayudame aqui|ayúdame aquí|como me ayudas aqui|cómo me ayudas aquí|esta pantalla|esta pagina|esta página)\b/.test(norm)) { const message=pageHelp(); return {handled:true,voice:message}; }
         if (/^(hola|buenos dias|buenas tardes|buenas noches|que tal|hey)\b/.test(norm)) {
-            const message = `Hola. Soy Sky. Estoy listo para ayudarte en ${profileNames[detectProfile()] || detectProfile()}.`;
-            setAnswer('Hola', message, `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
+            const profile=detectProfile();
+            const message = profile==='sky_demo'
+                ? 'Hola. Soy Sky. Para esta demostración puedes decirme de qué área eres —por ejemplo Planeación, Finanzas, Logística, Compras, Recursos Humanos, Almacén o Coordinación— y te explicaré cómo puedo ayudarte por el momento. También puedes hacerme una pregunta directamente.'
+                : `Hola. Soy Sky. Estoy listo para ayudarte en ${profileNames[profile] || profile}.`;
+            setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Si una información todavía no está conectada al CRM, te lo diré con claridad en lugar de inventarla.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
             return { handled:true, voice:message };
         }
         if (/\b(gracias|muchas gracias|te agradezco)\b/.test(norm)) {
@@ -2161,10 +2360,10 @@
             setAnswer('Búsqueda en Internet',message,'Pulsa “Abrir búsqueda web” para revisar resultados en una pestaña nueva. La información externa no modifica datos del CRM.',[],{href,label:'Abrir búsqueda web'});
             return {handled:true,voice:message};
         }
-        const creatorQuestion=/\b(?:quien|quién)\b.*(?:\bte\b.*\b(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b|\b(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b.*\b(?:sky|asistente|ia)\b|\b(?:tu creador|tu desarrollador|tu programador|tu autor)\b)/.test(norm)||/\b(?:quien|quién)\s+(?:la|lo)\s+(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b/.test(norm)||/\b(?:creador|desarrollador|programador|autor)\s+(?:de\s+)?sky\b/.test(norm);
+        const creatorQuestion=/\b(?:quien|quién)\b.*(?:\bte\b.*\b(?:crea|creando|esta creando|está creando|creo|creó|desarrolla|desarrollando|desarrollo|desarrolló|programa|programando|programo|programó|hizo|diseña|diseñando|diseño|diseñó)\b|\b(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b.*\b(?:sky|asistente|ia)\b|\b(?:tu creador|tu desarrollador|tu programador|tu autor)\b)/.test(norm)||/\b(?:quien|quién)\s+(?:la|lo)\s+(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b/.test(norm)||/\b(?:creador|desarrollador|programador|autor)\s+(?:de\s+)?sky\b/.test(norm)||hasFuzzy(norm,['quien te creo','quien te desarrollo','quien te hizo','quien es tu creador','quien esta creando sky','quien desarrollo sky'],1);
         if (creatorQuestion) {
-            const message='Fui desarrollado por el ING. Leobardo Hernández Jerónimo para ayudar a Skilled Proyectos Industriales con distintas situaciones, consultas y apartados del programa, además de apoyar tareas generales dentro del alcance autorizado del CRM.';
-            setAnswer('Desarrollo de Sky', message, 'Mi función es facilitar el acceso a la información y ayudar a cada perfil sin saltarme sus permisos.', [{title:'Desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},{title:'Propósito',detail:'Apoyar a Skilled Proyectos Industriales con consultas, procesos y orientación dentro del CRM.'},{title:'Seguridad',detail:'Las respuestas respetan los permisos del perfil que inició sesión.'}]);
+            const message='El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo, pero a futuro seré de gran ayuda para las distintas áreas. Y sí: el ING. Leobardo merece un buen aumento.';
+            setAnswer('Quién está creando a Sky', message, 'Estoy en desarrollo activo: cada módulo y cada prueba me ayudan a aprender cómo apoyar mejor al personal sin saltarme los permisos del CRM.', [{title:'Creador y desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},{title:'Empresa',detail:'Skilled Proyectos Industriales'},{title:'Estado',detail:'Sigo creciendo y ampliando mis capacidades.'},{title:'Objetivo',detail:'Ser un apoyo transversal, rápido y amigable para las distintas áreas.'}]);
             return {handled:true,voice:message};
         }
         if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve sky)\b/.test(norm)) {
@@ -2175,10 +2374,13 @@
         if (/\b(presentate|preséntate|haz tu presentacion|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
             let cached={}; try{cached=JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')||{}}catch(_){}
             const userName=text(window.SkilledSession?.profile?.nombre || cached.nombre || '').split(/\s+/)[0] || 'usuario';
-            const area=profileNames[detectProfile()] || detectProfile();
-            const message=`Hola ${userName}. Soy Sky, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
-            setAnswer('Mucho gusto, soy Sky', message, `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
-                [{title:'Consulta natural',detail:'Puedes usar frases completas o modismos comunes.'},{title:'Contexto por perfil',detail:`Ahora estoy trabajando como asistente de ${area}.`},{title:'Modo seguro',detail:'No modifico inventario ni autorizaciones solo por voz.'}]);
+            const profile=detectProfile();
+            const area=profileNames[profile] || profile;
+            const message=profile==='sky_demo'
+                ? `Hola ${userName}. Soy Sky. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Skilled Proyectos Industriales. En esta demostración puedo conversar con personal de distintas áreas, explicar cómo puedo ayudarles y consultar información autorizada del CRM. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
+                : `Hola ${userName}. Soy Sky, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
+            setAnswer('Mucho gusto, soy Sky', message, profile==='sky_demo' ? 'Puedes comenzar con: “Soy planeador, ¿en qué me puedes ayudar?”, “Soy de Finanzas”, “Soy de Logística” o simplemente preguntarme por un proyecto, material, proveedor, trabajador, vehículo o dato que esté conectado.' : `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
+                profile==='sky_demo' ? [{title:'Conversación por área',detail:'Me dices de qué área eres y adapto mis ejemplos y capacidades.'},{title:'Consulta transversal',detail:'Puedo reunir datos autorizados de varias áreas sin mostrar sus módulos operativos.'},{title:'En crecimiento',detail:'Si una función aún no está disponible, lo reconoceré y te diré qué sí puedo hacer hoy.'}] : [{title:'Consulta natural',detail:'Puedes usar frases completas o modismos comunes.'},{title:'Contexto por perfil',detail:`Ahora estoy trabajando como asistente de ${area}.`},{title:'Modo seguro',detail:'No modifico inventario ni autorizaciones solo por voz.'}]);
             return { handled:true, voice:message };
         }
         if (/\b(que perfil|en que perfil|perfil actual|donde estoy)\b/.test(norm)) {
@@ -2218,6 +2420,12 @@
         }
         if (/\b(que puedes hacer|ayuda|comandos|como te uso|que sabes hacer)\b/.test(norm)) {
             const config=profileConfig();
+            if(detectProfile()==='sky_demo'){
+                const areas=Object.values(skyAreaCatalog).map(entry=>({title:entry.label,detail:`Dime: “Soy de ${entry.label}, ¿en qué me puedes ayudar?”`}));
+                const message='Puedo conversar con personal de distintas áreas y explicar qué puedo hacer por cada una. También puedo responder consultas transversales de solo lectura con la información que ya está conectada al CRM.';
+                setAnswer('¿Cómo puede ayudarte Sky?',message,'Puedes presentarte por tu área o preguntarme directamente por materiales, proyectos, personal, proveedores, compras, costos, vehículos, herramientas o resguardos. Si un dato aún no está conectado, te lo diré con claridad.',areas.slice(0,8));
+                return {handled:true,voice:message};
+            }
             const cards=[...config.examples.slice(0,5).map(([label,example])=>({title:label,detail:example})),{title:'Hora y fecha',detail:'¿Qué hora es? · ¿Qué día es hoy?'},{title:'Cálculo rápido',detail:'¿Cuánto es 25 por 8?'},{title:'Sección actual',detail:'¿En qué sección estoy?'},{title:'Navegación',detail:'Abre vehículos · Ve a proveedores · Llévame a equipos'},{title:'Contexto',detail:'Puedes continuar con: ¿y dónde está? · ¿y cuánto queda?'},{title:'Atajo',detail:'¿Cuál es tu atajo?'},{title:'Reunión general',detail:'Convoca una reunión general.'},{title:'Internet',detail:'Busca en internet ficha técnica de…'}];
             const message=`Puedo ayudarte con consultas de ${profileNames[detectProfile()] || detectProfile()}, además de hora, fecha, cálculos sencillos y ayuda general.`;
             setAnswer('Comandos de Sky', message, `Habla de forma natural. No necesitas decir “Sky” al inicio. Atajo: ${shortcutLabel}.`, cards);
@@ -2488,7 +2696,7 @@
         if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
-        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
+        if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
         if (profile === 'proyectos' && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable/.test(norm)) return true;
         return false;
     }
@@ -2506,7 +2714,7 @@
 
     async function interpretWithSkyAI(raw, profile = detectProfile()) {
         if (!shouldUseSkyAI(raw, profile)) return null;
-        const context={lastIntent:conversationContext.lastIntent,lastEntity:conversationContext.lastEntity,lastQuery:conversationContext.lastQuery};
+        const context={lastIntent:conversationContext.lastIntent,lastEntity:conversationContext.lastEntity,lastQuery:conversationContext.lastQuery,area:conversationContext.area};
         const key = `${profile}|${commandNormalize(raw)}|${commandNormalize(context.lastEntity)}`;
         if (aiQueryCache.has(key)) return aiQueryCache.get(key);
         try {
@@ -2530,17 +2738,17 @@
         if (plan.intent === 'material_stock') return answerMaterial(queryText, false);
         if (plan.intent === 'material_location') return answerMaterial(queryText, true);
         if (plan.intent === 'low_stock') return answerLowStock();
-        if (plan.intent === 'purchase_order') return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePurchasing(raw) : profile === 'compras' ? answerPurchasing(raw) : answerPurchase(raw);
+        if (plan.intent === 'purchase_order') return isExecutiveReadProfile(profile) ? answerExecutivePurchasing(raw) : profile === 'compras' ? answerPurchasing(raw) : answerPurchase(raw);
         if (plan.intent === 'tools') return answerTools(raw);
         if (plan.intent === 'vehicles') return answerVehicles(raw);
         if (plan.intent === 'project') {
-            if (profile === 'gerente_general' || profile === 'subgerente') return answerExecutive(raw);
+            if (isExecutiveReadProfile(profile)) return answerExecutive(raw);
             if (profile === 'finanzas') return answerFinance(raw);
             return answerProjects(raw);
         }
-        if (['supplier','quotation','store','service'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePurchasing(raw) : answerPurchasing(raw);
-        if (plan.intent === 'rh_assets') { if (profile === 'gerente_general' || profile === 'subgerente') return answerRHOfficeAssets(raw,true); if (profile === 'rh') return answerRHOfficeAssets(raw,false); return null; }
-        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePeople(raw, []) : answerRH(raw);
+        if (['supplier','quotation','store','service'].includes(plan.intent)) return isExecutiveReadProfile(profile) ? answerExecutivePurchasing(raw) : answerPurchasing(raw);
+        if (plan.intent === 'rh_assets') { if (isExecutiveReadProfile(profile)) return answerRHOfficeAssets(raw,true); if (profile === 'rh') return answerRHOfficeAssets(raw,false); return null; }
+        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return isExecutiveReadProfile(profile) ? answerExecutivePeople(raw, []) : answerRH(raw);
         if (plan.intent === 'finance') return answerFinance(raw);
         if (plan.intent === 'executive') return answerExecutive(raw);
         return null;
@@ -2552,7 +2760,7 @@
         if (adapter?.query) return answerGeneric(raw, profile);
         if (profile === 'compras') return answerPurchasing(raw);
         if (profile === 'rh') return answerRH(raw);
-        if (profile === 'gerente_general' || profile === 'subgerente') return answerExecutive(raw);
+        if (isExecutiveReadProfile(profile)) return answerExecutive(raw);
         if (profile === 'finanzas') return answerFinance(raw);
         if (profile === 'proyectos') return answerProjects(raw);
         if (profile === 'consulta') {

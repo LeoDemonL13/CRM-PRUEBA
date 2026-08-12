@@ -23,6 +23,7 @@
         finanzas: ['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.reportes.html','al.proyectos.html'],
         gerente_general: ['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
         subgerente: ['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html'],
+        sky_demo: ['sky.inicio.html','perfil.html'],
         tsi: ['tsi.inicio.html','perfil.html'],
         proyectos: ['al.proyectos.html','proy.importar.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','al.catalogo.html','perfil.html'],
         consulta: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html']
@@ -37,6 +38,7 @@
         finanzas: 'FI.inicio.html',
         gerente_general: 'GG.inicio.html',
         subgerente: 'SG.inicio.html',
+        sky_demo: 'SKY.inicio.html',
         tsi: 'TSI.inicio.html',
         proyectos: 'AL.proyectos.html',
         consulta: 'AL.inicio.html'

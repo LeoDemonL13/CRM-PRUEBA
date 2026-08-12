@@ -3,7 +3,7 @@
 if(window.SkilledChat)return;
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const txt=v=>String(v??'').trim();
-const roleLabels={administrador:'Administrador',jefe_almacen:'Jefe de almacén',almacen:'Almacén',compras:'Compras',proyectos:'Proyectos',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerente General',subgerente:'Subgerente',tsi:'TSI',consulta:'Consulta'};
+const roleLabels={administrador:'Administrador',jefe_almacen:'Jefe de almacén',almacen:'Almacén',compras:'Compras',proyectos:'Proyectos',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerente General',subgerente:'Subgerente',sky_demo:'Sky · Presentación',tsi:'TSI',consulta:'Consulta'};
 let overlay=null,meetingOverlay=null,users=[],selected=null,profile=null,pollTimer=null,busy=false,channel=null,unread=0,lastKnownId=0,notificationStarted=false;
 const unreadKey=()=>`skilled_chat_last_${txt(profile?.id||window.SkilledSession?.user?.id||'local')}`;
 function style(){if(document.getElementById('skilled-chat-style'))return;const s=document.createElement('style');s.id='skilled-chat-style';s.textContent=`
