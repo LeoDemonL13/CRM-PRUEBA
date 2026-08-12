@@ -108,13 +108,4 @@ window.addEventListener('skilled:sidebarstate',()=>requestAnimationFrame(()=>ada
 let resizeTimer=0;
 window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{updateMode();adaptDialogs(document)},120)},{passive:true});
 connection?.addEventListener?.('change',updateMode);
-if('MutationObserver'in window){
- const observer=new MutationObserver(records=>{
-  const roots=[];
-  records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)roots.push(node)}));
-  if(roots.length)requestAnimationFrame(()=>roots.slice(0,12).forEach(node=>optimizeImages(node)));
- });
- const start=()=>observer.observe(document.body,{childList:true,subtree:true});
- if(document.body)start();else document.addEventListener('DOMContentLoaded',start,{once:true});
-}
 })();

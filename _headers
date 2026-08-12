@@ -4,13 +4,15 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=(), usb=(self)
   Cross-Origin-Opener-Policy: same-origin-allow-popups
+
+/*.html
   Cache-Control: public, max-age=0, must-revalidate
 
 /*.js
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: public, max-age=31536000, immutable
 
 /*.css
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: public, max-age=31536000, immutable
 
 /*.png
   Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
@@ -21,8 +23,11 @@
 /*.gif
   Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
 
+/*.ico
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
 /*.xlsx
-  Cache-Control: public, max-age=86400, must-revalidate
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
 /crm-sw.js
   Cache-Control: no-store, max-age=0

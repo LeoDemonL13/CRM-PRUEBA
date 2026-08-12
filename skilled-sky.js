@@ -178,6 +178,8 @@
     const desktopBrave = Boolean(navigator.brave && typeof navigator.brave.isBrave === 'function' && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
     let voiceMode = 'automatico';
     let cache = { at: 0 };
+    let cacheTimes = Object.create(null);
+    const dataPromises = new Map();
     const aiQueryCache = new Map();
     let aiRetryAfter = 0;
     const conversationKey=()=>`skilled_sky_context_${detectProfile()}`;
@@ -1132,7 +1134,7 @@
         setHeard('preparando micrófono…', 'live');
         setInterpreted('');
         try {
-            await primeRecognitionVocabulary();
+            primeRecognitionVocabulary();
             cloudStream = await openMicrophoneStream();
             micPermissionChecked = true;
             await refreshMicrophones();
@@ -1421,7 +1423,7 @@
         setHeard('preparando…', 'live');
         setInterpreted('');
         try {
-            await primeRecognitionVocabulary();
+            primeRecognitionVocabulary();
             recognition.start();
         } catch (error) {
             recognitionStarting = false;
@@ -1481,8 +1483,10 @@
     }
 
     async function loadData(key) {
-        const fresh = Date.now() - cache.at < ttl;
-        if (fresh && cache[key]) return cache[key];
+        const dynamicKeys = new Set(['low','purchases','assignments','coSupplierRequests','coStore','coQuotations','rhIncidents','executiveAlerts']);
+        const keyTtl = dynamicKeys.has(key) ? 30000 : 90000;
+        if (cache[key] !== undefined && Date.now() - Number(cacheTimes[key] || 0) < keyTtl) return cache[key];
+        if (dataPromises.has(key)) return dataPromises.get(key);
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
         const loaders = {
             materials: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : SkilledDB.listMaterials(),
@@ -1513,10 +1517,14 @@
             executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts()
         };
         if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
-        const data = await loaders[key]();
-        cache[key] = data;
-        cache.at = Date.now();
-        return data;
+        const promise = Promise.resolve().then(loaders[key]).then(data => {
+            cache[key] = data;
+            cacheTimes[key] = Date.now();
+            cache.at = Date.now();
+            return data;
+        }).finally(() => dataPromises.delete(key));
+        dataPromises.set(key, promise);
+        return promise;
     }
 
     function tokensForMaterial(queryText) {
@@ -2867,7 +2875,7 @@
             clearSpeechLearning: () => { try { localStorage.removeItem(speechLearningStorageKey()); } catch (_) {} },
             clearConversation: clearSkyConversation,
             navigate: value => tryNavigation(`abre ${value}`),
-            invalidate: () => { cache = { at: 0 }; speechLexiconCache = { profile: '', sourceAt: -1, words: [], set: new Set(), buckets: new Map() }; }
+            invalidate: () => { cache = { at: 0 }; cacheTimes = Object.create(null); dataPromises.clear(); speechLexiconCache = { profile: '', sourceAt: -1, words: [], set: new Set(), buckets: new Map() }; }
         });
         window.dispatchEvent(new CustomEvent('skilled:skyready', { detail: window.SkilledSky }));
     }

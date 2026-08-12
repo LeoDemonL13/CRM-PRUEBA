@@ -46,6 +46,8 @@
 
     const normalize = value => String(value ?? '').trim().toLowerCase();
     const root = document.documentElement;
+    const PROFILE_VALIDATION_KEY = 'skilled_profile_validated_at';
+    const PROFILE_VALIDATION_TTL = 300000;
 
     function readCachedProfile() {
         try {
@@ -93,6 +95,20 @@
 
     function clearProfileCache() {
         try { localStorage.removeItem('skilled_profile_cache'); } catch (_) {}
+        try { sessionStorage.removeItem(PROFILE_VALIDATION_KEY); } catch (_) {}
+    }
+
+    function recentProfileValidation() {
+        try {
+            const at = Number(sessionStorage.getItem(PROFILE_VALIDATION_KEY) || 0);
+            return at > 0 && Date.now() - at < PROFILE_VALIDATION_TTL;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function markProfileValidated() {
+        try { sessionStorage.setItem(PROFILE_VALIDATION_KEY, String(Date.now())); } catch (_) {}
     }
 
     let redirecting = false;
@@ -188,6 +204,13 @@
                 return;
             }
 
+            if (canUseCache && recentProfileValidation() && (!cached?.id || String(cached.id) === String(session.user.id))) {
+                exposeSession(session.user, cached, cachedRole, true, false);
+                applyNavigation(client, access[cachedRole] || access.consulta);
+                window.dispatchEvent(new CustomEvent('skilled:sessionready', { detail: window.SkilledSession }));
+                return;
+            }
+
             const { data: profile, error: profileError } = await withTimeout(
                 client
                     .from('perfiles_usuario')
@@ -225,6 +248,7 @@
             try {
                 localStorage.setItem('skilled_profile_cache', JSON.stringify({ ...profile, email: session.user.email, fotoUrl: profile.foto_url }));
             } catch (_) {}
+            markProfileValidated();
 
             exposeSession(session.user, profile, role, false, false);
             applyNavigation(client, access[role] || access.consulta);

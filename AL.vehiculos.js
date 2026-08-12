@@ -298,7 +298,7 @@ async function load(show=true){
   const results=await Promise.all([
    SkilledDB.listVehicles({includeInactive:true}),
    SkilledDB.listWarehouses(),
-   SkilledDB.listProjects(),
+   (SkilledDB.listProjectOptions?SkilledDB.listProjectOptions():SkilledDB.listProjects()),
    safeLoad(()=>SkilledDB.listVehicleTrips(),[]),
    safeLoad(()=>SkilledDB.listVehicleExpenses(),[])
   ]);

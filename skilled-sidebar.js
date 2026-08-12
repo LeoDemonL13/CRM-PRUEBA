@@ -163,6 +163,18 @@
         return `<li><a href="${href}" title="${label}" data-sidebar-link class="${classes}">${iconMarkup}<span class="skilled-sidebar-label">${label}</span></a></li>`;
     }
 
+    function scheduleSidebarPrefetch(aside) {
+        if (!aside || typeof window.SkilledNavigationPrefetch !== 'function') return;
+        const run = () => {
+            const links = [...aside.querySelectorAll('a[data-sidebar-link][href]')]
+                .filter(link => !link.classList.contains('border-blue-500'))
+                .slice(0, 5);
+            links.forEach(link => window.SkilledNavigationPrefetch(link.getAttribute('href')));
+        };
+        if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 1800 });
+        else setTimeout(run, 900);
+    }
+
     function renderSidebar() {
         const activeFile = currentFile();
         const role = currentRole();
@@ -224,6 +236,7 @@
             }));
         }
         setupSidebarControls(aside);
+        scheduleSidebarPrefetch(aside);
     }
 
     function setupSidebarControls(aside) {
@@ -310,34 +323,64 @@
         });
     }
 
-    async function updateRequestBadge() {
-        const appendBadge = (href, count, color = 'bg-blue-600') => {
-            if (!count) return;
+    const badgeCacheKey = 'skilled_sidebar_badges_v50';
+    let badgeUpdatePromise = null;
+    function renderRequestBadges(data = {}) {
+        const setBadge = (href, count, color = 'bg-blue-600') => {
             const link = document.querySelector(`a[href="${href}"]`);
-            if (!link || link.querySelector('[data-request-badge]')) return;
-            const badge = document.createElement('span');
-            badge.dataset.requestBadge = '1';
+            if (!link) return;
+            let badge = link.querySelector('[data-request-badge]');
+            if (!count) { badge?.remove(); return; }
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.dataset.requestBadge = '1';
+                link.appendChild(badge);
+            }
             badge.className = `ml-auto min-w-5 h-5 px-1 rounded-full ${color} text-white text-[9px] font-bold flex items-center justify-center`;
             badge.textContent = count > 99 ? '99+' : String(count);
-            link.appendChild(badge);
         };
+        setBadge('CO.servicios.html', Number(data.serviceCount) || 0, 'bg-amber-500');
+        setBadge('AL.solicitudes-material.html', Number(data.materialCount) || 0, 'bg-blue-600');
+        setBadge('CO.cotizaciones.html', Number(data.quotationCount) || 0, 'bg-emerald-600');
+    }
+    function cachedBadgeData() {
         try {
-            if (!window.SkilledDB) return;
-            if (typeof window.SkilledDB.listUnreadNotifications === 'function') {
-                const notifications = await window.SkilledDB.listUnreadNotifications();
-                const serviceCount = notifications.filter(item => item.tipo === 'servicio_proximo_pago').length;
-                const materialCount = notifications.filter(item => item.tipo !== 'servicio_proximo_pago').length;
-                appendBadge('CO.servicios.html', serviceCount, 'bg-amber-500');
-                appendBadge('AL.solicitudes-material.html', materialCount, 'bg-blue-600');
+            const value = JSON.parse(sessionStorage.getItem(badgeCacheKey) || 'null');
+            if (value && Date.now() - Number(value.at || 0) < 30000) return value;
+        } catch (_) {}
+        return null;
+    }
+    async function updateRequestBadge(force = false) {
+        if (!window.SkilledDB) return;
+        const cached = !force ? cachedBadgeData() : null;
+        if (cached) { renderRequestBadges(cached); return; }
+        if (badgeUpdatePromise) return badgeUpdatePromise;
+        badgeUpdatePromise = (async () => {
+            const data = { at:Date.now(), serviceCount:0, materialCount:0, quotationCount:0 };
+            try {
+                if (typeof window.SkilledDB.listUnreadNotifications === 'function') {
+                    const notifications = await window.SkilledDB.listUnreadNotifications();
+                    data.serviceCount = notifications.filter(item => item.tipo === 'servicio_proximo_pago').length;
+                    data.materialCount = notifications.length - data.serviceCount;
+                }
+                if (sidebarProfileKey() === 'compras' && typeof window.SkilledDB.listQuotationRequests === 'function') {
+                    const quotations = await window.SkilledDB.listQuotationRequests({});
+                    data.quotationCount = quotations.filter(item => ['solicitada','en_revision','cotizando'].includes(String(item.estado || '').toLowerCase())).length;
+                }
+                try { sessionStorage.setItem(badgeCacheKey, JSON.stringify(data)); } catch (_) {}
+                renderRequestBadges(data);
+            } catch (error) {
+                console.debug('No se pudieron cargar los indicadores del menú:', error);
+            } finally {
+                badgeUpdatePromise = null;
             }
-            if (sidebarProfileKey() === 'compras' && typeof window.SkilledDB.listQuotationRequests === 'function') {
-                const quotations = await window.SkilledDB.listQuotationRequests({});
-                const pending = quotations.filter(item => ['solicitada','en_revision','cotizando'].includes(String(item.estado || '').toLowerCase())).length;
-                appendBadge('CO.cotizaciones.html', pending, 'bg-emerald-600');
-            }
-        } catch (error) {
-            console.debug('No se pudieron cargar los indicadores del menú:', error);
-        }
+        })();
+        return badgeUpdatePromise;
+    }
+    function scheduleRequestBadgeUpdate() {
+        const run = () => updateRequestBadge(false);
+        if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout:2400 });
+        else setTimeout(run, 1200);
     }
 
     const headerIcons = {
@@ -365,6 +408,21 @@
     let searchIndexPromise = null;
     let searchIndexCreatedAt = 0;
     let activeSearchResult = -1;
+    const SEARCH_CACHE_TTL = 30000;
+    function searchCacheKey(role) { return `skilled_search_index_v50_${role || 'consulta'}`; }
+    function readSearchCache(role) {
+        try {
+            const value = JSON.parse(sessionStorage.getItem(searchCacheKey(role)) || 'null');
+            if (value && Array.isArray(value.entries) && Date.now() - Number(value.at || 0) < SEARCH_CACHE_TTL) return value.entries;
+        } catch (_) {}
+        return null;
+    }
+    function writeSearchCache(role, entries) {
+        try {
+            const json = JSON.stringify({ at:Date.now(), entries });
+            if (json.length < 1800000) sessionStorage.setItem(searchCacheKey(role), json);
+        } catch (_) {}
+    }
     let globalSearchTimer = null;
     let resolvedRole = '';
     let renderedRole = '';
@@ -850,11 +908,17 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             });
         });
         searchIndexCreatedAt = Date.now();
+        writeSearchCache(role, entries);
         return entries;
     }
 
     function getSearchIndex() {
-        if (!searchIndexPromise || Date.now() - searchIndexCreatedAt > 20000) searchIndexPromise = createSearchIndex();
+        const role = currentRole();
+        if (!searchIndexPromise) {
+            const cached = readSearchCache(role);
+            if (cached) { searchIndexCreatedAt = Date.now(); searchIndexPromise = Promise.resolve(cached); }
+        }
+        if (!searchIndexPromise || Date.now() - searchIndexCreatedAt > SEARCH_CACHE_TTL) searchIndexPromise = createSearchIndex();
         return searchIndexPromise;
     }
 
@@ -904,23 +968,32 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         items[activeSearchResult]?.scrollIntoView({ block: 'nearest' });
     }
 
+    function rankedSearch(entries, query, limit = 12) {
+        return entries.map(entry => ({ entry, score: scoreEntry(entry, query) })).filter(item => item.score >= 0).sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title, 'es')).slice(0, limit).map(item => item.entry);
+    }
+    function renderSearchEntries(container, results, query, loading = false) {
+        if (!results.length) {
+            container.innerHTML = loading ? '<div class="skilled-search-status">Buscando datos del CRM…</div>' : `<div class="skilled-search-status">No se encontraron resultados para “${safeHtml(query)}”.</div>`;
+            activeSearchResult = -1;
+            return;
+        }
+        container.innerHTML = results.map(entry => `<a class="skilled-search-item" href="${safeHtml(entry.url)}"><span class="skilled-search-symbol">${safeHtml(entry.symbol)}</span><span class="skilled-search-copy"><span class="skilled-search-title">${safeHtml(entry.title)}</span><span class="skilled-search-subtitle">${safeHtml(entry.subtitle)}</span></span><span class="skilled-search-type">${safeHtml(entry.type)}</span></a>`).join('') + (loading ? '<div class="skilled-search-status">Completando resultados…</div>' : '');
+        setActiveResult(container, 0);
+    }
     async function performGlobalSearch(input, query, openFirst = false) {
         const container = searchResultsNode(input);
         container.hidden = false;
-        container.innerHTML = '<div class="skilled-search-status">Buscando en el CRM...</div>';
+        const quick = rankedSearch(pageSearchEntries(currentRole()), query, 8);
+        renderSearchEntries(container, quick, query, true);
+        const requested = cleanText(query);
         try {
             const index = await getSearchIndex();
-            const results = index.map(entry => ({ entry, score: scoreEntry(entry, query) })).filter(item => item.score >= 0).sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title, 'es')).slice(0, 12).map(item => item.entry);
-            if (!results.length) {
-                container.innerHTML = `<div class="skilled-search-status">No se encontraron resultados para “${safeHtml(query)}”.</div>`;
-                activeSearchResult = -1;
-                return;
-            }
-            container.innerHTML = results.map(entry => `<a class="skilled-search-item" href="${safeHtml(entry.url)}"><span class="skilled-search-symbol">${safeHtml(entry.symbol)}</span><span class="skilled-search-copy"><span class="skilled-search-title">${safeHtml(entry.title)}</span><span class="skilled-search-subtitle">${safeHtml(entry.subtitle)}</span></span><span class="skilled-search-type">${safeHtml(entry.type)}</span></a>`).join('');
-            setActiveResult(container, 0);
-            if (openFirst) location.href = results[0].url;
+            if (cleanText(input.value) !== requested && !openFirst) return;
+            const results = rankedSearch(index, query, 12);
+            renderSearchEntries(container, results, query, false);
+            if (openFirst && results[0]) location.href = results[0].url;
         } catch (error) {
-            container.innerHTML = `<div class="skilled-search-status">No fue posible consultar el CRM: ${safeHtml(error.message)}</div>`;
+            if (!quick.length) container.innerHTML = `<div class="skilled-search-status">No fue posible consultar el CRM: ${safeHtml(error.message)}</div>`;
         }
     }
 
@@ -1094,31 +1167,116 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         });
     }
 
+    const optionalScripts = new Map();
+
+    function loadOptionalScript(src) {
+        if (optionalScripts.has(src)) return optionalScripts.get(src);
+        const promise = new Promise((resolve, reject) => {
+            const existing = [...document.scripts].find(node => node.src === new URL(src, location.href).href);
+            if (existing?.dataset.loaded === '1') return resolve(existing);
+            const script = existing || document.createElement('script');
+            const done = () => { script.dataset.loaded = '1'; resolve(script); };
+            const fail = () => reject(new Error('No se pudo cargar el módulo.'));
+            script.addEventListener('load', done, { once:true });
+            script.addEventListener('error', fail, { once:true });
+            if (!existing) { script.src = src; script.async = true; document.head.appendChild(script); }
+        });
+        optionalScripts.set(src, promise);
+        return promise;
+    }
+
+    function lazyActionHost() {
+        const header = document.querySelector('body > div header, header');
+        return header ? headerActionContainer(header) : null;
+    }
+
+    function createLazySkyButton() {
+        if (document.getElementById('sky-open')) return;
+        const host = lazyActionHost();
+        if (!host) return;
+        const button = document.createElement('button');
+        button.id = 'sky-open';
+        button.type = 'button';
+        button.className = 'skilled-header-button';
+        button.title = 'Consultar Sky';
+        button.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Sky</span>';
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            button.remove();
+            syncMobileDock();
+            try {
+                await loadOptionalScript('skilled-sky.js?v=50');
+                window.SkilledSky?.open?.();
+            } catch (_) {
+                createLazySkyButton();
+            }
+            syncMobileDock();
+        }, { once:true });
+        host.insertBefore(button, host.firstChild);
+    }
+
+    function createLazyChatButton() {
+        if (document.getElementById('chat-open')) return;
+        const host = lazyActionHost();
+        if (!host) return;
+        const button = document.createElement('button');
+        button.id = 'chat-open';
+        button.type = 'button';
+        button.className = 'skilled-header-button';
+        button.title = 'Chat interno';
+        button.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5Z"></path><path d="M8 9h8M8 12h5"></path></svg><span>Chat</span>';
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            button.remove();
+            syncMobileDock();
+            try {
+                await loadOptionalScript('skilled-chat.js?v=50');
+                window.SkilledChat?.open?.();
+            } catch (_) {
+                createLazyChatButton();
+            }
+            syncMobileDock();
+        }, { once:true });
+        const sky = document.getElementById('sky-open');
+        if (sky && sky.parentElement === host) host.insertBefore(button, sky.nextSibling);
+        else host.insertBefore(button, host.firstChild);
+    }
+
     function ensureSky() {
         if (!skyAllowed()) {
             document.getElementById('sky-open')?.remove();
             document.getElementById('sky-overlay')?.remove();
-            document.querySelectorAll('[data-skilled-sky]').forEach(node=>node.remove());
+            document.querySelectorAll('[data-skilled-sky]').forEach(node => node.remove());
             return;
         }
-        if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
-        const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=49';
-        script.defer = true;
-        script.dataset.skilledSky = '1';
-        script.addEventListener('load', () => setTimeout(syncMobileDock, 0), { once:true });
-        document.head.appendChild(script);
+        if (window.SkilledSky) return;
+        if (sidebarProfileKey() === 'sky_demo') {
+            loadOptionalScript('skilled-sky.js?v=50').catch(() => createLazySkyButton());
+            return;
+        }
+        if (document.querySelector('script[src*="skilled-sky.js"]')) return;
+        createLazySkyButton();
+    }
+
+    let chatIdleScheduled = false;
+    function scheduleChatNotifications() {
+        if (chatIdleScheduled || sidebarProfileKey() === 'sky_demo' || window.SkilledChat) return;
+        chatIdleScheduled = true;
+        const load = async () => {
+            if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
+            document.getElementById('chat-open')?.remove();
+            try { await loadOptionalScript('skilled-chat.js?v=50'); } catch (_) { createLazyChatButton(); }
+            syncMobileDock();
+        };
+        if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
+        else setTimeout(load, 6000);
     }
 
     function ensureChat() {
-        if (sidebarProfileKey()==='sky_demo') return;
+        if (sidebarProfileKey() === 'sky_demo') return;
         if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
-        const script = document.createElement('script');
-        script.src = 'skilled-chat.js?v=49';
-        script.defer = true;
-        script.dataset.skilledChat = '1';
-        script.addEventListener('load', () => setTimeout(syncMobileDock, 0), { once:true });
-        document.head.appendChild(script);
+        createLazyChatButton();
+        scheduleChatNotifications();
     }
 
     function normalizeSharedHeader() {
@@ -1138,7 +1296,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const role = currentRole();
         if (!document.getElementById('skilled-sidebar') || renderedRole !== role) {
             renderSidebar();
-            setTimeout(updateRequestBadge, 80);
+            scheduleRequestBadgeUpdate();
         } else {
             const aside = document.getElementById('skilled-sidebar');
             const compact = sidebarCompactFor(role);
@@ -1159,9 +1317,8 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         ensureChat();
         renderSidebar();
         normalizeBreadcrumbHome();
-        setTimeout(updateRequestBadge, 250);
+        scheduleRequestBadgeUpdate();
         normalizeSharedHeader();
-        setTimeout(normalizeSharedHeader, 500);
     }
 
     if (document.readyState === 'loading') {

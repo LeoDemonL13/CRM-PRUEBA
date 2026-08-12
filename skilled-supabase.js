@@ -153,14 +153,41 @@
         };
     }
 
+    const warehouseSnapshot = { at: 0, data: null, promise: null };
+    const WAREHOUSE_SNAPSHOT_TTL = 15000;
+
+    function invalidateWarehouseSnapshot() {
+        warehouseSnapshot.at = 0;
+        warehouseSnapshot.data = null;
+        warehouseSnapshot.promise = null;
+    }
+
     async function listWarehouses(options = {}) {
-        const activeOnly = options.activeOnly === true;
-        const rows = await collectRows(() => {
-            let query = client.from('almacenes').select('*').order('nombre', { ascending: true });
-            if (activeOnly) query = query.eq('estado', 'Activo');
-            return query;
-        });
-        return rows.map(warehouseFromDb);
+        const force = options.refresh === true;
+        const now = Date.now();
+        let warehouses;
+        if (!force && Array.isArray(warehouseSnapshot.data) && now - warehouseSnapshot.at < WAREHOUSE_SNAPSHOT_TTL) {
+            warehouses = warehouseSnapshot.data;
+        } else {
+            if (!force && warehouseSnapshot.promise) {
+                warehouses = await warehouseSnapshot.promise;
+            } else {
+                const promise = collectRows(() => client.from('almacenes').select('*').order('nombre', { ascending: true }))
+                    .then(rows => rows.map(warehouseFromDb));
+                warehouseSnapshot.promise = promise;
+                try {
+                    warehouses = await promise;
+                    warehouseSnapshot.data = warehouses;
+                    warehouseSnapshot.at = Date.now();
+                } finally {
+                    if (warehouseSnapshot.promise === promise) warehouseSnapshot.promise = null;
+                }
+            }
+        }
+        const rows = options.activeOnly === true
+            ? warehouses.filter(item => lower(item.estado) === 'activo')
+            : warehouses;
+        return rows.slice();
     }
 
     async function saveWarehouse(warehouse, originalName = '') {
@@ -183,6 +210,8 @@
             const { error } = await client.from('almacenes').insert(row);
             assertNoError(error, 'No se pudo crear el almacén.');
         }
+        invalidateWarehouseSnapshot();
+        invalidateMaterialSnapshot();
         return { ok: true, nombre: row.nombre };
     }
 
@@ -209,6 +238,8 @@
 
         const { error } = await client.from('almacenes').delete().eq('id', warehouse.id);
         assertNoError(error, 'No se pudo eliminar el almacén.');
+        invalidateWarehouseSnapshot();
+        invalidateMaterialSnapshot();
         return { ok: true, nombre };
     }
 
@@ -603,24 +634,52 @@
         return { warehouseById, inventoriesByMaterial, inventories };
     }
 
-    async function listMaterials(options = {}) {
-        const warehouseId = Number(options.warehouseId || options.almacenId || 0);
-        const [rows, context] = await Promise.all([
+    const materialSnapshot = { at: 0, data: null, promise: null };
+    const MATERIAL_SNAPSHOT_TTL = 8000;
+
+    function invalidateMaterialSnapshot() {
+        materialSnapshot.at = 0;
+        materialSnapshot.data = null;
+        materialSnapshot.promise = null;
+    }
+
+    async function getMaterialSnapshot(force = false) {
+        const now = Date.now();
+        if (!force && Array.isArray(materialSnapshot.data) && now - materialSnapshot.at < MATERIAL_SNAPSHOT_TTL) {
+            return materialSnapshot.data;
+        }
+        if (!force && materialSnapshot.promise) return materialSnapshot.promise;
+
+        const promise = Promise.all([
             collectRows(() => client.from('materiales').select('*').order('codigo', { ascending: true })),
             loadInventoryContext()
-        ]);
-
-        let materials = rows.map(row => materialFromDb(
+        ]).then(([rows, context]) => rows.map(row => materialFromDb(
             row,
             context.inventoriesByMaterial.get(text(row.codigo)) || [],
             context.warehouseById
-        ));
+        )));
 
-        if (options.includeInactive !== true) {
-            materials = materials.filter(material => material.activo !== false);
+        materialSnapshot.promise = promise;
+        try {
+            const data = await promise;
+            materialSnapshot.data = data;
+            materialSnapshot.at = Date.now();
+            return data;
+        } finally {
+            if (materialSnapshot.promise === promise) materialSnapshot.promise = null;
         }
-        if (!warehouseId) return materials;
-        return materials.filter(material => material.almacenes.some(item => item.id === warehouseId));
+    }
+
+    async function listMaterials(options = {}) {
+        const warehouseId = Number(options.warehouseId || options.almacenId || 0);
+        const all = await getMaterialSnapshot(options.refresh === true);
+        let materials = options.includeInactive === true
+            ? all
+            : all.filter(material => material.activo !== false);
+        if (warehouseId) {
+            materials = materials.filter(material => material.almacenes.some(item => item.id === warehouseId));
+        }
+        return materials.slice();
     }
 
     function cableRollFromDb(row) {
@@ -878,7 +937,8 @@
             assertNoError(error, 'El material se guardó, pero no se pudo asignar al almacén.');
         }
 
-        const all = await listMaterials();
+        invalidateMaterialSnapshot();
+        const all = await listMaterials({ refresh: true });
         return all.find(item => item.codigo === row.codigo) || materialFromDb(row);
     }
 
@@ -890,6 +950,7 @@
             .update({ activo: false, updated_at: new Date().toISOString() })
             .eq('codigo', codigo);
         assertNoError(error, 'No se pudo retirar el material del catálogo.');
+        invalidateMaterialSnapshot();
         return { ok: true, codigo, eliminadoLogicamente: true };
     }
 
@@ -1127,6 +1188,7 @@
             }
         }
 
+        invalidateMaterialSnapshot();
         progress(100, 'Importación terminada.');
         return { ok:true, estado:'completado', total:input.length, creados:created, actualizados:updated, omitidos:omitted, rollos:rolls.length, errores:errors };
     }
@@ -1225,6 +1287,17 @@
             }
         }
         return mapped;
+    }
+
+    async function listRecentMovements(limit = 12) {
+        const maxRows = Math.max(1, Math.min(100, Number(limit) || 12));
+        const { data, error } = await client
+            .from('movimientos')
+            .select('*')
+            .order('fecha', { ascending: false })
+            .limit(maxRows);
+        assertNoError(error, 'No se pudieron consultar los movimientos recientes.');
+        return (Array.isArray(data) ? data : []).map(movementFromDb);
     }
 
     async function listMovementGroups(options = {}) {
@@ -1485,6 +1558,7 @@
             }
         }
 
+        invalidateMaterialSnapshot();
         return data && typeof data === 'object'
             ? data
             : { ok: true, registrados: normalizedProducts.length, requestId };
@@ -2256,7 +2330,10 @@
         if (!rows.length) return { actualizados: 0, omitidos: source.length };
 
         const { data, error } = await client.rpc('crm_actualizar_niveles_stock_lote', { p_items: rows });
-        if (!error) return { actualizados: Number(data) || 0, omitidos: Math.max(0, source.length - rows.length) };
+        if (!error) {
+            invalidateMaterialSnapshot();
+            return { actualizados: Number(data) || 0, omitidos: Math.max(0, source.length - rows.length) };
+        }
 
         const message = errorMessage(error);
         if (!/crm_actualizar_niveles_stock_lote|function|schema cache|PGRST202/i.test(message)) {
@@ -2280,6 +2357,7 @@
             assertNoError(itemError, 'No se pudieron actualizar los niveles de stock.');
             if (item) updated += 1;
         }
+        invalidateMaterialSnapshot();
         return { actualizados: updated, omitidos: Math.max(0, source.length - rows.length) };
     }
 
@@ -2429,6 +2507,15 @@
         const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
         const random = Math.random().toString(36).slice(2, 6).toUpperCase();
         return `SC-${date}-${time}-${random}`;
+    }
+
+    async function countActivePurchaseRequests() {
+        const { count, error } = await client
+            .from('solicitudes_compra')
+            .select('id', { count: 'exact', head: true })
+            .in('estado', ['pendiente', 'autorizada', 'ordenada', 'parcial']);
+        assertNoError(error, 'No se pudo consultar el total de compras pendientes.');
+        return Number(count) || 0;
     }
 
     async function listPurchaseRequests(options = {}) {
@@ -5653,6 +5740,7 @@
         listMaterials,
         listLowStock,
         listPurchaseRequests,
+        countActivePurchaseRequests,
         listPurchaseOrderItems,
         createPurchaseRequest,
         createPurchaseRequests,
@@ -5682,6 +5770,7 @@
         normalizeWarehouseLocationCode,
         validateWarehouseLocationAgainstStructure,
         listMovements,
+        listRecentMovements,
         listMovementGroups,
         registerMovement,
         transferProjectMaterials,

@@ -1,8 +1,13 @@
 (function(){
 'use strict';
 const root=document.documentElement;
-const RELEASE='49';
+const RELEASE='50';
 const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+function addConnectionHints(){
+ const hints=[['preconnect','https://cdn.jsdelivr.net','anonymous'],['dns-prefetch','https://cdn.jsdelivr.net',''],['preconnect','https://cuxnzqbszzrfnrinxbdp.supabase.co','anonymous'],['dns-prefetch','https://cuxnzqbszzrfnrinxbdp.supabase.co','']];
+ hints.forEach(([rel,href,crossorigin])=>{if(document.head.querySelector(`link[rel="${rel}"][href="${href}"]`))return;const link=document.createElement('link');link.rel=rel;link.href=href;if(crossorigin)link.crossOrigin=crossorigin;document.head.appendChild(link)});
+}
+addConnectionHints();
 async function cleanupOldRelease(){try{if(localStorage.getItem('skilled_crm_release')===RELEASE)return;if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('skilled-crm-')).map(key=>caches.delete(key)))}localStorage.setItem('skilled_crm_release',RELEASE)}catch(_){}}
 function currentFile(){let file=(location.pathname.split('/').pop()||'').toLowerCase();if(file&&!/\.html?$/.test(file))file+='.html';return file}
 function cachedRole(){try{return String(JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')?.rol||'').toLowerCase()}catch(_){return''}}
@@ -14,20 +19,22 @@ function applyThemeImmediately(){const light=currentFile()!=='login.html'&&local
 applyThemeImmediately();applySidebarStateImmediately();root.dataset.skyAllowed=['compras','rh','finanzas','gerente_general','subgerente','sky_demo'].includes(themeProfile())?'1':'0';if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyThemeImmediately,{once:true});
 function ensureProgressBar(){let bar=document.getElementById('crm-route-progress');if(bar)return bar;bar=document.createElement('div');bar.id='crm-route-progress';bar.setAttribute('aria-hidden','true');root.appendChild(bar);return bar}
 let progressSafetyTimer=0;
-function beginProgress(){const bar=ensureProgressBar();bar.classList.remove('is-finishing');bar.classList.add('is-active');root.classList.add('crm-route-pending');clearTimeout(progressSafetyTimer);progressSafetyTimer=setTimeout(finishProgress,2200)}
-function finishProgress(){root.classList.remove('crm-route-pending');const bar=document.getElementById('crm-route-progress');if(!bar)return;bar.classList.add('is-finishing');setTimeout(()=>bar.remove(),180)}
+function beginProgress(){const bar=ensureProgressBar();bar.classList.remove('is-finishing');bar.classList.add('is-active');root.classList.add('crm-route-pending');clearTimeout(progressSafetyTimer);progressSafetyTimer=setTimeout(finishProgress,1600)}
+function finishProgress(){root.classList.remove('crm-route-pending');const bar=document.getElementById('crm-route-progress');if(!bar)return;bar.classList.add('is-finishing');setTimeout(()=>bar.remove(),140)}
 window.addEventListener('pageshow',finishProgress);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',finishProgress,{once:true});else finishProgress();
-function targetUrl(anchor){if(!anchor||anchor.hasAttribute('download')||anchor.hasAttribute('data-no-transition'))return null;if(/cerrar\s+sesi/i.test(anchor.textContent||''))return null;if(anchor.target&&anchor.target.toLowerCase()!=='_self')return null;const raw=anchor.getAttribute('href')||'';if(!raw||raw.startsWith('#')||raw.startsWith('javascript:')||raw.startsWith('mailto:')||raw.startsWith('tel:'))return null;let url;try{url=new URL(raw,location.href)}catch(_){return null}if(url.origin!==location.origin)return null;if(url.pathname===location.pathname&&url.search===location.search&&!url.hash)return null;if(!/\.(?:html?)$/i.test(url.pathname)&&!url.pathname.endsWith('/'))return null;return url}
+function useCleanRoutes(){const host=location.hostname.toLowerCase();return host.endsWith('.pages.dev')||host.endsWith('.skilledmx.cloud')}
+function optimizeRoute(url){if(!url||!useCleanRoutes())return url;if(/\.html?$/i.test(url.pathname)){const next=new URL(url.href);next.pathname=next.pathname.replace(/\.html?$/i,'');return next}return url}
+function targetUrl(anchor){if(!anchor||anchor.hasAttribute('download')||anchor.hasAttribute('data-no-transition'))return null;if(/cerrar\s+sesi/i.test(anchor.textContent||''))return null;if(anchor.target&&anchor.target.toLowerCase()!=='_self')return null;const raw=anchor.getAttribute('href')||'';if(!raw||raw.startsWith('#')||raw.startsWith('javascript:')||raw.startsWith('mailto:')||raw.startsWith('tel:'))return null;let url;try{url=new URL(raw,location.href)}catch(_){return null}if(url.origin!==location.origin)return null;if(url.pathname===location.pathname&&url.search===location.search&&!url.hash)return null;if(!/\.(?:html?)$/i.test(url.pathname)&&!url.pathname.endsWith('/'))return null;const optimized=optimizeRoute(url);if(optimized.pathname===location.pathname&&optimized.search===location.search&&!optimized.hash)return null;return optimized}
 const prefetched=new Map();
 function fastConnection(){return !(connection?.saveData||['slow-2g','2g'].includes(connection?.effectiveType))}
-function prefetch(anchor,aggressive=false){if(!fastConnection())return;const url=targetUrl(anchor);if(!url||prefetched.has(url.href))return;const job=(async()=>{try{const response=await fetch(url.href,{credentials:'same-origin',cache:'default',priority:aggressive?'auto':'low'});if(response.ok){const link=document.createElement('link');link.rel='prefetch';link.href=url.href;document.head.appendChild(link)}}catch(_){}})();prefetched.set(url.href,job);if(prefetched.size>18)prefetched.delete(prefetched.keys().next().value)}
+function prefetch(anchor,aggressive=false){if(!fastConnection())return;const url=targetUrl(anchor);if(!url||prefetched.has(url.href))return;const link=document.createElement('link');link.rel='prefetch';link.as='document';link.href=url.href;link.fetchPriority=aggressive?'high':'low';document.head.appendChild(link);prefetched.set(url.href,link);if(prefetched.size>10){const first=prefetched.keys().next().value;prefetched.get(first)?.remove();prefetched.delete(first)}}
+window.SkilledNavigationPrefetch=href=>{try{const anchor=document.createElement('a');anchor.href=String(href||'');prefetch(anchor,false)}catch(_){}};
 let hoverTimer=0;
-document.addEventListener('pointerover',event=>{const anchor=event.target.closest?.('a[href]');if(!anchor)return;clearTimeout(hoverTimer);hoverTimer=setTimeout(()=>prefetch(anchor,false),70)},{passive:true,capture:true});
+document.addEventListener('pointerover',event=>{const anchor=event.target.closest?.('a[href]');if(!anchor)return;clearTimeout(hoverTimer);hoverTimer=setTimeout(()=>prefetch(anchor,false),110)},{passive:true,capture:true});
 document.addEventListener('focusin',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,false)},true);
 document.addEventListener('pointerdown',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,true)},{passive:true,capture:true});
-document.addEventListener('touchstart',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,true)},{passive:true,capture:true});
-document.addEventListener('click',event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const anchor=event.target.closest?.('a[href]');if(!targetUrl(anchor))return;beginProgress()},false);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>cleanupOldRelease(),{once:true});else cleanupOldRelease();
-async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=49',{scope:'./',updateViaCache:'none'});registration.update().catch(()=>{})}catch(_){}}
+document.addEventListener('click',event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const anchor=event.target.closest?.('a[href]');const target=targetUrl(anchor);if(!target)return;beginProgress();let original=null;try{original=new URL(anchor.getAttribute('href')||'',location.href)}catch(_){}if(original&&target.href!==original.href){event.preventDefault();location.assign(target.href)}},false);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',cleanupOldRelease,{once:true});else cleanupOldRelease();
+async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=50',{scope:'./',updateViaCache:'none'});const update=()=>registration.update().catch(()=>{});if('requestIdleCallback'in window)requestIdleCallback(update,{timeout:3000});else setTimeout(update,1800)}catch(_){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enableServiceWorker,{once:true});else enableServiceWorker();
 })();
