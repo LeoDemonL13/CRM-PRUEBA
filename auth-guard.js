@@ -11,7 +11,7 @@
     }
 
     const file = pageNameFromPath();
-    const publicPages = new Set(['login.html', 'index.html', 'limpiar-cache.html']);
+    const publicPages = new Set(['login.html', 'index.html', 'limpiar-cache.html', 'recuperar-crm.html']);
     if (publicPages.has(file)) return;
 
     const access = {

@@ -1011,7 +1011,8 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         if(!copy){copy=document.createElement('div');copy.className='skilled-mobile-header-copy';const toggle=header.querySelector('[data-sidebar-mobile-toggle]');if(toggle?.nextSibling)header.insertBefore(copy,toggle.nextSibling);else if(toggle)header.appendChild(copy);else header.prepend(copy)}
         const profileLabels={almacen:'Almacén',compras:'Compras',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerencia General',subgerente:'Subgerencia',sky_demo:'Sky · Presentación',tsi:'TSI',proyectos:'Proyectos',consulta:'Consulta'};
         const profile=sidebarProfileKey();let section=currentFile().replace(/\.html?$/i,'').replace(/^[A-Z]{2}\./i,'').replace(/[._-]+/g,' ').trim();section=section?section.charAt(0).toUpperCase()+section.slice(1):'Inicio';
-        copy.innerHTML=`<strong>${safeHtml(profileLabels[profile]||'Skilled CRM')}</strong><span>${safeHtml(section)}</span>`;
+        const markup=`<strong>${safeHtml(profileLabels[profile]||'Skilled CRM')}</strong><span>${safeHtml(section)}</span>`;
+        if(copy.innerHTML!==markup)copy.innerHTML=markup;
     }
 
     function ensureMobileDock() {
@@ -1082,8 +1083,12 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(syncMobileDock, 90);
         }, { passive:true });
-        const observer = new MutationObserver(() => syncMobileDock());
-        observer.observe(document.body, { childList:true, subtree:true });
+        let syncQueued=false;
+        const scheduleSync=()=>{if(syncQueued)return;syncQueued=true;requestAnimationFrame(()=>{syncQueued=false;syncMobileDock()})};
+        window.addEventListener('skilled:contentchanged',scheduleSync);
+        window.addEventListener('skilled:profileupdated',scheduleSync);
+        window.addEventListener('skilled:skyready',scheduleSync);
+        document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync()});
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') document.body.classList.remove('skilled-mobile-search-open');
         });
@@ -1098,7 +1103,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=48';
+        script.src = 'skilled-sky.js?v=49';
         script.defer = true;
         script.dataset.skilledSky = '1';
         script.addEventListener('load', () => setTimeout(syncMobileDock, 0), { once:true });
@@ -1109,7 +1114,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         if (sidebarProfileKey()==='sky_demo') return;
         if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-chat.js?v=48';
+        script.src = 'skilled-chat.js?v=49';
         script.defer = true;
         script.dataset.skilledChat = '1';
         script.addEventListener('load', () => setTimeout(syncMobileDock, 0), { once:true });

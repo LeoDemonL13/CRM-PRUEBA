@@ -1,8 +1,9 @@
 (function(){
 'use strict';
 const root=document.documentElement;
+const RELEASE='49';
 const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-async function cleanupOldRelease(){try{if(localStorage.getItem('skilled_crm_release')==='45')return;if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('skilled-crm-')&&!key.endsWith('v45')).map(key=>caches.delete(key)))}localStorage.setItem('skilled_crm_release','45')}catch(_){}}
+async function cleanupOldRelease(){try{if(localStorage.getItem('skilled_crm_release')===RELEASE)return;if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('skilled-crm-')).map(key=>caches.delete(key)))}localStorage.setItem('skilled_crm_release',RELEASE)}catch(_){}}
 function currentFile(){let file=(location.pathname.split('/').pop()||'').toLowerCase();if(file&&!/\.html?$/.test(file))file+='.html';return file}
 function cachedRole(){try{return String(JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')?.rol||'').toLowerCase()}catch(_){return''}}
 function themeProfile(){const requested=String(new URLSearchParams(location.search).get('perfil')||'').toLowerCase();if(['almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','tsi','proyectos','consulta'].includes(requested))return requested;const file=currentFile();if(file.startsWith('co.'))return'compras';if(file.startsWith('rh.'))return'rh';if(file.startsWith('fi.'))return'finanzas';if(file.startsWith('gg.'))return'gerente_general';if(file.startsWith('sg.'))return'subgerente';if(file.startsWith('sky.'))return'sky_demo';if(file.startsWith('tsi.'))return'tsi';if(file.startsWith('al.'))return'almacen';const remembered=sessionStorage.getItem('skilled_active_profile');if(['almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','tsi','proyectos','consulta'].includes(remembered))return remembered;const role=cachedRole();if(['compras','rh','finanzas','gerente_general','subgerente','sky_demo','tsi','proyectos','consulta'].includes(role))return role;return'almacen'}
@@ -27,6 +28,6 @@ document.addEventListener('pointerdown',event=>{const anchor=event.target.closes
 document.addEventListener('touchstart',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,true)},{passive:true,capture:true});
 document.addEventListener('click',event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const anchor=event.target.closest?.('a[href]');if(!targetUrl(anchor))return;beginProgress()},false);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>cleanupOldRelease(),{once:true});else cleanupOldRelease();
-async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=48',{scope:'./',updateViaCache:'none'});registration.update().catch(()=>{})}catch(_){}}
+async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=49',{scope:'./',updateViaCache:'none'});registration.update().catch(()=>{})}catch(_){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enableServiceWorker,{once:true});else enableServiceWorker();
 })();
