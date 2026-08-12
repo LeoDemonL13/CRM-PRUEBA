@@ -4734,7 +4734,8 @@
             lastEntity: text(options.context.lastEntity).slice(0, 240),
             lastQuery: text(options.context.lastQuery).slice(0, 500),
             area: text(options.context.area).slice(0, 120),
-            page: text(options.context.page).slice(0, 120)
+            page: text(options.context.page).slice(0, 120),
+            crmContext: text(options.context.crmContext).slice(0, 5000)
         } : {};
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'chat', text: input, profile: text(options.profile) || 'consulta', context }
@@ -5589,6 +5590,21 @@
         }));
     }
 
+    async function listExecutiveSkyCategories() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'categorias', p_filtro: null });
+        assertNoError(error, 'No se pudieron consultar las categorías para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function searchExecutiveSky(query) {
+        const value=text(query).slice(0,180);
+        if (!value) return [];
+        const { data, error } = await client.rpc('crm_sky_direccion_buscar', { p_consulta:value });
+        if (error && ['PGRST202','42883'].includes(String(error.code||''))) return [];
+        assertNoError(error, 'No se pudo realizar la búsqueda transversal de Sky. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
     async function listExecutiveSkyPeople(projectNumber = '') {
         const project = text(projectNumber);
         let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'personal', p_filtro: project || null });
@@ -5735,6 +5751,8 @@
         saveCableRoll,
         deleteCableRoll,
         listExecutiveSkyMaterials,
+        listExecutiveSkyCategories,
+        searchExecutiveSky,
         listExecutiveSkyPeople,
         getExecutiveSkyPurchasing,
         getExecutiveSkyTools,

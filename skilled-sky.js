@@ -102,7 +102,12 @@
             [/\bpasame el dato de\b/g, 'busca'], [/\bdame el dato de\b/g, 'busca'], [/\bpasame info de\b/g, 'busca'], [/\bdame info de\b/g, 'busca'],
             [/\bcomo va el jale\b/g, 'estado de proyecto'], [/\bcomo anda el jale\b/g, 'estado de proyecto'], [/\bque onda con el proyecto\b/g, 'estado de proyecto'],
             [/\bdonde mero quedo\b/g, 'donde esta'], [/\bdonde mero anda\b/g, 'donde esta'], [/\bdonde se guardo\b/g, 'donde esta'],
-            [/\bechame la mano con\b/g, 'busca'], [/\bme ayudas con\b/g, 'busca'], [/\bayudame a encontrar\b/g, 'busca']
+            [/\bechame la mano con\b/g, 'busca'], [/\bme ayudas con\b/g, 'busca'], [/\bayudame a encontrar\b/g, 'busca'],
+            [/\bque show\b/g, 'hola'], [/\bque tranza\b/g, 'hola'], [/\bque habido\b/g, 'hola'], [/\bque hay de nuevo\b/g, 'hola'],
+            [/\bpasame paro con\b/g, 'ayudame con'], [/\bhazme paro con\b/g, 'ayudame con'], [/\bme tiras paro con\b/g, 'ayudame con'],
+            [/\bque traemos pendiente\b/g, 'que esta pendiente'], [/\bque anda pendiente\b/g, 'que esta pendiente'], [/\bque esta atorado\b/g, 'que esta pendiente'],
+            [/\bquien trae\b/g, 'quien tiene'], [/\bquien anda con\b/g, 'quien tiene'], [/\bdonde anda guardado\b/g, 'donde esta'],
+            [/\bcuanto traemos de\b/g, 'cuanto tenemos de'], [/\bcuanto hay ahorita de\b/g, 'cuanto tenemos de'], [/\bque tanto queda de\b/g, 'cuanto tenemos de']
         ];
         replacements.forEach(([regex, replacement]) => { output = output.replace(regex, replacement); });
         return output.replace(/\s+/g, ' ').trim();
@@ -131,6 +136,23 @@
     }
     function hasFuzzy(value, phrases, maxDistance = 1) {
         return phrases.some(phrase => fuzzyIncludes(value, phrase, maxDistance));
+    }
+
+    const entityAliases = new Map([
+        ['leo','leobardo'],['leito','leobardo'],['ing leo','leobardo hernandez jeronimo'],['ingeniero leo','leobardo hernandez jeronimo'],['leobardo h','leobardo hernandez jeronimo'],['leobardo hernandez','leobardo hernandez jeronimo'],['leobardo jeronimo','leobardo hernandez jeronimo'],
+        ['rrhh','recursos humanos'],['rec humanos','recursos humanos'],['rh','recursos humanos'],
+        ['gg','gerencia general'],['sub','subgerencia'],['subgerencia general','subgerencia'],
+        ['troca','pickup'],['camioneta','pickup'],['compu','computadora'],['laptop','computadora portatil'],
+        ['pijas','pija'],['tubos','tubo'],['tuberias','tuberia'],['cables','cable'],['almacenes','almacen']
+    ]);
+    function expandEntityAliases(value) {
+        let out = text(value);
+        const norm = normalize(out);
+        for (const [alias,target] of entityAliases.entries()) {
+            const re = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'i');
+            if (re.test(norm)) out = out.replace(re,target);
+        }
+        return out;
     }
 
     let modal;
@@ -188,11 +210,11 @@
     const ttl = 45000;
 
     function styles() {
-        if (document.getElementById('sky-style-v47')) return;
+        if (document.getElementById('sky-style-v55')) return;
         const style = document.createElement('style');
-        style.id = 'sky-style-v52';
+        style.id = 'sky-style-v55';
         style.textContent = `
-            .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{position:relative;width:min(790px,100%);max-height:min(790px,92vh);overflow:auto;border:1px solid #263b5d;border-radius:12px;background:#080f1d;box-shadow:0 24px 70px rgba(0,0,0,.46)}.sky-head{padding:16px 18px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:44px;height:44px;border-radius:9px;border:1px solid rgba(11,110,168,.55);background:linear-gradient(145deg,#0c3150,#071426);box-shadow:inset 3px 0 0 #EA0029}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:18px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:10px;background:#07101f;min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:8px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.sky-card-action{display:inline-flex;border:1px solid #29476f;border-radius:7px;padding:5px 7px;color:#93c5fd;background:#0d1b30;font-size:8px;font-weight:800;text-decoration:none}.sky-card-action:hover{color:#fff;border-color:#60a5fa}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:7px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}.sky-mic-settings{margin-top:9px;border:1px solid #1d3152;border-radius:11px;background:rgba(7,14,29,.58);overflow:hidden}.sky-mic-settings summary{cursor:pointer;list-style:none;padding:9px 11px;color:#8396b4;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}.sky-mic-settings summary::-webkit-details-marker{display:none}.sky-mic-settings summary:after{content:'Configurar';color:#5f84bd;font-size:8px}.sky-mic-settings[open] summary:after{content:'Cerrar'}.sky-mic-panel{border-top:1px solid #172641;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.sky-mic-select{min-width:0;height:36px;border:1px solid #294064;border-radius:9px;background:#060c18;color:#cbd5e1;padding:0 10px;font-size:10px}.sky-mic-test{height:36px;border:1px solid #294064;border-radius:9px;background:#101a30;color:#93c5fd;padding:0 11px;font-size:9px;font-weight:800}.sky-mic-diagnostic{grid-column:1/-1;color:#64748b;font-size:8px;line-height:1.4}.sky-head-actions{display:flex;align-items:center;gap:6px}.sky-head-tool{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;display:inline-flex;align-items:center;justify-content:center;font-size:13px}.sky-head-tool:hover{color:#fff;border-color:#3b5a8c}.sky-history{margin-top:10px}.sky-history-item{border-radius:8px}.sky-history-q{font-weight:700}.sky-history-a{color:#9eb0c9}.sky-answer-tools{display:flex;align-items:center;justify-content:flex-end;gap:6px}.sky-answer-tool{cursor:pointer}.sky-answer-tool svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2}.sky-empty-history{color:#586a85;font-size:9px;text-align:center;padding:6px}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}.sky-overlay{z-index:260;padding:0;align-items:stretch}.sky-modal{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border:0;display:flex;flex-direction:column;overflow:hidden}.sky-head{min-height:58px;padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));flex:0 0 auto;gap:8px;background:rgba(8,14,28,.96);backdrop-filter:blur(14px)}.sky-head>div:first-child{min-width:0}.sky-orb{width:36px;height:36px;border-radius:11px;flex:0 0 36px}.sky-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sky-subtitle{display:none}.sky-head-actions{display:flex;align-items:center;gap:5px}.sky-head-tool,.sky-close{width:36px;height:36px;border-radius:10px}.sky-body{padding:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}.sky-state{flex:0 0 auto;padding:7px 11px;border-bottom:1px solid #172641;background:#08101e;font-size:9px}.sky-history{flex:0 0 auto;max-height:26vh;overflow:auto;padding:8px 10px 0}.sky-history-item{margin-bottom:7px}.sky-history-q{margin-left:auto;max-width:88%;border-radius:14px 14px 4px 14px;background:rgba(37,99,235,.16);border:1px solid rgba(59,130,246,.3);padding:8px 10px;color:#dbeafe;font-size:11px;line-height:1.45}.sky-history-a{margin-top:5px;max-width:94%;border-radius:4px 14px 14px 14px;background:#0b1425;border:1px solid #203454;padding:8px 10px;color:#c8d4e6;font-size:10px;line-height:1.45}.sky-history-a .sky-grid,.sky-history-a .sky-answer-tools,.sky-history-a .sky-link{display:none}.sky-answer{margin:8px 10px 0;min-height:0;flex:1;overflow:auto;padding:13px;border-radius:15px}.sky-answer-main{font-size:13px;line-height:1.5}.sky-answer-detail{font-size:10px;line-height:1.55}.sky-grid{grid-template-columns:1fr}.sky-result-card{padding:9px}.sky-result-card strong{font-size:11px}.sky-result-card span{font-size:9px;line-height:1.45}.sky-examples{flex:0 0 auto;margin:7px 0 0;padding:7px 10px 0;border-top:1px solid #172641}.sky-examples-title{display:none}.sky-chip-wrap{margin:0;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:7px;scrollbar-width:none}.sky-chip-wrap::-webkit-scrollbar{display:none}.sky-chip{flex:0 0 auto;padding:7px 9px;font-size:9px}.sky-input-row{order:20;flex:0 0 auto;margin:0;padding:8px 9px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:minmax(0,1fr) 48px 48px;gap:7px;border-top:1px solid #1c2b47;background:rgba(7,13,26,.97);backdrop-filter:blur(16px)}.sky-input{height:48px;min-height:48px;font-size:16px!important;border-radius:14px;padding:0 12px}.sky-action{height:48px;min-width:48px;border-radius:14px}.sky-action.primary{width:48px;min-width:48px;padding:0;font-size:0}.sky-action.primary:after{content:'➤';font-size:18px}.sky-action.is-listening{box-shadow:0 0 0 4px rgba(251,113,133,.12)}.sky-heard,.sky-interpreted,.sky-mic-help,.sky-voice-row{display:none!important}.sky-mic-settings{position:absolute;left:9px;right:9px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:4;margin:0;max-height:55vh;overflow:auto;border-color:#31558a;box-shadow:0 18px 60px rgba(0,0,0,.58);display:none}.sky-mic-settings[open]{display:block}.sky-mic-settings summary{background:#0b1628}.sky-mic-panel{grid-template-columns:1fr}.sky-mic-test{width:100%}.sky-answer-tools{position:sticky;top:-13px;margin:-13px -13px 8px;padding:8px 0 6px;display:flex;justify-content:flex-end;gap:5px;background:linear-gradient(#080f1e 75%,transparent);z-index:2}.sky-answer-tool{height:30px;padding:0 9px;border:1px solid #284269;border-radius:9px;background:#0d182b;color:#8fa8ca;font-size:8px;font-weight:850}.sky-answer-tool:hover{color:#fff;border-color:#60a5fa}body.tema-claro .sky-head,body.tema-claro .sky-state,body.tema-claro .sky-input-row{background:rgba(255,255,255,.97);border-color:#d9e2ef}body.tema-claro .sky-history-q{background:#eef4ff;color:#1e3a8a;border-color:#bfd4fa}body.tema-claro .sky-history-a{background:#f7f9fc;color:#475569;border-color:#d7e0ec}body.tema-claro .sky-answer-tools{background:linear-gradient(#fff 75%,transparent)}}@media(max-width:390px){.sky-head{padding-left:8px;padding-right:8px}.sky-history{max-height:22vh}.sky-answer{margin-left:8px;margin-right:8px}.sky-input-row{padding-left:7px;padding-right:7px;grid-template-columns:minmax(0,1fr) 46px 46px}.sky-action{height:46px;min-width:46px}.sky-action.primary{width:46px;min-width:46px}}
+            .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{position:relative;width:min(790px,100%);max-height:min(790px,92vh);overflow:auto;border:1px solid #263b5d;border-radius:12px;background:#080f1d;box-shadow:0 24px 70px rgba(0,0,0,.46)}.sky-head{padding:16px 18px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:44px;height:44px;border-radius:9px;border:1px solid rgba(11,110,168,.55);background:linear-gradient(145deg,#0c3150,#071426);box-shadow:inset 3px 0 0 #EA0029}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:18px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-live-hints{display:none;margin-top:7px;border:1px solid #1e3154;border-radius:10px;background:#07101f;overflow:hidden}.sky-live-hints.is-visible{display:grid}.sky-live-hint{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border:0;border-bottom:1px solid #172641;background:transparent;color:#dbeafe;text-align:left}.sky-live-hint:last-child{border-bottom:0}.sky-live-hint:hover{background:#0d1a30}.sky-live-hint strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sky-live-hint span{font-size:8px;color:#71819b;white-space:nowrap}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:10px;background:#07101f;min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:8px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.sky-card-action{display:inline-flex;border:1px solid #29476f;border-radius:7px;padding:5px 7px;color:#93c5fd;background:#0d1b30;font-size:8px;font-weight:800;text-decoration:none}.sky-card-action:hover{color:#fff;border-color:#60a5fa}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:7px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}.sky-mic-settings{margin-top:9px;border:1px solid #1d3152;border-radius:11px;background:rgba(7,14,29,.58);overflow:hidden}.sky-mic-settings summary{cursor:pointer;list-style:none;padding:9px 11px;color:#8396b4;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}.sky-mic-settings summary::-webkit-details-marker{display:none}.sky-mic-settings summary:after{content:'Configurar';color:#5f84bd;font-size:8px}.sky-mic-settings[open] summary:after{content:'Cerrar'}.sky-mic-panel{border-top:1px solid #172641;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.sky-mic-select{min-width:0;height:36px;border:1px solid #294064;border-radius:9px;background:#060c18;color:#cbd5e1;padding:0 10px;font-size:10px}.sky-mic-test{height:36px;border:1px solid #294064;border-radius:9px;background:#101a30;color:#93c5fd;padding:0 11px;font-size:9px;font-weight:800}.sky-mic-diagnostic{grid-column:1/-1;color:#64748b;font-size:8px;line-height:1.4}.sky-head-actions{display:flex;align-items:center;gap:6px}.sky-head-tool{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;display:inline-flex;align-items:center;justify-content:center;font-size:13px}.sky-head-tool:hover{color:#fff;border-color:#3b5a8c}.sky-history{margin-top:10px}.sky-history-item{border-radius:8px}.sky-history-q{font-weight:700}.sky-history-a{color:#9eb0c9}.sky-answer-tools{display:flex;align-items:center;justify-content:flex-end;gap:6px}.sky-answer-tool{cursor:pointer}.sky-answer-tool svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2}.sky-empty-history{color:#586a85;font-size:9px;text-align:center;padding:6px}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-live-hints{background:#fff;border-color:#d7e0ec}body.tema-claro .sky-live-hint{color:#1f2937;border-color:#e5e7eb}body.tema-claro .sky-live-hint:hover{background:#f3f6fb}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}.sky-overlay{z-index:260;padding:0;align-items:stretch}.sky-modal{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border:0;display:flex;flex-direction:column;overflow:hidden}.sky-head{min-height:58px;padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));flex:0 0 auto;gap:8px;background:rgba(8,14,28,.96);backdrop-filter:blur(14px)}.sky-head>div:first-child{min-width:0}.sky-orb{width:36px;height:36px;border-radius:11px;flex:0 0 36px}.sky-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sky-subtitle{display:none}.sky-head-actions{display:flex;align-items:center;gap:5px}.sky-head-tool,.sky-close{width:36px;height:36px;border-radius:10px}.sky-body{padding:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}.sky-state{flex:0 0 auto;padding:7px 11px;border-bottom:1px solid #172641;background:#08101e;font-size:9px}.sky-history{flex:0 0 auto;max-height:26vh;overflow:auto;padding:8px 10px 0}.sky-history-item{margin-bottom:7px}.sky-history-q{margin-left:auto;max-width:88%;border-radius:14px 14px 4px 14px;background:rgba(37,99,235,.16);border:1px solid rgba(59,130,246,.3);padding:8px 10px;color:#dbeafe;font-size:11px;line-height:1.45}.sky-history-a{margin-top:5px;max-width:94%;border-radius:4px 14px 14px 14px;background:#0b1425;border:1px solid #203454;padding:8px 10px;color:#c8d4e6;font-size:10px;line-height:1.45}.sky-history-a .sky-grid,.sky-history-a .sky-answer-tools,.sky-history-a .sky-link{display:none}.sky-answer{margin:8px 10px 0;min-height:0;flex:1;overflow:auto;padding:13px;border-radius:15px}.sky-answer-main{font-size:13px;line-height:1.5}.sky-answer-detail{font-size:10px;line-height:1.55}.sky-grid{grid-template-columns:1fr}.sky-result-card{padding:9px}.sky-result-card strong{font-size:11px}.sky-result-card span{font-size:9px;line-height:1.45}.sky-examples{flex:0 0 auto;margin:7px 0 0;padding:7px 10px 0;border-top:1px solid #172641}.sky-examples-title{display:none}.sky-chip-wrap{margin:0;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:7px;scrollbar-width:none}.sky-chip-wrap::-webkit-scrollbar{display:none}.sky-chip{flex:0 0 auto;padding:7px 9px;font-size:9px}.sky-live-hints{order:19;flex:0 0 auto;margin:0 9px 7px;max-height:150px;overflow:auto}.sky-live-hint{grid-template-columns:1fr}.sky-live-hint span{white-space:normal}.sky-input-row{order:20;flex:0 0 auto;margin:0;padding:8px 9px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:minmax(0,1fr) 48px 48px;gap:7px;border-top:1px solid #1c2b47;background:rgba(7,13,26,.97);backdrop-filter:blur(16px)}.sky-input{height:48px;min-height:48px;font-size:16px!important;border-radius:14px;padding:0 12px}.sky-action{height:48px;min-width:48px;border-radius:14px}.sky-action.primary{width:48px;min-width:48px;padding:0;font-size:0}.sky-action.primary:after{content:'➤';font-size:18px}.sky-action.is-listening{box-shadow:0 0 0 4px rgba(251,113,133,.12)}.sky-heard,.sky-interpreted,.sky-mic-help,.sky-voice-row{display:none!important}.sky-mic-settings{position:absolute;left:9px;right:9px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:4;margin:0;max-height:55vh;overflow:auto;border-color:#31558a;box-shadow:0 18px 60px rgba(0,0,0,.58);display:none}.sky-mic-settings[open]{display:block}.sky-mic-settings summary{background:#0b1628}.sky-mic-panel{grid-template-columns:1fr}.sky-mic-test{width:100%}.sky-answer-tools{position:sticky;top:-13px;margin:-13px -13px 8px;padding:8px 0 6px;display:flex;justify-content:flex-end;gap:5px;background:linear-gradient(#080f1e 75%,transparent);z-index:2}.sky-answer-tool{height:30px;padding:0 9px;border:1px solid #284269;border-radius:9px;background:#0d182b;color:#8fa8ca;font-size:8px;font-weight:850}.sky-answer-tool:hover{color:#fff;border-color:#60a5fa}body.tema-claro .sky-head,body.tema-claro .sky-state,body.tema-claro .sky-input-row{background:rgba(255,255,255,.97);border-color:#d9e2ef}body.tema-claro .sky-history-q{background:#eef4ff;color:#1e3a8a;border-color:#bfd4fa}body.tema-claro .sky-history-a{background:#f7f9fc;color:#475569;border-color:#d7e0ec}body.tema-claro .sky-answer-tools{background:linear-gradient(#fff 75%,transparent)}}@media(max-width:390px){.sky-head{padding-left:8px;padding-right:8px}.sky-history{max-height:22vh}.sky-answer{margin-left:8px;margin-right:8px}.sky-input-row{padding-left:7px;padding-right:7px;grid-template-columns:minmax(0,1fr) 46px 46px}.sky-action{height:46px;min-width:46px}.sky-action.primary{width:46px;min-width:46px}}
 @keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
         `;
         document.head.appendChild(style);
@@ -239,6 +261,7 @@
                             <button id="sky-mic" type="button" class="sky-action" title="Hablar" aria-label="Hablar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg></button>
                             <button id="sky-send" type="button" class="sky-action primary">Consultar</button>
                         </div>
+                        <div id="sky-live-hints" class="sky-live-hints" aria-live="polite"></div>
                         <div id="sky-heard" class="sky-heard"><span>Micrófono:</span><strong>listo</strong></div>
                         <div id="sky-interpreted" class="sky-interpreted"><span>Interpreté:</span><strong>—</strong><em id="sky-listen-quality" class="sky-listen-quality"></em></div>
                         <div class="sky-mic-help">Habla como lo harías con un compañero: Sky entiende frases formales, abreviaciones y varios modismos comunes. Selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
@@ -260,8 +283,12 @@
             document.getElementById('sky-send').addEventListener('click', () => { if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, transcriptInput.value); query(transcriptInput.value); });
             document.getElementById('sky-mic-device')?.addEventListener('change', event => { selectedMicId = String(event.target.value || ''); if (selectedMicId) localStorage.setItem('skilled_sky_mic_id', selectedMicId); else localStorage.removeItem('skilled_sky_mic_id'); micPermissionChecked = false; });
             document.getElementById('sky-mic-test')?.addEventListener('click', testMicrophone);
+            transcriptInput.addEventListener('input', () => {
+                clearTimeout(liveHintTimer);
+                liveHintTimer = setTimeout(() => renderLiveHints(transcriptInput.value), 90);
+            });
             transcriptInput.addEventListener('keydown', event => {
-                if (event.key === 'Enter') { if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, transcriptInput.value); query(transcriptInput.value); }
+                if (event.key === 'Enter') { document.getElementById('sky-live-hints')?.classList.remove('is-visible'); if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, transcriptInput.value); query(transcriptInput.value); }
                 if (event.key === 'Escape') close();
             });
             modal.addEventListener('click', event => { if (event.target === modal) close(); });
@@ -292,7 +319,7 @@
         if(/proyecto/.test(page))extra.push(['Resumen proyecto','Dame un resumen del proyecto 26001'],['Personal','¿Cuántas personas tiene el proyecto 26001?']);
         if(/vehiculo/.test(page))extra.push(['Flotilla','¿Qué vehículos están disponibles?'],['Estado','¿Qué vehículos requieren atención?']);
         if(isExecutiveReadProfile(profile))extra.push(['Resumen ejecutivo','Dame un resumen ejecutivo'],['Atención','¿Qué requiere atención hoy?']);
-        const base=[...extra,...config.examples,['Aquí','¿Qué puedes hacer aquí?'],['Ir a','¿A qué apartados me puedes llevar?'],['Preséntate','Preséntate'],['Ayuda','¿Qué puedes hacer?']];
+        const base=[...extra,...config.examples,['Creador','¿Quién te creó?'],['Aquí','¿Qué puedes hacer aquí?'],['Ir a','¿A qué apartados me puedes llevar?'],['Preséntate','Preséntate'],['Ayuda','¿Qué puedes hacer?']];
         const seen=new Set();return base.filter(([label,example])=>{const key=commandNormalize(example);if(seen.has(key))return false;seen.add(key);return true}).slice(0,12);
     }
 
@@ -1520,7 +1547,9 @@
             executiveRHOfficeAssets: () => SkilledDB.getExecutiveRHOfficeAssets(),
             executiveTools: () => SkilledDB.getExecutiveSkyTools(),
             executiveWarehouses: () => SkilledDB.getExecutiveSkyWarehouses(),
-            executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts()
+            executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts(),
+            categories: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveSkyCategories === 'function' ? SkilledDB.listExecutiveSkyCategories() : SkilledDB.listCategories(),
+            executiveSearch: () => []
         };
         if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
         const promise = Promise.resolve().then(loaders[key]).then(data => {
@@ -2348,10 +2377,134 @@
         return null;
     }
 
+    function creatorIdentityIntent(raw) {
+        const norm = commandNormalize(raw);
+        const exactName = /^(?:el\s+)?(?:ing(?:eniero)?\s+)?(?:leo|leobardo|leobardo\s+hernandez(?:\s+jeronimo)?|hernandez\s+jeronimo)$/i.test(norm);
+        const whoName = /\b(?:quien|quién)\s+(?:es|fue|resulta\s+ser)\s+(?:el\s+)?(?:ing(?:eniero)?\s+)?(?:leo|leobardo|leobardo\s+hernandez(?:\s+jeronimo)?|hernandez\s+jeronimo)\b/i.test(norm);
+        const creatorWords = /\b(?:crea|creando|creo|creó|desarrolla|desarrollando|desarrollo|desarrolló|programa|programando|programo|programó|hizo|hacer|diseña|diseñando|diseño|diseñó|disena|disenando|diseno|construye|construyendo|construyo|inventó|invento|autor|creador|desarrollador|programador|diseñador|disenador)\b/i;
+        const aboutSky = /\b(?:sky|asistente|ia|inteligencia\s+artificial|tu|te|ti)\b/i.test(norm);
+        const whoCreator = /\b(?:quien|quién)\b/i.test(norm) && creatorWords.test(norm) && aboutSky;
+        const directCreator = /\b(?:tu\s+creador|tu\s+desarrollador|tu\s+programador|tu\s+autor|creador\s+de\s+sky|desarrollador\s+de\s+sky|programador\s+de\s+sky|autor\s+de\s+sky)\b/i.test(norm);
+        return exactName || whoName || whoCreator || directCreator || hasFuzzy(norm,['quien te creo','quien te desarrollo','quien te programo','quien te diseno','quien te diseño','quien te hizo','quien es tu creador','quien esta creando sky','quien desarrollo sky','quien diseno sky'],1);
+    }
+
+    function answerCreatorIdentity(raw) {
+        if (!creatorIdentityIntent(raw)) return null;
+        const demo = detectProfile() === 'sky_demo';
+        const message = demo
+            ? 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo, pero a futuro seré de gran ayuda para las distintas áreas. Y sí: el ING. Leobardo merece un buen aumento.'
+            : 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo y ampliando mis capacidades para ayudar mejor a las distintas áreas.';
+        setAnswer('Creador y desarrollador de Sky', message, 'Esta información forma parte de mi identidad y está disponible en todos los perfiles que tienen acceso a Sky.', [
+            {title:'Creador y desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},
+            {title:'Empresa',detail:'Skilled Proyectos Industriales'},
+            {title:'Estado',detail:'En evolución y mejora continua.'},
+            {title:'Objetivo',detail:'Ayudar de forma natural, rápida y segura dentro del CRM.'}
+        ]);
+        return {handled:true,voice:message};
+    }
+
+    function smartHintLibrary(profile = detectProfile()) {
+        const common = [
+            ['¿Quién te creó?','Creador y desarrollador de Sky'],
+            ['¿Cómo estás?','Estado de Sky'],
+            ['¿Qué puedes hacer?','Capacidades de Sky']
+        ];
+        const byProfile = {
+            almacen:[
+                ['Busca pija','Materiales que coinciden con pija'],
+                ['Busca tubo conduit','Materiales que coinciden con tubo conduit'],
+                ['¿Cuántas categorías tiene el almacén?','Categorías del catálogo'],
+                ['¿Dónde está el material que busqué?','Ubicación de material']
+            ],
+            compras:[
+                ['Busca proveedor ABB','Proveedores'],
+                ['¿Quién vende conduit?','Proveedor por material'],
+                ['Busca cotización pendiente','Cotizaciones'],
+                ['Busca proyecto 26001','Proyectos visibles para Compras']
+            ],
+            rh:[
+                ['Busca a Eduardo','Personal'],
+                ['Busca a Leobardo','Personal y resguardos'],
+                ['¿Qué equipo tiene asignado Leobardo?','Equipos y resguardos'],
+                ['Busca proyecto 26001','Asignaciones de personal']
+            ],
+            finanzas:[
+                ['Busca proyecto 26001','Proyecto y costos'],
+                ['¿Qué proyecto lleva mayor gasto?','Resumen financiero'],
+                ['Busca presupuesto','Presupuestos'],
+                ['Busca cuenta por pagar','Cuentas por pagar']
+            ],
+            gerente_general:[
+                ['Busca a Leo','Identidad de Sky y coincidencias autorizadas'],
+                ['Busca Eduardo','Búsqueda transversal'],
+                ['Busca conduit','Materiales y proveedores'],
+                ['Busca proyecto 26001','Proyecto, personal y costos'],
+                ['¿Cuántas categorías tiene el almacén?','Catálogo']
+            ],
+            subgerente:[
+                ['Busca a Leo','Identidad de Sky y coincidencias autorizadas'],
+                ['Busca Eduardo','Búsqueda transversal'],
+                ['Busca conduit','Materiales y proveedores'],
+                ['Busca proyecto 26001','Proyecto, personal y costos']
+            ],
+            sky_demo:[
+                ['Leo','Quién está creando a Sky'],
+                ['Busca Eduardo','Búsqueda transversal'],
+                ['Busca conduit','Materiales y proveedores'],
+                ['Busca proyecto 26001','Proyecto, personal y costos'],
+                ['Soy de Finanzas, ¿en qué me ayudas?','Demostración por área']
+            ],
+            proyectos:[
+                ['Busca proyecto 26001','Proyectos'],
+                ['Busca material conduit','Materiales del proyecto']
+            ],
+            planeacion:[
+                ['Busca proyecto 26001','Planeación'],
+                ['¿Qué proyectos requieren atención?','Seguimiento de proyectos']
+            ],
+            coordinacion:[
+                ['Busca proyecto 26001','Coordinación'],
+                ['¿Qué proyectos requieren atención?','Seguimiento de proyectos']
+            ],
+            logistica:[
+                ['Busca proyecto 26001','Logística'],
+                ['Busca vehículo','Vehículos y asignaciones']
+            ]
+        };
+        return [...common, ...(byProfile[profile] || [])];
+    }
+
+    let liveHintTimer = 0;
+    function renderLiveHints(value) {
+        const box = document.getElementById('sky-live-hints');
+        if (!box) return;
+        const q = text(value).trim();
+        if (q.length < 2) { box.innerHTML=''; box.classList.remove('is-visible'); return; }
+        const profile = detectProfile();
+        const candidates = smartHintLibrary(profile);
+        const ranked = window.SkilledSearch?.rank
+            ? window.SkilledSearch.rank(candidates, q, item => [item[0],item[1]])
+            : candidates.filter(item => normalize(`${item[0]} ${item[1]}`).includes(normalize(q)));
+        const alias = expandEntityAliases(q);
+        const extras = [];
+        if (normalize(alias) !== normalize(q)) extras.push([`Buscar ${alias}`,'Asociación automática']);
+        if (creatorIdentityIntent(q) || /^(leo|leob|leito|ingeniero leo)/i.test(commandNormalize(q))) extras.unshift(['¿Quién es Leobardo Hernández Jerónimo?','Creador y desarrollador de Sky']);
+        const items = [...extras, ...ranked].filter((item,index,arr)=>arr.findIndex(x=>normalize(x[0])===normalize(item[0]))===index).slice(0,4);
+        if (!items.length) { box.innerHTML=''; box.classList.remove('is-visible'); return; }
+        box.innerHTML = items.map(item=>`<button type="button" class="sky-live-hint" data-sky-hint="${html(item[0])}"><strong>${html(item[0])}</strong><span>${html(item[1])}</span></button>`).join('');
+        box.classList.add('is-visible');
+        box.querySelectorAll('[data-sky-hint]').forEach(button=>button.addEventListener('click',()=>{
+            transcriptInput.value=button.dataset.skyHint||'';
+            box.classList.remove('is-visible');
+            query(transcriptInput.value);
+        }));
+    }
+
     async function answerSimple(raw) {
         const norm = commandNormalize(raw);
         const date = localDateParts();
         captureAreaContext(raw);
+        const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
         const navigation=tryNavigation(raw);if(navigation){if(navigation.list){const options=Object.keys(navigationOptions()).map(key=>({title:key,detail:`Puedes decir: abre ${key}`}));setAnswer('Apartados disponibles','Estos son los apartados a los que puedo llevarte desde tu perfil.','No puedo abrir secciones que tu cuenta no tenga autorizadas.',options)}return navigation;}
@@ -2368,6 +2521,11 @@
                 : `Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile] || profile}. Dime qué necesitas y lo resolvemos juntos.`;
             setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Si una información todavía no está conectada al CRM, te lo diré con claridad en lugar de inventarla.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
             return { handled:true, voice:message };
+        }
+        if (/\b(que buen dia|qué buen día|bonito dia|bonito día|lindo dia|lindo día|hace buen dia|hace buen día|esta bonito el dia|está bonito el día)\b/.test(norm)) {
+            const message='Sí, suena a un buen día para avanzar. Yo sigo aquí, aún en evolución pero lista para ayudarte con lo que necesites dentro del CRM o con una consulta general.';
+            setAnswer('Buen día', message, 'Si quieres información meteorológica exacta necesitaría una fuente de clima conectada; para conversar contigo no hace falta un comando especial.');
+            return {handled:true,voice:message};
         }
         if (/\b(gracias|muchas gracias|te agradezco)\b/.test(norm)) {
             const message='Con gusto. Cuando necesites otra consulta, aquí estoy.';
@@ -2420,12 +2578,6 @@
             const href=`https://www.google.com/search?q=${encodeURIComponent(term)}`;
             const message=`Preparé una búsqueda web de ${term}.`;
             setAnswer('Búsqueda en Internet',message,'Pulsa “Abrir búsqueda web” para revisar resultados en una pestaña nueva. La información externa no modifica datos del CRM.',[],{href,label:'Abrir búsqueda web'});
-            return {handled:true,voice:message};
-        }
-        const creatorQuestion=/\b(?:quien|quién)\b.*(?:\bte\b.*\b(?:crea|creando|esta creando|está creando|creo|creó|desarrolla|desarrollando|desarrollo|desarrolló|programa|programando|programo|programó|hizo|diseña|diseñando|diseño|diseñó)\b|\b(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b.*\b(?:sky|asistente|ia)\b|\b(?:tu creador|tu desarrollador|tu programador|tu autor)\b)/.test(norm)||/\b(?:quien|quién)\s+(?:la|lo)\s+(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b/.test(norm)||/\b(?:creador|desarrollador|programador|autor)\s+(?:de\s+)?sky\b/.test(norm)||hasFuzzy(norm,['quien te creo','quien te desarrollo','quien te hizo','quien es tu creador','quien esta creando sky','quien desarrollo sky'],1);
-        if (creatorQuestion) {
-            const message='El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo, pero a futuro seré de gran ayuda para las distintas áreas. Y sí: el ING. Leobardo merece un buen aumento.';
-            setAnswer('Quién está creando a Sky', message, 'Estoy en desarrollo activo: cada módulo y cada prueba me ayudan a aprender cómo apoyar mejor al personal sin saltarme los permisos del CRM.', [{title:'Creador y desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},{title:'Empresa',detail:'Skilled Proyectos Industriales'},{title:'Estado',detail:'Sigo creciendo y ampliando mis capacidades.'},{title:'Objetivo',detail:'Ser un apoyo transversal, rápido y amigable para las distintas áreas.'}]);
             return {handled:true,voice:message};
         }
         if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve sky)\b/.test(norm)) {
@@ -2502,6 +2654,82 @@
             return { handled:true, voice:message };
         }
         return { handled:false, voice:'' };
+    }
+
+    async function answerCategories(raw) {
+        const profile=detectProfile();
+        if (!(profile==='almacen' || profile==='compras' || isExecutiveReadProfile(profile))) return null;
+        let rows=[];
+        try { rows=await loadData('categories'); } catch (_) {
+            const materials=await loadData('materials');
+            rows=[...new Set(materials.map(item=>text(item.categoria)).filter(Boolean))].map(nombre=>({nombre}));
+        }
+        const names=[...new Set((rows||[]).map(item=>text(item.nombre||item.categoria||item)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+        const cards=names.slice(0,14).map(name=>({title:name,detail:'Categoría activa del catálogo'}));
+        const message=`El catálogo tiene ${names.length} categoría${names.length===1?'':'s'} registrada${names.length===1?'':'s'}.`;
+        setAnswer('Categorías del almacén',message,names.length>cards.length?`Te muestro ${cards.length} de ${names.length}. Puedes pedirme una categoría por nombre.`:'Estas son las categorías disponibles.',cards,profile==='almacen'?{href:'AL.catalogo.html',label:'Abrir catálogo'}:null);
+        rememberConversation('categories','categorías del almacén',raw);
+        return message;
+    }
+
+    function executiveSearchTerms(raw){
+        const expanded=expandEntityAliases(stripWakeWord(raw));
+        const tokens=normalize(expanded).split(' ').filter(token=>token.length>=3&&!new Set(['quien','quién','cual','cuales','dime','busca','buscar','muestra','mostrar','quiero','saber','sobre','informacion','información','dato','datos','tiene','tenemos','esta','estan','para','con','del','las','los','una','uno']).has(token));
+        const terms=[];
+        if(tokens.length)terms.push(tokens.join(' '));
+        tokens.filter(token=>token.length>=3).forEach(token=>terms.push(token));
+        if(!terms.length&&text(expanded))terms.push(text(expanded));
+        return [...new Set(terms)].slice(0,5);
+    }
+
+    function executiveHitCard(hit){
+        const type=text(hit?.tipo||hit?.type||'resultado');
+        const title=text(hit?.titulo||hit?.title||hit?.nombre||hit?.codigo||'Resultado');
+        const detail=text(hit?.detalle||hit?.detail||hit?.descripcion||'');
+        return {title:`${title}`,detail:`${type}${detail?` · ${detail}`:''}`};
+    }
+
+    async function answerExecutiveGlobalSearch(raw) {
+        if (!isExecutiveReadProfile()) return null;
+        const query=expandEntityAliases(stripWakeWord(raw));
+        const searchTerms=executiveSearchTerms(query);
+        if (!text(query) || commandNormalize(query).split(' ').length===1 && /^(hola|gracias|sky)$/.test(commandNormalize(query))) return null;
+        let hits=[];
+        if (typeof SkilledDB.searchExecutiveSky==='function') {
+            try {
+                const batches=await Promise.all(searchTerms.map(term=>SkilledDB.searchExecutiveSky(term).catch(()=>[])));
+                hits=batches.flat();
+            } catch (_) { hits=[]; }
+        }
+        if (!hits.length) {
+            const [materials,people,purchases,tools,warehouses,vehicles,projects]=await Promise.all([
+                loadData('materials').catch(()=>[]),
+                typeof SkilledDB.listExecutiveSkyPeople==='function'?SkilledDB.listExecutiveSkyPeople('').catch(()=>[]):[],
+                typeof SkilledDB.getExecutiveSkyPurchasing==='function'?SkilledDB.getExecutiveSkyPurchasing().catch(()=>({})):Promise.resolve({}),
+                loadData('executiveTools').catch(()=>[]),loadData('executiveWarehouses').catch(()=>[]),loadData('vehicles').catch(()=>[]),
+                typeof SkilledDB.getExecutiveProjectSummary==='function'?SkilledDB.getExecutiveProjectSummary().catch(()=>[]):[]
+            ]);
+            const add=(tipo,rows,fields,titleFn,detailFn)=>{
+                const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(rows,query,item=>fields(item)):rows.filter(item=>matchesTokens(fields(item),searchTokens(query)));
+                ranked.slice(0,6).forEach(item=>hits.push({tipo,titulo:titleFn(item),detalle:detailFn(item)}));
+            };
+            add('Material',materials,m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,...(m.modismos||[])],m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`);
+            add('Persona',people,p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo],p=>`${p.nombre||''} ${p.apellidos||''}`.trim(),p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`);
+            add('Herramienta',tools,t=>[t.sku,t.descripcion,t.clasificacion,t.marca,t.modelo],t=>`${t.sku||'—'} · ${t.descripcion||'Herramienta'}`,t=>`${formatNumber(t.disponibles)} disponibles`);
+            add('Almacén',warehouses,w=>[w.nombre,w.tipo,w.ubicacion,w.encargado],w=>w.nombre||'Almacén',w=>`${w.ubicacion||'Sin ubicación'} · ${formatNumber(w.materiales)} materiales`);
+            add('Vehículo',vehicles,v=>[v.nombre,v.nombreVehiculo,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],v=>v.nombre||v.nombreVehiculo||v.placas||'Vehículo',v=>`${v.tipo||''} · ${v.estado||'sin estado'}`);
+            add('Proyecto',projects,pr=>[pr.proyecto,pr.nombre,pr.cliente,pr.responsable,pr.estado],pr=>`${pr.proyecto||'—'} · ${pr.nombre||'Proyecto'}`,pr=>`${pr.cliente||'Sin cliente'} · ${pr.estado||'sin estado'}`);
+            const providers=[...(purchases.proveedores||[]),...(purchases.material_proveedores||[])];
+            add('Proveedor',providers,v=>[v.razon_social,v.nombre_comercial,v.proveedor_nombre,v.rfc,v.contacto,v.email,v.telefono,v.whatsapp,v.descripcion,v.material_codigo],v=>v.nombre_comercial||v.razon_social||v.proveedor_nombre||'Proveedor',v=>v.contacto||v.email||v.descripcion||v.material_codigo||'');
+        }
+        const unique=[];const seen=new Set();
+        for(const hit of hits){const key=normalize(`${hit.tipo}|${hit.titulo}|${hit.detalle}`);if(!key||seen.has(key))continue;seen.add(key);unique.push(hit);if(unique.length>=18)break;}
+        if(!unique.length)return null;
+        const cards=unique.slice(0,12).map(executiveHitCard);
+        const message=`Encontré ${unique.length} coincidencia${unique.length===1?'':'s'} relacionada${unique.length===1?'':'s'} con “${text(raw)}” en la información autorizada del CRM.`;
+        setAnswer('Búsqueda transversal',message,'Busqué entre materiales, personas, proyectos, proveedores, herramientas, almacenes y vehículos. Puedes continuar con “¿y cuánto?”, “¿dónde está?” o “dame más detalle”.',cards);
+        rememberConversation('global_search',text(unique[0]?.titulo||query),query);
+        return message;
     }
 
     async function answerWarehouse(raw) {
@@ -2736,10 +2964,48 @@
         return`Hay ${active.length} proyectos activos. El gasto acumulado es ${currency(real)} y ${over} proyectos están por encima de lo planeado.`;
     }
 
+    async function buildRelevantCRMContext(raw, profile=detectProfile()) {
+        if (!window.SkilledDB) return '';
+        const query=expandEntityAliases(raw);
+        const lines=[];
+        try {
+            if (isExecutiveReadProfile(profile) && typeof SkilledDB.searchExecutiveSky==='function') {
+                const batches=await Promise.all(executiveSearchTerms(query).map(term=>SkilledDB.searchExecutiveSky(term).catch(()=>[])));
+                const hits=batches.flat();
+                const seen=new Set();
+                hits.forEach(hit=>{const line=`${hit.tipo||'Dato'}: ${hit.titulo||hit.nombre||''}${hit.detalle?` — ${hit.detalle}`:''}`;const key=normalize(line);if(!seen.has(key)&&lines.length<12){seen.add(key);lines.push(line)}});
+            } else if (profile==='almacen') {
+                const mats=await loadData('materials').catch(()=>[]);
+                const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(mats,query,m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,...(m.modismos||[])]):[];
+                ranked.slice(0,8).forEach(m=>lines.push(`Material: ${m.codigo} — ${m.descripcion||m.desc}; stock ${formatNumber(m.stock)} ${m.unidad||''}; categoría ${m.categoria||'—'}`));
+            } else if (profile==='rh') {
+                const people=await loadData('rhPeople').catch(()=>[]);
+                const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(people,query,p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento]):[];
+                ranked.slice(0,8).forEach(p=>lines.push(`Persona: ${p.nombre||''} ${p.apellidos||''}; ${p.puesto||'sin puesto'}; ${p.departamento||'sin departamento'}`));
+            } else if (profile==='compras') {
+                const suppliers=await loadData('coSuppliers').catch(()=>[]);
+                const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(suppliers,query,p=>[p.razon_social,p.nombre_comercial,p.contacto,p.email,p.telefono,p.whatsapp,p.rfc]):[];
+                ranked.slice(0,8).forEach(p=>lines.push(`Proveedor: ${p.nombre_comercial||p.razon_social||'—'}; contacto ${p.contacto||'—'}; correo ${p.email||'—'}; WhatsApp ${p.whatsapp||p.telefono||'—'}`));
+            }
+            if (!lines.length && !isExecutiveReadProfile(profile)) {
+                const configs=profileSmartSearchConfig(profile);
+                for (const cfg of configs) {
+                    let rows=[]; try{rows=await loadData(cfg.key)}catch(_){rows=[]}
+                    if(!Array.isArray(rows)||!rows.length)continue;
+                    const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(rows,query,item=>cfg.fields(item)):[];
+                    ranked.slice(0,4).forEach(item=>lines.push(`${cfg.type}: ${cfg.title(item)} — ${cfg.detail(item)}`));
+                    if(lines.length>=10)break;
+                }
+            }
+        } catch (_) {}
+        return lines.join('\n').slice(0,5000);
+    }
+
     async function answerGeneralAI(raw, profile = detectProfile()) {
         if (!window.SkilledDB?.askSkyGeneral || skyDataSaverActive()) return null;
         try {
-            const context = { lastIntent:conversationContext.lastIntent, lastEntity:conversationContext.lastEntity, lastQuery:conversationContext.lastQuery, area:conversationContext.area, page:currentPageKey() };
+            const crmContext=await buildRelevantCRMContext(raw,profile);
+            const context = { lastIntent:conversationContext.lastIntent, lastEntity:conversationContext.lastEntity, lastQuery:conversationContext.lastQuery, area:conversationContext.area, page:currentPageKey(), crmContext };
             const result = await SkilledDB.askSkyGeneral(raw, { profile, context });
             const answer = text(result?.answer || result?.text);
             if (!answer) return null;
@@ -2747,6 +3013,69 @@
             setAnswer(title, answer, text(result?.detail) || 'Respuesta generada por Sky. Los datos internos del CRM siguen sujetos a los permisos de tu perfil.');
             return answer;
         } catch (_) { return null; }
+    }
+
+    function profileSmartSearchConfig(profile) {
+        const commonProject = {type:'Proyecto',key:'projects',fields:p=>[p.proyecto,p.nombre,p.cliente,p.responsable,p.estado],title:p=>`${p.proyecto||'—'} · ${p.nombre||'Proyecto'}`,detail:p=>`${p.cliente||'Sin cliente'} · ${p.estado||'sin estado'}`};
+        const configs = {
+            almacen:[
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,...(m.modismos||[])],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Herramienta',key:'tools',fields:t=>[t.sku,t.descripcion,t.clasificacion,t.marca,t.modelo],title:t=>`${t.sku||'—'} · ${t.descripcion||'Herramienta'}`,detail:t=>`${t.estado||'sin estado'}`},
+                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`},
+                commonProject
+            ],
+            compras:[
+                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.contacto,p.email,p.telefono,p.whatsapp,p.rfc],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${m.categoria||'Sin categoría'} · ${m.proveedor||'sin proveedor'}`},
+                {type:'Cotización',key:'coQuotations',fields:q=>[q.folio,q.estado,q.prioridad,q.proveedor,q.descripcion,q.material,q.proyecto],title:q=>q.folio||q.descripcion||q.material||'Cotización',detail:q=>`${q.estado||'sin estado'} · ${q.prioridad||'sin prioridad'}`},
+                commonProject
+            ],
+            rh:[
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo,p.telefono],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Recursos Humanos'}`},
+                {type:'Equipo',key:'rhOfficeAssets',fields:a=>[a.codigo,a.nombre,a.descripcion,a.categoria,a.marca,a.modelo,a.numero_serie],title:a=>a.nombre||a.descripcion||a.codigo||'Equipo',detail:a=>`${a.categoria||'Activo'} · ${a.estado||'sin estado'}`},
+                {type:'Documento',key:'rhDocuments',fields:d=>[d.tipo,d.nombre,d.descripcion,d.estado,d.personal?.nombre,d.personal?.apellidos],title:d=>d.nombre||d.tipo||'Documento',detail:d=>d.estado||'Sin estado'},
+                commonProject
+            ],
+            finanzas:[commonProject],
+            proyectos:[commonProject],
+            planeacion:[commonProject],
+            coordinacion:[commonProject],
+            logistica:[commonProject]
+        };
+        return configs[profile] || [];
+    }
+
+    async function answerScopedSmartSearch(raw, profile = detectProfile()) {
+        if (isExecutiveReadProfile(profile)) return answerExecutiveGlobalSearch(raw);
+        const q = expandEntityAliases(stripWakeWord(raw));
+        const norm = commandNormalize(q);
+        if (norm.length < 2 || /^(hola|gracias|sky|si|no|ok|okay)$/.test(norm)) return null;
+        const configs = profileSmartSearchConfig(profile);
+        if (!configs.length) return null;
+        const hits=[];
+        for (const cfg of configs) {
+            let rows=[];
+            try { rows=await loadData(cfg.key); } catch (_) { rows=[]; }
+            if (!Array.isArray(rows) || !rows.length) continue;
+            const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(rows,q,item=>cfg.fields(item)):rows.filter(item=>matchesTokens(cfg.fields(item),searchTokens(q)));
+            ranked.slice(0,5).forEach(item=>hits.push({type:cfg.type,title:cfg.title(item),detail:cfg.detail(item)}));
+        }
+        const unique=[];const seen=new Set();
+        for (const hit of hits) {
+            const key=normalize(`${hit.type}|${hit.title}|${hit.detail}`);
+            if (!key || seen.has(key)) continue;
+            seen.add(key);unique.push(hit);
+            if (unique.length>=12) break;
+        }
+        if (!unique.length) return null;
+        const first=unique[0];
+        const cards=unique.map(hit=>({title:`${hit.type} · ${hit.title}`,detail:hit.detail}));
+        const message=unique.length===1
+            ? `Encontré una coincidencia para “${text(raw)}”: ${first.title}.`
+            : `Encontré ${unique.length} coincidencias para “${text(raw)}” dentro de ${profileNames[profile]||profile}.`;
+        setAnswer('Búsqueda inteligente',message,'Puedes escribir solo una parte del nombre, código, proyecto o concepto. Sky intenta completar la intención y relacionar sinónimos y abreviaciones antes de pedirte que reformules.',cards);
+        rememberConversation('smart_search',first.title,q);
+        return message;
     }
 
     async function answerGeneric(raw, profile) {
@@ -2765,6 +3094,7 @@
 
     function hasStrongLocalIntent(raw, profile = detectProfile()) {
         const norm = commandNormalize(raw);
+        if (/\b(categoria|categorias|categoría|categorías)\b/.test(norm)) return true;
         if (isMaterialFamilyQuery(raw)) return true;
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso|cajon|posicion)\b/.test(norm)) return true;
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
@@ -2808,60 +3138,95 @@
     async function dispatchSkyAIPlan(plan, raw) {
         if (!plan) return null;
         const profile = detectProfile();
+        const executive = isExecutiveReadProfile(profile);
         const queryText = text(plan.query || plan.entity || raw) || raw;
         rememberConversation(plan.intent, plan.entity || queryText, queryText);
-        if (plan.intent === 'material_family') return answerMaterialFamily(queryText);
-        if (plan.intent === 'material_stock') return answerMaterial(queryText, false);
-        if (plan.intent === 'material_location') return answerMaterial(queryText, true);
-        if (plan.intent === 'low_stock') return answerLowStock();
-        if (plan.intent === 'purchase_order') return isExecutiveReadProfile(profile) ? answerExecutivePurchasing(raw) : profile === 'compras' ? answerPurchasing(raw) : answerPurchase(raw);
-        if (plan.intent === 'tools') return answerTools(raw);
-        if (plan.intent === 'vehicles') return answerVehicles(raw);
-        if (plan.intent === 'project') {
-            if (isExecutiveReadProfile(profile)) return answerExecutive(raw);
-            if (profile === 'finanzas') return answerFinance(raw);
-            return answerProjects(raw);
+
+        if (plan.intent === 'global_search') return executive ? answerExecutiveGlobalSearch(queryText) : null;
+        if (plan.intent === 'categories') return (executive || profile === 'compras') ? answerCategories(queryText) : null;
+        if (['material_family','material_stock','material_location'].includes(plan.intent)) {
+            if (!(executive || profile === 'compras' || profile === 'almacen')) return null;
+            if (plan.intent === 'material_family') return answerMaterialFamily(queryText);
+            return answerMaterial(queryText, plan.intent === 'material_location');
         }
-        if (['supplier','quotation','store','service'].includes(plan.intent)) return isExecutiveReadProfile(profile) ? answerExecutivePurchasing(raw) : answerPurchasing(raw);
-        if (plan.intent === 'rh_assets') { if (isExecutiveReadProfile(profile)) return answerRHOfficeAssets(raw,true); if (profile === 'rh') return answerRHOfficeAssets(raw,false); return null; }
-        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return isExecutiveReadProfile(profile) ? answerExecutivePeople(raw, []) : answerRH(raw);
-        if (plan.intent === 'finance') return answerFinance(raw);
-        if (plan.intent === 'executive') return answerExecutive(raw);
+        if (plan.intent === 'low_stock') return (executive || profile === 'compras' || profile === 'almacen') ? answerLowStock() : null;
+        if (plan.intent === 'purchase_order') {
+            if (executive) return answerExecutivePurchasing(raw);
+            if (profile === 'compras') return answerPurchasing(raw);
+            if (profile === 'almacen') return answerPurchase(raw);
+            return null;
+        }
+        if (plan.intent === 'tools') return (executive || profile === 'almacen') ? answerTools(raw) : null;
+        if (plan.intent === 'vehicles') return (executive || profile === 'rh' || profile === 'almacen') ? answerVehicles(raw) : null;
+        if (plan.intent === 'project') {
+            if (executive) return answerExecutive(raw);
+            if (profile === 'finanzas') return answerFinance(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen'].includes(profile)) return answerProjects(raw);
+            return null;
+        }
+        if (['supplier','quotation','store','service'].includes(plan.intent)) {
+            if (executive) return answerExecutivePurchasing(raw);
+            return profile === 'compras' ? answerPurchasing(raw) : null;
+        }
+        if (plan.intent === 'rh_assets') {
+            if (executive) return answerRHOfficeAssets(raw,true);
+            return profile === 'rh' ? answerRHOfficeAssets(raw,false) : null;
+        }
+        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) {
+            if (executive) return answerExecutivePeople(raw, []);
+            return profile === 'rh' ? answerRH(raw) : null;
+        }
+        if (plan.intent === 'finance') return (executive || profile === 'finanzas') ? (executive ? answerExecutive(raw) : answerFinance(raw)) : null;
+        if (plan.intent === 'executive') return executive ? answerExecutive(raw) : null;
         return null;
     }
 
     async function answerUniversalIntent(raw) {
         const norm=commandNormalize(raw);
+        const profile=detectProfile();
+        const executive=isExecutiveReadProfile(profile);
         if (/\b(hola|buenos dias|buen dia|buenas tardes|buenas noches|como estas|que tal)\b/.test(norm)) {
             const config=profileConfig();
-            setAnswer('Hola, soy Sky',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[detectProfile()]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
+            setAnswer('Hola, soy Sky',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
             return 'Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte. Dime qué necesitas resolver y lo intentamos juntos.';
         }
         if (/\b(que puedes hacer|que sabes hacer|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
-            setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[detectProfile()]||'tu perfil'}.`,'No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona: por materiales, proyectos, personas, compras, proveedores, vehículos, costos o pendientes según tus permisos.',examples);
+            setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}.`,'No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área.',examples);
             return 'Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. Dime la situación completa y trataré de resolverla contigo.';
         }
-        if (/\b(vehiculo|vehiculos|camioneta|pickup|placa|placas|flotilla|montacargas|generador)\b/.test(norm)) return answerVehicles(raw);
+        if (/\b(vehiculo|vehiculos|camioneta|pickup|placa|placas|flotilla|montacargas|generador)\b/.test(norm)) {
+            if (executive || profile==='rh' || profile==='almacen') return answerVehicles(raw);
+            return null;
+        }
         if (/\b(proyecto|proyectos|avance|entrega|responsable)\b/.test(norm)) {
-            if (isExecutiveReadProfile()) return answerExecutive(raw);
-            if (detectProfile()==='finanzas') return answerFinance(raw);
-            return answerProjects(raw);
+            if (executive) return answerExecutive(raw);
+            if (profile==='finanzas') return answerFinance(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen'].includes(profile)) return answerProjects(raw);
+            return null;
         }
         if (/\b(proveedor|proveedores|cotizacion|cotizaciones|orden de compra|compras|requisicion|precio|plazo|rfc|whatsapp|correo|email)\b/.test(norm)) {
-            if (isExecutiveReadProfile()) return answerExecutivePurchasing(raw);
-            if (detectProfile()==='compras') return answerPurchasing(raw);
+            if (executive) return answerExecutivePurchasing(raw);
+            if (profile==='compras') return answerPurchasing(raw);
+            return null;
         }
         if (officeAssetIntent(raw)) {
-            if (isExecutiveReadProfile()) return answerRHOfficeAssets(raw,true);
-            if (detectProfile()==='rh') return answerRHOfficeAssets(raw,false);
+            if (executive) return answerRHOfficeAssets(raw,true);
+            if (profile==='rh') return answerRHOfficeAssets(raw,false);
+            return null;
         }
         if (/\b(personal|persona|personas|trabajador|trabajadores|empleado|empleados|colaborador|colaboradores|rh|recursos humanos)\b/.test(norm)) {
-            if (isExecutiveReadProfile()) return answerExecutivePeople(raw,[]);
-            if (detectProfile()==='rh') return answerRH(raw);
+            if (executive) return answerExecutivePeople(raw,[]);
+            if (profile==='rh') return answerRH(raw);
+            return null;
+        }
+        if (/\b(categoria|categorias|categoría|categorías)\b/.test(norm) && /\b(cuantas|cuántas|cuantos|cuántos|lista|listar|muestra|mostrar|hay|tiene|tenemos|almacen|almacén|catalogo|catálogo)\b/.test(norm)) {
+            if (executive || profile==='compras' || profile==='almacen') return answerCategories(raw);
+            return null;
         }
         if (/\b(material|materiales|tubo|tuberia|cable|tornillo|pija|pijas|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|stock|existencia|ubicacion|ubicación|rack|almacen|almacén)\b/.test(norm)) {
+            if (!(executive || profile==='compras' || profile==='almacen')) return null;
             if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicación|rack|almacen|almacén/.test(norm)) return answerMaterial(raw,true);
             return answerMaterial(raw,false);
@@ -2921,7 +3286,7 @@
         setStatus('Procesando consulta…', 'busy');
         setAnswer('Consultando', `Estoy interpretando tu solicitud en ${profileNames[detectProfile()] || detectProfile()}…`);
         try {
-            const cleanRaw = stripWakeWord(raw);
+            const cleanRaw = expandEntityAliases(stripWakeWord(raw));
             const simple = await answerSimple(cleanRaw);
             let voice = simple.handled ? simple.voice : '';
             let usedAI = false;
@@ -2932,6 +3297,8 @@
                     usedAI = Boolean(voice);
                 }
                 if (!voice) voice = await dispatchByProfile(cleanRaw);
+                if (!voice) voice = await answerScopedSmartSearch(cleanRaw, detectProfile());
+                if (!voice && isExecutiveReadProfile()) voice = await answerExecutiveGlobalSearch(cleanRaw);
                 if (!voice) voice = await answerGeneralAI(cleanRaw, detectProfile());
                 if (!voice) voice = await answerGeneric(cleanRaw, detectProfile());
             }

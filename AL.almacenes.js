@@ -17,6 +17,7 @@
     let assigningCode = '';
     let selectedRack = 0;
     let selectedZone = 0;
+    const selectedQrPositions = new Map();
     const MAX_MATERIALS_PER_POSITION = 7;
 
     function currentWarehouse() {
@@ -347,8 +348,8 @@
         $('location-boards').innerHTML = visibleLocations.length
             ? `<section class="rack-physical-view">
                 <div class="rack-physical-header">
-                    <div><p class="text-sm font-bold text-white">Rack ${rackCode} · Zona ${selectedZone}</p><p class="mt-1 text-[9px] text-gray-500">Cada posición representa un cajón. Puede contener hasta 7 tipos de material y tiene su propia etiqueta QR.</p></div>
-                    <span class="rack-floor-count">${visibleLocations.length} piso${visibleLocations.length === 1 ? '' : 's'}</span>
+                    <div><p class="text-sm font-bold text-white">Rack ${rackCode} · Zona ${selectedZone}</p><p class="mt-1 text-[9px] text-gray-500">Cada posición representa un cajón. Puede contener hasta 7 tipos de material y tiene su propia etiqueta QR de 14.5 × 5 cm.</p></div>
+                    <div class="qr-batch-tools"><span class="rack-floor-count">${visibleLocations.length} piso${visibleLocations.length === 1 ? '' : 's'}</span><button type="button" data-select-visible-qr class="qr-batch-btn">Seleccionar visibles</button><button type="button" data-clear-qr class="qr-batch-btn">Limpiar</button><button type="button" data-print-selected-qr class="qr-batch-btn primary" ${selectedQrPositions.size?'':'disabled'}>Imprimir seleccionados (${selectedQrPositions.size})</button></div>
                 </div>
                 <div class="rack-frame">
                     ${visibleLocations.map((location, floorIndex) => {
@@ -363,7 +364,7 @@
                             if (inCell.length) occupied += 1;
                             materialTotal += inCell.length;
                             cells += `<div class="location-cell ${inCell.length ? 'is-occupied' : ''}" data-location-id="${location.id}" data-sequence="${sequence}">
-                                <div class="location-cell-head"><div><div class="location-cell-title">${esc(finalCode)}</div><div class="mt-1 text-[8px] text-gray-600">Posición ${sequence} · ${inCell.length}/${MAX_MATERIALS_PER_POSITION}</div></div><button type="button" data-qr-position="${location.id}" data-qr-sequence="${sequence}" class="position-qr-button" title="Etiqueta QR de esta posición">QR</button></div>
+                                <div class="location-cell-head"><div class="flex items-start gap-2"><input type="checkbox" class="qr-select-box" data-select-qr-position="${location.id}" data-select-qr-sequence="${sequence}" ${selectedQrPositions.has(`${location.id}:${sequence}`)?'checked':''}><div><div class="location-cell-title">${esc(finalCode)}</div><div class="mt-1 text-[8px] text-gray-600">Posición ${sequence} · ${inCell.length}/${MAX_MATERIALS_PER_POSITION}</div></div></div><button type="button" data-qr-position="${location.id}" data-qr-sequence="${sequence}" class="position-qr-button" title="Etiqueta QR de esta posición">QR</button></div>
                                 <div class="slot-materials">${inCell.length ? inCell.map(item => materialCard(item, true)).join('') : '<p class="location-free">Libre</p>'}</div>
                             </div>`;
                         }
@@ -719,23 +720,62 @@
         }
     }
 
-    function printQrPosition(locationId, sequence) {
+    function getQrPositionData(locationId, sequence) {
         const location = locations.find(row => Number(row.id) === Number(locationId));
         const warehouse = currentWarehouse();
-        if (!location || !warehouse) return;
-        const position = slotValue(location, sequence);
-        const materials = materialsInPosition(location.id, sequence);
-        const value = `SKILLED|UBICACION|${position}`;
-        $('qr-title').textContent = `Posición ${position}`;
-        $('qr-subtitle').textContent = warehouse.nombre;
-        $('qr-code').textContent = position;
-        $('qr-material-count').textContent = `${materials.length}/${MAX_MATERIALS_PER_POSITION} materiales`;
-        $('qr-materials').innerHTML = materials.length
-            ? materials.map(item => `<div class="qr-material-row"><strong>${esc(item.codigo)}</strong><span>${esc(item.descripcion || item.codigo)}</span></div>`).join('')
+        if (!location || !warehouse) return null;
+        const position = slotValue(location, Number(sequence));
+        const materials = materialsInPosition(location.id, Number(sequence)).slice(0, MAX_MATERIALS_PER_POSITION);
+        return { warehouse, location, sequence:Number(sequence), position, materials, value:`SKILLED|UBICACION|${position}` };
+    }
+
+    function printQrPosition(locationId, sequence) {
+        const data=getQrPositionData(locationId,sequence); if(!data) return;
+        $('qr-title').textContent = `Posición ${data.position}`;
+        $('qr-subtitle').textContent = data.warehouse.nombre;
+        $('qr-code').textContent = data.position;
+        $('qr-material-count').textContent = `${data.materials.length}/${MAX_MATERIALS_PER_POSITION} materiales`;
+        $('qr-materials').innerHTML = data.materials.length
+            ? data.materials.map(item => `<div><strong>${esc(item.codigo)}</strong> · ${esc(item.descripcion || item.codigo)}</div>`).join('')
             : '<div class="qr-empty">Posición libre</div>';
         $('qr-container').innerHTML = '';
-        new QRCode($('qr-container'), { text: value, width: 176, height: 176 });
+        new QRCode($('qr-container'), { text: data.value, width: 145, height: 145, colorDark:'#00416B', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+        const printButton=$('print-single-qr'); if(printButton) printButton.onclick=()=>printQrBatch([data]);
         openModal('qr-modal');
+    }
+
+    function updateQrSelectionButton(){
+        const btn=document.querySelector('[data-print-selected-qr]');
+        if(btn){btn.disabled=!selectedQrPositions.size;btn.textContent=`Imprimir seleccionados (${selectedQrPositions.size})`;}
+    }
+
+    function selectVisibleQr(){
+        document.querySelectorAll('[data-select-qr-position]').forEach(input=>{
+            input.checked=true;
+            selectedQrPositions.set(`${input.dataset.selectQrPosition}:${input.dataset.selectQrSequence}`,{locationId:input.dataset.selectQrPosition,sequence:Number(input.dataset.selectQrSequence)});
+        });
+        updateQrSelectionButton();
+    }
+
+    function clearQrSelection(){selectedQrPositions.clear();document.querySelectorAll('[data-select-qr-position]').forEach(input=>input.checked=false);updateQrSelectionButton();}
+
+    function buildRackPrintLabel(data,index){
+        const base=parseBaseCode(data.location.codigo)||{};
+        const wrap=document.createElement('section');wrap.className='rack-print-label';wrap.dataset.index=String(index);
+        wrap.innerHTML=`<div class="rack-print-left"><div class="rack-print-qr"></div></div><div class="rack-print-right"><div class="rack-print-head"><img src="logo-reporte.png" class="rack-print-logo" alt="Skilled"><span class="rack-print-kicker">UBICACIÓN DE ALMACÉN</span></div><div class="rack-print-position">${esc(data.position)}</div><div class="rack-print-meta">${esc(data.warehouse.nombre)} · Rack ${esc(String(base.rack||'').padStart(2,'0'))} · Zona ${esc(base.zona||'')} · Piso ${esc(base.piso||'')}</div><div class="rack-print-materials">${data.materials.length?data.materials.map(item=>`<div class="rack-print-material"><b>${esc(item.codigo)}</b> · ${esc(item.descripcion||item.codigo)}</div>`).join(''):'<div class="rack-print-empty">Posición libre</div>'}</div></div>`;
+        return wrap;
+    }
+
+    async function printQrBatch(items){
+        const valid=(items||[]).filter(Boolean);if(!valid.length)return showToast('Selecciona al menos una posición para imprimir.',true);
+        const root=$('rack-print-root');root.innerHTML='';
+        valid.forEach((data,index)=>{const label=buildRackPrintLabel(data,index);root.appendChild(label);const q=label.querySelector('.rack-print-qr');new QRCode(q,{text:data.value,width:220,height:220,colorDark:'#00416B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});});
+        await new Promise(resolve=>setTimeout(resolve,180));window.print();
+    }
+
+    function printSelectedQr(){
+        const data=[...selectedQrPositions.values()].map(item=>getQrPositionData(item.locationId,item.sequence)).filter(Boolean);
+        printQrBatch(data);
     }
 
     document.addEventListener('click', async event => {
@@ -774,6 +814,11 @@
         }
         const deleteRack = event.target.closest('[data-delete-rack]');
         if (deleteRack) removeRack(deleteRack.dataset.deleteRack);
+        const selectQr = event.target.closest('[data-select-qr-position]');
+        if (selectQr) { const key=`${selectQr.dataset.selectQrPosition}:${selectQr.dataset.selectQrSequence}`; if(selectQr.checked) selectedQrPositions.set(key,{locationId:selectQr.dataset.selectQrPosition,sequence:Number(selectQr.dataset.selectQrSequence)}); else selectedQrPositions.delete(key); updateQrSelectionButton(); }
+        if (event.target.closest('[data-select-visible-qr]')) selectVisibleQr();
+        if (event.target.closest('[data-clear-qr]')) clearQrSelection();
+        if (event.target.closest('[data-print-selected-qr]')) printSelectedQr();
         const qr = event.target.closest('[data-qr-position]');
         if (qr) printQrPosition(qr.dataset.qrPosition, Number(qr.dataset.qrSequence));
         const assign = event.target.closest('[data-assign-code]');

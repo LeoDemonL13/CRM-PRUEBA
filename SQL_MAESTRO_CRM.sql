@@ -5526,6 +5526,17 @@ begin
     if v_fuente='personal' then return public.crm_sky_direccion_personal(p_filtro); end if;
     if v_fuente='compras' then return public.crm_sky_direccion_compras(); end if;
     if v_fuente='vehiculos' then return public.crm_direccion_vehiculos(); end if;
+    if v_fuente='categorias' then
+        select coalesce(jsonb_agg(jsonb_build_object('nombre',x.categoria,'materiales',x.materiales) order by x.categoria),'[]'::jsonb)
+        into v_result
+        from (
+            select btrim(coalesce(m.categoria,'Sin categoría')) categoria,count(*)::bigint materiales
+            from public.materiales m
+            where coalesce(m.activo,true)=true and nullif(btrim(coalesce(m.categoria,'')),'') is not null
+            group by btrim(m.categoria)
+        ) x;
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
 
     if v_fuente='almacenes' then
         select coalesce(jsonb_agg(jsonb_build_object(
@@ -5585,6 +5596,49 @@ end;
 $$;
 revoke all on function public.crm_sky_direccion_consultar(text,text) from public,anon;
 grant execute on function public.crm_sky_direccion_consultar(text,text) to authenticated;
+
+create or replace function public.crm_sky_direccion_buscar(p_consulta text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    q text:=lower(btrim(coalesce(p_consulta,'')));
+    likeq text;
+    r jsonb:='[]'::jsonb;
+begin
+    if not public.crm_es_direccion() then raise exception using errcode='42501',message='Sky Dirección no tiene autorización para esta búsqueda.'; end if;
+    if q='' then return r; end if;
+    if q in ('leo','leito') then q:='leobardo'; end if;
+    likeq:='%'||q||'%';
+
+    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Material','titulo',m.codigo||' · '||m.descripcion,'detalle',coalesce(m.categoria,'Sin categoría')||' · '||coalesce(m.marca,'Sin marca'))),'[]'::jsonb)
+    into r from (select * from public.materiales m where coalesce(m.activo,true)=true and lower(concat_ws(' ',m.codigo,m.descripcion,m.categoria,m.marca,m.proveedor)) like likeq order by m.descripcion limit 12) m;
+
+    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Persona','titulo',btrim(coalesce(p.nombre,'')||' '||coalesce(p.apellidos,'')),'detalle',concat_ws(' · ',nullif(p.puesto,''),nullif(p.departamento,''),nullif(p.numero_empleado,'')))),'[]'::jsonb)
+    into r from (select * from public.rh_personal p where lower(concat_ws(' ',p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo)) like likeq order by p.nombre,p.apellidos limit 10) p;
+
+    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Proveedor','titulo',coalesce(nullif(p.nombre_comercial,''),p.razon_social),'detalle',concat_ws(' · ',nullif(p.contacto,''),nullif(p.rfc,''),nullif(p.email,''),nullif(p.whatsapp,''),nullif(p.telefono,'')))),'[]'::jsonb)
+    into r from (select * from public.co_proveedores p where coalesce(p.activo,true)=true and lower(concat_ws(' ',p.nombre_comercial,p.razon_social,p.contacto,p.rfc,p.email,p.telefono,p.whatsapp,p.categoria)) like likeq order by coalesce(nullif(p.nombre_comercial,''),p.razon_social) limit 10) p;
+
+    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Proyecto','titulo',p.numero_proyecto||' · '||coalesce(p.nombre_proyecto,'Proyecto'),'detalle',concat_ws(' · ',nullif(p.cliente,''),nullif(p.responsable_skilled,''),nullif(p.estado,'')))),'[]'::jsonb)
+    into r from (select * from public.proyectos p where lower(concat_ws(' ',p.numero_proyecto,p.nombre_proyecto,p.cliente,p.responsable_skilled,p.estado)) like likeq order by p.numero_proyecto limit 10) p;
+
+    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Vehículo','titulo',coalesce(nullif(v.numero_economico,''),nullif(v.placas,''),'Vehículo'),'detalle',concat_ws(' · ',nullif(v.tipo,''),nullif(v.marca,''),nullif(v.modelo,''),nullif(v.estado,'')))),'[]'::jsonb)
+    into r from (select * from public.vehiculos v where coalesce(v.activo,true)=true and lower(concat_ws(' ',v.numero_economico,v.placas,v.tipo,v.marca,v.modelo,v.estado,v.proyecto)) like likeq order by v.numero_economico nulls last,v.placas limit 10) v;
+
+    if to_regclass('public.herramientas_catalogo') is not null then
+        execute $q$select $1 || coalesce(jsonb_agg(jsonb_build_object('tipo','Herramienta','titulo',h.sku||' · '||h.descripcion,'detalle',concat_ws(' · ',nullif(h.clasificacion,''),nullif(h.marca,''),nullif(h.modelo,'')))),'[]'::jsonb) from (select * from public.herramientas_catalogo h where coalesce(h.activo,true)=true and lower(concat_ws(' ',h.sku,h.descripcion,h.clasificacion,h.marca,h.modelo,h.uso)) like $2 order by h.descripcion limit 10) h$q$ into r using r,likeq;
+    end if;
+
+    return coalesce(r,'[]'::jsonb);
+end;
+$$;
+revoke all on function public.crm_sky_direccion_buscar(text) from public,anon;
+grant execute on function public.crm_sky_direccion_buscar(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at) values('CRM-V55-SKY-BUSQUEDA-TRANSVERSAL-2026-08-12',now()) on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 insert into public.crm_migraciones(version,aplicada_at)
 values('CRM-V44-SKY-DIRECCION-CABLES-ROLLOS-2026-08-11',now())
@@ -6458,9 +6512,9 @@ commit;
 
 select 'OK' as estado,
        'SQL_MAESTRO_CRM.sql' as archivo_maestro,
-       'V54_SKY_AVANZADA_PERFIL_UNIFICADO' as revision;
+       'V56_SKY_DINAMICA_BUSQUEDA_INTELIGENTE' as revision;
 
--- V54 · Usuario demo Sky de solo lectura
+-- Usuario demo Sky de solo lectura
 -- Ejecuta este bloque después de crear el usuario skydemo@skilled.mx en Authentication.
 do $$
 begin
