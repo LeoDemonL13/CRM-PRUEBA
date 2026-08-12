@@ -2306,22 +2306,65 @@
         ]);
         return {handled:true,voice:message};
     }
+
+    function answerPresentationPlaybook(raw) {
+        const norm=commandNormalize(raw);
+        const wantsDemo=/\b(como presento|cómo presento|presentar a sky|presentacion de sky|presentación de sky|guion de demo|guión de demo|exposicion|exposición|como hago la demo|cómo hago la demo|como demuestro sky|cómo demuestro sky)\b/.test(norm);
+        if (wantsDemo) {
+            const message='Para presentar a Sky, empieza mostrando que conversa, después demuestra que entiende áreas y termina con una consulta real del CRM. La clave es no explicar demasiado antes: deja que Sky responda.';
+            setAnswer('Guía rápida para presentar a Sky',message,'Ruta recomendada de 5 a 7 minutos. Usa el usuario de demostración para que nadie pueda editar información.',[
+                {title:'1 · Saludo',detail:'Pregunta: “Sky, ¿cómo estás?” para mostrar que responde de forma natural.'},
+                {title:'2 · Identidad',detail:'Pregunta: “¿Quién te está creando?” para presentar el trabajo del ING. Leobardo Hernández Jerónimo.'},
+                {title:'3 · Área',detail:'Pregunta: “Soy de Finanzas/Planeación/Logística, ¿en qué me ayudas?”'},
+                {title:'4 · Consulta real',detail:'Pregunta por materiales, proyecto 26001, compras pendientes, vehículos o personal.'},
+                {title:'5 · Seguimiento',detail:'Después de una respuesta pregunta: “¿y dónde está?” o “¿y cuánto queda?”'},
+                {title:'6 · IA general',detail:'Pide que redacte un correo, resuma una situación o proponga pasos.'}
+            ]);
+            return {handled:true,voice:message};
+        }
+        if (/\b(quiero probarte|que te pregunto|qué te pregunto|preguntas para probar|modo demo|demo de sky|prueba de sky)\b/.test(norm)) {
+            const message='Puedes probarme con preguntas de conversación, por área y con datos del CRM. Si algo aún no está conectado, te lo diré con claridad.';
+            setAnswer('Preguntas para probar a Sky',message,'Estas preguntas funcionan bien para demostrar alcance sin dar permisos de edición.',[
+                {title:'Conversación',detail:'Sky, ¿cómo estás hoy?'},
+                {title:'Área',detail:'Soy de Logística, ¿en qué me puedes ayudar?'},
+                {title:'Material',detail:'¿Cuántas pijas tengo? / ¿Dónde está el tubo conduit?'},
+                {title:'Proyecto',detail:'¿Cuántas personas hay en el proyecto 26001?'},
+                {title:'Compras',detail:'¿Qué compras están pendientes? / ¿Quién vende cable THW?'},
+                {title:'Vehículos',detail:'¿Qué vehículos están disponibles?'},
+                {title:'Redacción',detail:'Ayúdame a redactar un correo para pedir una cotización urgente.'}
+            ]);
+            return {handled:true,voice:message};
+        }
+        if (/\b(eres una ia|eres inteligencia artificial|como una ia normal|qué tan habil|que tan habil|qué tan hábil|que puedes resolver|puedes ayudar en todo|puedes hacer de todo)\b/.test(norm)) {
+            const message='Soy una asistente en evolución dentro del CRM. Puedo conversar, explicar, redactar y razonar situaciones generales; cuando la pregunta requiere datos internos, consulto solo la información autorizada para tu perfil.';
+            setAnswer('Sky como asistente inteligente',message,'Mi meta es acercarme cada vez más a una IA de trabajo normal, pero conectada al contexto real de Skilled y respetando permisos.',[
+                {title:'Converso',detail:'Respondo saludos, explicaciones, dudas y solicitudes abiertas.'},
+                {title:'Redacto',detail:'Puedo ayudarte con correos, mensajes, resúmenes y pasos de trabajo.'},
+                {title:'Consulto CRM',detail:'Materiales, proyectos, RH, compras, vehículos y más, según permisos.'},
+                {title:'No invento datos',detail:'Si un dato no está conectado, lo aclaro y propongo cómo obtenerlo.'}
+            ]);
+            return {handled:true,voice:message};
+        }
+        return null;
+    }
+
     async function answerSimple(raw) {
         const norm = commandNormalize(raw);
         const date = localDateParts();
         captureAreaContext(raw);
+        const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
         const navigation=tryNavigation(raw);if(navigation){if(navigation.list){const options=Object.keys(navigationOptions()).map(key=>({title:key,detail:`Puedes decir: abre ${key}`}));setAnswer('Apartados disponibles','Estos son los apartados a los que puedo llevarte desde tu perfil.','No puedo abrir secciones que tu cuenta no tenga autorizadas.',options)}return navigation;}
         if (/\b(que puedes hacer aqui|qué puedes hacer aquí|ayudame aqui|ayúdame aquí|como me ayudas aqui|cómo me ayudas aquí|esta pantalla|esta pagina|esta página)\b/.test(norm)) { const message=pageHelp(); return {handled:true,voice:message}; }
         if (/\b(como estas|cómo estás|como te encuentras|cómo te encuentras|como andas|cómo andas|como vas|cómo vas|todo bien|que tal estas|qué tal estás|como sigue tu evolucion|cómo sigue tu evolución)\b/.test(norm)) {
-            const message='Aún estoy en evolución, pero estoy lista para ayudarte. Cada versión me permite entender mejor las consultas de Skilled y relacionar más información entre las áreas autorizadas.';
+            const message='Aún estoy en evolución, pero estoy lista para ayudarte. Cada versión me permite conversar mejor, entender más contexto de Skilled y relacionar información entre las áreas autorizadas.';
             setAnswer('Estoy lista para ayudarte', message, 'Puedes hablarme como lo harías con una persona. Si necesitas información del CRM, intentaré consultarla; si es una pregunta general, también puedo orientarte, explicar, redactar o ayudarte a razonar una solución.');
             return { handled:true, voice:message };
         }
         if (/^(hola|buenos dias|buenas tardes|buenas noches|que tal|hey)\b/.test(norm)) {
             const profile=detectProfile();
             const message = profile==='sky_demo'
-                ? 'Hola. Soy Sky. Para esta demostración puedes decirme de qué área eres —por ejemplo Planeación, Finanzas, Logística, Compras, Recursos Humanos, Almacén o Coordinación— y te explicaré cómo puedo ayudarte por el momento. También puedes hacerme una pregunta directamente.'
+                ? 'Hola. Soy Sky. Estoy en modo demostración de solo lectura. Puedes decirme de qué área eres —Planeación, Finanzas, Logística, Compras, Recursos Humanos, Almacén o Coordinación— o hacerme una pregunta directamente. También puedo redactar, explicar y ayudarte a organizar ideas.'
                 : `Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile] || profile}. Dime qué necesitas y lo resolvemos juntos.`;
             setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Si una información todavía no está conectada al CRM, te lo diré con claridad en lugar de inventarla.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
             return { handled:true, voice:message };
@@ -2711,7 +2754,7 @@
         if (adapter?.query) return adapter.query({ raw, normalized: normalize(raw), SkilledDB, setAnswer, loadData, formatNumber, currency, dateOnly });
         const config = profileConfig(profile);
         const examples=pageAwareExamples(config).slice(0,7).map(item=>({title:item[0],detail:item[1]}));
-        setAnswer(config.title, `Todavía no pude resolver esa consulta con los datos conectados, pero puedo seguir ayudándote a plantearla, explicarla o buscar una ruta dentro del CRM.`, `Dime qué quieres lograr y dame el contexto que tengas. No necesitas usar comandos exactos.`, examples);
+        setAnswer(config.title, `Todavía no pude resolver esa consulta con datos conectados del CRM, pero puedo ayudarte a plantearla, explicarla, redactarla, convertirla en pasos de trabajo o buscar una ruta dentro del sistema.`, `Dime qué quieres lograr y dame el contexto que tengas. No necesitas usar comandos exactos.`, examples);
         return `No encontré una respuesta directa todavía. Cuéntame un poco más de lo que necesitas y lo intentaré con la información disponible en ${profileNames[profile] || profile}.`;
     }
 

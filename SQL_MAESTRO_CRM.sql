@@ -6451,11 +6451,23 @@ select 'OK' estado,
 
 begin;
 insert into public.crm_migraciones(version)
-values('V53_SKY_AVANZADA_PERFIL_UNIFICADO')
+values('V54_SKY_AVANZADA_PERFIL_UNIFICADO')
 on conflict(version) do nothing;
 notify pgrst,'reload schema';
 commit;
 
 select 'OK' as estado,
        'SQL_MAESTRO_CRM.sql' as archivo_maestro,
-       'V53_SKY_AVANZADA_PERFIL_UNIFICADO' as revision;
+       'V54_SKY_AVANZADA_PERFIL_UNIFICADO' as revision;
+
+-- V54 · Usuario demo Sky de solo lectura
+-- Ejecuta este bloque después de crear el usuario skydemo@skilled.mx en Authentication.
+do $$
+begin
+    if exists(select 1 from auth.users where lower(email)='skydemo@skilled.mx') then
+        perform public.crm_asignar_rol_por_correo('skydemo@skilled.mx','sky_demo',true);
+        update public.perfiles_usuario
+        set nombre='Sky Demo', puesto='Usuario de demostración', departamento='Presentación CRM', activo=true
+        where id=(select id from auth.users where lower(email)='skydemo@skilled.mx' limit 1);
+    end if;
+end $$;
