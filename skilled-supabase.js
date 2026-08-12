@@ -4344,6 +4344,7 @@
             puesto: text(profile?.puesto),
             departamento: text(profile?.departamento),
             fotoUrl: text(profile?.foto_url),
+            uiPreferences: profile?.preferencias_ui && typeof profile.preferencias_ui === 'object' ? profile.preferencias_ui : {},
             creadoAt: text(user.created_at),
             ultimoAcceso: text(user.last_sign_in_at),
             emailConfirmado: text(user.email_confirmed_at)
@@ -4360,6 +4361,12 @@
         });
         assertNoError(error, 'No se pudo guardar el perfil.');
         return data;
+    }
+
+    async function saveUiPreferences(preferences = {}) {
+        const { data, error } = await client.rpc('crm_guardar_preferencias_ui', { p_preferencias: preferences && typeof preferences === 'object' ? preferences : {} });
+        assertNoError(error, 'No se pudieron guardar las preferencias visuales.');
+        return data || {};
     }
 
 
@@ -5796,6 +5803,7 @@
         getToolAssignmentGroup,
         getMyProfile,
         saveMyProfile,
+        saveUiPreferences,
         listTools,
         saveTool,
         createIncompleteTool,

@@ -485,6 +485,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     }
 
     function lightThemeEnabled() {
+        if (window.SkilledTheme?.isLight) return window.SkilledTheme.isLight();
         return document.body.classList.contains('tema-claro') || localStorage.getItem(themeStorageKey()) === 'claro';
     }
 
@@ -505,6 +506,10 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     }
 
     function setTheme(light) {
+        if (window.SkilledTheme?.toggleLight) {
+            window.SkilledTheme.toggleLight(Boolean(light)).finally?.(() => requestAnimationFrame(updateThemeButtons));
+            return;
+        }
         const theme = light ? 'claro' : 'oscuro';
         const background = light ? '#f2f4f9' : '#060814';
         document.documentElement.dataset.crmTheme = theme;
@@ -521,6 +526,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     }
 
     window.alternarTema = function () {
+        if (window.SkilledTheme?.toggleLight) return window.SkilledTheme.toggleLight();
         setTheme(!lightThemeEnabled());
     };
 
@@ -1281,7 +1287,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
 
     function normalizeSharedHeader() {
         addSharedStyles();
-        if (localStorage.getItem(themeStorageKey()) === 'claro') { document.documentElement.classList.add('tema-claro'); document.body.classList.add('tema-claro'); } else { document.documentElement.classList.remove('tema-claro'); document.body.classList.remove('tema-claro'); }
+        if (window.SkilledTheme?.applyStored) window.SkilledTheme.applyStored(); else if (localStorage.getItem(themeStorageKey()) === 'claro') { document.documentElement.classList.add('tema-claro'); document.body.classList.add('tema-claro'); } else { document.documentElement.classList.remove('tema-claro'); document.body.classList.remove('tema-claro'); }
         normalizeHeaderButtons();
         normalizeGlobalSearch();
         updateThemeButtons();

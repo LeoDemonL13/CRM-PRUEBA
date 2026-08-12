@@ -14,11 +14,11 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=50">
-<script src="navegacion-suave.js?v=50"></script>
+<link rel="stylesheet" href="interfaz.css?v=51"><script src="skilled-theme.js?v=51"></script>
+<script src="navegacion-suave.js?v=51"></script>
 <title>Skilled - Solicitudes de material</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=50"></script>
+    <script src="skilled-supabase.js?v=51"></script>
 <script src="auth-guard.js?v=50"></script>
     <link rel="stylesheet" href="tailwind-local.css?v=50">
     <style>
@@ -63,7 +63,7 @@ function alternarTema(){const claro=document.body.classList.toggle('tema-claro')
         </section>
     </main>
 </div>
-<script src="skilled-sidebar.js?v=50"></script>
+<script src="skilled-sidebar.js?v=51"></script>
 <script>
 (function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();
 let solicitudes=[];let reajustes=[];let tabActual='solicitudes';const currentRole=()=>{try{return String(window.SkilledSession?.role||JSON.parse(localStorage.getItem('skilled_profile_cache')||'{}').rol||'').toLowerCase()}catch(_){return String(window.SkilledSession?.role||'').toLowerCase()}};const canDeleteTest=()=>['administrador','jefe_almacen'].includes(currentRole());

@@ -13,11 +13,11 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=50">
-<script src="navegacion-suave.js?v=50"></script>
+<link rel="stylesheet" href="interfaz.css?v=51"><script src="skilled-theme.js?v=51"></script>
+<script src="navegacion-suave.js?v=51"></script>
 <title>Skilled - Etiquetas</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=50"></script>
+<script src="skilled-supabase.js?v=51"></script>
 <script src="auth-guard.js?v=50"></script>
 <link rel="stylesheet" href="tailwind-local.css?v=50">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
@@ -233,7 +233,7 @@ async function generarPDF(imprimir){if(ocupado)return;const base=seleccion();if(
 async function descargarPNGZip(){if(ocupado)return;const items=seleccion();if(!items.length)return alert('Selecciona al menos un material o categoría.');const [lw,lh]=document.getElementById('tamanoEtiqueta').value.split('x').map(Number);setBusy(true);try{const zip=new JSZip();for(let i=0;i<items.length;i++){const e=items[i],cvs=await labelCanvas(e,lw,lh,false),blob=await new Promise(resolve=>cvs.toBlob(resolve,'image/png')),name=(e.tipo==='categoria'?`categoria_${e.categoria}`:`material_${e.codigo}`).replace(/[^A-Za-z0-9_-]/g,'_');zip.file(`${name}.png`,blob);cvs.width=1;cvs.height=1;progress(i+1,items.length,`Preparando PNG ${i+1} de ${items.length}...`);if(i%4===3)await waitFrame()}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}});downloadBlob(blob,`Etiquetas_PNG_${new Date().toISOString().slice(0,10)}.zip`)}catch(error){alert('No se pudo generar el ZIP: '+error.message)}finally{setTimeout(()=>setBusy(false),500)}}
 document.getElementById('busqueda').addEventListener('input',renderLista);loadLogo();cargar(false);
 </script>
-<script src="skilled-sidebar.js?v=50"></script>
+<script src="skilled-sidebar.js?v=51"></script>
 
 
 <script src="skilled-performance.js?v=50" defer></script>
