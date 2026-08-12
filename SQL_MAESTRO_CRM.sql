@@ -2883,7 +2883,7 @@ create policy crm_chat_insert on public.crm_chat_mensajes
 for insert to authenticated
 with check (
     autor_id = auth.uid()
-    and exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true)
+    and exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and coalesce(p.rol,'')<>'sky_demo')
 );
 
 drop policy if exists crm_chat_delete_own on public.crm_chat_mensajes;
@@ -2992,8 +2992,8 @@ begin
     if auth.uid() is null then
         raise exception using errcode='42501',message='La sesión no está activa.';
     end if;
-    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true) then
-        raise exception using errcode='42501',message='Tu perfil no está activo para usar el chat.';
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and coalesce(p.rol,'')<>'sky_demo') then
+        raise exception using errcode='42501',message='Tu perfil no está autorizado para enviar mensajes por el chat.';
     end if;
     if char_length(v_text)=0 then raise exception 'Escribe un mensaje.'; end if;
     if char_length(v_text)>1500 then raise exception 'El mensaje puede contener hasta 1500 caracteres.'; end if;

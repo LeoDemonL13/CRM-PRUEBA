@@ -4707,7 +4707,8 @@
         const context = options.context && typeof options.context === 'object' ? {
             lastIntent: text(options.context.lastIntent).slice(0, 80),
             lastEntity: text(options.context.lastEntity).slice(0, 240),
-            lastQuery: text(options.context.lastQuery).slice(0, 500)
+            lastQuery: text(options.context.lastQuery).slice(0, 500),
+            area: text(options.context.area).slice(0, 120)
         } : {};
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta', context }
@@ -4718,6 +4719,8 @@
             intent: text(data?.intent),
             query: text(data?.query) || input,
             entity: text(data?.entity),
+            recipient: text(data?.recipient),
+            message: text(data?.message),
             confidence: Number(data?.confidence) || 0,
             locationOnly: data?.locationOnly === true,
             duracionMs: Number(data?.durationMs) || 0,
