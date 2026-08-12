@@ -1203,15 +1203,15 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const button = document.createElement('button');
         button.id = 'sky-open';
         button.type = 'button';
-        button.className = 'skilled-header-button';
+        button.className = 'skilled-header-button skilled-sky-launcher';
         button.title = 'Consultar Sky';
-        button.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Sky</span>';
+        button.innerHTML = '<span class="skilled-sky-dot"></span><svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Sky</span><span class="skilled-sky-caption">Asistente</span>';
         button.addEventListener('click', async () => {
             button.disabled = true;
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=50');
+                await loadOptionalScript('skilled-sky.js?v=52');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1228,7 +1228,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const button = document.createElement('button');
         button.id = 'chat-open';
         button.type = 'button';
-        button.className = 'skilled-header-button';
+        button.className = 'skilled-header-button skilled-chat-launcher';
         button.title = 'Chat interno';
         button.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5Z"></path><path d="M8 9h8M8 12h5"></path></svg><span>Chat</span>';
         button.addEventListener('click', async () => {
@@ -1236,7 +1236,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=50');
+                await loadOptionalScript('skilled-chat.js?v=52');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1257,7 +1257,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=50').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=52').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1271,7 +1271,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=50'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=52'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
