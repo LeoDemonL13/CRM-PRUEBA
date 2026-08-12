@@ -6449,3 +6449,13 @@ select 'OK' estado,
        (select count(*) from information_schema.columns where table_schema='public' and table_name='rh_nomina_detalles' and column_name='viaticos') viaticos,
        (select count(*) from information_schema.columns where table_schema='public' and table_name='rh_proyecto_asignaciones' and column_name='viatico_habilitado') viaticos_personalizados;
 
+begin;
+insert into public.crm_migraciones(version)
+values('V53_SKY_AVANZADA_PERFIL_UNIFICADO')
+on conflict(version) do nothing;
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'SQL_MAESTRO_CRM.sql' as archivo_maestro,
+       'V53_SKY_AVANZADA_PERFIL_UNIFICADO' as revision;

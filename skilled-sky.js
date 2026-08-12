@@ -182,10 +182,8 @@
     const dataPromises = new Map();
     const aiQueryCache = new Map();
     let aiRetryAfter = 0;
-    const conversationKey=()=>`skilled_sky_context_${detectProfile()}`;
-    function loadConversationContext(){try{const value=JSON.parse(sessionStorage.getItem(conversationKey())||'null');return value&&typeof value==='object'?value:{}}catch(_){return{}}}
-    let conversationContext = Object.assign({ material:null, vehicle:null, project:null, supplier:null, area:'', lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 },loadConversationContext());
-    function saveConversationContext(){conversationContext.updatedAt=Date.now();try{sessionStorage.setItem(conversationKey(),JSON.stringify(conversationContext))}catch(_){}}
+    let conversationContext = { material:null, vehicle:null, project:null, supplier:null, area:'', lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 };
+    function saveConversationContext(){conversationContext.updatedAt=Date.now()}
     function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
     const ttl = 45000;
 
@@ -231,7 +229,7 @@
             modal.innerHTML = `
                 <section class="sky-modal" role="dialog" aria-modal="true" aria-labelledby="sky-title">
                     <header class="sky-head">
-                        <div class="flex items-center gap-3"><div class="sky-orb"></div><div class="min-w-0"><div id="sky-title" class="sky-title">${html(config.title)}</div><div class="sky-subtitle">${html(config.subtitle)} Sky mantiene las consultas en modo lectura.</div></div></div>
+                        <div class="flex items-center gap-3"><div class="sky-orb"></div><div class="min-w-0"><div id="sky-title" class="sky-title">${html(config.title)}</div><div class="sky-subtitle">${html(config.subtitle)} Los datos del CRM se consultan respetando los permisos de tu perfil.</div></div></div>
                         <div class="sky-head-actions"><button id="sky-clear" class="sky-head-tool" type="button" title="Nueva conversación" aria-label="Nueva conversación">↺</button><button id="sky-settings-button" class="sky-head-tool" type="button" title="Micrófono y voz" aria-label="Micrófono y voz">⚙</button><button id="sky-close" class="sky-close" type="button" aria-label="Cerrar">×</button></div>
                     </header>
                     <div class="sky-body">
@@ -246,15 +244,14 @@
                         <div class="sky-mic-help">Habla como lo harías con un compañero: Sky entiende frases formales, abreviaciones y varios modismos comunes. Selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
                         <details class="sky-mic-settings" id="sky-mic-settings"><summary>Micrófono y diagnóstico de voz</summary><div class="sky-mic-panel"><select id="sky-mic-device" class="sky-mic-select"><option value="">Micrófono predeterminado</option></select><button id="sky-mic-test" type="button" class="sky-mic-test">Probar micrófono</button><div id="sky-mic-diagnostic" class="sky-mic-diagnostic">Puedes elegir el micrófono correcto después de autorizar el acceso.</div></div></details>
                         <div class="sky-voice-row"><span id="sky-engine" class="sky-engine">Voz · automático</span><span id="sky-voice-meter" class="sky-voice-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
-                        <div id="sky-history" class="sky-history"></div>
-                        <div id="sky-answer" class="sky-answer"><div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">Respuesta verificada</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Sky consulta únicamente información autorizada para tu sesión y mantiene este asistente en modo lectura.</div></div>
+                        <div id="sky-answer" class="sky-answer"><div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">Respuesta de Sky</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Sky puede conversar, explicar y orientar; cuando usa datos del CRM, consulta únicamente la información autorizada para tu sesión.</div></div>
                         <div class="sky-examples"><div class="sky-examples-title">Sugerencias · ${html(profileCodes[detectProfile()] || detectProfile().toUpperCase())}</div><div class="sky-chip-wrap">${examples.map(([label,example]) => `<button class="sky-chip" data-sky-example="${html(example)}">${html(label)}</button>`).join('')}</div></div>
                     </div>
                 </section>`;
             document.body.appendChild(modal);
             transcriptInput = document.getElementById('sky-query');
             answerNode = document.getElementById('sky-answer');
-            historyNode = document.getElementById('sky-history');
+            historyNode = null;
             statusNode = document.getElementById('sky-status');
             micButton = document.getElementById('sky-mic');
             document.getElementById('sky-close').addEventListener('click', close);
@@ -278,7 +275,7 @@
             modal = document.getElementById('sky-overlay');
             transcriptInput = document.getElementById('sky-query');
             answerNode = document.getElementById('sky-answer');
-            historyNode = document.getElementById('sky-history');
+            historyNode = null;
             statusNode = document.getElementById('sky-status');
             micButton = document.getElementById('sky-mic');
         }
@@ -304,12 +301,7 @@
         answerNode.querySelector('[data-sky-copy]')?.addEventListener('click',async()=>{const value=text(answerNode.querySelector('.sky-answer-main')?.textContent)+'\n'+text(answerNode.querySelector('.sky-answer-detail')?.textContent);try{await navigator.clipboard.writeText(value.trim());setStatus('Respuesta copiada.')}catch(_){setStatus('No fue posible copiar automáticamente.','error')}});
         answerNode.querySelector('[data-sky-speak]')?.addEventListener('click',()=>{const value=text(answerNode.querySelector('.sky-answer-main')?.textContent);if(value)speak(value)});
     }
-    function archiveCurrentAnswer(){
-        if(!historyNode||!activeQuestion||answerNode?.dataset.skyFinal!=='1')return;
-        const clone=answerNode.cloneNode(true);clone.querySelectorAll('.sky-answer-tools').forEach(n=>n.remove());
-        const item=document.createElement('article');item.className='sky-history-item';item.innerHTML=`<div class="sky-history-q">${html(activeQuestion)}</div><div class="sky-history-a">${clone.innerHTML}</div>`;historyNode.appendChild(item);
-        while(historyNode.children.length>6)historyNode.firstElementChild.remove();historyNode.scrollTop=historyNode.scrollHeight;
-    }
+    function archiveCurrentAnswer(){}
     function clearSkyConversation(){
         activeQuestion='';conversationContext={material:null,vehicle:null,project:null,supplier:null,area:'',lastIntent:'',lastEntity:'',lastQuery:'',updatedAt:0};saveConversationContext();if(historyNode)historyNode.innerHTML='';if(transcriptInput)transcriptInput.value='';const config=profileConfig();setAnswer('Nueva conversación','Listo. Empezamos una consulta nueva.',config.subtitle);setStatus('Listo para consultar.');
     }
@@ -504,14 +496,28 @@
         return aliases[index % aliases.length] || `Voz ${index + 1}`;
     }
     function voiceChoices() {
-        const counters = { male: 0, female: 0, neutral: 0 };
-        return sortedVoices().map(voice => {
-            const gender = inferVoiceGender(voice);
-            const aliases = gender === 'male' ? MALE_VOICE_ALIASES : gender === 'female' ? FEMALE_VOICE_ALIASES : NEUTRAL_VOICE_ALIASES;
-            const alias = aliases[counters[gender] % aliases.length] || `Voz ${counters[gender] + 1}`;
-            counters[gender] += 1;
-            return { voiceURI: voice.voiceURI, voiceName: voice.name, lang: voice.lang, alias, gender };
-        });
+        const voices = sortedVoices();
+        if (!voices.length) return [];
+        const spanish = voices.filter(voice => /^es(?:-|_)/i.test(voice.lang));
+        const pool = spanish.length ? spanish : voices;
+        const selected = [];
+        const used = new Set();
+        const pick = predicate => {
+            const voice = pool.find(item => !used.has(item.voiceURI) && predicate(item)) || pool.find(item => !used.has(item.voiceURI));
+            if (voice) { used.add(voice.voiceURI); selected.push(voice); }
+        };
+        pick(voice => inferVoiceGender(voice) === 'female');
+        pick(voice => inferVoiceGender(voice) === 'female');
+        pick(voice => inferVoiceGender(voice) === 'male');
+        while (selected.length < Math.min(3, pool.length)) pick(() => true);
+        const aliases = ['Sarah','Elena','Daniel'];
+        return selected.slice(0,3).map((voice,index) => ({
+            voiceURI: voice.voiceURI,
+            voiceName: voice.name,
+            lang: voice.lang,
+            alias: aliases[index],
+            gender: inferVoiceGender(voice)
+        }));
     }
     function selectedVoice(preferences = getVoicePreferences()) {
         const voices = sortedVoices();
@@ -1568,8 +1574,8 @@
     function isMaterialFamilyQuery(rawQuery) {
         const norm = commandNormalize(rawQuery);
         if (/\b(tipos?|variedades?|clases?|familias?|modelos?|coincidencias?|opciones?)\b/.test(norm)) return true;
-        if (/\b(cuales|que|cuantos|cuantas)\b.*\b(tubos|cables|tornillos|tuercas|rondanas|arandelas|abrazaderas|conectores|terminales|brocas|pernos|taquetes|mangueras|valvulas|codos|niples|reducciones)\b/.test(norm) && !/\b(cuantos|cuantas)\b.*\b(piezas?|metros?|unidades?|existencia|stock)\b/.test(norm)) return true;
-        if (/\b(busca|buscar|muestra|mostrar|lista|listar|encuentra|dame)\b.*\b(materiales?|tubos|cables|tornillos|tuercas|rondanas|arandelas|abrazaderas|conectores|terminales|brocas|pernos|taquetes|mangueras|valvulas|codos|niples|reducciones)\b/.test(norm)) return true;
+        if (/\b(cuales|que|cuantos|cuantas)\b.*\b(tubos|tuberias|cables|tornillos|pijas|tuercas|rondanas|arandelas|abrazaderas|conectores|terminales|brocas|pernos|taquetes|mangueras|valvulas|codos|niples|reducciones|conduit|canaletas)\b/.test(norm) && !/\b(cuantos|cuantas)\b.*\b(piezas?|metros?|unidades?|existencia|stock)\b/.test(norm)) return true;
+        if (/\b(busca|buscar|muestra|mostrar|lista|listar|encuentra|dame)\b.*\b(materiales?|tubos|tuberias|cables|tornillos|pijas|tuercas|rondanas|arandelas|abrazaderas|conectores|terminales|brocas|pernos|taquetes|mangueras|valvulas|codos|niples|reducciones|conduit|canaletas)\b/.test(norm)) return true;
         if (/\b(todo|todos|todas)\b.*\b(coincida|coincidan|contenga|contengan|tenga|tengan)\b/.test(norm)) return true;
         return false;
     }
@@ -2307,11 +2313,16 @@
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
         const navigation=tryNavigation(raw);if(navigation){if(navigation.list){const options=Object.keys(navigationOptions()).map(key=>({title:key,detail:`Puedes decir: abre ${key}`}));setAnswer('Apartados disponibles','Estos son los apartados a los que puedo llevarte desde tu perfil.','No puedo abrir secciones que tu cuenta no tenga autorizadas.',options)}return navigation;}
         if (/\b(que puedes hacer aqui|qué puedes hacer aquí|ayudame aqui|ayúdame aquí|como me ayudas aqui|cómo me ayudas aquí|esta pantalla|esta pagina|esta página)\b/.test(norm)) { const message=pageHelp(); return {handled:true,voice:message}; }
+        if (/\b(como estas|cómo estás|como te encuentras|cómo te encuentras|como andas|cómo andas|como vas|cómo vas|todo bien|que tal estas|qué tal estás|como sigue tu evolucion|cómo sigue tu evolución)\b/.test(norm)) {
+            const message='Aún estoy en evolución, pero estoy lista para ayudarte. Cada versión me permite entender mejor las consultas de Skilled y relacionar más información entre las áreas autorizadas.';
+            setAnswer('Estoy lista para ayudarte', message, 'Puedes hablarme como lo harías con una persona. Si necesitas información del CRM, intentaré consultarla; si es una pregunta general, también puedo orientarte, explicar, redactar o ayudarte a razonar una solución.');
+            return { handled:true, voice:message };
+        }
         if (/^(hola|buenos dias|buenas tardes|buenas noches|que tal|hey)\b/.test(norm)) {
             const profile=detectProfile();
             const message = profile==='sky_demo'
                 ? 'Hola. Soy Sky. Para esta demostración puedes decirme de qué área eres —por ejemplo Planeación, Finanzas, Logística, Compras, Recursos Humanos, Almacén o Coordinación— y te explicaré cómo puedo ayudarte por el momento. También puedes hacerme una pregunta directamente.'
-                : `Hola. Soy Sky. Estoy listo para ayudarte en ${profileNames[profile] || profile}.`;
+                : `Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile] || profile}. Dime qué necesitas y lo resolvemos juntos.`;
             setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Si una información todavía no está conectada al CRM, te lo diré con claridad en lugar de inventarla.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
             return { handled:true, voice:message };
         }
@@ -2618,8 +2629,8 @@
         if (officeAssetIntent(raw) || /resguardo|resguardos|activo.*oficina|material.*oficina|que tiene asignado|qué tiene asignado/.test(norm)) return answerRHOfficeAssets(raw,true);
         if (/\b(cuanto|cuantos|cuanta|cuantas)\b.*\b(material|materiales)\b/.test(norm) && !/tubo|cable|tornillo|tuerca|rondana|arandela|metro|pieza|stock|existencia/.test(norm)) return answerExecutiveInventorySummary();
         if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
-        if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg|codigo|código/.test(norm)) return answerMaterial(raw, true);
-        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg|rollo|rollos/.test(norm)) return answerMaterial(raw, false);
+        if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso)\b/.test(norm) && /material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg|codigo|código/.test(norm)) return answerMaterial(raw, true);
+        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg|rollo|rollos/.test(norm)) return answerMaterial(raw, false);
         if (/persona|personas|personal|trabajador|trabajadores|colaborador|colaboradores|empleado|empleados|recursos humanos|\brh\b|equipo.*proyecto|cuadrilla/.test(norm)) return answerExecutivePeople(raw, []);
         if (/proveedor|proveedores|cotiz|orden.*compra|compras? pendiente|solicitud.*compra|solicitud.*proveedor|\boc\b|rfc|contacto|correo|email|whatsapp|telefono|mensaje.*proveedor|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|quien.*maneja|quién.*maneja/.test(norm)) return answerExecutivePurchasing(raw);
         if (/herramient|taladro|esmeril|soldador|multimetro|pinza|llave/.test(norm)) return answerExecutiveTools(raw);
@@ -2682,12 +2693,25 @@
         return`Hay ${active.length} proyectos activos. El gasto acumulado es ${currency(real)} y ${over} proyectos están por encima de lo planeado.`;
     }
 
+    async function answerGeneralAI(raw, profile = detectProfile()) {
+        if (!window.SkilledDB?.askSkyGeneral || skyDataSaverActive()) return null;
+        try {
+            const context = { lastIntent:conversationContext.lastIntent, lastEntity:conversationContext.lastEntity, lastQuery:conversationContext.lastQuery, area:conversationContext.area, page:currentPageKey() };
+            const result = await SkilledDB.askSkyGeneral(raw, { profile, context });
+            const answer = text(result?.answer || result?.text);
+            if (!answer) return null;
+            const title = text(result?.title) || 'Sky';
+            setAnswer(title, answer, text(result?.detail) || 'Respuesta generada por Sky. Los datos internos del CRM siguen sujetos a los permisos de tu perfil.');
+            return answer;
+        } catch (_) { return null; }
+    }
+
     async function answerGeneric(raw, profile) {
         const adapter = customProfiles.get(profile);
         if (adapter?.query) return adapter.query({ raw, normalized: normalize(raw), SkilledDB, setAnswer, loadData, formatNumber, currency, dateOnly });
         const config = profileConfig(profile);
         const examples=pageAwareExamples(config).slice(0,7).map(item=>({title:item[0],detail:item[1]}));
-        setAnswer(config.title, `No encontré una respuesta directa para esa forma de preguntar, pero puedo seguir intentándolo contigo.`, `Dime el dato, proyecto, persona, material o situación que quieres resolver. También puedes reformular la pregunta con más contexto; Sky conserva la conversación y no necesita comandos exactos.`, examples);
+        setAnswer(config.title, `Todavía no pude resolver esa consulta con los datos conectados, pero puedo seguir ayudándote a plantearla, explicarla o buscar una ruta dentro del CRM.`, `Dime qué quieres lograr y dame el contexto que tengas. No necesitas usar comandos exactos.`, examples);
         return `No encontré una respuesta directa todavía. Cuéntame un poco más de lo que necesitas y lo intentaré con la información disponible en ${profileNames[profile] || profile}.`;
     }
 
@@ -2700,7 +2724,7 @@
         const norm = commandNormalize(raw);
         if (isMaterialFamilyQuery(raw)) return true;
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso|cajon|posicion)\b/.test(norm)) return true;
-        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
+        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
         if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
@@ -2767,8 +2791,8 @@
         const norm=commandNormalize(raw);
         if (/\b(hola|buenos dias|buen dia|buenas tardes|buenas noches|como estas|que tal)\b/.test(norm)) {
             const config=profileConfig();
-            setAnswer('Hola, soy Sky',`Estoy disponible para ayudarte en ${profileNames[detectProfile()]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
-            return 'Hola. Soy Sky. Dime qué necesitas resolver y buscaré la información disponible para ayudarte.';
+            setAnswer('Hola, soy Sky',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[detectProfile()]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
+            return 'Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte. Dime qué necesitas resolver y lo intentamos juntos.';
         }
         if (/\b(que puedes hacer|que sabes hacer|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
@@ -2794,7 +2818,7 @@
             if (isExecutiveReadProfile()) return answerExecutivePeople(raw,[]);
             if (detectProfile()==='rh') return answerRH(raw);
         }
-        if (/\b(material|materiales|tubo|tuberia|cable|tornillo|tuerca|rondana|arandela|stock|existencia|ubicacion|ubicación|rack|almacen|almacén)\b/.test(norm)) {
+        if (/\b(material|materiales|tubo|tuberia|cable|tornillo|pija|pijas|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|stock|existencia|ubicacion|ubicación|rack|almacen|almacén)\b/.test(norm)) {
             if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicación|rack|almacen|almacén/.test(norm)) return answerMaterial(raw,true);
             return answerMaterial(raw,false);
@@ -2808,20 +2832,22 @@
         if (adapter?.query) return answerGeneric(raw, profile);
         const universal=await answerUniversalIntent(raw).catch(()=>null);
         if(universal)return universal;
-        if (profile === 'compras') return answerPurchasing(raw);
-        if (profile === 'rh') return answerRH(raw);
-        if (isExecutiveReadProfile(profile)) return answerExecutive(raw);
-        if (profile === 'finanzas') return answerFinance(raw);
-        if (['proyectos','planeacion','coordinacion','logistica'].includes(profile)) return answerProjects(raw);
+        const localIntent = hasStrongLocalIntent(raw, profile);
+        if (profile === 'compras') return localIntent ? answerPurchasing(raw) : null;
+        if (profile === 'rh') return localIntent ? answerRH(raw) : null;
+        if (isExecutiveReadProfile(profile)) return localIntent ? answerExecutive(raw) : null;
+        if (profile === 'finanzas') return localIntent ? answerFinance(raw) : null;
+        if (['proyectos','planeacion','coordinacion','logistica'].includes(profile)) return localIntent ? answerProjects(raw) : null;
         if (profile === 'consulta') {
             const norm = commandNormalize(raw);
             if (/proyecto/.test(norm)) return answerProjects(raw);
             if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicado|localiza/.test(norm)) return answerMaterial(raw, true);
-            return answerMaterial(raw, false);
+            if (localIntent) return answerMaterial(raw, false);
+            return null;
         }
-        if (profile === 'almacen') return answerWarehouse(raw);
-        return answerGeneric(raw, profile);
+        if (profile === 'almacen') return localIntent ? answerWarehouse(raw) : null;
+        return null;
     }
 
     function resolveFollowUp(rawValue) {
@@ -2847,7 +2873,6 @@
     async function query(rawValue) {
         const raw = resolveFollowUp(rawValue);
         if (!raw) return;
-        archiveCurrentAnswer();
         activeQuestion = text(raw);
         stopListening(false);
         setStatus('Procesando consulta…', 'busy');
@@ -2864,6 +2889,7 @@
                     usedAI = Boolean(voice);
                 }
                 if (!voice) voice = await dispatchByProfile(cleanRaw);
+                if (!voice) voice = await answerGeneralAI(cleanRaw, detectProfile());
                 if (!voice) voice = await answerGeneric(cleanRaw, detectProfile());
             }
             rememberConversation(conversationContext.lastIntent,conversationContext.lastEntity,cleanRaw);

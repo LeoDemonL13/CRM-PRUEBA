@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const root=document.documentElement;
-const RELEASE='52';
+const RELEASE='53';
 const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
 function addConnectionHints(){
  const hints=[['preconnect','https://cdn.jsdelivr.net','anonymous'],['dns-prefetch','https://cdn.jsdelivr.net',''],['preconnect','https://cuxnzqbszzrfnrinxbdp.supabase.co','anonymous'],['dns-prefetch','https://cuxnzqbszzrfnrinxbdp.supabase.co','']];
@@ -35,6 +35,6 @@ document.addEventListener('focusin',event=>{const anchor=event.target.closest?.(
 document.addEventListener('pointerdown',event=>{const anchor=event.target.closest?.('a[href]');if(anchor)prefetch(anchor,true)},{passive:true,capture:true});
 document.addEventListener('click',event=>{if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;const anchor=event.target.closest?.('a[href]');const target=targetUrl(anchor);if(!target)return;beginProgress();let original=null;try{original=new URL(anchor.getAttribute('href')||'',location.href)}catch(_){}if(original&&target.href!==original.href){event.preventDefault();location.assign(target.href)}},false);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',cleanupOldRelease,{once:true});else cleanupOldRelease();
-async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=52',{scope:'./',updateViaCache:'none'});const update=()=>registration.update().catch(()=>{});if('requestIdleCallback'in window)requestIdleCallback(update,{timeout:3000});else setTimeout(update,1800)}catch(_){}}
+async function enableServiceWorker(){if(!('serviceWorker'in navigator))return;if(!window.isSecureContext&&!['localhost','127.0.0.1'].includes(location.hostname))return;try{const registration=await navigator.serviceWorker.register('./crm-sw.js?v=53',{scope:'./',updateViaCache:'none'});const update=()=>registration.update().catch(()=>{});if('requestIdleCallback'in window)requestIdleCallback(update,{timeout:3000});else setTimeout(update,1800)}catch(_){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enableServiceWorker,{once:true});else enableServiceWorker();
 })();
