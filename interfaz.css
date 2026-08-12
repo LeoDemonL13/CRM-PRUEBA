@@ -236,3 +236,25 @@ html.crm-route-pending .skilled-app-header,html.crm-route-pending #skilled-sideb
 @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root),::view-transition-old(crm-main),::view-transition-new(crm-main){animation-duration:.001ms!important}}
 
 html[data-sky-allowed="0"] #sky-open,html[data-sky-allowed="0"] #sky-overlay,html[data-sky-allowed="0"] [data-skilled-sky]{display:none!important}
+
+
+/* V47 · móvil: controles con espacio, tablas legibles y acciones táctiles */
+@media(max-width:760px){
+html,body{max-width:100%;overflow-x:hidden}
+.skilled-app-header{min-height:56px!important;height:56px!important;flex-basis:56px!important}
+main{width:100%;min-width:0;overflow-x:hidden}
+.panel,.card,.profile-card,.profile-toolbar,.profile-module-card{max-width:100%;min-width:0}
+.crm-table-wrap,.overflow-x-auto{width:100%;max-width:100%;overflow-x:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.crm-table-wrap table,.overflow-x-auto>table{min-width:680px}
+.crm-table-wrap:after,.overflow-x-auto:has(>table):after{content:'Desliza horizontalmente para ver más';position:sticky;left:8px;display:inline-block;margin:6px 0 2px;padding:4px 7px;border:1px solid rgba(100,116,139,.22);border-radius:999px;background:rgba(15,23,42,.72);color:#73849e;font-size:8px;pointer-events:none}
+body.tema-claro .crm-table-wrap:after,body.tema-claro .overflow-x-auto:has(>table):after{background:#f8fafc;color:#64748b;border-color:#dbe3ef}
+.profile-actions,.profile-toolbar-actions,.flex.flex-wrap{gap:7px!important}
+.profile-actions>button,.profile-actions>a,.profile-toolbar-actions>button,.profile-toolbar-actions>a{min-height:42px}
+input,select,textarea{max-width:100%}
+}
+@media(max-width:430px){
+.profile-title,h1.text-2xl,h1.text-3xl{font-size:20px!important;line-height:1.2!important}
+.profile-hero,.panel{border-radius:14px!important}
+.profile-hero{padding:15px!important}
+.profile-card-header{padding:13px!important}
+}
