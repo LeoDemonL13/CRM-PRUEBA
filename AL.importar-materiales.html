@@ -12,15 +12,15 @@
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Importar materiales</title>
-<link rel="stylesheet" href="interfaz.css?v=43">
+<link rel="stylesheet" href="interfaz.css?v=45">
 <link rel="stylesheet" href="importaciones.css">
-<script src="navegacion-suave.js?v=43"></script>
+<script src="navegacion-suave.js?v=45"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="skilled-supabase.js?v=43"></script>
-<script src="auth-guard.js?v=43"></script>
+<script src="skilled-supabase.js?v=45"></script>
+<script src="auth-guard.js?v=45"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="skilled-search.js?v=43"></script>
+<script src="skilled-search.js?v=45"></script>
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
@@ -56,13 +56,13 @@
 <div class="import-side-card"><p class="import-side-title">Almacén predeterminado</p><p class="import-side-copy">Se aplicará cuando una fila no indique almacén. Cada fila puede enviarse a una bodega diferente.</p><label class="mt-4 block text-[9px] font-bold uppercase tracking-wider text-gray-500">Selecciona almacén *</label><select id="almacen-importacion" class="import-field mt-2"><option value="">Cargando almacenes...</option></select></div>
 <div class="import-side-card"><p class="import-side-title">Columnas de compra</p><div class="mt-3 space-y-3"><div class="flex gap-3"><span class="import-step-number !static !shrink-0">M</span><div><p class="text-[10px] font-bold text-gray-200">Marca</p><p class="mt-1 text-[9px] leading-4 text-gray-500">Fabricante o marca comercial.</p></div></div><div class="flex gap-3"><span class="import-step-number !static !shrink-0">P</span><div><p class="text-[10px] font-bold text-gray-200">Proveedor</p><p class="mt-1 text-[9px] leading-4 text-gray-500">Proveedor principal del material.</p></div></div><div class="flex gap-3"><span class="import-step-number !static !shrink-0">C</span><div><p class="text-[10px] font-bold text-gray-200">Contacto</p><p class="mt-1 text-[9px] leading-4 text-gray-500">Nombre, correo o teléfono.</p></div></div></div></div>
 <div class="import-side-card"><p class="import-side-title">Código de ubicación</p><p class="import-side-copy">Usa el formato exacto <strong class="text-blue-300">RR-Z-PC</strong>. Ejemplo: 01-1-A1 = Rack 01, zona 1, piso superior A, material consecutivo 1.</p><div class="mt-3 rounded-lg border border-blue-500/20 bg-blue-950/10 p-3 text-[9px] leading-4 text-gray-400"><div><strong class="text-white">RR-Z-P</strong> debe existir previamente en Almacenes.</div><div><strong class="text-white">RR</strong> solo admite racks del 01 al 20.</div><div><strong class="text-white">C</strong> debe estar disponible y dentro de la capacidad configurada.</div></div></div>
-<div class="import-side-card"><p class="import-side-title">Reglas importantes</p><ul class="mt-3 space-y-2 text-[10px] leading-4 text-gray-500"><li>• No cambies los encabezados de la plantilla.</li><li>• El código debe ser único dentro del archivo.</li><li>• Stock, mínimo y precio no pueden ser negativos.</li><li>• Para cables, completa tipo y tamaño.</li></ul></div>
+<div class="import-side-card"><p class="import-side-title">Reglas importantes</p><ul class="mt-3 space-y-2 text-[10px] leading-4 text-gray-500"><li>• No cambies los encabezados de la plantilla.</li><li>• El código debe ser único dentro del archivo.</li><li>• Stock, mínimo y precio no pueden ser negativos.</li><li>• Tipo de cable y Tamaño mm²/AWG solo aplican a las categorías Cable/Cables.</li><li>• El cable se controla en METROS dentro de rollos. Si una fila tiene existencia, captura código de rollo y sus metros.</li><li>• Un mismo cable puede repetirse en el mismo almacén cuando cada fila corresponde a un rollo diferente.</li></ul></div>
 </aside>
 </div>
 </main>
 
 </div>
-<script src="skilled-sidebar.js?v=43" defer></script>
+<script src="skilled-sidebar.js?v=45" defer></script>
     <script>
         const HEADERS = [
             'Código (SKU)',
@@ -76,6 +76,9 @@
             'Ubicación',
             'Tipo (cable)',
             'Tamaño mm²/AWG (cable)',
+            'Código de rollo (cable)',
+            'Metros iniciales del rollo (cable)',
+            'Metros disponibles del rollo (cable)',
             'Unidad',
             'Stock Inicial',
             'Stock Mínimo',
@@ -123,6 +126,11 @@
                 .replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, '');
+        }
+
+        function esCategoriaCable(valor) {
+            const categoria=String(valor??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+            return categoria==='cable'||categoria==='cables';
         }
 
         function normalizarTexto(valor) {
@@ -211,12 +219,25 @@
                 const warehouseKey = normalizarTexto(producto.almacen) || `#${document.getElementById('almacen-importacion').value || 'predeterminado'}`;
                 const key = `${code}|${warehouseKey}`;
                 if (!producto.codigo) erroresPrevios.push(`Fila ${fila}: falta el código SKU.`);
-                else if (repetidos.has(key)) erroresPrevios.push(`Fila ${fila}: SKU repetido para el mismo almacén (${producto.codigo}).`);
-                else repetidos.add(key);
+                else {
+                    const cable=esCategoriaCable(producto.categoria);
+                    const rollCode=String(producto.codigoRollo||'').trim().toLowerCase();
+                    const uniqueKey=cable&&rollCode?`${key}|rollo:${rollCode}`:key;
+                    if (repetidos.has(uniqueKey)) erroresPrevios.push(`Fila ${fila}: ${cable&&rollCode?'rollo repetido':'SKU repetido para el mismo almacén'} (${producto.codigo}${rollCode?` · ${producto.codigoRollo}`:''}).`);
+                    else repetidos.add(uniqueKey);
+                }
                 if (!producto.descripcion) erroresPrevios.push(`Fila ${fila}: falta la descripción.`);
                 if (!producto.categoria) erroresPrevios.push(`Fila ${fila}: falta la categoría.`);
                 if (!producto.unidad) erroresPrevios.push(`Fila ${fila}: falta la unidad.`);
-                const numericFields = [['stock inicial', producto.stockInicial], ['stock mínimo', producto.stockMinimo], ['stock medio', producto.stockMedio], ['stock máximo', producto.stockMaximo], ['precio', producto.precio]];
+                if (esCategoriaCable(producto.categoria)) {
+                    if (!producto.tipoCable) erroresPrevios.push(`Fila ${fila}: para Cable/Cables falta Tipo de cable.`);
+                    if (!producto.tamano) erroresPrevios.push(`Fila ${fila}: para Cable/Cables falta Tamaño mm²/AWG.`);
+                    const stockCable=Number(producto.stockInicial)||0,initial=Number(producto.metrosInicialesRollo)||stockCable,available=String(producto.metrosDisponiblesRollo).trim()===''?initial:Number(producto.metrosDisponiblesRollo);
+                    if ((stockCable>0||producto.codigoRollo||initial>0||String(producto.metrosDisponiblesRollo).trim()!=='') && !producto.codigoRollo) erroresPrevios.push(`Fila ${fila}: el cable con existencia debe indicar Código de rollo.`);
+                    if (producto.codigoRollo && !(initial>0)) erroresPrevios.push(`Fila ${fila}: los metros iniciales del rollo deben ser mayores a cero.`);
+                    if (producto.codigoRollo && (!Number.isFinite(available)||available<0||available>initial)) erroresPrevios.push(`Fila ${fila}: los metros disponibles deben quedar entre 0 y los metros iniciales.`);
+                }
+                const numericFields = [['stock inicial', producto.stockInicial], ['stock mínimo', producto.stockMinimo], ['stock medio', producto.stockMedio], ['stock máximo', producto.stockMaximo], ['precio', producto.precio], ['metros iniciales del rollo', producto.metrosInicialesRollo], ['metros disponibles del rollo', producto.metrosDisponiblesRollo]];
                 numericFields.forEach(([label, value]) => { if (String(value).trim() !== '' && (!Number.isFinite(Number(value)) || Number(value) < 0)) erroresPrevios.push(`Fila ${fila}: ${label} debe ser un número mayor o igual a cero.`); });
                 const min = Number(producto.stockMinimo) || 0;
                 const medium = Number(producto.stockMedio) || 0;
@@ -271,6 +292,9 @@
                     ubicacion: indiceCampo(m, ['Ubicación', 'Ubicacion', 'Código ubicación', 'Codigo ubicacion']),
                     tipoCable: indiceCampo(m, ['Tipo (cable)', 'Tipo cable', 'Tipo']),
                     tamano: indiceCampo(m, ['Tamaño mm²/AWG (cable)', 'Tamaño', 'Tamano']),
+                    codigoRollo: indiceCampo(m, ['Código de rollo (cable)', 'Codigo de rollo (cable)', 'Código rollo', 'Codigo rollo', 'Rollo']),
+                    metrosInicialesRollo: indiceCampo(m, ['Metros iniciales del rollo (cable)', 'Metros iniciales rollo', 'Metros iniciales']),
+                    metrosDisponiblesRollo: indiceCampo(m, ['Metros disponibles del rollo (cable)', 'Metros disponibles rollo', 'Metros restantes', 'Metros disponibles']),
                     unidad: indiceCampo(m, ['Unidad']),
                     stockInicial: indiceCampo(m, ['Stock Inicial', 'Stock']),
                     stockMinimo: indiceCampo(m, ['Stock Mínimo', 'Stock Minimo']),
@@ -298,9 +322,12 @@
                         contactoProveedor: String(valorCelda(fila, indices.contactoProveedor)).trim(),
                         almacen: String(valorCelda(fila, indices.almacen)).trim(),
                         ubicacionAlmacen: String(valorCelda(fila, indices.ubicacion)).trim().toUpperCase(),
-                        tipoCable: String(valorCelda(fila, indices.tipoCable)).trim(),
-                        tamano: String(valorCelda(fila, indices.tamano)).trim(),
-                        unidad: String(valorCelda(fila, indices.unidad)).trim(),
+                        tipoCable: esCategoriaCable(categoria) ? String(valorCelda(fila, indices.tipoCable)).trim() : '',
+                        tamano: esCategoriaCable(categoria) ? String(valorCelda(fila, indices.tamano)).trim() : '',
+                        codigoRollo: esCategoriaCable(categoria) ? String(valorCelda(fila, indices.codigoRollo)).trim() : '',
+                        metrosInicialesRollo: esCategoriaCable(categoria) ? valorCelda(fila, indices.metrosInicialesRollo) : '',
+                        metrosDisponiblesRollo: esCategoriaCable(categoria) ? valorCelda(fila, indices.metrosDisponiblesRollo) : '',
+                        unidad: esCategoriaCable(categoria) ? 'METRO' : String(valorCelda(fila, indices.unidad)).trim(),
                         stockInicial: valorCelda(fila, indices.stockInicial),
                         stockMinimo: valorCelda(fila, indices.stockMinimo),
                         stockMedio: valorCelda(fila, indices.stockMedio),
@@ -321,26 +348,17 @@
         function filasParaExportar(productos) {
             const output = [];
             productos.forEach(producto => {
+                const cable=esCategoriaCable(producto.categoria);
                 const stocks = Array.isArray(producto.almacenes) && producto.almacenes.length ? producto.almacenes : [null];
+                if (cable && Array.isArray(producto.rollos) && producto.rollos.length) {
+                    producto.rollos.forEach(rollo=>{
+                        const stock=stocks.find(item=>Number(item?.id)===Number(rollo.almacenId))||stocks[0];
+                        output.push([producto.codigo||'',producto.descripcion||producto.desc||'',Array.isArray(producto.modismos)?producto.modismos.join(', '):(producto.modismosTexto||producto.modismos||''),producto.categoria||'',producto.marca||'',producto.proveedor||'',producto.contactoProveedor||producto.contacto_proveedor||'',rollo.almacenNombre||stock?.nombre||'',rollo.ubicacion||stock?.ubicacion||'',producto.tipoCable||producto.tipo_cable||'',producto.tamano||producto.tamano_mm2||'',rollo.codigoRollo||'',rollo.metrosIniciales??'',rollo.metrosDisponibles??'','METRO',rollo.metrosDisponibles??'',stock?(stock.stockMinimo??stock.stock_minimo??''):(producto.stockMinimo??''),stock?(stock.stockMedio??stock.stock_medio??''):(producto.stockMedio??''),stock?(stock.stockMaximo??stock.stock_maximo??''):(producto.stockMaximo??''),producto.precio??'',producto.imagen||producto.urlImagen||'']);
+                    });
+                    return;
+                }
                 stocks.forEach(stock => output.push([
-                    producto.codigo || '',
-                    producto.descripcion || producto.desc || '',
-                    Array.isArray(producto.modismos) ? producto.modismos.join(', ') : (producto.modismosTexto || producto.modismos || ''),
-                    producto.categoria || '',
-                    producto.marca || '',
-                    producto.proveedor || '',
-                    producto.contactoProveedor || producto.contacto_proveedor || '',
-                    stock?.nombre || producto.almacenNombre || producto.almacen || '',
-                    stock?.ubicacion || producto.ubicacionAlmacen || '',
-                    producto.tipoCable || producto.tipo_cable || '',
-                    producto.tamano || producto.tamano_mm2 || '',
-                    producto.unidad || '',
-                    stock ? (stock.stock ?? '') : (producto.stock ?? ''),
-                    stock ? (stock.stockMinimo ?? stock.stock_minimo ?? '') : (producto.stockMinimo ?? ''),
-                    stock ? (stock.stockMedio ?? stock.stock_medio ?? '') : (producto.stockMedio ?? ''),
-                    stock ? (stock.stockMaximo ?? stock.stock_maximo ?? '') : (producto.stockMaximo ?? ''),
-                    producto.precio ?? '',
-                    producto.imagen || producto.urlImagen || ''
+                    producto.codigo || '', producto.descripcion || producto.desc || '', Array.isArray(producto.modismos) ? producto.modismos.join(', ') : (producto.modismosTexto || producto.modismos || ''), producto.categoria || '', producto.marca || '', producto.proveedor || '', producto.contactoProveedor || producto.contacto_proveedor || '', stock?.nombre || producto.almacenNombre || producto.almacen || '', stock?.ubicacion || producto.ubicacionAlmacen || '', cable ? (producto.tipoCable || producto.tipo_cable || '') : '', cable ? (producto.tamano || producto.tamano_mm2 || '') : '', '', '', '', producto.unidad || '', stock ? (stock.stock ?? '') : (producto.stock ?? ''), stock ? (stock.stockMinimo ?? stock.stock_minimo ?? '') : (producto.stockMinimo ?? ''), stock ? (stock.stockMedio ?? stock.stock_medio ?? '') : (producto.stockMedio ?? ''), stock ? (stock.stockMaximo ?? stock.stock_maximo ?? '') : (producto.stockMaximo ?? ''), producto.precio ?? '', producto.imagen || producto.urlImagen || ''
                 ]));
             });
             return output;
@@ -356,15 +374,16 @@
             ];
             const hoja = XLSX.utils.aoa_to_sheet(filas);
             hoja['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 17 } },
-                { s: { r: 1, c: 0 }, e: { r: 1, c: 17 } }
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 20 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 20 } }
             ];
             hoja['!cols'] = [
                 { wch: 18 }, { wch: 58 }, { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 28 },
-                { wch: 34 }, { wch: 24 }, { wch: 18 }, { wch: 18 }, { wch: 24 }, { wch: 15 },
-                { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 65 }
+                { wch: 34 }, { wch: 24 }, { wch: 18 }, { wch: 18 }, { wch: 24 }, { wch: 23 },
+                { wch: 24 }, { wch: 27 }, { wch: 15 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+                { wch: 14 }, { wch: 16 }, { wch: 65 }
             ];
-            hoja['!autofilter'] = { ref: `A4:R${Math.max(4, filas.length)}` };
+            hoja['!autofilter'] = { ref: `A4:U${Math.max(4, filas.length)}` };
             hoja['!rows'] = [{ hpt: 28 }, { hpt: 34 }, { hpt: 8 }, { hpt: 24 }];
             hoja['!freeze'] = { xSplit: 0, ySplit: 4, topLeftCell: 'A5', activePane: 'bottomLeft', state: 'frozen' };
 
@@ -378,6 +397,9 @@
                 ['Almacén', 'Nombre exacto del almacén. Vacío usa el predeterminado de la pantalla.', 'No'],
                 ['Ubicación', 'Código final RR-Z-PC. Ejemplo 10-2-C5. La base RR-Z-P debe existir en Almacenes.', 'No'],
                 ['Marca / Proveedor / Contacto', 'Información comercial para compras y órdenes.', 'No'],
+                ['Tipo de cable / Tamaño mm²-AWG', 'Solo se leen y guardan cuando Categoría es exactamente Cable o Cables. Para otras categorías el CRM los ignora y limpia.', 'Solo cable'],
+                ['Código de rollo', 'Identificador físico del carrete o rollo. Permite repetir un mismo SKU en el mismo almacén si cada fila es un rollo distinto.', 'Cable con existencia'],
+                ['Metros iniciales / disponibles', 'Inicial = longitud original. Disponible = longitud que queda. Si disponible está vacío usa el metraje inicial.', 'Cable con rollo'],
                 ['Stock inicial / mínimo / medio / máximo / precio', 'Solo números mayores o iguales a cero. Si medio o máximo están vacíos, el CRM los calcula automáticamente.', 'No'],
                 ['Stock Medio', 'Nivel operativo intermedio. Debe quedar entre el mínimo y el máximo.', 'No'],
                 ['Stock Máximo', 'Objetivo de reposición. La orden de compra sugerirá Máximo menos Existencia actual.', 'No'],
@@ -392,9 +414,9 @@
                 [],
                 ['RECOMENDACIONES'],
                 ['1. No cambies los encabezados de la fila 4 de la hoja Materiales.'],
-                ['2. Un mismo SKU puede aparecer en almacenes diferentes, pero no dos veces en el mismo almacén.'],
+                ['2. Un mismo SKU puede aparecer en almacenes diferentes. En Cable/Cables sí puede repetirse en el mismo almacén cuando cada fila tiene un Código de rollo distinto.'],
                 ['3. Genera primero la estructura de racks desde Almacenes.'],
-                ['4. Revisa la vista previa antes de importar.']
+                ['4. Revisa la vista previa antes de importar.'],['5. En Cable/Cables usa una fila por rollo. El stock del cable se calcula con la suma de metros disponibles.']
             ]);
             guia['!cols'] = [{ wch: 30 }, { wch: 95 }, { wch: 14 }];
 
@@ -435,7 +457,9 @@
             boton.disabled = true;
             boton.textContent = 'Preparando...';
             try {
-                const productos = await SkilledDB.listMaterials();
+                const [productos,rollos] = await Promise.all([SkilledDB.listMaterials(),SkilledDB.listCableRolls()]);
+                const porCodigo=new Map();rollos.forEach(rollo=>{const key=String(rollo.materialCodigo||'').toLowerCase();if(!porCodigo.has(key))porCodigo.set(key,[]);porCodigo.get(key).push(rollo)});
+                productos.forEach(producto=>producto.rollos=porCodigo.get(String(producto.codigo||'').toLowerCase())||[]);
                 productos.sort((a, b) => String(a.categoria || '').localeCompare(String(b.categoria || '')) || String(a.codigo || '').localeCompare(String(b.codigo || '')));
                 XLSX.writeFile(crearLibroBase(productos), 'Catalogo_Actual_SKILLED.xlsx');
             } catch (error) {
@@ -480,7 +504,7 @@
                 return;
             }
             const errores = Array.isArray(resultado.errores) ? resultado.errores : [];
-            panel.innerHTML = `<div class="text-sm font-bold text-emerald-400">Importación terminada</div><div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4"><div><div class="text-[9px] text-gray-500 uppercase">Total</div><div class="text-lg font-bold text-white">${resultado.total || 0}</div></div><div><div class="text-[9px] text-gray-500 uppercase">Creados</div><div class="text-lg font-bold text-emerald-400">${resultado.creados || 0}</div></div><div><div class="text-[9px] text-gray-500 uppercase">Actualizados</div><div class="text-lg font-bold text-blue-400">${resultado.actualizados || 0}</div></div><div><div class="text-[9px] text-gray-500 uppercase">Omitidos</div><div class="text-lg font-bold text-rose-400">${resultado.omitidos || 0}</div></div></div>${errores.length ? `<div class="mt-4 border-t border-[#161f38] pt-4"><div class="text-xs font-bold text-rose-300 mb-2">Errores</div><div class="max-h-48 overflow-y-auto lista-scroll text-[10px] text-gray-400 space-y-1">${errores.map(item => `<div>Fila ${item.fila} · ${escapeHTML(item.codigo || 'Sin SKU')}: ${escapeHTML(item.error)}</div>`).join('')}</div></div>` : ''}<a href="AL.catalogo.html" class="inline-flex mt-5 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Ver catálogo actualizado</a>`;
+            panel.innerHTML = `<div class="text-sm font-bold text-emerald-400">Importación terminada</div><div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4"><div><div class="text-[9px] text-gray-500 uppercase">Total</div><div class="text-lg font-bold text-white">${resultado.total || 0}</div></div><div><div class="text-[9px] text-gray-500 uppercase">Creados</div><div class="text-lg font-bold text-emerald-400">${resultado.creados || 0}</div></div><div><div class="text-[9px] text-gray-500 uppercase">Actualizados</div><div class="text-lg font-bold text-blue-400">${resultado.actualizados || 0}</div></div><div><div class="text-[9px] text-gray-500 uppercase">Omitidos</div><div class="text-lg font-bold text-rose-400">${resultado.omitidos || 0}</div></div></div>${resultado.rollos?`<div class="mt-3 text-[10px] text-blue-300">Rollos de cable registrados: ${resultado.rollos}</div>`:''}${errores.length ? `<div class="mt-4 border-t border-[#161f38] pt-4"><div class="text-xs font-bold text-rose-300 mb-2">Errores</div><div class="max-h-48 overflow-y-auto lista-scroll text-[10px] text-gray-400 space-y-1">${errores.map(item => `<div>Fila ${item.fila} · ${escapeHTML(item.codigo || 'Sin SKU')}: ${escapeHTML(item.error)}</div>`).join('')}</div></div>` : ''}<a href="AL.catalogo.html" class="inline-flex mt-5 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Ver catálogo actualizado</a>`;
         }
 
         async function cargarAlmacenesImportacion() {
@@ -509,6 +533,6 @@
     </script>
 
 
-<script src="skilled-performance.js?v=43" defer></script>
+<script src="skilled-performance.js?v=45" defer></script>
 </body>
 </html>

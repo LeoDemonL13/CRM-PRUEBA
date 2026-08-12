@@ -34,11 +34,11 @@
     function profileConfig(profile = detectProfile()) {
         const base = {
             almacen: { title: 'Sky · Asistente de almacén', subtitle: 'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos y flotilla.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia de material','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación de material','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas pendientes','¿Qué herramientas están vencidas?'],['Vehículos disponibles','¿Qué vehículos están disponibles?']] },
-            compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Qué cotizaciones requieren atención?', examples: [['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Buscar proveedor','Busca al proveedor ABB'],['Proyectos','¿Qué proyectos están activos?'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?']] },
+            compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Quién vende tubo conduit?', examples: [['Quién vende material','¿Quién vende tubo conduit?'],['Contacto de proveedor','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?'],['Proyectos','¿Qué proyectos están activos?']] },
             rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
-            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Prioridades','¿Qué requiere atención hoy?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Vehículos','¿Qué vehículos están disponibles?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
-            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Prioridades','¿Qué debo revisar primero?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Vehículos','¿Qué vehículos están disponibles?'],['Resumen ejecutivo','Dame el resumen ejecutivo de proyectos']] },
+            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
+            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -181,11 +181,11 @@
     const ttl = 45000;
 
     function styles() {
-        if (document.getElementById('sky-style-v43')) return;
+        if (document.getElementById('sky-style-v44')) return;
         const style = document.createElement('style');
-        style.id = 'sky-style-v43';
+        style.id = 'sky-style-v44';
         style.textContent = `
-            .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.76);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{width:min(760px,100%);max-height:min(780px,92vh);overflow:auto;border:1px solid #28406a;border-radius:20px;background:linear-gradient(160deg,#0e172b,#080e1c 55%,#091221);box-shadow:0 35px 110px rgba(0,0,0,.58)}.sky-head{padding:20px 22px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:48px;height:48px;border-radius:15px;border:1px solid rgba(96,165,250,.38);background:radial-gradient(circle at 36% 30%,#60a5fa 0 7%,#2563eb 24%,#0b1631 64%);box-shadow:inset 0 0 25px rgba(96,165,250,.18),0 0 28px rgba(37,99,235,.15)}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:22px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:15px;background:rgba(6,12,24,.68);min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:11px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:999px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}.sky-mic-settings{margin-top:9px;border:1px solid #1d3152;border-radius:11px;background:rgba(7,14,29,.58);overflow:hidden}.sky-mic-settings summary{cursor:pointer;list-style:none;padding:9px 11px;color:#8396b4;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}.sky-mic-settings summary::-webkit-details-marker{display:none}.sky-mic-settings summary:after{content:'Configurar';color:#5f84bd;font-size:8px}.sky-mic-settings[open] summary:after{content:'Cerrar'}.sky-mic-panel{border-top:1px solid #172641;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.sky-mic-select{min-width:0;height:36px;border:1px solid #294064;border-radius:9px;background:#060c18;color:#cbd5e1;padding:0 10px;font-size:10px}.sky-mic-test{height:36px;border:1px solid #294064;border-radius:9px;background:#101a30;color:#93c5fd;padding:0 11px;font-size:9px;font-weight:800}.sky-mic-diagnostic{grid-column:1/-1;color:#64748b;font-size:8px;line-height:1.4}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}}@media(max-width:640px){.sky-header-button span[data-sky-label]{display:none}.sky-header-button{width:36px;padding:0;justify-content:center}.sky-header-button .sky-pulse{display:none}.sky-overlay{padding:0;align-items:stretch}.sky-modal{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border-left:0;border-right:0;display:flex;flex-direction:column}.sky-head{padding:14px 15px;flex:0 0 auto}.sky-orb{width:40px;height:40px;border-radius:12px}.sky-title{font-size:15px}.sky-subtitle{font-size:8px;line-height:1.4}.sky-body{padding:14px 14px calc(18px + env(safe-area-inset-bottom));overflow-y:auto;flex:1}.sky-input-row{grid-template-columns:1fr auto}.sky-input-row .sky-action.primary{grid-column:1/-1}.sky-grid{grid-template-columns:1fr}.sky-answer{min-height:105px}.sky-chip-wrap{gap:6px}.sky-chip{padding:6px 8px}.sky-mic-help{line-height:1.35}.sky-mic-panel{grid-template-columns:1fr}.sky-mic-test{width:100%}}@keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
+            .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.76);backdrop-filter:blur(7px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{width:min(760px,100%);max-height:min(780px,92vh);overflow:auto;border:1px solid #28406a;border-radius:20px;background:linear-gradient(160deg,#0e172b,#080e1c 55%,#091221);box-shadow:0 35px 110px rgba(0,0,0,.58)}.sky-head{padding:20px 22px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:48px;height:48px;border-radius:15px;border:1px solid rgba(96,165,250,.38);background:radial-gradient(circle at 36% 30%,#60a5fa 0 7%,#2563eb 24%,#0b1631 64%);box-shadow:inset 0 0 25px rgba(96,165,250,.18),0 0 28px rgba(37,99,235,.15)}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:22px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:15px;background:rgba(6,12,24,.68);min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:11px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.sky-card-action{display:inline-flex;border:1px solid #29476f;border-radius:7px;padding:5px 7px;color:#93c5fd;background:#0d1b30;font-size:8px;font-weight:800;text-decoration:none}.sky-card-action:hover{color:#fff;border-color:#60a5fa}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:999px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}.sky-mic-settings{margin-top:9px;border:1px solid #1d3152;border-radius:11px;background:rgba(7,14,29,.58);overflow:hidden}.sky-mic-settings summary{cursor:pointer;list-style:none;padding:9px 11px;color:#8396b4;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}.sky-mic-settings summary::-webkit-details-marker{display:none}.sky-mic-settings summary:after{content:'Configurar';color:#5f84bd;font-size:8px}.sky-mic-settings[open] summary:after{content:'Cerrar'}.sky-mic-panel{border-top:1px solid #172641;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.sky-mic-select{min-width:0;height:36px;border:1px solid #294064;border-radius:9px;background:#060c18;color:#cbd5e1;padding:0 10px;font-size:10px}.sky-mic-test{height:36px;border:1px solid #294064;border-radius:9px;background:#101a30;color:#93c5fd;padding:0 11px;font-size:9px;font-weight:800}.sky-mic-diagnostic{grid-column:1/-1;color:#64748b;font-size:8px;line-height:1.4}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}}@media(max-width:640px){.sky-header-button span[data-sky-label]{display:none}.sky-header-button{width:36px;padding:0;justify-content:center}.sky-header-button .sky-pulse{display:none}.sky-overlay{padding:0;align-items:stretch}.sky-modal{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border-left:0;border-right:0;display:flex;flex-direction:column}.sky-head{padding:14px 15px;flex:0 0 auto}.sky-orb{width:40px;height:40px;border-radius:12px}.sky-title{font-size:15px}.sky-subtitle{font-size:8px;line-height:1.4}.sky-body{padding:14px 14px calc(18px + env(safe-area-inset-bottom));overflow-y:auto;flex:1}.sky-input-row{grid-template-columns:1fr auto}.sky-input-row .sky-action.primary{grid-column:1/-1}.sky-grid{grid-template-columns:1fr}.sky-answer{min-height:105px}.sky-chip-wrap{gap:6px}.sky-chip{padding:6px 8px}.sky-mic-help{line-height:1.35}.sky-mic-panel{grid-template-columns:1fr}.sky-mic-test{width:100%}}@keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
         `;
         document.head.appendChild(style);
     }
@@ -321,7 +321,12 @@
             }
         }
         const external = link && /^https?:\/\//i.test(String(link.href || ''));
-        answerNode.innerHTML = `<div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cards.map(card => `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span></div>`).join('')}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}`;
+        const cardHtml = cards.map(card => {
+            const actions = Array.isArray(card.actions) ? card.actions.filter(action => /^(https?:|mailto:)/i.test(String(action?.href || ''))).slice(0, 3) : [];
+            const actionHtml = actions.length ? `<div class="sky-card-actions">${actions.map(action => `<a class="sky-card-action" href="${html(action.href)}"${/^https?:/i.test(String(action.href))?' target="_blank" rel="noopener noreferrer"':''}>${html(action.label || 'Abrir')}</a>`).join('')}</div>` : '';
+            return `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span>${actionHtml}</div>`;
+        }).join('');
+        answerNode.innerHTML = `<div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cardHtml}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}`;
     }
 
     function cachedUserId() {
@@ -493,7 +498,7 @@
         'sky','hora','horas','fecha','dia','hoy','semana','mes','ano','perfil','ayuda','comandos','repite','silencio','calcula',
         'cuanto','cuantos','cuanta','cuantas','donde','ubicacion','existencia','existencias','stock','material','materiales','bodega','almacen','central',
         'tubo','tubos','pulgada','pulgadas','cable','cables','broca','brocas','rack','zona','piso','bajo','minimo','orden','compra','compras','herramienta','herramientas',
-        'vehiculo','vehiculos','proyecto','proyectos','proveedor','proveedores','requisicion','recepcion','servicio','servicios','tienda','rfc','cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar','comparador',
+        'vehiculo','vehiculos','proyecto','proyectos','proveedor','proveedores','requisicion','recepcion','servicio','servicios','tienda','rfc','contacto','correo','email','telefono','whatsapp','mensaje','mensajes','cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar','comparador','vende','venden','maneja','manejan','surte','surten',
         'trabajador','trabajadores','personal','empleado','empleados','ausencia','ausencias','vacaciones','incapacidad','documento','documentos','contrato','contratos','capacitacion','incidencia',
         'presupuesto','costo','costos','consumido','planeado','gasto','gastos','finanzas','avance','ruta','picking','solicitud','solicitudes','disponible','disponibles'
     ];
@@ -516,7 +521,7 @@
             (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0, 300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
             (Array.isArray(cache.projects) ? cache.projects : []).slice(0, 700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
         } else if (profile === 'compras') {
-            (Array.isArray(cache.coSuppliers) ? cache.coSuppliers : []).slice(0,500).forEach(item => [item.razon_social,item.nombre_comercial,item.rfc].forEach(push));
+            (Array.isArray(cache.coSuppliers) ? cache.coSuppliers : []).slice(0,500).forEach(item => [item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email].forEach(push));
             (Array.isArray(cache.coServices) ? cache.coServices : []).slice(0,200).forEach(item => [item.nombre,item.proveedor,item.tipo].forEach(push));
             (Array.isArray(cache.coQuotations) ? cache.coQuotations : []).slice(0,500).forEach(item => {
                 [item.folio,item.referencia,item.solicitadoPor,item.estado,item.prioridad].forEach(push);
@@ -524,6 +529,11 @@
             });
         } else if (profile === 'rh') {
             (Array.isArray(cache.rhPeople) ? cache.rhPeople : []).slice(0,900).forEach(item => [item.numero_empleado,item.nombre,item.apellidos,item.puesto,item.departamento].forEach(push));
+        } else if (profile === 'gerente_general' || profile === 'subgerente') {
+            (Array.isArray(cache.materials) ? cache.materials : []).slice(0,1400).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
+            (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0,300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
+            (Array.isArray(cache.projectDetails) ? cache.projectDetails : []).slice(0,700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
+            (Array.isArray(cache.coSuppliers) ? cache.coSuppliers : []).slice(0,500).forEach(item => [item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email].forEach(push));
         } else if (profile === 'finanzas' || profile === 'proyectos') {
             (Array.isArray(cache.projectDetails) ? cache.projectDetails : []).slice(0,700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
         }
@@ -849,6 +859,7 @@
             if (profile === 'compras') await Promise.all([loadData('coSuppliers'), loadData('coServices'), loadData('coQuotations')]);
             else if (profile === 'rh') await loadData('rhPeople');
             else if (profile === 'finanzas' || profile === 'proyectos') await loadData('projectDetails');
+            else if (profile === 'gerente_general' || profile === 'subgerente') await Promise.allSettled([loadData('materials'), loadData('vehicles')]);
             else if (profile === 'almacen' || profile === 'consulta') await Promise.all([loadData('materials'), loadData('tools'), loadData('vehicles'), loadData('projects')]);
             else await loadData('materials');
             vocabularyPrimedProfile = profile;
@@ -1406,6 +1417,8 @@
             projects: () => SkilledDB.listProjectOptions(),
             projectDetails: () => SkilledDB.listProjects(),
             coSuppliers: () => tableRows('co_proveedores'),
+            coProviderMaterials: () => SkilledDB.listProviderMaterials({ activeOnly: true }),
+            coSupplierRequests: () => SkilledDB.listSupplierRequests({}),
             coServices: () => SkilledDB.listServices(),
             coStore: () => SkilledDB.listStoreRequests(),
             coQuotations: () => typeof SkilledDB.listQuotationRequests === 'function' ? SkilledDB.listQuotationRequests({}) : [],
@@ -1414,7 +1427,10 @@
             rhIncidents: () => tableRows('rh_incidencias'),
             rhDocuments: () => tableRows('rh_documentos', '*,personal:rh_personal(id,numero_empleado,nombre,apellidos,puesto)'),
             rhTrainings: () => tableRows('rh_capacitaciones'),
-            rhParticipants: () => tableRows('rh_capacitacion_participantes', '*,personal:rh_personal(id,nombre,apellidos)')
+            rhParticipants: () => tableRows('rh_capacitacion_participantes', '*,personal:rh_personal(id,nombre,apellidos)'),
+            executiveTools: () => SkilledDB.getExecutiveSkyTools(),
+            executiveWarehouses: () => SkilledDB.getExecutiveSkyWarehouses(),
+            executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts()
         };
         if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
         const data = await loaders[key]();
@@ -1433,29 +1449,17 @@
     }
 
     function rankMaterial(material, rawQuery) {
-        const haystack = materialSearchText(material);
-        const queryNorm = normalize(rawQuery);
-        const tokens = tokensForMaterial(rawQuery);
+        const values = [material.codigo,material.descripcion,material.desc,material.categoria,material.unidad,material.marca,material.tipoCable,material.tamano,material.proveedor,material.contactoProveedor,...(Array.isArray(material.modismos)?material.modismos:[])];
+        if (window.SkilledSearch?.score) {
+            let score = window.SkilledSearch.score(values, rawQuery);
+            const queryNorm = normalize(rawQuery), code = normalize(material.codigo);
+            if (code && queryNorm.includes(code)) score += 140;
+            return score;
+        }
+        const haystack = materialSearchText(material), tokens = tokensForMaterial(rawQuery);
         if (!tokens.length) return -1;
         let score = 0;
-        const phrase = tokens.join(' ');
-        if (phrase && haystack.includes(phrase)) score += 80;
-        tokens.forEach(token => {
-            const variants = [token];
-            if (token.length > 4 && token.endsWith('es')) variants.push(token.slice(0, -2));
-            if (token.length > 3 && token.endsWith('s')) variants.push(token.slice(0, -1));
-            if (normalize(material.codigo) === token) score += 80;
-            else if (variants.some(value => haystack.includes(value))) score += token.length >= 4 ? 18 : 10;
-            else {
-                const maxDistance = token.length >= 8 ? 2 : 1;
-                const fuzzy = token.length >= 4 && haystack.split(' ').some(word => Math.abs(word.length - token.length) <= maxDistance && levenshtein(word, token) <= maxDistance);
-                if (fuzzy) score += token.length >= 6 ? 10 : 6;
-                else score -= 8;
-            }
-        });
-        const description = normalize(material.descripcion ?? material.desc);
-        if (tokens.every(token => { const variants=[token, token.length>3&&token.endsWith('s')?token.slice(0,-1):token].filter(Boolean); return variants.some(value=>description.includes(value)); })) score += 35;
-        if (queryNorm.includes(normalize(material.codigo)) && normalize(material.codigo)) score += 100;
+        tokens.forEach(token => { score += haystack.includes(token) ? 18 : -8; });
         return score;
     }
 
@@ -1501,7 +1505,8 @@
         const cards = matches.slice(0, 12).map(material => {
             const stock = Array.isArray(material.almacenes) ? material.almacenes.reduce((sum,row) => sum + number(row.stock), 0) : number(material.stock);
             const locations = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(row => number(row.stock) > 0 || text(row.ubicacion)).slice(0, 2).map(row => `${row.nombre || 'Almacén'}${row.ubicacion ? ` · ${row.ubicacion}` : ''}`).join(' / ');
-            return { title: `${material.codigo || 'Sin código'} · ${material.descripcion || material.desc || 'Material'}`, detail: `${formatNumber(stock)} ${material.unidad || 'unidades'}${locations ? ` · ${locations}` : ''}` };
+            const rollDetail = /^(cable|cables)$/i.test(text(material.categoria)) && number(material.rollosDisponibles ?? material.rollos_disponibles) > 0 ? ` · ${formatNumber(material.rollosDisponibles ?? material.rollos_disponibles)} rollo(s)` : '';
+            return { title: `${material.codigo || 'Sin código'} · ${material.descripcion || material.desc || 'Material'}`, detail: `${formatNumber(stock)} ${material.unidad || 'unidades'}${rollDetail}${locations ? ` · ${locations}` : ''}` };
         });
         const queryLabel = queryText || normalize(raw);
         const detail = `${formatNumber(totalStock)} unidades acumuladas entre las coincidencias. ${matches.length > cards.length ? `Se muestran las primeras ${cards.length} de ${matches.length}.` : 'Se muestran todas las coincidencias encontradas.'}`;
@@ -1690,9 +1695,26 @@
     }
     function matchesTokens(values, tokens) {
         if (!tokens.length) return true;
+        const query = tokens.join(' ');
+        if (window.SkilledSearch?.matches) return window.SkilledSearch.matches(values, query);
         const haystack = normalize((Array.isArray(values) ? values : [values]).join(' '));
         return tokens.every(token => haystack.includes(token));
     }
+    function supplierWhatsApp(item) {
+        return text(item?.whatsapp || item?.proveedorWhatsapp || item?.proveedor_whatsapp || item?.telefono || item?.proveedorTelefono || item?.proveedor_telefono).replace(/\D/g, '');
+    }
+    function supplierEmail(item) {
+        return text(item?.email || item?.proveedorEmail || item?.proveedor_email);
+    }
+    function supplierContactActions(item, message = '') {
+        const actions = [], phone = supplierWhatsApp(item), email = supplierEmail(item);
+        const providerName = text(item?.nombre_comercial || item?.razon_social || item?.proveedorNombre || item?.proveedor_nombre || 'Proveedor');
+        const body = text(message) || `Hola, te contacto de Skilled Proyectos Industriales para solicitar información comercial. Gracias.`;
+        if (phone.length >= 10) actions.push({ label: 'WhatsApp', href: `https://wa.me/${phone}?text=${encodeURIComponent(body)}` });
+        if (email) actions.push({ label: 'Correo', href: `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Contacto · Skilled Proyectos Industriales · ${providerName}`)}&body=${encodeURIComponent(body)}` });
+        return actions;
+    }
+
     function projectMatch(projects, raw) {
         const norm = commandNormalize(raw);
         const tokens = searchTokens(raw, ['proyecto', 'proyectos', 'costo', 'presupuesto', 'avance', 'como', 'cuanto', 'consumido']);
@@ -1771,13 +1793,27 @@
         if (/cotiz|oferta|compar.*proveedor|precio.*plazo|plazo.*precio/.test(norm) || hasFuzzy(norm,['cotizacion','cotizaciones','comparar proveedores','precio y plazo'])) return answerQuotation(raw);
         if (/bajo.*min|agotad|reponer|reposicion/.test(norm) || hasFuzzy(norm,['bajo minimo','reponer material'])) return answerLowStock();
         if (/orden.*compra|\boc\b|requisicion|recepcion|recibid|por atender|no revisad|en revision/.test(norm) || hasFuzzy(norm,['orden de compra','requisicion','recepcion'])) return answerPurchase(raw);
-        if (/proveedor|proveedores|rfc/.test(norm) || hasFuzzy(norm,['proveedor','proveedores'])) {
+        if (/quien.*vende|quién.*vende|que.*proveedor.*(vende|maneja|surt)|proveedor.*(material|producto|vende|maneja|surt)|donde.*(compro|comprar).*material|con quien.*compro/.test(norm)) {
+            const rows = await loadData('coProviderMaterials');
+            const tokens = searchTokens(raw, ['quien','quién','vende','venden','maneja','manejan','surte','surten','proveedor','proveedores','material','producto','productos','donde','compro','comprar','con']);
+            const ranked = window.SkilledSearch?.rank
+                ? window.SkilledSearch.rank(rows, tokens.join(' '), item => [item.materialCodigo,item.descripcion,item.marca,item.categoria,item.proveedorNombre,item.proveedorRfc])
+                : rows.filter(item => matchesTokens([item.materialCodigo,item.descripcion,item.marca,item.categoria,item.proveedorNombre], tokens));
+            const seen = new Set(), selected = ranked.filter(item => { const key=`${item.proveedorId}|${item.materialCodigo}`; if(seen.has(key))return false; seen.add(key); return true; }).slice(0,10);
+            const cards = selected.map(item => ({ title: `${item.proveedorNombre || 'Proveedor'} · ${item.materialCodigo || 'Material'}`, detail: `${item.descripcion || 'Sin descripción'} · ${currency(item.precioUnitario)} ${item.moneda || 'MXN'} · ${formatNumber(item.plazoEntregaDias)} días`, actions: supplierContactActions(item, `Hola, te contacto de Skilled Proyectos Industriales para solicitar información de ${item.materialCodigo || item.descripcion || 'este material'}.`) }));
+            setAnswer('Proveedor por material', selected.length ? `Encontré ${selected.length} opción${selected.length===1?'':'es'} de proveedor relacionadas con ese material.` : 'No encontré una relación proveedor-material con ese criterio.', selected.length ? 'Ordené las coincidencias por código, descripción, marca y proveedor. Puedes abrir WhatsApp o correo sin salir de Sky.' : 'Puedes completar el catálogo comercial desde Proveedores.', cards, { href:'CO.proveedores.html',label:'Abrir catálogo de proveedores' });
+            return selected.length ? `Encontré ${selected.length} opciones de proveedor para ese material.` : 'No encontré proveedores vinculados a ese material.';
+        }
+        if (/proveedor|proveedores|rfc|contacto|whatsapp|correo|email|telefono/.test(norm) || hasFuzzy(norm,['proveedor','proveedores','whatsapp','correo'])) {
             const rows = await loadData('coSuppliers');
-            const tokens = searchTokens(raw, ['proveedor', 'proveedores', 'busca', 'buscar', 'rfc']);
-            const matches = rows.filter(item => matchesTokens([item.razon_social, item.nombre_comercial, item.contacto, item.email, item.telefono, item.rfc, item.categoria], tokens));
-            const cards = matches.slice(0, 7).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'contacto pendiente'}${item.email ? ` · ${item.email}` : ''}` }));
-            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coinciden con la consulta.` : 'No encontré un proveedor coincidente.', matches.length ? 'La búsqueda considera razón social, nombre comercial, RFC y contacto.' : 'Prueba con razón social, nombre comercial o RFC.', cards, { href: 'CO.proveedores.html', label: 'Abrir proveedores' });
-            return matches.length ? `Encontré ${matches.length} proveedores relacionados.` : 'No encontré ese proveedor.';
+            const tokens = searchTokens(raw, ['proveedor','proveedores','busca','buscar','rfc','contacto','whatsapp','correo','email','telefono','teléfono','numero','número','mandar','enviar','mensaje','escribe','escribir','contacta']);
+            const matches = window.SkilledSearch?.rank
+                ? window.SkilledSearch.rank(rows, tokens.join(' '), item => [item.razon_social,item.nombre_comercial,item.contacto,item.email,item.telefono,item.whatsapp,item.rfc,item.categoria])
+                : rows.filter(item => matchesTokens([item.razon_social,item.nombre_comercial,item.contacto,item.email,item.telefono,item.whatsapp,item.rfc,item.categoria], tokens));
+            const wantsContact = /whatsapp|correo|email|telefono|contacta|mensaje|escribe|enviar|mandar/.test(norm);
+            const cards = matches.slice(0, 8).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'contacto pendiente'}${item.email ? ` · ${item.email}` : ''}${item.whatsapp || item.telefono ? ` · WA ${item.whatsapp || item.telefono}` : ''}`, actions: wantsContact ? supplierContactActions(item) : [] }));
+            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coinciden con la consulta.` : 'No encontré un proveedor coincidente.', matches.length ? `${wantsContact?'Te preparé los canales de contacto disponibles. ':'La búsqueda considera razón social, nombre comercial, RFC, contacto, correo y WhatsApp.'}` : 'Prueba con razón social, nombre comercial, RFC, correo o teléfono.', cards, { href: 'CO.proveedores.html', label: 'Abrir proveedores' });
+            return matches.length ? `Encontré ${matches.length} proveedores relacionados.${wantsContact?' Te dejé sus opciones de contacto preparadas.':''}` : 'No encontré ese proveedor.';
         }
         if (/servicio|servicios|luz|agua|internet|telefono|pago.*proxim|vence|vencimiento/.test(norm)) {
             const rows = await loadData('coServices');
@@ -2102,23 +2138,41 @@
         return rows.find(row => [row.proyecto,row.nombre,row.cliente,row.responsable].some(value => value && norm.includes(commandNormalize(value)))) || null;
     }
 
+    async function answerExecutiveInventorySummary() {
+        const rows = await loadData('materials');
+        const active = rows.filter(item => item.activo !== false);
+        const cables = active.filter(item => /^(cable|cables)$/i.test(text(item.categoria)));
+        const total = active.reduce((sum,item)=>sum+(Array.isArray(item.almacenes)?item.almacenes.reduce((sub,row)=>sub+number(row.stock),0):number(item.stock)),0);
+        const cards=[
+            {title:'Materiales activos',detail:String(active.length)},
+            {title:'Materiales de cable',detail:String(cables.length)},
+            {title:'Existencia acumulada',detail:formatNumber(total)},
+            {title:'Almacenes con material',detail:String(new Set(active.flatMap(item=>(item.almacenes||[]).filter(row=>number(row.stock)>0).map(row=>row.nombre)).filter(Boolean)).size)}
+        ];
+        setAnswer('Resumen de inventario', `${active.length} materiales activos están registrados en el catálogo.`, 'La existencia acumulada mezcla unidades de medida distintas; úsala solo como referencia general.', cards);
+        return `Hay ${active.length} materiales activos registrados en el catálogo. De ellos, ${cables.length} pertenecen a Cable o Cables.`;
+    }
+
     async function answerExecutivePeople(raw, projectRows = []) {
         const norm = commandNormalize(raw);
-        const candidate = executiveProjectCandidate(projectRows, raw);
-        const rows = await SkilledDB.listExecutiveSkyPeople(candidate?.proyecto || '');
-        if (candidate) {
-            const cards = rows.slice(0, 10).map(item => ({ title: item.nombre || item.numero_empleado || 'Colaborador', detail: `${item.puesto || 'Sin puesto'}${item.rol_proyecto ? ` · ${item.rol_proyecto}` : ''}${item.porcentaje_dedicacion ? ` · ${formatNumber(item.porcentaje_dedicacion)}%` : ''}` }));
-            setAnswer('Personal del proyecto', rows.length ? `${candidate.proyecto} · ${candidate.nombre || 'Proyecto'} tiene ${rows.length} persona${rows.length === 1 ? '' : 's'} activa${rows.length === 1 ? '' : 's'} asignada${rows.length === 1 ? '' : 's'}.` : `${candidate.proyecto} · ${candidate.nombre || 'Proyecto'} no tiene personal activo asignado.`, rows.length ? 'La consulta es de solo lectura y toma las asignaciones activas registradas por RH.' : 'RH todavía no registra asignaciones activas para este proyecto.', cards);
-            return rows.length ? `El proyecto ${candidate.proyecto} tiene ${rows.length} personas activas asignadas. ${rows.slice(0,6).map(item => item.nombre).filter(Boolean).join(', ')}.` : `El proyecto ${candidate.proyecto} no tiene personal activo asignado.`;
+        const explicitProject = (norm.match(/\b\d{3,12}\b/g) || [])[0] || '';
+        const candidate = executiveProjectCandidate(Array.isArray(projectRows) ? projectRows : [], raw);
+        const projectNumber = text(candidate?.proyecto || explicitProject);
+        const rows = await SkilledDB.listExecutiveSkyPeople(projectNumber);
+        if (projectNumber) {
+            const projectName = candidate?.nombre ? ` · ${candidate.nombre}` : '';
+            const cards = rows.slice(0, 12).map(item => ({ title: item.nombre || item.numero_empleado || 'Colaborador', detail: `${item.puesto || 'Sin puesto'}${item.rol_proyecto ? ` · ${item.rol_proyecto}` : ''}${item.porcentaje_dedicacion ? ` · ${formatNumber(item.porcentaje_dedicacion)}%` : ''}` }));
+            setAnswer('Personal del proyecto', rows.length ? `${projectNumber}${projectName} tiene ${rows.length} persona${rows.length === 1 ? '' : 's'} activa${rows.length === 1 ? '' : 's'} asignada${rows.length === 1 ? '' : 's'}.` : `${projectNumber}${projectName} no tiene personal activo asignado.`, rows.length ? 'La información proviene de las asignaciones activas registradas por RH y es de solo lectura.' : 'RH todavía no registra asignaciones activas para ese proyecto.', cards);
+            return rows.length ? `El proyecto ${projectNumber} tiene ${rows.length} personas activas asignadas. ${rows.slice(0,6).map(item => item.nombre).filter(Boolean).join(', ')}.` : `El proyecto ${projectNumber} no tiene personal activo asignado.`;
         }
         const tokens = searchTokens(raw, ['cuanto','cuantos','cuanta','cuantas','persona','personas','personal','trabajador','trabajadores','colaborador','colaboradores','empleado','empleados','activo','activos','tenemos','tengo','hay','rh','recursos','humanos']);
         if (tokens.length) {
             const matches = rows.filter(item => matchesTokens([item.numero_empleado,item.nombre,item.puesto,item.departamento], tokens));
-            const cards = matches.slice(0, 10).map(item => ({ title: item.nombre || item.numero_empleado || 'Colaborador', detail: `${item.numero_empleado || 'sin número'} · ${item.puesto || 'sin puesto'} · ${item.departamento || 'sin departamento'}` }));
+            const cards = matches.slice(0, 12).map(item => ({ title: item.nombre || item.numero_empleado || 'Colaborador', detail: `${item.numero_empleado || 'sin número'} · ${item.puesto || 'sin puesto'} · ${item.departamento || 'sin departamento'}` }));
             setAnswer('Personal', matches.length ? `${matches.length} persona${matches.length === 1 ? '' : 's'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré personal activo con ese criterio.', 'Consulta ejecutiva de solo lectura.', cards);
             return matches.length ? `Encontré ${matches.length} personas activas relacionadas.` : 'No encontré personal activo con ese criterio.';
         }
-        setAnswer('Personal activo', `${rows.length} trabajador${rows.length === 1 ? '' : 'es'} activo${rows.length === 1 ? '' : 's'} registrado${rows.length === 1 ? '' : 's'} en RH.`, 'Sky puede consultar personal y asignaciones sin mostrar el módulo de RH.', []);
+        setAnswer('Personal activo', `${rows.length} trabajador${rows.length === 1 ? '' : 'es'} activo${rows.length === 1 ? '' : 's'} registrado${rows.length === 1 ? '' : 's'} en RH.`, 'Sky puede consultar personal sin abrir el módulo de Recursos Humanos.', []);
         return `Hay ${rows.length} trabajadores activos registrados en Recursos Humanos.`;
     }
 
@@ -2128,12 +2182,45 @@
         const providers = Array.isArray(data.proveedores) ? data.proveedores : [];
         const requests = Array.isArray(data.solicitudes) ? data.solicitudes : [];
         const quotations = Array.isArray(data.cotizaciones) ? data.cotizaciones : [];
-        if (/proveedor|rfc|contacto/.test(norm)) {
-            const tokens = searchTokens(raw, ['proveedor','proveedores','rfc','contacto','busca','buscar','dime','del','de']);
-            const matches = providers.filter(item => !tokens.length || matchesTokens([item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.categoria], tokens));
-            const cards = matches.slice(0, 10).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'sin contacto'}${item.telefono ? ` · ${item.telefono}` : ''}` }));
-            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré un proveedor con ese criterio.', 'Consulta ejecutiva de solo lectura.', cards);
+        const supplierRequests = Array.isArray(data.solicitudes_proveedor) ? data.solicitudes_proveedor : [];
+        const communications = Array.isArray(data.comunicaciones) ? data.comunicaciones : [];
+        const providerMaterials = Array.isArray(data.material_proveedores) ? data.material_proveedores : [];
+        cache.coSuppliers = providers;
+        cache.coProviderMaterials = providerMaterials;
+        cache.at = Date.now();
+        if (/quien.*vende|quién.*vende|quien.*surte|quién.*surte|quien.*maneja|quién.*maneja|proveedor.*material|proveedores.*material|vende.*material|surte.*material/.test(norm)) {
+            const tokens = searchTokens(raw, ['quien','quién','vende','venden','surte','surten','maneja','manejan','proveedor','proveedores','material','materiales','dime','busca','buscar','necesito','quiero']);
+            const query = tokens.join(' ');
+            const matches = window.SkilledSearch?.rank
+                ? window.SkilledSearch.rank(providerMaterials, query, item => [item.material_codigo,item.descripcion,item.marca,item.categoria,item.unidad,item.proveedor_nombre,item.proveedor_rfc])
+                : providerMaterials.filter(item => !tokens.length || matchesTokens([item.material_codigo,item.descripcion,item.marca,item.categoria,item.unidad,item.proveedor_nombre], tokens));
+            const cards = matches.slice(0, 10).map(item => ({
+                title: `${item.proveedor_nombre || 'Proveedor'} · ${item.material_codigo || 'material'}`,
+                detail: `${item.descripcion || 'Sin descripción'}${number(item.precio_unitario)>0 ? ` · ${currency(item.precio_unitario)} ${item.moneda || 'MXN'}` : ''}${number(item.plazo_entrega_dias)>0 ? ` · ${formatNumber(item.plazo_entrega_dias)} días` : ''}${item.proveedor_contacto ? ` · ${item.proveedor_contacto}` : ''}${item.proveedor_email ? ` · ${item.proveedor_email}` : ''}${item.proveedor_whatsapp || item.proveedor_telefono ? ` · WA ${item.proveedor_whatsapp || item.proveedor_telefono}` : ''}`
+            }));
+            setAnswer('Proveedores por material', matches.length ? `${matches.length} opción${matches.length===1?'':'es'} de proveedor coincide${matches.length===1?'':'n'} con el material.` : 'No encontré proveedores vinculados a ese material.', 'Consulta ejecutiva de solo lectura con el catálogo de precios y proveedores de Compras.', cards);
+            return matches.length ? `Encontré ${matches.length} opciones de proveedor para ese material.` : 'No encontré proveedores vinculados a ese material.';
+        }
+        if (/mensaj|comunicacion|comunicación|correo.*envi|whatsapp.*envi/.test(norm)) {
+            const emailSent=communications.filter(item=>normalize(item.canal)==='email'&&normalize(item.estado)==='enviado').length;
+            const waSent=communications.filter(item=>normalize(item.canal)==='whatsapp'&&normalize(item.estado)==='enviado').length;
+            const errors=communications.filter(item=>normalize(item.estado)==='error').length;
+            setAnswer('Comunicaciones con proveedores', `${emailSent} correos y ${waSent} WhatsApp registrados como enviados en los últimos 30 días.`, `${errors} intento${errors===1?'':'s'} con error. Consulta ejecutiva de solo lectura.`, [{title:'Correos enviados',detail:String(emailSent)},{title:'WhatsApp enviados',detail:String(waSent)},{title:'Errores',detail:String(errors)}]);
+            return `Se registran ${emailSent} correos y ${waSent} mensajes de WhatsApp enviados a proveedores en los últimos 30 días.`;
+        }
+        if (/proveedor|rfc|contacto|whatsapp|correo|email|telefono/.test(norm)) {
+            const tokens = searchTokens(raw, ['proveedor','proveedores','rfc','contacto','whatsapp','correo','email','telefono','busca','buscar','dime','del','de','numero','número']);
+            const matches = window.SkilledSearch?.rank ? window.SkilledSearch.rank(providers,tokens.join(' '),item=>[item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.whatsapp,item.categoria]) : providers.filter(item => !tokens.length || matchesTokens([item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.whatsapp,item.categoria], tokens));
+            const cards = matches.slice(0, 10).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'sin contacto'}${item.email ? ` · ${item.email}` : ''}${item.whatsapp || item.telefono ? ` · WA ${item.whatsapp || item.telefono}` : ''}` }));
+            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré un proveedor con ese criterio.', 'Consulta ejecutiva de solo lectura. Sky no abre los módulos operativos de Compras.', cards);
             return matches.length ? `Encontré ${matches.length} proveedores relacionados.` : 'No encontré ese proveedor.';
+        }
+        if (/solicitud.*proveedor|proveedor.*solicitud|enviad.*proveedor|pendiente.*envio|pendiente.*envío/.test(norm)) {
+            const pending=supplierRequests.filter(item=>!item.fecha_envio_correo&&!item.fecha_envio_whatsapp&&!/cancelad|cerrad/i.test(normalize(item.estado)));
+            const sent=supplierRequests.filter(item=>item.fecha_envio_correo||item.fecha_envio_whatsapp||/enviad/i.test(normalize(item.estado)));
+            const cards=pending.slice(0,10).map(item=>({title:`${item.numero || 'Solicitud'} · ${item.proveedor_nombre || 'Proveedor'}`,detail:`OC ${item.orden_compra || '—'} · ${item.estado || 'pendiente'} · ${item.proveedor_email || item.proveedor_whatsapp || 'contacto pendiente'}`}));
+            setAnswer('Solicitudes a proveedores', `${pending.length} pendientes de envío y ${sent.length} con al menos un envío registrado.`, 'Consulta ejecutiva de solo lectura.', cards);
+            return `Hay ${pending.length} solicitudes a proveedores pendientes de envío y ${sent.length} enviadas.`;
         }
         const closedRequest = item => /recibid|cerrad|cancelad|rechazad|realizada|complet/i.test(normalize(item.estado_compras || item.estado));
         const openRequests = requests.filter(item => !closedRequest(item));
@@ -2148,16 +2235,60 @@
         return `Hay ${openRequests.length} compras pendientes y ${openQuotes.length} cotizaciones abiertas.`;
     }
 
+    async function answerExecutiveTools(raw) {
+        const rows = await SkilledDB.getExecutiveSkyTools();
+        const norm = commandNormalize(raw);
+        const available = rows.filter(item => /disponible/i.test(text(item.estado)));
+        const assigned = rows.filter(item => /asignad|prest/i.test(text(item.estado)));
+        const maintenance = rows.filter(item => /manten|repar/i.test(text(item.estado)));
+        const tokens = searchTokens(raw, ['herramienta','herramientas','cuanto','cuantos','cuanta','cuantas','tenemos','hay','disponible','disponibles','asignada','asignadas','mantenimiento']);
+        const filtered = tokens.length ? rows.filter(item => matchesTokens([item.codigo,item.descripcion,item.nombre,item.marca,item.modelo,item.estado], tokens)) : rows;
+        if (tokens.length && filtered.length !== rows.length) {
+            const cards = filtered.slice(0,12).map(item=>({title:`${item.codigo || '—'} · ${item.descripcion || item.nombre || 'Herramienta'}`,detail:`${item.estado || 'sin estado'}${item.marca ? ` · ${item.marca}` : ''}`}));
+            setAnswer('Herramientas', `${filtered.length} herramienta${filtered.length===1?'':'s'} coincide${filtered.length===1?'':'n'} con la consulta.`, 'Consulta ejecutiva de solo lectura.', cards);
+            return `Encontré ${filtered.length} herramientas relacionadas.`;
+        }
+        setAnswer('Herramientas', `${rows.length} herramientas registradas.`, `${available.length} disponibles · ${assigned.length} asignadas · ${maintenance.length} en mantenimiento.`, [{title:'Disponibles',detail:String(available.length)},{title:'Asignadas',detail:String(assigned.length)},{title:'Mantenimiento',detail:String(maintenance.length)}]);
+        return `Hay ${rows.length} herramientas registradas: ${available.length} disponibles, ${assigned.length} asignadas y ${maintenance.length} en mantenimiento.`;
+    }
+
+    async function answerExecutiveWarehouses(raw) {
+        const rows = await loadData('executiveWarehouses', true);
+        const norm = commandNormalize(raw);
+        const tokens = searchTokens(raw, ['almacen','almacenes','bodega','bodegas','cuanto','cuantos','cuanta','cuantas','tenemos','tengo','hay','dime','lista','listar']);
+        const filtered = tokens.length ? rows.filter(item => matchesTokens([item.nombre,item.tipo,item.ubicacion,item.encargado], tokens)) : rows;
+        const active = filtered.filter(item => !/inactiv|baja|cerrad/.test(normalize(item.estado)));
+        const cards = active.slice(0,10).map(item=>({title:item.nombre||'Almacén',detail:`${item.tipo||'sin tipo'} · ${formatNumber(item.materiales||0)} materiales · ${formatNumber(item.stock_total||0)} unidades/metros${item.ubicacion?` · ${item.ubicacion}`:''}`}));
+        setAnswer('Almacenes', `${active.length} almacén${active.length===1?'':'es'} coincide${active.length===1?'':'n'} con la consulta.`, 'Consulta ejecutiva de solo lectura.', cards);
+        return `Hay ${active.length} almacenes registrados${active.length?`: ${active.slice(0,6).map(item=>item.nombre).filter(Boolean).join(', ')}`:''}.`;
+    }
+
+    async function answerExecutiveAlerts() {
+        const data = await loadData('executiveAlerts', true);
+        const low=number(data.bajo_minimo),locations=number(data.sin_ubicacion),incomplete=number(data.informacion_incompleta),purchases=number(data.compras_pendientes);
+        const total=low+locations+incomplete+purchases;
+        const cards=[{title:'Bajo mínimo',detail:String(low)},{title:'Sin ubicación',detail:String(locations)},{title:'Información incompleta',detail:String(incomplete)},{title:'Compras pendientes',detail:String(purchases)}];
+        setAnswer('Atención requerida', total?`${total} señales requieren revisión.`:'No detecté pendientes en los criterios ejecutivos actuales.', 'Sky consulta Almacén y Compras en modo de solo lectura.', cards);
+        return total?`Hay ${total} señales que requieren revisión: ${low} de bajo mínimo, ${locations} sin ubicación, ${incomplete} con información incompleta y ${purchases} compras pendientes.`:'No detecté pendientes en los criterios ejecutivos actuales.';
+    }
+
     async function answerExecutive(raw) {
         const norm=commandNormalize(raw);
-        const rows=await SkilledDB.getExecutiveProjectSummary();
         const prefix=detectProfile()==='gerente_general'?'GG':'SG';
         if (/vehiculo|vehículos|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas|flotilla/.test(norm)) return answerVehicles(raw);
+        if (/\b(cuanto|cuantos|cuanta|cuantas)\b.*\b(material|materiales)\b/.test(norm) && !/tubo|cable|tornillo|tuerca|rondana|arandela|metro|pieza|stock|existencia/.test(norm)) return answerExecutiveInventorySummary();
         if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg|codigo|código/.test(norm)) return answerMaterial(raw, true);
-        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg/.test(norm)) return answerMaterial(raw, false);
-        if (/persona|personas|personal|trabajador|trabajadores|colaborador|colaboradores|empleado|empleados|recursos humanos|\brh\b|equipo.*proyecto|cuadrilla/.test(norm)) return answerExecutivePeople(raw, rows);
-        if (/proveedor|proveedores|cotiz|orden.*compra|compras? pendiente|solicitud.*compra|\boc\b|rfc|contacto.*proveedor/.test(norm)) return answerExecutivePurchasing(raw);
+        if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg|rollo|rollos/.test(norm)) return answerMaterial(raw, false);
+        if (/persona|personas|personal|trabajador|trabajadores|colaborador|colaboradores|empleado|empleados|recursos humanos|\brh\b|equipo.*proyecto|cuadrilla/.test(norm)) return answerExecutivePeople(raw, []);
+        if (/proveedor|proveedores|cotiz|orden.*compra|compras? pendiente|solicitud.*compra|solicitud.*proveedor|\boc\b|rfc|contacto|correo|email|whatsapp|telefono|mensaje.*proveedor|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|quien.*maneja|quién.*maneja/.test(norm)) return answerExecutivePurchasing(raw);
+        if (/herramient|taladro|esmeril|soldador|multimetro|pinza|llave/.test(norm)) return answerExecutiveTools(raw);
+        if (/\b(almacen|almacenes|bodega|bodegas)\b/.test(norm) && !/material|tubo|cable|stock|existencia|ubicacion|ubicación/.test(norm)) return answerExecutiveWarehouses(raw);
+        if (/alerta|bajo.*min|sin.*ubicacion|sin.*ubicación|informacion.*incompleta|información.*incompleta|compras.*pend|pendientes.*operacion|pendientes.*operación/.test(norm)) return answerExecutiveAlerts();
+        let rows=[];
+        try { rows=await SkilledDB.getExecutiveProjectSummary(); } catch (error) {
+            if (/proyecto|gasto|sueldo|nomina|planeado|presupuesto|costo|desviacion|avance|entrega|riesgo|prioridad/.test(norm)) throw error;
+        }
         if(!Array.isArray(rows)||!rows.length){setAnswer('Resumen ejecutivo','Todavía no hay proyectos disponibles para el análisis ejecutivo.','',[],{href:`${prefix}.proyectos.html`,label:'Abrir proyectos'});return'Todavía no hay proyectos disponibles para el análisis ejecutivo.'}
         const now=new Date();now.setHours(0,0,0,0);
         const closed=row=>/complet|cerrad|cancelad/i.test(text(row.estado));
@@ -2230,10 +2361,10 @@
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso|cajon|posicion)\b/.test(norm)) return true;
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
-        if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc/.test(norm)) return true;
+        if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
-        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|herramient.*venc|sin.*ubicacion|sin.*ubicación/.test(norm)) return true;
+        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación/.test(norm)) return true;
         if (profile === 'proyectos' && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable/.test(norm)) return true;
         return false;
     }
@@ -2284,7 +2415,7 @@
             return answerProjects(raw);
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePurchasing(raw) : answerPurchasing(raw);
-        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePeople(raw, await SkilledDB.getExecutiveProjectSummary()) : answerRH(raw);
+        if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePeople(raw, []) : answerRH(raw);
         if (plan.intent === 'finance') return answerFinance(raw);
         if (plan.intent === 'executive') return answerExecutive(raw);
         return null;

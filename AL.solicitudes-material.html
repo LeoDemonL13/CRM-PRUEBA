@@ -12,19 +12,19 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=43">
-<script src="navegacion-suave.js?v=43"></script>
+<link rel="stylesheet" href="interfaz.css?v=45">
+<script src="navegacion-suave.js?v=45"></script>
 <title>Skilled - Solicitudes de material</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=43"></script>
-<script src="auth-guard.js?v=43"></script>
+    <script src="skilled-supabase.js?v=45"></script>
+<script src="auth-guard.js?v=45"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#060814}
         .lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}
         body.tema-claro{background:#f2f4f9}body.tema-claro .bg-\[\#090d1a\]{background:#fff!important}body.tema-claro .bg-\[\#060814\]{background:#f2f4f9!important}body.tema-claro .bg-\[\#060a14\],body.tema-claro .bg-\[\#0d1425\],body.tema-claro .bg-\[\#10172a\]{background:#eef1f8!important}body.tema-claro .border-\[\#161f38\],body.tema-claro .border-\[\#243257\]{border-color:#dfe4ef!important}body.tema-claro .text-white,body.tema-claro .text-gray-200,body.tema-claro .text-gray-300{color:#111827!important}
     </style>
-<script src="skilled-search.js?v=43"></script>
+<script src="skilled-search.js?v=45"></script>
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <script>
@@ -60,7 +60,7 @@ function alternarTema(){const claro=document.body.classList.toggle('tema-claro')
         </section>
     </main>
 </div>
-<script src="skilled-sidebar.js?v=43"></script>
+<script src="skilled-sidebar.js?v=45"></script>
 <script>
 (function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();
 let solicitudes=[];let reajustes=[];let tabActual='solicitudes';const currentRole=()=>{try{return String(window.SkilledSession?.role||JSON.parse(localStorage.getItem('skilled_profile_cache')||'{}').rol||'').toLowerCase()}catch(_){return String(window.SkilledSession?.role||'').toLowerCase()}};const canDeleteTest=()=>['administrador','jefe_almacen'].includes(currentRole());
@@ -79,6 +79,6 @@ document.getElementById('buscar').addEventListener('input',render);document.getE
 </script>
 
 
-<script src="skilled-performance.js?v=43" defer></script>
+<script src="skilled-performance.js?v=45" defer></script>
 </body>
 </html>

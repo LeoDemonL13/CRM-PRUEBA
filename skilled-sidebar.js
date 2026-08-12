@@ -132,8 +132,8 @@
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
         ],
         finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
-        gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report'],['GG.vehiculos.html','Flotilla','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
-        subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report'],['SG.vehiculos.html','Flotilla','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
+        gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
+        subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         tsi:[{title:'TSI',items:[['TSI.inicio.html','Inicio','home']]},{title:'Cuenta',items:[['perfil.html?perfil=tsi','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
@@ -642,13 +642,15 @@
         addTask('units', 'AL.unidades-herramientas.html', () => db.listToolUnits({ includeInactive: true }));
         addTask('assignments', 'AL.asignaciones-herramientas.html', () => db.listToolAssignments());
         addTask('toolHistory', 'AL.historial-herramientas.html', () => typeof db.listToolHistory === 'function' ? db.listToolHistory() : []);
-        addTask('vehicles', 'AL.vehiculos.html', () => db.listVehicles({ includeInactive: true }));
+        const vehicleSearchPage = role === 'gerente_general' ? 'GG.vehiculos.html' : role === 'subgerente' ? 'SG.vehiculos.html' : 'AL.vehiculos.html';
+        addTask('vehicles', vehicleSearchPage, () => ['gerente_general','subgerente'].includes(role) && typeof db.listExecutiveVehicles === 'function' ? db.listExecutiveVehicles() : db.listVehicles({ includeInactive: true }));
         addTask('warehouses', 'AL.almacenes.html', () => db.listWarehouses());
         addTask('locations', 'AL.almacenes.html', () => db.listWarehouseLocations());
         addTask('movements', 'AL.historial-movimientos.html', () => db.listMovementGroups());
         addTask('rhPeople', 'RH.personal.html', () => db.client.from('rh_personal').select('*').then(result => { if (result.error) throw result.error; return result.data || []; }));
         addTask('rhProjects', 'RH.proyectos.html', () => db.client.from('proyectos').select('*').then(result => { if (result.error) throw result.error; return result.data || []; }));
         addTask('coSuppliers', 'CO.proveedores.html', () => db.client.from('co_proveedores').select('*').then(result => { if (result.error) throw result.error; return result.data || []; }));
+        addTask('coProviderMaterials', 'CO.proveedores.html', () => typeof db.listProviderMaterials === 'function' ? db.listProviderMaterials({ activeOnly: true }) : []);
         addTask('coQuotations', 'CO.cotizaciones.html', () => typeof db.listQuotationRequests === 'function' ? db.listQuotationRequests({}) : []);
         addTask('coDeliveries', 'CO.entregas.html', () => typeof db.listDeliveryInfos === 'function' ? db.listDeliveryInfos() : []);
         addTask('coStore', 'CO.tienda.html', () => typeof db.listStoreRequests === 'function' ? db.listStoreRequests() : []);
@@ -663,7 +665,7 @@
                 type: 'Material', symbol: 'M', title: item.descripcion || item.desc || item.codigo,
                 subtitle: `${item.codigo || 'Sin código'} · ${item.categoria || 'Sin categoría'}${item.stock != null ? ` · Stock ${Number(item.stock) || 0}` : ''}`,
                 url: `AL.catalogo.html?q=${encodeURIComponent(item.codigo || item.descripcion || '')}`,
-                terms: [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.proveedor,item.contactoProveedor,item.contacto_proveedor,item.unidad,...(item.modismos||[])].join(' ')
+                terms: [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.proveedor,item.contactoProveedor,item.contacto_proveedor,item.unidad,item.tipoCable,item.tamano,item.ubicacion,item.esIncompleto?'informacion incompleta':'',...(item.modismos||[])].join(' ')
             }));
             if (name === 'purchases') {
                 const groups = new Map();
@@ -736,7 +738,13 @@
                 type: 'Proveedor', symbol: 'PV', title: item.nombre_comercial || item.razon_social,
                 subtitle: `${item.contacto || 'Sin contacto'} · ${item.email || 'Sin correo'} · ${item.categoria || 'Sin categoría'}`,
                 url: `CO.proveedores.html?q=${encodeURIComponent(item.nombre_comercial || item.razon_social || '')}`,
-                terms: [item.clave,item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.categoria].join(' ')
+                terms: [item.clave,item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.whatsapp,item.categoria,item.direccion].join(' ')
+            }));
+            if (name === 'coProviderMaterials') rows.slice(0, 1800).forEach(item => addEntry(entries, {
+                type: 'Proveedor · material', symbol: 'PM', title: `${item.materialCodigo || 'Material'} · ${item.proveedorNombre || 'Proveedor'}`,
+                subtitle: `${item.descripcion || 'Sin descripción'} · ${Number(item.precioUnitario || 0).toLocaleString('es-MX',{style:'currency',currency:item.moneda || 'MXN'})} · ${Number(item.plazoEntregaDias || 0)} días`,
+                url: `CO.proveedores.html?q=${encodeURIComponent(item.materialCodigo || item.descripcion || item.proveedorNombre || '')}`,
+                terms: [item.materialCodigo,item.descripcion,item.marca,item.categoria,item.proveedorNombre,item.proveedorContacto,item.proveedorEmail,item.proveedorTelefono,item.proveedorWhatsapp,item.proveedorRfc,item.moneda,item.plazoEntregaDias].join(' ')
             }));
             if (name === 'coDeliveries') rows.forEach(item => addEntry(entries, {
                 type: 'Entrega', symbol: 'EN', title: item.nombre,
@@ -760,7 +768,7 @@
                 type: 'Solicitud a proveedor', symbol: 'SP', title: `${item.numero} · ${item.proveedorNombre}`,
                 subtitle: `Orden ${item.ordenCompra} · ${item.estado || 'borrador'} · ${(item.items||[]).length} materiales`,
                 url: `CO.hacer-compra.html?q=${encodeURIComponent(item.numero || item.ordenCompra || '')}`,
-                terms: [item.numero,item.ordenCompra,item.proveedorNombre,item.proveedorContacto,item.proveedorEmail,item.estado,...(item.items||[]).flatMap(x=>[x.materialCodigo,x.descripcion,x.marca])].join(' ')
+                terms: [item.numero,item.ordenCompra,item.proveedorNombre,item.proveedorContacto,item.proveedorEmail,item.proveedorTelefono,item.proveedorWhatsapp,item.estado,...(item.items||[]).flatMap(x=>[x.materialCodigo,x.descripcion,x.marca])].join(' ')
             }));
             if (name === 'vehicles') rows.forEach(item => addEntry(entries, {
                 type: 'Vehículo', symbol: 'V', title: `${item.numeroEconomico || 'Vehículo'} · ${item.marca || ''} ${item.modelo || ''}`,
@@ -795,7 +803,7 @@
     }
 
     function getSearchIndex() {
-        if (!searchIndexPromise || Date.now() - searchIndexCreatedAt > 60000) searchIndexPromise = createSearchIndex();
+        if (!searchIndexPromise || Date.now() - searchIndexCreatedAt > 20000) searchIndexPromise = createSearchIndex();
         return searchIndexPromise;
     }
 
@@ -851,8 +859,7 @@
         container.innerHTML = '<div class="skilled-search-status">Buscando en el CRM...</div>';
         try {
             const index = await getSearchIndex();
-            const normalized = searchText(query);
-            const results = index.map(entry => ({ entry, score: scoreEntry(entry, normalized) })).filter(item => item.score >= 0).sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title, 'es')).slice(0, 12).map(item => item.entry);
+            const results = index.map(entry => ({ entry, score: scoreEntry(entry, query) })).filter(item => item.score >= 0).sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title, 'es')).slice(0, 12).map(item => item.entry);
             if (!results.length) {
                 container.innerHTML = `<div class="skilled-search-status">No se encontraron resultados para “${safeHtml(query)}”.</div>`;
                 activeSearchResult = -1;
@@ -900,7 +907,7 @@
                 results.hidden = true;
                 return;
             }
-            globalSearchTimer = setTimeout(() => performGlobalSearch(input, value), 220);
+            globalSearchTimer = setTimeout(() => performGlobalSearch(input, value), 120);
         });
         input.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
@@ -924,6 +931,18 @@
         document.addEventListener('click', event => {
             if (!host.contains(event.target)) results.hidden = true;
         });
+        if (!document.documentElement.dataset.skilledSearchShortcuts) {
+            document.documentElement.dataset.skilledSearchShortcuts = '1';
+            document.addEventListener('keydown', event => {
+                const target = event.target;
+                const typing = target && /^(input|textarea|select)$/i.test(target.tagName);
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                    event.preventDefault(); input.focus(); input.select();
+                } else if (!typing && event.key === '/') {
+                    event.preventDefault(); input.focus(); input.select();
+                }
+            });
+        }
         const query = new URLSearchParams(location.search).get('q');
         if (query) {
             input.value = query;
@@ -943,7 +962,7 @@
         }
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=43';
+        script.src = 'skilled-sky.js?v=45';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);
@@ -952,7 +971,7 @@
     function ensureChat() {
         if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-chat.js?v=43';
+        script.src = 'skilled-chat.js?v=45';
         script.defer = true;
         script.dataset.skilledChat = '1';
         document.head.appendChild(script);

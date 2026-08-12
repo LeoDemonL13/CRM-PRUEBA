@@ -40,6 +40,11 @@
         return text(value).toLocaleLowerCase('es-MX');
     }
 
+    function isCableCategory(value) {
+        const category = lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        return category === 'cable' || category === 'cables';
+    }
+
     function normalizeStockLevels(minimumValue, mediumValue, maximumValue) {
         const minimum = Math.max(0, number(minimumValue));
         let maximum = Math.max(0, number(maximumValue));
@@ -484,10 +489,12 @@
             descripcion,
             desc: descripcion,
             categoria: text(row.categoria),
-            tipoCable: text(row.tipo_cable),
-            tipo_cable: text(row.tipo_cable),
-            tamano: text(row.tamano_mm2),
-            tamano_mm2: text(row.tamano_mm2),
+            esCable: isCableCategory(row.categoria),
+            es_cable: isCableCategory(row.categoria),
+            tipoCable: isCableCategory(row.categoria) ? text(row.tipo_cable) : '',
+            tipo_cable: isCableCategory(row.categoria) ? text(row.tipo_cable) : '',
+            tamano: isCableCategory(row.categoria) ? text(row.tamano_mm2) : '',
+            tamano_mm2: isCableCategory(row.categoria) ? text(row.tamano_mm2) : '',
             unidad: text(row.unidad),
             stock: totalStock,
             stockMinimo: totalMinimum,
@@ -521,20 +528,26 @@
 
     function materialToDb(material) {
         const categoria = text(material.categoria);
-        const unidad = text(material.unidad);
+        const cable = isCableCategory(categoria);
+        const tipoCable = cable ? text(material.tipoCable ?? material.tipo_cable) : '';
+        const tamanoCable = cable ? text(material.tamano ?? material.tamano_mm2) : '';
+        const unidadOriginal = text(material.unidad);
+        const unidad = cable ? 'METRO' : unidadOriginal;
         const precio = number(material.precio);
         const imagen = text(material.imagen ?? material.urlImagen ?? material.imagen_url);
         const pendientes = [];
         if (!categoria) pendientes.push('categoria');
         if (!unidad) pendientes.push('unidad');
+        if (cable && !tipoCable) pendientes.push('tipo_cable');
+        if (cable && !tamanoCable) pendientes.push('tamano_mm2');
         if (precio <= 0) pendientes.push('precio');
         if (!imagen) pendientes.push('imagen');
         return {
             codigo: text(material.codigo),
             descripcion: text(material.descripcion ?? material.desc),
             categoria: categoria || null,
-            tipo_cable: text(material.tipoCable ?? material.tipo_cable) || null,
-            tamano_mm2: text(material.tamano ?? material.tamano_mm2) || null,
+            tipo_cable: tipoCable || null,
+            tamano_mm2: tamanoCable || null,
             unidad: unidad || null,
             precio,
             marca: text(material.marca) || null,
@@ -608,6 +621,78 @@
         }
         if (!warehouseId) return materials;
         return materials.filter(material => material.almacenes.some(item => item.id === warehouseId));
+    }
+
+    function cableRollFromDb(row) {
+        const initial = number(row.metros_iniciales);
+        const available = number(row.metros_disponibles);
+        return {
+            id: Number(row.id),
+            materialCodigo: text(row.material_codigo),
+            material_codigo: text(row.material_codigo),
+            almacenId: Number(row.almacen_id),
+            almacen_id: Number(row.almacen_id),
+            almacenNombre: text(row.almacen_nombre),
+            codigoRollo: text(row.codigo_rollo),
+            codigo_rollo: text(row.codigo_rollo),
+            metrosIniciales: initial,
+            metros_iniciales: initial,
+            metrosDisponibles: available,
+            metros_disponibles: available,
+            porcentajeDisponible: initial > 0 ? Math.max(0, Math.min(100, available / initial * 100)) : 0,
+            estado: text(row.estado) || (available <= 0 ? 'agotado' : available < initial ? 'abierto' : 'cerrado'),
+            ubicacion: text(row.ubicacion),
+            notas: text(row.notas),
+            origen: text(row.origen),
+            activo: row.activo !== false,
+            createdAt: row.created_at || '',
+            updatedAt: row.updated_at || ''
+        };
+    }
+
+    async function listCableRolls(materialCode = '', warehouseId = 0, options = {}) {
+        const params = {
+            p_material_codigo: text(materialCode) || null,
+            p_almacen_id: Number(warehouseId) || null,
+            p_incluir_inactivos: options.includeInactive === true
+        };
+        const { data, error } = await client.rpc('crm_listar_rollos_cable', params);
+        assertNoError(error, 'No se pudieron consultar los rollos de cable. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
+        return (Array.isArray(data) ? data : []).map(cableRollFromDb);
+    }
+
+    async function saveCableRoll(payload = {}) {
+        const materialCode = text(payload.materialCodigo ?? payload.material_codigo);
+        const warehouseId = Number((payload.almacenId ?? payload.almacen_id) || 0);
+        const rollCode = text(payload.codigoRollo ?? payload.codigo_rollo);
+        const initial = number(payload.metrosIniciales ?? payload.metros_iniciales);
+        const availableValue = payload.metrosDisponibles ?? payload.metros_disponibles;
+        const available = text(availableValue) === '' ? initial : number(availableValue);
+        if (!materialCode) throw new Error('Selecciona el material de cable.');
+        if (!warehouseId) throw new Error('Selecciona el almacén del rollo.');
+        if (!rollCode) throw new Error('Captura el código o identificador del rollo.');
+        if (!(initial > 0)) throw new Error('Los metros iniciales del rollo deben ser mayores a cero.');
+        if (available < 0 || available > initial) throw new Error('Los metros disponibles deben estar entre 0 y los metros iniciales.');
+        const { data, error } = await client.rpc('crm_guardar_rollo_cable', {
+            p_id: Number(payload.id) || null,
+            p_material_codigo: materialCode,
+            p_almacen_id: warehouseId,
+            p_codigo_rollo: rollCode,
+            p_metros_iniciales: initial,
+            p_metros_disponibles: available,
+            p_ubicacion: text(payload.ubicacion) || null,
+            p_notas: text(payload.notas) || null
+        });
+        assertNoError(error, 'No se pudo guardar el rollo de cable. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
+        return cableRollFromDb(data || {});
+    }
+
+    async function deleteCableRoll(id) {
+        const rollId = Number(id);
+        if (!rollId) throw new Error('Rollo no válido.');
+        const { data, error } = await client.rpc('crm_eliminar_rollo_cable', { p_id: rollId });
+        assertNoError(error, 'No se pudo retirar el rollo de cable.');
+        return data && typeof data === 'object' ? data : { ok: true, id: rollId };
     }
 
     async function listWarehouseInventory(options = {}) {
@@ -812,7 +897,7 @@
         const input = Array.isArray(products) ? products : [];
         const progress = typeof onProgress === 'function' ? onProgress : function () {};
         const defaultWarehouseId = Number(options.almacenId ?? options.warehouseId ?? 0);
-        progress(5, 'Consultando catálogo, almacenes, ubicaciones y existencias...');
+        progress(5, 'Consultando catálogo, almacenes, ubicaciones, existencias y rollos...');
 
         const [current, warehouses, inventories, locations] = await Promise.all([
             collectRows(() => client.from('materiales').select('*').order('codigo', { ascending: true })),
@@ -835,18 +920,43 @@
         });
         const materialInputByCode = new Map();
         const inventoryInputByKey = new Map();
+        const rollInputByKey = new Map();
         const locationInputByKey = new Map();
         const errors = [];
         let omitted = 0;
 
-        input.forEach((product, index) => {
+        input.forEach((source, index) => {
+            const product = { ...source };
             const code = text(product.codigo);
             const description = text(product.descripcion ?? product.desc);
+            const category = text(product.categoria);
+            const cable = isCableCategory(category);
             const fileRow = Number(product.filaArchivo) || index + 1;
             if (!code || !description) {
                 omitted += 1;
                 errors.push({ fila: fileRow, codigo: code, error: 'Código y descripción son obligatorios.' });
                 return;
+            }
+            if (!category) {
+                omitted += 1;
+                errors.push({ fila: fileRow, codigo: code, error: 'La categoría es obligatoria.' });
+                return;
+            }
+            if (cable) {
+                product.unidad = 'METRO';
+                if (!text(product.tipoCable ?? product.tipo_cable)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Para Cable/Cables, captura el tipo de cable.' }); return; }
+                if (!text(product.tamano ?? product.tamano_mm2)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Para Cable/Cables, captura el tamaño mm²/AWG.' }); return; }
+            } else {
+                product.tipoCable = '';
+                product.tipo_cable = '';
+                product.tamano = '';
+                product.tamano_mm2 = '';
+                product.codigoRollo = '';
+                product.codigo_rollo = '';
+                product.metrosInicialesRollo = '';
+                product.metros_iniciales_rollo = '';
+                product.metrosDisponiblesRollo = '';
+                product.metros_disponibles_rollo = '';
             }
 
             const warehouseId = Number(product.almacenId ?? product.almacen_id ?? 0) ||
@@ -885,8 +995,27 @@
                 locationInputByKey.set(locationKey, inputCodes);
             }
 
+            const rollCode = cable ? text(product.codigoRollo ?? product.codigo_rollo) : '';
+            const initialRaw = cable ? (product.metrosInicialesRollo ?? product.metros_iniciales_rollo ?? '') : '';
+            const availableRaw = cable ? (product.metrosDisponiblesRollo ?? product.metros_disponibles_rollo ?? '') : '';
+            const stockInitial = number(product.stockInicial ?? product.stock ?? product.stock_inicial);
+            if (cable && (rollCode || text(initialRaw) || text(availableRaw) || stockInitial > 0)) {
+                const initial = number(initialRaw || stockInitial);
+                const available = text(availableRaw) === '' ? initial : number(availableRaw);
+                if (!rollCode) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'El cable con existencia debe indicar Código de rollo.' }); return; }
+                if (!(initial > 0)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Los metros iniciales del rollo deben ser mayores a cero.' }); return; }
+                if (available < 0 || available > initial) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Los metros disponibles del rollo deben quedar entre 0 y los metros iniciales.' }); return; }
+                const rollKey = `${lower(code)}\u0000${warehouseId}\u0000${lower(rollCode)}`;
+                if (rollInputByKey.has(rollKey)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:`El rollo ${rollCode} está repetido para el mismo material y almacén.` }); return; }
+                rollInputByKey.set(rollKey, {
+                    materialCode: code, warehouseId, rollCode, initial, available,
+                    location: locationCheck.codigo || text(product.ubicacionAlmacen ?? product.ubicacion),
+                    notes: text(product.notasRollo ?? product.notas_rollo), fileRow
+                });
+            }
+
             const inventoryKey = `${lower(code)}\u0000${warehouseId}`;
-            if (inventoryInputByKey.has(inventoryKey)) {
+            if (inventoryInputByKey.has(inventoryKey) && !cable) {
                 omitted += 1;
                 errors.push({ fila: fileRow, codigo: code, error: 'El mismo SKU está repetido para el mismo almacén.' });
                 return;
@@ -894,13 +1023,9 @@
 
             const codeKey = lower(code);
             if (!materialInputByCode.has(codeKey)) materialInputByCode.set(codeKey, product);
-            inventoryInputByKey.set(inventoryKey, {
-                product,
-                code,
-                warehouseId,
-                location: locationCheck.codigo,
-                fileRow
-            });
+            if (!inventoryInputByKey.has(inventoryKey)) {
+                inventoryInputByKey.set(inventoryKey, { product, code, warehouseId, location: locationCheck.codigo, fileRow, cable });
+            }
         });
 
         const materialRows = [];
@@ -935,13 +1060,11 @@
             inventoryRows.push({
                 material_codigo: canonicalCode,
                 almacen_id: entry.warehouseId,
-                stock: existingInventory
-                    ? number(existingInventory.stock)
-                    : number(entry.product.stockInicial ?? entry.product.stock ?? entry.product.stock_inicial),
+                stock: entry.cable ? number(existingInventory?.stock) : (existingInventory ? number(existingInventory.stock) : number(entry.product.stockInicial ?? entry.product.stock ?? entry.product.stock_inicial)),
                 stock_minimo: levels.minimum,
                 stock_medio: levels.medium,
                 stock_maximo: levels.maximum,
-                ubicacion: entry.location || null,
+                ubicacion: entry.location || existingInventory?.ubicacion || null,
                 updated_at: new Date().toISOString()
             });
         });
@@ -952,32 +1075,60 @@
             const { error } = await client.from('materiales').upsert(chunk, { onConflict: 'codigo' });
             assertNoError(error, 'No se pudo importar el catálogo.');
             const completed = Math.min(materialRows.length, startIndex + chunk.length);
-            progress(15 + Math.round((completed / Math.max(1, materialRows.length)) * 45), `Guardando materiales (${completed}/${materialRows.length})...`);
+            progress(15 + Math.round((completed / Math.max(1, materialRows.length)) * 40), `Guardando materiales (${completed}/${materialRows.length})...`);
         }
 
         for (let startIndex = 0; startIndex < inventoryRows.length; startIndex += chunkSize) {
             const chunk = inventoryRows.slice(startIndex, startIndex + chunkSize);
-            const { error } = await client
-                .from('existencias_almacen')
-                .upsert(chunk, { onConflict: 'material_codigo,almacen_id' });
+            const { error } = await client.from('existencias_almacen').upsert(chunk, { onConflict: 'material_codigo,almacen_id' });
             assertNoError(error, 'Los materiales se guardaron, pero falló su asignación al almacén o ubicación.');
             const completed = Math.min(inventoryRows.length, startIndex + chunk.length);
-            progress(65 + Math.round((completed / Math.max(1, inventoryRows.length)) * 30), `Asignando almacenes y ubicaciones (${completed}/${inventoryRows.length})...`);
+            progress(58 + Math.round((completed / Math.max(1, inventoryRows.length)) * 22), `Asignando almacenes y ubicaciones (${completed}/${inventoryRows.length})...`);
         }
 
-        const { error: recalcError } = await client.rpc('recalcular_todos_los_stocks');
-        assertNoError(recalcError, 'No se pudieron recalcular las existencias totales.');
+        const rolls = [...rollInputByKey.values()];
+        if (rolls.length) {
+            const groups = new Set(rolls.map(item => `${lower(item.materialCode)}\u0000${item.warehouseId}`));
+            for (const group of groups) {
+                const [materialKey, warehouseText] = group.split('\u0000');
+                const canonical = canonicalCodeByLower.get(materialKey) || rolls.find(item => lower(item.materialCode) === materialKey)?.materialCode;
+                const warehouseId = Number(warehouseText);
+                await client.from('cable_rollos').update({ activo:false, updated_at:new Date().toISOString() }).eq('material_codigo', canonical).eq('almacen_id', warehouseId).eq('origen','migracion_stock').eq('activo',true);
+            }
+            const rollRows = rolls.map(item => ({
+                material_codigo: canonicalCodeByLower.get(lower(item.materialCode)) || item.materialCode,
+                almacen_id: item.warehouseId,
+                codigo_rollo: item.rollCode,
+                metros_iniciales: item.initial,
+                metros_disponibles: item.available,
+                ubicacion: item.location || null,
+                notas: item.notes || null,
+                origen: 'importacion',
+                activo: true,
+                updated_at: new Date().toISOString()
+            }));
+            for (let startIndex = 0; startIndex < rollRows.length; startIndex += chunkSize) {
+                const chunk = rollRows.slice(startIndex, startIndex + chunkSize);
+                const { error } = await client.from('cable_rollos').upsert(chunk, { onConflict: 'material_codigo,almacen_id,codigo_rollo' });
+                assertNoError(error, 'Los materiales se importaron, pero falló el control de rollos de cable. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
+                const completed = Math.min(rollRows.length, startIndex + chunk.length);
+                progress(82 + Math.round((completed / Math.max(1, rollRows.length)) * 15), `Guardando rollos de cable (${completed}/${rollRows.length})...`);
+            }
+        }
+
+        try { await client.rpc('recalcular_todos_los_stocks'); } catch (_) {}
+        if (rolls.length) {
+            const rollGroups = new Map();
+            rolls.forEach(item => rollGroups.set(`${lower(item.materialCode)}\u0000${item.warehouseId}`, item));
+            for (const item of rollGroups.values()) {
+                const canonical = canonicalCodeByLower.get(lower(item.materialCode)) || item.materialCode;
+                const { error } = await client.rpc('crm_recalcular_stock_rollos_cable', { p_material_codigo: canonical, p_almacen_id: item.warehouseId });
+                assertNoError(error, 'No se pudo sincronizar el metraje de los rollos con el inventario.');
+            }
+        }
 
         progress(100, 'Importación terminada.');
-        return {
-            ok: true,
-            estado: 'completado',
-            total: input.length,
-            creados: created,
-            actualizados: updated,
-            omitidos: omitted,
-            errores: errors
-        };
+        return { ok:true, estado:'completado', total:input.length, creados:created, actualizados:updated, omitidos:omitted, rollos:rolls.length, errores:errors };
     }
 
     function movementFromDb(row) {
@@ -3062,7 +3213,7 @@
         });
         if (error) {
             const codeValue = text(error.code);
-            if (['PGRST202','42883','PGRST204','42703'].includes(codeValue)) throw new Error('Falta aplicar la actualización SQL V43 para registrar materiales incompletos.');
+            if (['PGRST202','42883','PGRST204','42703'].includes(codeValue)) throw new Error('Falta aplicar la actualización SQL V44 para registrar materiales incompletos.');
             assertNoError(error, 'No se pudo crear el material incompleto.');
         }
         const finalCode = text(data || code);
@@ -4196,12 +4347,20 @@
             proveedorNombre: text(row.proveedor_nombre),
             proveedorContacto: text(row.proveedor_contacto),
             proveedorEmail: text(row.proveedor_email),
+            proveedorTelefono: text(row.proveedor_telefono),
+            proveedorWhatsapp: text(row.proveedor_whatsapp),
             direccionEntregaId: row.direccion_entrega_id == null ? null : Number(row.direccion_entrega_id),
             asunto: text(row.asunto),
             mensaje: text(row.mensaje),
             estado: text(row.estado),
             fechaEnvio: text(row.fecha_envio),
             errorEnvio: text(row.error_envio),
+            fechaEnvioCorreo: text(row.fecha_envio_correo),
+            fechaEnvioWhatsapp: text(row.fecha_envio_whatsapp),
+            errorCorreo: text(row.error_correo),
+            errorWhatsapp: text(row.error_whatsapp),
+            emailMessageId: text(row.email_message_id),
+            whatsappMessageId: text(row.whatsapp_message_id),
             cotizacionId: text(row.cotizacion_id),
             tipo: text(row.tipo) || 'suministro',
             items: Array.isArray(row.co_solicitud_proveedor_items) ? row.co_solicitud_proveedor_items.map(item => ({
@@ -4247,6 +4406,8 @@
             proveedor_nombre: providerName,
             proveedor_contacto: text(payload.proveedorContacto) || null,
             proveedor_email: text(payload.proveedorEmail) || null,
+            proveedor_telefono: text(payload.proveedorTelefono) || null,
+            proveedor_whatsapp: text(payload.proveedorWhatsapp) || null,
             direccion_entrega_id: Number(payload.direccionEntregaId || 0) || null,
             asunto: text(payload.asunto) || `Solicitud de cotización y suministro · ${orderNumber}`,
             mensaje: text(payload.mensaje) || null,
@@ -4286,6 +4447,15 @@
         if ('errorEnvio' in changes) row.error_envio = text(changes.errorEnvio) || null;
         if ('asunto' in changes) row.asunto = text(changes.asunto);
         if ('mensaje' in changes) row.mensaje = text(changes.mensaje) || null;
+        if ('proveedorEmail' in changes) row.proveedor_email = text(changes.proveedorEmail) || null;
+        if ('proveedorTelefono' in changes) row.proveedor_telefono = text(changes.proveedorTelefono) || null;
+        if ('proveedorWhatsapp' in changes) row.proveedor_whatsapp = text(changes.proveedorWhatsapp) || null;
+        if ('fechaEnvioCorreo' in changes) row.fecha_envio_correo = text(changes.fechaEnvioCorreo) || null;
+        if ('fechaEnvioWhatsapp' in changes) row.fecha_envio_whatsapp = text(changes.fechaEnvioWhatsapp) || null;
+        if ('errorCorreo' in changes) row.error_correo = text(changes.errorCorreo) || null;
+        if ('errorWhatsapp' in changes) row.error_whatsapp = text(changes.errorWhatsapp) || null;
+        if ('emailMessageId' in changes) row.email_message_id = text(changes.emailMessageId) || null;
+        if ('whatsappMessageId' in changes) row.whatsapp_message_id = text(changes.whatsappMessageId) || null;
         const { data, error } = await client.from('co_solicitudes_proveedor').update(row).eq('id', requestId).select('*,co_solicitud_proveedor_items(*)').single();
         assertNoError(error, 'No se pudo actualizar la solicitud al proveedor.');
         return supplierRequestFromDb(data);
@@ -4294,9 +4464,62 @@
     async function sendSupplierRequest(id) {
         const requestId = text(id);
         if (!requestId) throw new Error('Solicitud a proveedor no válida.');
-        const { data, error } = await client.functions.invoke('enviar-solicitud-proveedor', { body: { solicitudId: requestId } });
-        if (error) throw new Error(error.message || 'No se pudo enviar la solicitud al proveedor.');
+        return contactSupplier({ solicitudId: requestId, canal: 'email' });
+    }
+
+    async function contactSupplier(payload = {}) {
+        const body = {
+            proveedorId: Number(payload.proveedorId || 0) || null,
+            solicitudId: text(payload.solicitudId) || null,
+            canal: text(payload.canal || payload.channel).toLowerCase(),
+            asunto: text(payload.asunto || payload.subject),
+            mensaje: text(payload.mensaje || payload.message),
+            modo: text(payload.modo || 'api')
+        };
+        if (!body.proveedorId && !body.solicitudId) throw new Error('Selecciona un proveedor o una solicitud.');
+        if (!['email','whatsapp'].includes(body.canal)) throw new Error('Selecciona correo o WhatsApp.');
+        const { data, error } = await client.functions.invoke('contactar-proveedor', { body });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo contactar al proveedor.');
+        if (data?.error) throw new Error(text(data.error));
         return data;
+    }
+
+    async function sendSupplierWhatsApp(id) {
+        const requestId = text(id);
+        if (!requestId) throw new Error('Solicitud a proveedor no válida.');
+        return contactSupplier({ solicitudId: requestId, canal: 'whatsapp' });
+    }
+
+    async function supplierCommunicationStatus() {
+        const { data, error } = await client.functions.invoke('contactar-proveedor', { body: { ping: true } });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo consultar la configuración de contacto a proveedores.');
+        return data || {};
+    }
+
+    async function listSupplierCommunications(options = {}) {
+        let query = client.from('co_comunicaciones_proveedor').select('*').order('created_at', { ascending: false });
+        const providerId = Number(options.proveedorId || 0);
+        if (providerId) query = query.eq('proveedor_id', providerId);
+        if (text(options.solicitudId)) query = query.eq('solicitud_id', text(options.solicitudId));
+        if (text(options.canal)) query = query.eq('canal', text(options.canal));
+        if (Number(options.limit || 0) > 0) query = query.limit(Math.min(200, Number(options.limit)));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudo consultar el historial de comunicaciones.');
+        return (data || []).map(row => ({
+            id: Number(row.id),
+            proveedorId: row.proveedor_id == null ? null : Number(row.proveedor_id),
+            solicitudId: text(row.solicitud_id),
+            canal: text(row.canal),
+            modo: text(row.modo),
+            destinatario: text(row.destinatario),
+            asunto: text(row.asunto),
+            mensaje: text(row.mensaje),
+            estado: text(row.estado),
+            proveedorExternoId: text(row.proveedor_externo_id),
+            error: text(row.error),
+            enviadoAt: text(row.enviado_at),
+            createdAt: text(row.created_at)
+        }));
     }
 
     async function edgeFunctionErrorDetail(error, fallback = 'Servicio no disponible.') {
@@ -4313,7 +4536,7 @@
                     if (text(raw)) message = text(raw).slice(0, 700);
                 } catch (_) {}
             }
-            if (response.status === 404 && !/no existe|not found/i.test(message)) message = 'La función sky-transcribir todavía no está desplegada en Supabase.';
+            if (response.status === 404 && !/no existe|not found/i.test(message)) message = /proveedor|contact/i.test(fallback) ? 'La función contactar-proveedor todavía no está desplegada en Supabase.' : 'La función sky-transcribir todavía no está desplegada en Supabase.';
             if (response.status === 401 && !/sesión|jwt|token/i.test(message)) message = 'La sesión no pudo autorizar el servicio de voz avanzada.';
         }
         return message;
@@ -4639,6 +4862,9 @@
             proveedorNombre: text(provider.nombre_comercial || provider.razon_social),
             proveedorContacto: text(provider.contacto),
             proveedorEmail: text(provider.email),
+            proveedorTelefono: text(provider.telefono),
+            proveedorWhatsapp: text(provider.whatsapp || provider.telefono),
+            proveedorRfc: text(provider.rfc),
             materialCodigo: text(row.material_codigo),
             descripcion: text(row.descripcion || material.descripcion),
             marca: text(row.marca || material.marca),
@@ -5194,8 +5420,9 @@
 
 
     async function listExecutiveVehicles(options = {}) {
-        const { data, error } = await client.rpc('crm_direccion_vehiculos');
-        assertNoError(error, 'No se pudo consultar la flotilla para Dirección. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'vehiculos', p_filtro: null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_direccion_vehiculos'));
+        assertNoError(error, 'No se pudo consultar Vehículos para Dirección. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
         let vehicles = (Array.isArray(data) ? data : []).map(row => vehicleFromDb(row));
         if (options.includeInactive !== true) vehicles = vehicles.filter(item => item.activo !== false);
         const status = lower(options.estado ?? options.status);
@@ -5206,8 +5433,9 @@
     }
 
     async function listExecutiveSkyMaterials() {
-        const { data, error } = await client.rpc('crm_sky_direccion_materiales');
-        assertNoError(error, 'No se pudo consultar el catálogo ejecutivo para Sky. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'materiales', p_filtro: null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_materiales'));
+        assertNoError(error, 'No se pudo consultar Materiales para Sky Dirección. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
         const rows = Array.isArray(data) ? data : [];
         return rows.map(row => ({
             codigo: text(row.codigo),
@@ -5228,6 +5456,10 @@
             stock_maximo: number(row.stock_maximo),
             marca: text(row.marca),
             proveedor: text(row.proveedor),
+            rollosDisponibles: number(row.rollos_disponibles),
+            rollos_disponibles: number(row.rollos_disponibles),
+            metrosRollos: number(row.metros_rollos),
+            metros_rollos: number(row.metros_rollos),
             modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : [],
             almacenes: Array.isArray(row.almacenes) ? row.almacenes.map(item => ({
                 id: Number(item.id || 0),
@@ -5247,20 +5479,41 @@
 
     async function listExecutiveSkyPeople(projectNumber = '') {
         const project = text(projectNumber);
-        const { data, error } = await client.rpc('crm_sky_direccion_personal', { p_proyecto: project || null });
-        assertNoError(error, 'No se pudo consultar personal ejecutivo para Sky. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'personal', p_filtro: project || null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_personal', { p_proyecto: project || null }));
+        assertNoError(error, 'No se pudo consultar Recursos Humanos para Sky Dirección. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
         return Array.isArray(data) ? data : [];
     }
 
     async function getExecutiveSkyPurchasing() {
-        const { data, error } = await client.rpc('crm_sky_direccion_compras');
-        assertNoError(error, 'No se pudo consultar Compras para Sky. Ejecuta SQL_V43_CORRECCION_INTEGRAL.sql.');
-        return data && typeof data === 'object' ? data : { proveedores: [], solicitudes: [], cotizaciones: [] };
+        let { data, error } = await client.rpc('crm_sky_direccion_compras');
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'compras', p_filtro: null }));
+        assertNoError(error, 'No se pudo consultar Compras para Sky Dirección. Ejecuta SQL_V45_MEJORAS_COMPRAS_BUSCADORES_SKY.sql.');
+        return data && typeof data === 'object' ? data : { proveedores: [], solicitudes: [], cotizaciones: [], solicitudes_proveedor: [], comunicaciones: [], material_proveedores: [] };
+    }
+
+    async function getExecutiveSkyTools() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'herramientas', p_filtro:null });
+        assertNoError(error, 'No se pudieron consultar Herramientas para Sky Dirección. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getExecutiveSkyWarehouses() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'almacenes', p_filtro:null });
+        assertNoError(error, 'No se pudieron consultar Almacenes para Sky Dirección. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getExecutiveSkyAlerts() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'alertas', p_filtro:null });
+        assertNoError(error, 'No se pudieron consultar las alertas ejecutivas. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
+        return data && typeof data === 'object' ? data : {};
     }
 
     async function getExecutiveProjectSummary() {
-        const { data, error } = await client.rpc('crm_resumen_ejecutivo_proyectos');
-        assertNoError(error, 'No se pudo consultar el resumen ejecutivo de proyectos. Ejecuta SQL_MAESTRO_CRM.sql V22.');
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'proyectos', p_filtro:null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_resumen_ejecutivo_proyectos'));
+        assertNoError(error, 'No se pudo consultar el resumen ejecutivo de proyectos. Ejecuta SQL_V44_ACTUALIZACION_INTEGRAL.sql.');
         return (Array.isArray(data) ? data : []).map(row => ({
             proyecto: text(row.proyecto), nombre: text(row.nombre), cliente: text(row.cliente), responsable: text(row.responsable),
             estado: text(row.estado), fechaInicio: text(row.fecha_inicio), fechaEntrega: text(row.fecha_entrega),
@@ -5309,9 +5562,15 @@
         buildProjectPickingRoute,
         listOperationalAlerts,
         listExecutiveVehicles,
+        listCableRolls,
+        saveCableRoll,
+        deleteCableRoll,
         listExecutiveSkyMaterials,
         listExecutiveSkyPeople,
         getExecutiveSkyPurchasing,
+        getExecutiveSkyTools,
+        getExecutiveSkyWarehouses,
+        getExecutiveSkyAlerts,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,
@@ -5418,6 +5677,10 @@
         createSupplierRequest,
         updateSupplierRequest,
         sendSupplierRequest,
+        sendSupplierWhatsApp,
+        contactSupplier,
+        supplierCommunicationStatus,
+        listSupplierCommunications,
         skyTranscriptionStatus,
         transcribeSkyAudio,
         interpretSkyQuery,

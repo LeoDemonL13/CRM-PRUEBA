@@ -1,270 +1,29 @@
-(function () {
-    'use strict';
-
-    const STOP_WORDS = new Set([
-        'a','al','algo','ante','bajo','cada','como','con','contra','cual','cuales','de','del','desde','donde','el','ella','en','entre','es','ese','esta','este','esto','hay','la','las','lo','los','me','mi','para','por','que','se','sin','sobre','su','sus','un','una','unos','unas','y','o',
-        'buscar','busca','buscame','muestra','mostrar','ver','quiero','necesito','dame','checa','checame','revisa','revisame','encuentra','encontrar'
-    ]);
-
-    const WORD_GROUPS = [
-        ['pija','pijas','tornillo','tornillos','autotaladrante','autotaladrantes','autorroscante','autorroscantes'],
-        ['tubo','tubos','tuberia','tuberias','conduit'],
-        ['cincho','cinchos','cintillo','cintillos','tyrap','tyraps','tie','wrap'],
-        ['desarmador','desarmadores','destornillador','destornilladores'],
-        ['esmeril','esmeriles','amoladora','amoladoras'],
-        ['montacargas','forklift'],
-        ['camioneta','pickup','troca'],
-        ['automovil','auto','carro','coche'],
-        ['cable','conductor','conductores'],
-        ['contacto','tomacorriente','receptaculo'],
-        ['apagador','interruptor'],
-        ['foco','lampara','luminaria'],
-        ['cople','copla','union'],
-        ['abrazadera','abrazaderas','grapa','grapas'],
-        ['rondana','rondanas','arandela','arandelas'],
-        ['tuerca','tuercas','nut'],
-        ['broca','brocas','mecha','mechas'],
-        ['casco','cascos','yelmo'],
-        ['lentes','gafas','anteojos'],
-        ['chaleco','chalecos'],
-        ['guante','guantes'],
-        ['bota','botas','calzado'],
-        ['almacen','bodega'],
-        ['herramienta','herramientas','hta'],
-        ['orden','oc'],
-        ['proyecto','proy'],
-        ['proveedor','prov']
-    ];
-
-    const ALIAS_MAP = new Map();
-    WORD_GROUPS.forEach(group => {
-        const normalized = group.map(normalizeWord);
-        normalized.forEach(word => ALIAS_MAP.set(word, normalized));
-    });
-
-    const FRACTIONS = {
-        '¼':'1/4','½':'1/2','¾':'3/4','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8',
-        '⅓':'1/3','⅔':'2/3','⅕':'1/5','⅖':'2/5','⅗':'3/5','⅘':'4/5','⅙':'1/6','⅚':'5/6'
-    };
-
-    const GAUGE_EQUIVALENTS = new Map([
-        ['#14','1/4'],
-        ['#12','7/32'],
-        ['#10','3/16'],
-        ['#8','5/32'],
-        ['#6','9/64']
-    ]);
-
-    const WORD_NUMBERS = [
-        [/\bun cuarto\b/g,'1/4'],[/\bcuarto de pulgada\b/g,'1/4'],[/\bmedia pulgada\b/g,'1/2'],[/\bmedio pulgada\b/g,'1/2'],
-        [/\btres cuartos\b/g,'3/4'],[/\bun medio\b/g,'1/2'],[/\buna pulgada\b/g,'1'],[/\buna y media\b/g,'1 1/2']
-    ];
-
-    function stripAccents(value) {
-        return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    }
-
-    function normalizeWord(value) {
-        return stripAccents(value).toLowerCase().trim();
-    }
-
-    function normalize(value) {
-        let text = String(value ?? '');
-        Object.entries(FRACTIONS).forEach(([symbol, fraction]) => { text = text.split(symbol).join(fraction); });
-        text = stripAccents(text)
-            .toLowerCase()
-            .replace(/[“”„‟″]/g, '"')
-            .replace(/[‘’´`]/g, "'")
-            .replace(/[×✕✖·]/g, 'x');
-        WORD_NUMBERS.forEach(([pattern, replacement]) => { text = text.replace(pattern, replacement); });
-        text = text
-            .replace(/\b(pulgadas?|pulg\.?|inches?|inch)\b/g, ' ')
-            .replace(/\b(numero|num\.?|nro\.?|no\.?|calibre)\s*#?\s*(\d+)/g, '#$2')
-            .replace(/\s*[xX]\s*/g, 'x')
-            .replace(/\s*\/\s*/g, '/')
-            .replace(/#\s+/g, '#')
-            .replace(/(\d)\s*"/g, '$1')
-            .replace(/[^a-z0-9#\/\.x\-\s]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        return text;
-    }
-
-    function compact(value) {
-        return normalize(value).replace(/[^a-z0-9#\/\.x]/g, '');
-    }
-
-    function fractionDecimal(value) {
-        const part = String(value || '');
-        if (/^\d+\/\d+$/.test(part)) {
-            const [a,b] = part.split('/').map(Number);
-            return b ? a / b : NaN;
-        }
-        const number = Number(part);
-        return Number.isFinite(number) ? number : NaN;
-    }
-
-    function canonicalNumber(value) {
-        const n = fractionDecimal(value);
-        if (!Number.isFinite(n)) return String(value || '');
-        const rounded = Math.round(n * 10000) / 10000;
-        return String(rounded).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
-    }
-
-    function dimensionSignatures(value) {
-        const text = normalize(value);
-        const signatures = new Set();
-        const addPair = (width, length) => {
-            const w = canonicalNumber(width);
-            const l = canonicalNumber(length);
-            if (w && l) signatures.add(`${w}x${l}`);
-        };
-
-        const gaugePattern = /#(\d{1,2})(?:x|\s+x\s+)(\d+(?:\.\d+)?|\d+\/\d+)/g;
-        let match;
-        while ((match = gaugePattern.exec(text))) {
-            const gauge = `#${match[1]}`;
-            const len = match[2];
-            signatures.add(`${gauge}x${canonicalNumber(len)}`);
-            const equivalent = GAUGE_EQUIVALENTS.get(gauge);
-            if (equivalent) addPair(equivalent, len);
-        }
-
-        const fractionPattern = /(?:^|\s|[^#\d])(\d+\/\d+|\d+(?:\.\d+)?)(?:x)(\d+(?:\.\d+)?|\d+\/\d+)/g;
-        while ((match = fractionPattern.exec(text))) {
-            addPair(match[1], match[2]);
-            for (const [gauge, equivalent] of GAUGE_EQUIVALENTS.entries()) {
-                const a = fractionDecimal(equivalent);
-                const b = fractionDecimal(match[1]);
-                if (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 0.012) {
-                    signatures.add(`${gauge}x${canonicalNumber(match[2])}`);
-                }
-            }
-        }
-
-        return signatures;
-    }
-
-    function rawTokens(value) {
-        return normalize(value).split(/\s+/).map(token => token.replace(/^[-]+|[-]+$/g,'')).filter(Boolean);
-    }
-
-    function meaningfulTokens(value) {
-        return rawTokens(value).filter(token => {
-            if (/\d/.test(token) || token.includes('/') || token.includes('#')) return true;
-            return token.length >= 2 && !STOP_WORDS.has(token);
-        });
-    }
-
-    function tokenVariants(token) {
-        const normalized = normalizeWord(token);
-        const variants = new Set([normalized]);
-        const group = ALIAS_MAP.get(normalized);
-        if (group) group.forEach(item => variants.add(item));
-        if (normalized.length > 3 && normalized.endsWith('s')) variants.add(normalized.slice(0,-1));
-        if (normalized.length > 3 && !normalized.endsWith('s')) variants.add(`${normalized}s`);
-        return [...variants];
-    }
-
-    function levenshtein(a, b, limit = 2) {
-        if (a === b) return 0;
-        if (Math.abs(a.length - b.length) > limit) return limit + 1;
-        const previous = Array.from({length:b.length+1}, (_,i)=>i);
-        for (let i=1;i<=a.length;i++) {
-            let current = [i];
-            let min = current[0];
-            for (let j=1;j<=b.length;j++) {
-                const cost = a[i-1] === b[j-1] ? 0 : 1;
-                const value = Math.min(current[j-1]+1, previous[j]+1, previous[j-1]+cost);
-                current[j] = value;
-                if (value < min) min = value;
-            }
-            if (min > limit) return limit + 1;
-            for (let j=0;j<current.length;j++) previous[j] = current[j];
-        }
-        return previous[b.length];
-    }
-
-    function tokenScore(targetTokens, targetNorm, token) {
-        let best = -1;
-        for (const variant of tokenVariants(token)) {
-            if (!variant) continue;
-            if (targetTokens.has(variant)) best = Math.max(best, 42);
-            if (variant.length >= 3 && targetNorm.includes(variant)) best = Math.max(best, 30);
-            if (variant.length >= 3) {
-                for (const target of targetTokens) {
-                    if (target.startsWith(variant) || variant.startsWith(target)) best = Math.max(best, 27);
-                    if (variant.length >= 5 && target.length >= 5) {
-                        const limit = variant.length >= 8 ? 2 : 1;
-                        if (levenshtein(variant, target, limit) <= limit) best = Math.max(best, 20);
-                    }
-                }
-            }
-        }
-        return best;
-    }
-
-    function score(values, query) {
-        const targetSource = Array.isArray(values) ? values.flat(Infinity).filter(v=>v!=null).join(' ') : String(values ?? '');
-        const qNorm = normalize(query);
-        if (!qNorm) return 1;
-        const tNorm = normalize(targetSource);
-        if (!tNorm) return -1;
-        const qCompact = compact(query);
-        const tCompact = compact(targetSource);
-        let total = 0;
-
-        if (tNorm === qNorm) total += 220;
-        else if (tNorm.includes(qNorm)) total += 155;
-        if (qCompact.length >= 3 && tCompact.includes(qCompact)) total += 120;
-
-        const qDimensions = dimensionSignatures(query);
-        const tDimensions = dimensionSignatures(targetSource);
-        if (qDimensions.size) {
-            let dimensionHit = 0;
-            qDimensions.forEach(sig => { if (tDimensions.has(sig)) dimensionHit += 1; });
-            if (!dimensionHit) return -1;
-            total += 85 + Math.max(0, dimensionHit - 1) * 18;
-        }
-
-        const queryTokens = meaningfulTokens(query).filter(token => !/^(?:\d+(?:\/\d+)?|#\d+)(?:x\d+(?:\/\d+)?)?$/.test(token));
-        const targetTokens = new Set(rawTokens(targetSource));
-        let hits = 0;
-        queryTokens.forEach(token => {
-            const part = tokenScore(targetTokens, tNorm, token);
-            if (part >= 0) { hits += 1; total += part; }
-        });
-        if (queryTokens.length) {
-            const required = queryTokens.length <= 2 ? queryTokens.length : Math.ceil(queryTokens.length * 0.7);
-            if (hits < required) return -1;
-            if (hits === queryTokens.length) total += 35;
-        }
-
-        if (!queryTokens.length && !qDimensions.size && total <= 0) return -1;
-        return total;
-    }
-
-    function matches(values, query) {
-        return score(values, query) >= 0;
-    }
-
-    function rank(items, query, getter) {
-        const source = Array.isArray(items) ? items : [];
-        const get = typeof getter === 'function' ? getter : item => item;
-        return source.map((item,index)=>({item,index,score:score(get(item),query)}))
-            .filter(row=>row.score>=0)
-            .sort((a,b)=>b.score-a.score || a.index-b.index)
-            .map(row=>row.item);
-    }
-
-    function explain(query) {
-        return {
-            normalized: normalize(query),
-            compact: compact(query),
-            tokens: meaningfulTokens(query),
-            dimensions: [...dimensionSignatures(query)]
-        };
-    }
-
-    window.SkilledSearch = Object.freeze({ normalize, compact, score, matches, rank, explain, dimensionSignatures });
+(function(){
+'use strict';
+const STOP=new Set('a al algo ante bajo cada como con contra cual cuales cuanto cuantos cuanta cuantas de del desde donde el ella en entre es ese esa esos esas esta este esto hay la las lo los me mi para por que se sin sobre su sus un una unos unas y o buscar busca buscame buscarme muestra muestrame mostrar ver quiero necesito dame checa checame revisa revisame encuentra encontrar dime saber saberme tengo tenemos existe existen registrado registrada registrados registradas'.split(' '));
+const GROUPS=[
+['pija','pijas','tornillo','tornillos','autotaladrante','autotaladrantes','autorroscante','autorroscantes'],['tubo','tubos','tuberia','tuberias','conduit'],['cincho','cinchos','cintillo','cintillos','tyrap','tyraps','tie','wrap'],['desarmador','desarmadores','destornillador','destornilladores'],['esmeril','esmeriles','amoladora','amoladoras'],['montacargas','forklift'],['camioneta','pickup','troca'],['automovil','auto','carro','coche'],['cable','cables','conductor','conductores'],['contacto','tomacorriente','receptaculo'],['apagador','interruptor'],['foco','lampara','luminaria'],['cople','copla','union'],['abrazadera','abrazaderas','grapa','grapas'],['rondana','rondanas','arandela','arandelas'],['tuerca','tuercas','nut'],['broca','brocas','mecha','mechas'],['casco','cascos','yelmo'],['lentes','gafas','anteojos'],['bota','botas','calzado'],['almacen','almacenes','bodega','bodegas'],['herramienta','herramientas','hta'],['orden','ordenes','oc'],['proyecto','proyectos','proy'],['proveedor','proveedores','prov'],['cotizacion','cotizaciones','cotiza','cotizar'],['requisicion','requisiciones','solicitud','solicitudes'],['correo','email','mail'],['telefono','telefonos','celular','celulares','whatsapp','wa'],['trabajador','trabajadores','empleado','empleados','colaborador','colaboradores','personal'],['vehiculo','vehiculos','flotilla'],['entrada','entradas','ingreso','ingresos'],['salida','salidas','entrega','entregas'],['disponible','disponibles','libre','libres'],['asignado','asignada','asignados','asignadas'],['mantenimiento','reparacion','taller'],['activo','activa','activos','activas'],['inactivo','inactiva','inactivos','inactivas'],['pendiente','pendientes','espera'],['recibido','recibida','recibidos','recibidas'],['comprado','comprada','compra','compras'],['metros','metro','m'],['pieza','piezas','pz','pza'],['milimetro','milimetros','mm'],['mm2','mm²'],['awg','calibre']
+];
+const strip=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const word=v=>strip(v).toLowerCase().trim();
+const ALIAS=new Map();GROUPS.forEach(g=>{const n=g.map(word);n.forEach(x=>ALIAS.set(x,n))});
+const FR={'¼':'1/4','½':'1/2','¾':'3/4','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8','⅓':'1/3','⅔':'2/3'};
+const WORDNUM=[[/\bun cuarto\b/g,'1/4'],[/\bcuarto de pulgada\b/g,'1/4'],[/\bmedia pulgada\b/g,'1/2'],[/\bmedio pulgada\b/g,'1/2'],[/\btres cuartos\b/g,'3/4'],[/\bun medio\b/g,'1/2'],[/\buna pulgada\b/g,'1'],[/\buna y media\b/g,'1 1/2']];
+function normalize(v){let s=String(v??'');Object.entries(FR).forEach(([a,b])=>s=s.split(a).join(b));s=strip(s).toLowerCase().replace(/[“”„‟″]/g,'"').replace(/[‘’´`]/g,"'").replace(/[×✕✖·]/g,'x').replace(/mm²/g,'mm2');WORDNUM.forEach(([a,b])=>s=s.replace(a,b));return s.replace(/\b(pulgadas?|pulg\.?|inches?|inch)\b/g,' ').replace(/\b(numero|num\.?|nro\.?|no\.?|calibre)\s*#?\s*(\d+)/g,'#$2').replace(/\s*[xX]\s*/g,'x').replace(/\s*\/\s*/g,'/').replace(/#\s+/g,'#').replace(/(\d)\s*"/g,'$1').replace(/[^a-z0-9@._+#\/\-\sx]/g,' ').replace(/\s+/g,' ').trim()}
+function compact(v){return normalize(v).replace(/[^a-z0-9@._+#\/x-]/g,'')}
+function rawTokens(v){return normalize(v).split(/\s+/).map(x=>x.replace(/^[-]+|[-]+$/g,'')).filter(Boolean)}
+function singulars(t){const out=new Set([t]);if(t.length>4&&t.endsWith('es'))out.add(t.slice(0,-2));if(t.length>3&&t.endsWith('s'))out.add(t.slice(0,-1));if(t.length>5&&t.endsWith('as'))out.add(t.slice(0,-2)+'a');if(t.length>5&&t.endsWith('os'))out.add(t.slice(0,-2)+'o');return [...out]}
+function variants(t){const n=word(t),out=new Set(singulars(n));const g=ALIAS.get(n);if(g)g.forEach(x=>out.add(x));[...out].forEach(x=>{const a=ALIAS.get(x);if(a)a.forEach(y=>out.add(y))});return [...out]}
+function meaningful(v){return rawTokens(v).filter(t=>/\d|@|#|\//.test(t)||t.length>=2&&!STOP.has(t))}
+function lev(a,b,limit=2){if(a===b)return 0;if(Math.abs(a.length-b.length)>limit)return limit+1;let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];let min=i;for(let j=1;j<=b.length;j++){const val=Math.min(c[j-1]+1,p[j]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));c[j]=val;min=Math.min(min,val)}if(min>limit)return limit+1;p=c}return p[b.length]}
+function dimensions(v){const s=normalize(v),out=new Set();let m;const add=(a,b)=>out.add(`${canon(a)}x${canon(b)}`);const re=/(#?\d+(?:\.\d+)?|\d+\/\d+)x(\d+(?:\.\d+)?|\d+\/\d+)/g;while((m=re.exec(s)))add(m[1],m[2]);return out}
+function canon(v){if(/^\d+\/\d+$/.test(v)){const[a,b]=v.split('/').map(Number);if(b)return String(Math.round(a/b*10000)/10000)}const n=Number(String(v).replace(/^#/,''));return Number.isFinite(n)?`${String(v).startsWith('#')?'#':''}${n}`:String(v)}
+function parseQuery(v){const source=String(v??''),quoted=[...source.matchAll(/"([^"]+)"/g)].map(m=>normalize(m[1])).filter(Boolean),negative=[...source.matchAll(/(?:^|\s)-([^\s]+)/g)].map(m=>normalize(m[1])).filter(Boolean),cleaned=source.replace(/"[^"]+"/g,' ').replace(/(?:^|\s)-[^\s]+/g,' ');return{normalized:normalize(source),quoted,negative,tokens:meaningful(cleaned),dimensions:[...dimensions(source)]}}
+function tokenScore(targetTokens,targetNorm,t){let best=-1;for(const v of variants(t)){if(!v)continue;if(targetTokens.has(v))best=Math.max(best,48);if(v.length>=2&&targetNorm.includes(v))best=Math.max(best,34);if(v.length>=3){for(const x of targetTokens){if(x.startsWith(v)||v.startsWith(x))best=Math.max(best,29);if(v.length>=5&&x.length>=5){const lim=Math.max(v.length,x.length)>=9?2:1;if(lev(v,x,lim)<=lim)best=Math.max(best,22)}}}}return best}
+function score(values,query){const source=Array.isArray(values)?values.flat(Infinity).filter(v=>v!=null).join(' '):String(values??''),q=parseQuery(query);if(!q.normalized)return 1;const tNorm=normalize(source);if(!tNorm)return-1;for(const n of q.negative)if(n&&tNorm.includes(n))return-1;for(const phrase of q.quoted)if(!tNorm.includes(phrase))return-1;let total=0;const qCompact=compact(query),tCompact=compact(source);if(tNorm===q.normalized)total+=260;else if(tNorm.startsWith(q.normalized))total+=190;else if(tNorm.includes(q.normalized))total+=165;if(qCompact.length>=3&&tCompact.includes(qCompact))total+=130;const td=dimensions(source);if(q.dimensions.length){let hit=0;q.dimensions.forEach(d=>{if(td.has(d))hit++});if(hit<q.dimensions.length)return-1;total+=90+hit*18}const tt=new Set(rawTokens(source));let hits=0;for(const token of q.tokens){const part=tokenScore(tt,tNorm,token);if(part>=0){hits++;total+=part}else if(/\d/.test(token)||token.includes('@')||token.includes('#'))return-1}if(q.tokens.length){const required=q.tokens.length<=2?q.tokens.length:Math.ceil(q.tokens.length*.65);if(hits<required)return-1;if(hits===q.tokens.length)total+=42}if(!q.tokens.length&&!q.dimensions.length&&!q.quoted.length&&total<=0)return-1;return total}
+function matches(values,q){return score(values,q)>=0}
+function rank(items,q,getter){const src=Array.isArray(items)?items:[],get=typeof getter==='function'?getter:x=>x;return src.map((item,index)=>({item,index,s:score(get(item),q)})).filter(x=>x.s>=0).sort((a,b)=>b.s-a.s||a.index-b.index).map(x=>x.item)}
+function explain(q){const p=parseQuery(q);return{normalized:p.normalized,compact:compact(q),tokens:p.tokens,dimensions:p.dimensions,quoted:p.quoted,negative:p.negative}}
+function highlight(value,q){const source=String(value??''),tokens=explain(q).tokens.filter(t=>t.length>1).slice(0,6);if(!tokens.length)return source.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');let out=source.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');tokens.sort((a,b)=>b.length-a.length).forEach(t=>{const safe=t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');out=out.replace(new RegExp(`(${safe})`,'ig'),'<mark>$1</mark>')});return out}
+window.SkilledSearch=Object.freeze({normalize,compact,score,matches,rank,explain,dimensionSignatures:dimensions,parseQuery,highlight});
 })();

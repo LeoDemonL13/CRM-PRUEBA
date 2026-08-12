@@ -12,13 +12,13 @@
 <link rel="manifest" href="/site.webmanifest?v=29">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=43">
-<script src="navegacion-suave.js?v=43"></script>
+<link rel="stylesheet" href="interfaz.css?v=45">
+<script src="navegacion-suave.js?v=45"></script>
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="skilled-supabase.js?v=43"></script>
-<script src="auth-guard.js?v=43"></script>
+    <script src="skilled-supabase.js?v=45"></script>
+<script src="auth-guard.js?v=45"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -103,8 +103,8 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=43" defer></script>
-<script src="skilled-search.js?v=43"></script>
+    <script src="skilled-sidebar.js?v=45" defer></script>
+<script src="skilled-search.js?v=45"></script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -905,19 +905,10 @@
         }
 
         function renderProyectos() {
-            const termino = document.getElementById('busqueda-proyecto').value.trim().toLowerCase();
-            const filtrados = proyectos.filter(item => {
-                const texto = [
-                    item.proyecto,
-                    item.nombreProyecto,
-                    item.cliente,
-                    item.ordenCompra,
-                    item.planta,
-                    item.nave,
-                    item.responsableSkilled
-                ].map(claveProyecto).join(' ');
-                return texto.includes(termino);
-            });
+            const termino = document.getElementById('busqueda-proyecto').value.trim();
+            const filtrados = proyectos.filter(item => !termino || (window.SkilledSearch?.matches
+                ? window.SkilledSearch.matches([item.proyecto,item.nombreProyecto,item.cliente,item.ordenCompra,item.planta,item.nave,item.responsableSkilled,item.tipoControl], termino)
+                : claveProyecto([item.proyecto,item.nombreProyecto,item.cliente,item.ordenCompra,item.planta,item.nave,item.responsableSkilled].join(' ')).includes(claveProyecto(termino))));
             const tbody = document.getElementById('tabla-proyectos');
             const vacio = document.getElementById('estado-vacio');
 
@@ -1111,7 +1102,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=43');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=45');
             }
             return cliente;
         }
@@ -1468,18 +1459,13 @@
 
         function buscarMaterialPlan(valor) {
             const dropdown = document.getElementById('dropdown-material-plan');
-            const termino = claveProyecto(valor);
+            const termino = textoSeguro(valor);
             const seleccionados = new Set(planBorrador.map(item => claveProyecto(item.codigo)));
-            const resultados = catalogoMateriales
-                .filter(item => !seleccionados.has(claveProyecto(item.codigo)))
-                .filter(item => {
-                    if (!termino) return true;
-                    return [item.codigo, item.desc, item.descripcion, item.categoria]
-                        .map(claveProyecto)
-                        .join(' ')
-                        .includes(termino);
-                })
-                .slice(0, 12);
+            let resultados = catalogoMateriales.filter(item => !seleccionados.has(claveProyecto(item.codigo)));
+            if (termino) resultados = window.SkilledSearch?.rank
+                ? window.SkilledSearch.rank(resultados, termino, item => [item.codigo,item.desc,item.descripcion,item.categoria,item.marca,item.proveedor,item.tipoCable,item.tamano,...(item.modismos||[])])
+                : resultados.filter(item => claveProyecto([item.codigo,item.desc,item.descripcion,item.categoria,item.marca,item.proveedor].join(' ')).includes(claveProyecto(termino)));
+            resultados = resultados.slice(0, 12);
 
             if (!resultados.length) {
                 dropdown.innerHTML = '<div class="px-4 py-4 text-[11px] text-gray-500">No hay materiales disponibles con ese criterio.</div>';
@@ -1687,9 +1673,8 @@
                 if (limiteDesde && !Number.isNaN(fecha.getTime()) && fecha < limiteDesde) return false;
                 if (limiteHasta && !Number.isNaN(fecha.getTime()) && fecha > limiteHasta) return false;
                 if (busqueda) {
-                    const texto = [item.codigo, item.descripcion, item.motivo, item.ubicacion, item.bodegaOrigen, item.bodegaDestino, item.recibeNombre, item.folioEntrega]
-                        .map(claveProyecto).join(' ');
-                    if (!texto.includes(busqueda)) return false;
+                    const campos = [item.codigo,item.descripcion,item.motivo,item.ubicacion,item.bodegaOrigen,item.bodegaDestino,item.recibeNombre,item.folioEntrega,item.referencia,item.tipo];
+                    if (window.SkilledSearch?.matches ? !window.SkilledSearch.matches(campos,busqueda) : !claveProyecto(campos.join(' ')).includes(busqueda)) return false;
                 }
                 return true;
             });
@@ -1953,7 +1938,7 @@
                 if (reporteFiltroEstado === 'completo' && item.sobrantes > 0) return false;
                 if (reporteFiltroEstado === 'con_entrega' && item.entregado <= 0) return false;
                 if (reporteFiltroEstado === 'sin_entrega' && item.entregado > 0) return false;
-                if (busqueda && !claveProyecto(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(busqueda)) return false;
+                if (busqueda && (window.SkilledSearch?.matches ? !window.SkilledSearch.matches([item.codigo,item.descripcion,item.categoria,item.alcance],busqueda) : !claveProyecto(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(busqueda))) return false;
                 return true;
             });
         }
@@ -2129,7 +2114,7 @@
         function materialesVisiblesReporteModal() {
             const busqueda = claveProyecto(document.getElementById('reporte-busqueda-material')?.value);
             return datosReporteAlcance().filter(item => {
-                if (busqueda && !claveProyecto(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(busqueda)) return false;
+                if (busqueda && (window.SkilledSearch?.matches ? !window.SkilledSearch.matches([item.codigo,item.descripcion,item.categoria,item.alcance],busqueda) : !claveProyecto(`${item.codigo} ${item.descripcion} ${item.categoria}`).includes(busqueda))) return false;
                 return true;
             });
         }
@@ -2486,9 +2471,9 @@ ${proyecto}`);
 
         cargarProyectos();
     </script>
-<script src="AL.proyectos.js?v=43"></script>
+<script src="AL.proyectos.js?v=45"></script>
 
 
-<script src="skilled-performance.js?v=43" defer></script>
+<script src="skilled-performance.js?v=45" defer></script>
 </body>
 </html>
