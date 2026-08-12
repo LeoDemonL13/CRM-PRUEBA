@@ -35,10 +35,10 @@
         const base = {
             almacen: { title: 'Sky · Asistente de almacén', subtitle: 'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos y flotilla.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia de material','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación de material','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas pendientes','¿Qué herramientas están vencidas?'],['Vehículos disponibles','¿Qué vehículos están disponibles?']] },
             compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Quién vende tubo conduit?', examples: [['Quién vende material','¿Quién vende tubo conduit?'],['Contacto de proveedor','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?'],['Proyectos','¿Qué proyectos están activos?']] },
-            rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
+            rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Equipo asignado','¿Qué equipo tiene asignado Leobardo?'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
             finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
-            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
-            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
+            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
+            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -1428,6 +1428,9 @@
             rhDocuments: () => tableRows('rh_documentos', '*,personal:rh_personal(id,numero_empleado,nombre,apellidos,puesto)'),
             rhTrainings: () => tableRows('rh_capacitaciones'),
             rhParticipants: () => tableRows('rh_capacitacion_participantes', '*,personal:rh_personal(id,nombre,apellidos)'),
+            rhOfficeAssets: () => SkilledDB.listRHOfficeAssets({ includeInactive: true }),
+            rhOfficeAssignments: () => SkilledDB.listRHOfficeAssignments({ includeClosed: true }),
+            executiveRHOfficeAssets: () => SkilledDB.getExecutiveRHOfficeAssets(),
             executiveTools: () => SkilledDB.getExecutiveSkyTools(),
             executiveWarehouses: () => SkilledDB.getExecutiveSkyWarehouses(),
             executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts()
@@ -1848,9 +1851,47 @@
         return `En Compras hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender, ${due} servicios próximos y ${storePending} compras de tienda pendientes.`;
     }
 
+    function officeAssetIntent(raw) {
+        const norm=commandNormalize(raw);
+        if (/equipo.*proyecto|equipo.*trabajo|cuadrilla/.test(norm)) return false;
+        return /\bequipo\b|equipo.*comput|computadora|computadoras|laptop|laptops|monitor|monitores|mouse|raton|ratón|teclado|teclados|base.*enfri|cooler|dock|docking|audifono|audífono|headset|cargador|periferico|periférico|accesorio|mobiliario|material.*oficina|activo.*oficina|resguardo|resguardos|que tiene asignado|qué tiene asignado|que le asignaron|qué le asignaron/.test(norm);
+    }
+
+    function officeAssetCards(data, limit=8) {
+        return data.slice(0,limit).map(item=>({title:`${item.activoCodigo||item.codigo||'Activo'} · ${item.activoNombre||item.nombre||'Equipo'}`,detail:item.personalNombre?`${item.personalNombre} · ${formatNumber(item.cantidad||1)} ${item.unidad||'PIEZA'} · ${item.estado||'asignado'}`:`${item.categoria||'Sin categoría'} · disponible ${formatNumber(item.disponible||0)} ${item.unidad||'PIEZA'}`}));
+    }
+
+    async function answerRHOfficeAssets(raw, executive=false) {
+        const norm=commandNormalize(raw),tokens=searchTokens(raw,['equipo','equipos','computo','cómputo','resguardo','resguardos','asignado','asignada','asignados','asignadas','tiene','tienen','que','qué','quien','quién','dame','muestra','buscar','busca']);
+        let assets=[],assignments=[];
+        if(executive){const payload=await loadData('executiveRHOfficeAssets');assets=Array.isArray(payload?.activos)?payload.activos:[];assignments=Array.isArray(payload?.asignaciones)?payload.asignaciones:[]}else{[assets,assignments]=await Promise.all([loadData('rhOfficeAssets'),loadData('rhOfficeAssignments')])}
+        const activeAssignments=assignments.filter(x=>normalize(x.estado)==='asignado');
+        const personQuery=/asignad|resguardo|tiene|entregaron|recibio|recibió|quien.*tiene|quién.*tiene/.test(norm);
+        let matchesAssignments=activeAssignments;
+        if(tokens.length) matchesAssignments=activeAssignments.filter(item=>matchesTokens([item.personalNumero,item.personalNombre,item.puesto,item.departamento,item.activoCodigo,item.activoNombre,item.categoria,item.marca,item.modelo,item.numeroSerie],tokens));
+        if(personQuery&&matchesAssignments.length){
+            const names=[...new Set(matchesAssignments.map(x=>x.personalNombre).filter(Boolean))];
+            const owner=names.length===1?names[0]:'';
+            const summary=owner?`${owner} tiene ${matchesAssignments.length} tipo${matchesAssignments.length===1?'':'s'} de equipo o material en resguardo.`:`Encontré ${matchesAssignments.length} resguardo${matchesAssignments.length===1?'':'s'} relacionado${matchesAssignments.length===1?'':'s'} con la consulta.`;
+            setAnswer('Equipos y resguardos',summary,executive?'Consulta de solo lectura de RH.': 'El historial conserva devoluciones, daños y pérdidas.',officeAssetCards(matchesAssignments),executive?null:{href:'RH.equipos.html',label:'Abrir equipos y resguardos'});
+            return owner?`${owner} tiene asignado: ${matchesAssignments.slice(0,7).map(x=>`${x.activoNombre} (${formatNumber(x.cantidad)} ${x.unidad||'PIEZA'})`).join(', ')}.`:summary;
+        }
+        let matchesAssets=assets;
+        if(tokens.length) matchesAssets=assets.filter(item=>matchesTokens([item.codigo,item.nombre,item.categoria,item.marca,item.modelo,item.numeroSerie,item.ubicacion],tokens));
+        if(/disponible|disponibles|libre|libres|sin asignar/.test(norm)) matchesAssets=matchesAssets.filter(x=>number(x.disponible)>0&&normalize(x.estado)==='activo');
+        if(/cuanto|cuantos|cuanta|cuantas|disponible|disponibles|inventario/.test(norm)){
+            const available=matchesAssets.reduce((sum,x)=>sum+number(x.disponible),0),assigned=matchesAssets.reduce((sum,x)=>sum+number(x.asignado||0),0);
+            const msg=`${matchesAssets.length} activo${matchesAssets.length===1?'':'s'} coincide${matchesAssets.length===1?'':'n'}; ${formatNumber(available)} unidades están disponibles y ${formatNumber(assigned)} están en resguardo.`;
+            setAnswer('Inventario de oficina',msg,executive?'Consulta de solo lectura de RH.':'Incluye equipos de cómputo, periféricos, accesorios y materiales controlados por RH.',officeAssetCards(matchesAssets),executive?null:{href:'RH.equipos.html',label:'Abrir inventario de oficina'});return msg;
+        }
+        const msg=matchesAssets.length?`Encontré ${matchesAssets.length} activo${matchesAssets.length===1?'':'s'} relacionado${matchesAssets.length===1?'':'s'} con la consulta.`:'No encontré equipos o resguardos con ese criterio.';
+        setAnswer('Equipos y resguardos',msg,executive?'Consulta de solo lectura de RH.':'Puedes preguntarme qué tiene asignado una persona, quién tiene un equipo o qué está disponible.',officeAssetCards(matchesAssets.length?matchesAssets:matchesAssignments),executive?null:{href:'RH.equipos.html',label:'Abrir equipos y resguardos'});return msg;
+    }
+
     async function answerRH(raw) {
         const norm = commandNormalize(raw);
         if (/vehiculo|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas/.test(norm) || hasFuzzy(norm,['vehiculo','vehiculos'])) return answerVehicles(raw);
+        if (officeAssetIntent(raw)) return answerRHOfficeAssets(raw,false);
         if (/nomina|nómina|recibo de pago|comprobante de pago|pago semanal|whatsapp.*nomina|nomina.*whatsapp/.test(norm)) {
             const { data: periods, error } = await db.client.from('rh_nomina_periodos').select('id,nombre,fecha_inicio,fecha_fin,estado').order('fecha_inicio',{ascending:false}).limit(6);
             if (error) { setAnswer('Nómina', 'El módulo de nómina todavía no está disponible en la base de datos.', 'Ejecuta SQL_MAESTRO_CRM.sql V24 para activarlo.', [], {href:'RH.nomina.html',label:'Abrir nómina'}); return 'El módulo de nómina necesita la actualización V24.'; }
@@ -1885,7 +1926,7 @@
             setAnswer('Capacitación', open.length ? `${open.length} capacitación${open.length === 1 ? '' : 'es'} programada${open.length === 1 ? '' : 's'} o en curso.` : 'No hay capacitaciones abiertas.', '', cards, { href: 'RH.capacitacion.html', label: 'Abrir capacitación' });
             return open.length ? `Hay ${open.length} capacitaciones abiertas.` : 'No hay capacitaciones abiertas.';
         }
-        if (/proyecto|proyectos|personal asignado|sin personal|equipo/.test(norm)) {
+        if (/proyecto|proyectos|personal asignado|sin personal|equipo.*proyecto|cuadrilla/.test(norm)) {
             const projects = await loadData('projectDetails');
             const activeAssignments = new Set(assignments.filter(item => normalize(item.estado) === 'activo').map(item => text(item.proyecto_numero)));
             const without = projects.filter(item => !['finalizado', 'cerrado', 'cancelado', 'inactivo'].includes(normalize(item.estado)) && !activeAssignments.has(text(item.proyecto))).slice(0, 7);
@@ -2048,6 +2089,17 @@
             const href=`https://www.google.com/search?q=${encodeURIComponent(term)}`;
             const message=`Preparé una búsqueda web de ${term}.`;
             setAnswer('Búsqueda en Internet',message,'Pulsa “Abrir búsqueda web” para revisar resultados en una pestaña nueva. La información externa no modifica datos del CRM.',[],{href,label:'Abrir búsqueda web'});
+            return {handled:true,voice:message};
+        }
+        const creatorQuestion=/\b(?:quien|quién)\b.*(?:\bte\b.*\b(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b|\b(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b.*\b(?:sky|asistente|ia)\b|\b(?:tu creador|tu desarrollador|tu programador|tu autor)\b)/.test(norm)||/\b(?:quien|quién)\s+(?:la|lo)\s+(?:creo|creó|desarrollo|desarrolló|programo|programó|hizo|diseño|diseñó)\b/.test(norm)||/\b(?:creador|desarrollador|programador|autor)\s+(?:de\s+)?sky\b/.test(norm);
+        if (creatorQuestion) {
+            const message='Fui desarrollado por el ING. Leobardo Hernández Jerónimo para ayudar a Skilled Proyectos Industriales con distintas situaciones, consultas y apartados del programa, además de apoyar tareas generales dentro del alcance autorizado del CRM.';
+            setAnswer('Desarrollo de Sky', message, 'Mi función es facilitar el acceso a la información y ayudar a cada perfil sin saltarme sus permisos.', [{title:'Desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},{title:'Propósito',detail:'Apoyar a Skilled Proyectos Industriales con consultas, procesos y orientación dentro del CRM.'},{title:'Seguridad',detail:'Las respuestas respetan los permisos del perfil que inició sesión.'}]);
+            return {handled:true,voice:message};
+        }
+        if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve sky)\b/.test(norm)) {
+            const message='Fui desarrollado para ayudar a Skilled Proyectos Industriales a consultar información, orientar procesos y resolver situaciones dentro de los apartados autorizados del CRM de una forma más rápida y natural.';
+            setAnswer('Propósito de Sky', message, 'Puedo adaptar mis consultas al perfil activo y usar contexto de la conversación para entender preguntas de seguimiento.');
             return {handled:true,voice:message};
         }
         if (/\b(presentate|preséntate|haz tu presentacion|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
@@ -2276,6 +2328,7 @@
         const norm=commandNormalize(raw);
         const prefix=detectProfile()==='gerente_general'?'GG':'SG';
         if (/vehiculo|vehículos|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas|flotilla/.test(norm)) return answerVehicles(raw);
+        if (officeAssetIntent(raw) || /resguardo|resguardos|activo.*oficina|material.*oficina|que tiene asignado|qué tiene asignado/.test(norm)) return answerRHOfficeAssets(raw,true);
         if (/\b(cuanto|cuantos|cuanta|cuantas)\b.*\b(material|materiales)\b/.test(norm) && !/tubo|cable|tornillo|tuerca|rondana|arandela|metro|pieza|stock|existencia/.test(norm)) return answerExecutiveInventorySummary();
         if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso)\b/.test(norm) && /material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg|codigo|código/.test(norm)) return answerMaterial(raw, true);
@@ -2362,9 +2415,9 @@
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|cable|tornillo|tuerca|rondana|arandela|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
         if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
-        if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina/.test(norm)) return true;
+        if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
-        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación/.test(norm)) return true;
+        if ((profile === 'gerente_general' || profile === 'subgerente') && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
         if (profile === 'proyectos' && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable/.test(norm)) return true;
         return false;
     }
@@ -2415,6 +2468,7 @@
             return answerProjects(raw);
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePurchasing(raw) : answerPurchasing(raw);
+        if (plan.intent === 'rh_assets') { if (profile === 'gerente_general' || profile === 'subgerente') return answerRHOfficeAssets(raw,true); if (profile === 'rh') return answerRHOfficeAssets(raw,false); return null; }
         if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) return (profile === 'gerente_general' || profile === 'subgerente') ? answerExecutivePeople(raw, []) : answerRH(raw);
         if (plan.intent === 'finance') return answerFinance(raw);
         if (plan.intent === 'executive') return answerExecutive(raw);

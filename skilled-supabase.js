@@ -5547,6 +5547,63 @@
         }));
     }
 
+    function rhOfficeAssetFromDb(row) {
+        const history = Array.isArray(row.rh_activos_asignaciones) ? row.rh_activos_asignaciones : [];
+        const assigned = history.filter(item => text(item.estado) === 'asignado').reduce((sum,item) => sum + number(item.cantidad), 0);
+        const unavailable = history.filter(item => ['asignado','perdido','danado'].includes(text(item.estado))).reduce((sum,item) => sum + number(item.cantidad), 0);
+        const total = number(row.cantidad_total);
+        return { id:Number(row.id),codigo:text(row.codigo),nombre:text(row.nombre),categoria:text(row.categoria),tipoControl:text(row.tipo_control)||'individual',marca:text(row.marca),modelo:text(row.modelo),numeroSerie:text(row.numero_serie),unidad:text(row.unidad)||'PIEZA',cantidadTotal:total,asignado:assigned,noDisponible:unavailable,disponible:Math.max(0,total-unavailable),ubicacion:text(row.ubicacion),estado:text(row.estado)||'activo',observaciones:text(row.observaciones),createdAt:text(row.created_at),updatedAt:text(row.updated_at) };
+    }
+
+    function rhOfficeAssignmentFromDb(row) {
+        const asset=row.rh_activos_oficina||row.activo||{},person=row.rh_personal||row.personal||{};
+        return { id:Number(row.id),activoId:Number(row.activo_id),personalId:Number(row.personal_id),cantidad:number(row.cantidad),fechaAsignacion:text(row.fecha_asignacion),fechaDevolucion:text(row.fecha_devolucion),estado:text(row.estado)||'asignado',condicionEntrega:text(row.condicion_entrega),condicionDevolucion:text(row.condicion_devolucion),responsableEntrega:text(row.responsable_entrega),responsableRecepcion:text(row.responsable_recepcion),notas:text(row.notas),activoCodigo:text(asset.codigo),activoNombre:text(asset.nombre),categoria:text(asset.categoria),marca:text(asset.marca),modelo:text(asset.modelo),numeroSerie:text(asset.numero_serie),unidad:text(asset.unidad)||'PIEZA',personalNumero:text(person.numero_empleado),personalNombre:text(`${person.nombre||''} ${person.apellidos||''}`),puesto:text(person.puesto),departamento:text(person.departamento),createdAt:text(row.created_at),updatedAt:text(row.updated_at) };
+    }
+
+    async function listRHOfficeAssets(options = {}) {
+        let query=client.from('rh_activos_oficina').select('*,rh_activos_asignaciones(cantidad,estado)').order('nombre',{ascending:true});
+        if(options.includeInactive!==true) query=query.neq('estado','baja');
+        const {data,error}=await query;assertNoError(error,'No se pudieron consultar los equipos y materiales de RH.');
+        return (data||[]).map(rhOfficeAssetFromDb);
+    }
+
+    async function saveRHOfficeAsset(asset = {}) {
+        const id=Number(asset.id)||null;
+        const row={codigo:text(asset.codigo).toUpperCase(),nombre:text(asset.nombre),categoria:text(asset.categoria)||'Otro',tipo_control:['individual','cantidad'].includes(text(asset.tipoControl))?text(asset.tipoControl):'individual',marca:text(asset.marca)||null,modelo:text(asset.modelo)||null,numero_serie:text(asset.numeroSerie)||null,unidad:text(asset.unidad).toUpperCase()||'PIEZA',cantidad_total:number(asset.cantidadTotal)||1,ubicacion:text(asset.ubicacion)||null,estado:['activo','mantenimiento','baja'].includes(text(asset.estado))?text(asset.estado):'activo',observaciones:text(asset.observaciones)||null};
+        if(!row.codigo||!row.nombre) throw new Error('Código y nombre son obligatorios.');
+        if(row.tipo_control==='individual'){row.cantidad_total=1;row.unidad='PIEZA'}
+        const request=id?client.from('rh_activos_oficina').update(row).eq('id',id).select('*,rh_activos_asignaciones(cantidad,estado)').single():client.from('rh_activos_oficina').insert(row).select('*,rh_activos_asignaciones(cantidad,estado)').single();
+        const {data,error}=await request;assertNoError(error,'No se pudo guardar el activo de RH.');return rhOfficeAssetFromDb(data);
+    }
+
+    async function deleteRHOfficeAsset(id) {
+        const assetId=Number(id);if(!assetId)throw new Error('Activo no válido.');
+        const {data,error}=await client.rpc('rh_eliminar_activo_oficina',{p_activo_id:assetId});assertNoError(error,'No se pudo eliminar el activo.');return data===true;
+    }
+
+    async function listRHOfficeAssignments(options = {}) {
+        let query=client.from('rh_activos_asignaciones').select('*,rh_activos_oficina(id,codigo,nombre,categoria,marca,modelo,numero_serie,unidad),rh_personal(id,numero_empleado,nombre,apellidos,puesto,departamento)').order('fecha_asignacion',{ascending:false}).order('id',{ascending:false});
+        if(options.includeClosed!==true) query=query.eq('estado','asignado');
+        if(Number(options.personalId)) query=query.eq('personal_id',Number(options.personalId));
+        if(Number(options.activoId)) query=query.eq('activo_id',Number(options.activoId));
+        const {data,error}=await query;assertNoError(error,'No se pudieron consultar los resguardos de RH.');return (data||[]).map(rhOfficeAssignmentFromDb);
+    }
+
+    async function assignRHOfficeAsset(payload = {}) {
+        const {data,error}=await client.rpc('rh_asignar_activo_oficina',{p_activo_id:Number(payload.activoId),p_personal_id:Number(payload.personalId),p_cantidad:number(payload.cantidad)||1,p_fecha_asignacion:text(payload.fechaAsignacion)||new Date().toISOString().slice(0,10),p_condicion_entrega:text(payload.condicionEntrega)||null,p_responsable_entrega:text(payload.responsableEntrega)||null,p_notas:text(payload.notas)||null});
+        assertNoError(error,'No se pudo registrar el resguardo.');return Number(data)||data;
+    }
+
+    async function closeRHOfficeAssetAssignment(payload = {}) {
+        const result=text(payload.resultado)||'devuelto';
+        const {data,error}=await client.rpc('rh_cerrar_asignacion_activo_oficina',{p_asignacion_id:Number(payload.asignacionId),p_resultado:result,p_fecha_devolucion:text(payload.fechaDevolucion)||new Date().toISOString().slice(0,10),p_condicion_devolucion:text(payload.condicionDevolucion)||null,p_responsable_recepcion:text(payload.responsableRecepcion)||null,p_notas:text(payload.notas)||null});
+        assertNoError(error,'No se pudo cerrar el resguardo.');return Number(data)||data;
+    }
+
+    async function getExecutiveRHOfficeAssets() {
+        const {data,error}=await client.rpc('crm_sky_direccion_activos_oficina');assertNoError(error,'Sky no pudo consultar los resguardos de RH.');return data||{activos:[],asignaciones:[]};
+    }
+
     async function healthCheck() {
         const { error } = await client.from('materiales').select('codigo').limit(1);
         assertNoError(error, 'No se pudo conectar con Supabase.');
@@ -5571,6 +5628,13 @@
         getExecutiveSkyTools,
         getExecutiveSkyWarehouses,
         getExecutiveSkyAlerts,
+        listRHOfficeAssets,
+        saveRHOfficeAsset,
+        deleteRHOfficeAsset,
+        listRHOfficeAssignments,
+        assignRHOfficeAsset,
+        closeRHOfficeAssetAssignment,
+        getExecutiveRHOfficeAssets,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,

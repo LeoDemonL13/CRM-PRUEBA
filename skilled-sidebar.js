@@ -126,7 +126,7 @@
             {title:'Cuenta',items:[['perfil.html?perfil=compras','Mi perfil','user']]}
         ],
         rh:[
-            {title:'Operación de personal',items:[['RH.inicio.html','Inicio','home'],['RH.personal.html','Personal','user'],['RH.proyectos.html','Proyectos y asignaciones','folder'],['PROY.importar.html?perfil=rh','Importar proyectos','delivery'],['RH.nomina.html','Nómina','clipboard'],['RH.asistencias.html','Asistencias e incidencias','history']]},
+            {title:'Operación de personal',items:[['RH.inicio.html','Inicio','home'],['RH.personal.html','Personal','user'],['RH.equipos.html','Equipos y resguardos','layers'],['RH.proyectos.html','Proyectos y asignaciones','folder'],['PROY.importar.html?perfil=rh','Importar proyectos','delivery'],['RH.nomina.html','Nómina','clipboard'],['RH.asistencias.html','Asistencias e incidencias','history']]},
             {title:'Desarrollo y cumplimiento',items:[['RH.documentos.html','Documentos','folder'],['RH.capacitacion.html','Capacitación','report']]},
             {title:'Operación compartida',items:[['AL.vehiculos.html?perfil=rh','Control vehicular','vehicle']]},
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
@@ -648,6 +648,8 @@
         addTask('locations', 'AL.almacenes.html', () => db.listWarehouseLocations());
         addTask('movements', 'AL.historial-movimientos.html', () => db.listMovementGroups());
         addTask('rhPeople', 'RH.personal.html', () => db.client.from('rh_personal').select('*').then(result => { if (result.error) throw result.error; return result.data || []; }));
+        addTask('rhAssets', 'RH.equipos.html', () => typeof db.listRHOfficeAssets === 'function' ? db.listRHOfficeAssets({ includeInactive: true }) : []);
+        addTask('rhAssetAssignments', 'RH.equipos.html', () => typeof db.listRHOfficeAssignments === 'function' ? db.listRHOfficeAssignments({ includeClosed: true }) : []);
         addTask('rhProjects', 'RH.proyectos.html', () => db.client.from('proyectos').select('*').then(result => { if (result.error) throw result.error; return result.data || []; }));
         addTask('coSuppliers', 'CO.proveedores.html', () => db.client.from('co_proveedores').select('*').then(result => { if (result.error) throw result.error; return result.data || []; }));
         addTask('coProviderMaterials', 'CO.proveedores.html', () => typeof db.listProviderMaterials === 'function' ? db.listProviderMaterials({ activeOnly: true }) : []);
@@ -721,6 +723,18 @@
                 subtitle: `${item.numero_empleado || 'Sin número'} · ${item.puesto || 'Sin puesto'} · ${item.departamento || 'Sin departamento'}`,
                 url: `RH.personal.html?q=${encodeURIComponent(item.numero_empleado || item.nombre || '')}`,
                 terms: [item.numero_empleado,item.nombre,item.apellidos,item.curp,item.rfc,item.nss,item.correo,item.correo_corporativo,item.puesto,item.departamento,item.jefe_directo].join(' ')
+            }));
+            if (name === 'rhAssets') rows.forEach(item => addEntry(entries, {
+                type: 'Equipo / activo RH', symbol: 'EQ', title: item.nombre || item.codigo || 'Activo',
+                subtitle: `${item.codigo || 'Sin código'} · ${item.categoria || 'Sin categoría'} · ${Number(item.disponible || 0)} ${item.unidad || 'PIEZA'} disponible(s)`,
+                url: `RH.equipos.html?q=${encodeURIComponent(item.codigo || item.numeroSerie || item.nombre || '')}`,
+                terms: [item.codigo,item.nombre,item.categoria,item.marca,item.modelo,item.numeroSerie,item.ubicacion,item.estado,item.unidad].join(' ')
+            }));
+            if (name === 'rhAssetAssignments') rows.forEach(item => addEntry(entries, {
+                type: 'Resguardo RH', symbol: 'RG', title: `${item.personalNombre || 'Colaborador'} · ${item.activoNombre || item.activoCodigo || 'Activo'}`,
+                subtitle: `${item.activoCodigo || 'Sin código'} · ${Number(item.cantidad || 0)} ${item.unidad || 'PIEZA'} · ${item.estado || 'asignado'}`,
+                url: `RH.equipos.html?persona=${encodeURIComponent(item.personalId || '')}&q=${encodeURIComponent(item.activoCodigo || item.personalNombre || '')}`,
+                terms: [item.personalNumero,item.personalNombre,item.puesto,item.departamento,item.activoCodigo,item.activoNombre,item.categoria,item.marca,item.modelo,item.numeroSerie,item.estado,item.condicionEntrega,item.responsableEntrega].join(' ')
             }));
             if (name === 'rhProjects') rows.forEach(item => addEntry(entries, {
                 type: 'Proyecto RH', symbol: 'PR', title: `${item.numero_proyecto || ''} · ${item.nombre_proyecto || 'Proyecto'}`,
@@ -962,7 +976,7 @@
         }
         if (window.SkilledSky || document.querySelector('script[src*="skilled-sky.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-sky.js?v=45';
+        script.src = 'skilled-sky.js?v=46';
         script.defer = true;
         script.dataset.skilledSky = '1';
         document.head.appendChild(script);
@@ -971,7 +985,7 @@
     function ensureChat() {
         if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
         const script = document.createElement('script');
-        script.src = 'skilled-chat.js?v=45';
+        script.src = 'skilled-chat.js?v=46';
         script.defer = true;
         script.dataset.skilledChat = '1';
         document.head.appendChild(script);
