@@ -1,21 +1,14 @@
-/* Alta controlada de materiales incompletos */
 (function () {
     'use strict';
-
     const text = value => String(value ?? '').trim();
-    const number = value => {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : 0;
-    };
+    const number = value => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; };
+    const currency = value => ['MXN','USD','EUR'].includes(text(value).toUpperCase()) ? text(value).toUpperCase() : 'MXN';
     const escape = value => text(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const code = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
 
     async function loadCategories() {
-        let datalist = document.getElementById('categorias-materiales-v125');
-        if (!datalist) {
-            datalist = document.createElement('datalist');
-            datalist.id = 'categorias-materiales-v125';
-            document.body.appendChild(datalist);
-        }
+        let datalist = document.getElementById('categorias-materiales-v126');
+        if (!datalist) { datalist = document.createElement('datalist'); datalist.id = 'categorias-materiales-v126'; document.body.appendChild(datalist); }
         try {
             const [categories, materials] = await Promise.all([
                 typeof SkilledDB.listCategories === 'function' ? SkilledDB.listCategories() : [],
@@ -29,94 +22,54 @@
     }
 
     function decorate(prefix) {
-        const code = document.getElementById(`${prefix}-codigo`);
         const category = document.getElementById(`${prefix}-categoria`);
-        const unit = document.getElementById(`${prefix}-unidad`);
-        [code, category, unit].forEach(input => input?.setAttribute('required', 'required'));
-        if (code) code.placeholder = 'Código obligatorio';
-        if (category) {
-            category.placeholder = 'Selecciona o escribe una categoría';
-            category.setAttribute('list', 'categorias-materiales-v125');
-        }
-        const labelOf = input => input?.parentElement?.querySelector('label');
-        [code, category, unit].forEach(input => {
-            const label = labelOf(input);
-            if (label && !label.textContent.includes('*')) label.textContent = `${label.textContent.trim()} *`;
-        });
+        if (category) category.setAttribute('list', 'categorias-materiales-v126');
     }
 
-    if (document.getElementById('plan-nl-codigo')) {
+    if (document.getElementById('plan-nl-descripcion')) {
         decorate('plan-nl');
         window.agregarMaterialNoListadoPlan = async function () {
-            const codigo = text(document.getElementById('plan-nl-codigo')?.value);
+            const codigo = text(document.getElementById('plan-nl-codigo')?.value) || code('NL');
             const descripcion = text(document.getElementById('plan-nl-descripcion')?.value);
             const categoria = text(document.getElementById('plan-nl-categoria')?.value);
             const unidad = text(document.getElementById('plan-nl-unidad')?.value);
             const codigoMarca = text(document.getElementById('plan-nl-codigo-marca')?.value);
             const precio = Math.max(0, number(document.getElementById('plan-nl-precio')?.value));
-            if (!codigo || !descripcion || !categoria || !unidad) {
-                return alert('Código, descripción, categoría y unidad son obligatorios.');
-            }
-            if (planBorrador.some(item => String(item.codigo).toLowerCase() === codigo.toLowerCase())) {
-                return alert('Ya existe un material con ese código dentro del plan.');
-            }
+            const cantidad = Math.max(0, number(document.getElementById('plan-nl-cantidad')?.value));
+            const monedaCosto = currency(document.getElementById('plan-nl-moneda')?.value);
+            if (!descripcion || !unidad) return alert('Descripción y unidad son obligatorias.');
+            if (!(cantidad > 0)) return alert('La cantidad requerida debe ser mayor a cero.');
+            if (planBorrador.some(item => text(item.codigo).toLowerCase() === codigo.toLowerCase())) return alert('Ya existe un material con ese código dentro del plan.');
             try {
-                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, codigoMarca, origen: 'plan_proyecto' });
-                if (Array.isArray(catalogoMateriales) && !catalogoMateriales.some(item => String(item.codigo).toLowerCase() === codigo.toLowerCase())) {
-                    catalogoMateriales.push(material);
-                }
-                planBorrador.push({
-                    id: null,
-                    codigo: material.codigo,
-                    cantidadPlaneada: 1,
-                    cantidadEntregada: 0,
-                    cantidadSobrante: 0,
-                    unidad: material.unidad,
-                    precioUnitario: Number(material.precio || 0),
-                    monedaCosto: material.monedaCosto || material.moneda_costo || 'MXN',
-                    observaciones: '',
-                    esNoListado: false,
-                    material: { ...material, esIncompleto: true }
-                });
-                cerrarMaterialNoListadoPlan();
-                renderEditorPlan();
-                loadCategories();
-                alert('El material se agregó al catálogo como “Información incompleta” y al plan del proyecto.');
-            } catch (error) {
-                alert(error.message);
-            }
+                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, monedaCosto, codigoMarca, origen: 'plan_proyecto' });
+                if (Array.isArray(catalogoMateriales) && !catalogoMateriales.some(item => text(item.codigo).toLowerCase() === text(material.codigo).toLowerCase())) catalogoMateriales.push(material);
+                planBorrador.push({ id:null, codigo:material.codigo, cantidadPlaneada:cantidad, cantidadEntregada:0, cantidadSobrante:0, unidad:material.unidad || unidad, precioUnitario:Number(material.precio || precio), monedaCosto:material.monedaCosto || material.moneda_costo || monedaCosto, moneda_costo:material.monedaCosto || material.moneda_costo || monedaCosto, observaciones:'', esNoListado:true, es_no_listado:true, material:{...material,esNoListado:true,es_no_listado:true,esIncompleto:true} });
+                cerrarMaterialNoListadoPlan(); renderEditorPlan(); loadCategories();
+            } catch (error) { alert(error.message); }
         };
     }
 
-    if (document.getElementById('ed-nl-codigo')) {
+    if (document.getElementById('ed-nl-descripcion')) {
         decorate('ed-nl');
         window.agregarMaterialNoListadoEntrega = async function () {
-            const codigo = text(document.getElementById('ed-nl-codigo')?.value);
+            const codigo = text(document.getElementById('ed-nl-codigo')?.value) || code('NL');
             const descripcion = text(document.getElementById('ed-nl-descripcion')?.value);
             const categoria = text(document.getElementById('ed-nl-categoria')?.value);
             const unidad = text(document.getElementById('ed-nl-unidad')?.value);
             const codigoMarca = text(document.getElementById('ed-nl-codigo-marca')?.value);
             const precio = Math.max(0, number(document.getElementById('ed-nl-precio')?.value));
-            if (!codigo || !descripcion || !categoria || !unidad) {
-                return alert('Código, descripción, categoría y unidad son obligatorios.');
-            }
+            const cantidad = Math.max(0, number(document.getElementById('ed-nl-cantidad')?.value));
+            const monedaCosto = currency(document.getElementById('ed-nl-moneda')?.value);
+            if (!descripcion || !unidad) return alert('Descripción y unidad son obligatorias.');
+            if (!(cantidad > 0)) return alert('La cantidad debe ser mayor a cero.');
             try {
-                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, codigoMarca, origen: 'entrega_directa' });
-                const existing = entregaMateriales.find(item => String(item.producto?.codigo).toLowerCase() === material.codigo.toLowerCase());
-                if (existing) existing.cantidad += 1;
-                else entregaMateriales.push({
-                    producto: { ...material, desc: material.desc || material.descripcion, esNoListado: true, es_no_listado: true, esIncompleto: true },
-                    cantidad: 1,
-                    stockDisponible: null,
-                    esNoListado: true
-                });
-                cerrarMaterialNoListadoEntrega();
-                renderMateriales();
-                loadCategories();
-                alert('El material se dio de alta en el catálogo como “Información incompleta” y se añadió a la entrega.');
-            } catch (error) {
-                alert(error.message);
-            }
+                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, monedaCosto, codigoMarca, origen:'entrega_directa' });
+                catalogoProductos = await SkilledDB.listMaterials({ refresh:true });
+                const existing = entregaMateriales.find(item => text(item.producto?.codigo).toLowerCase() === text(material.codigo).toLowerCase());
+                if (existing) existing.cantidad += cantidad;
+                else entregaMateriales.push({ producto:{...material,desc:material.desc||material.descripcion,esNoListado:true,es_no_listado:true,esIncompleto:true}, cantidad, stockDisponible:null, esNoListado:true });
+                cerrarMaterialNoListadoEntrega(); renderMateriales(); renderListaMaterialModal?.(); loadCategories();
+            } catch (error) { alert(error.message); }
         };
     }
 

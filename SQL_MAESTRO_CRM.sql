@@ -7084,3 +7084,19 @@ select 'OK' as estado,
        count(*) filter(where moneda_costo='USD') as materiales_usd,
        count(*) filter(where moneda_costo='EUR') as materiales_eur
 from public.materiales;
+
+begin;
+alter table if exists public.proyecto_materiales_no_listados add column if not exists moneda_costo text default 'MXN';
+do $$
+begin
+    if to_regclass('public.proyecto_materiales_no_listados') is not null then
+        update public.proyecto_materiales_no_listados set moneda_costo=case upper(btrim(coalesce(moneda_costo,''))) when 'USD' then 'USD' when 'EUR' then 'EUR' else 'MXN' end where moneda_costo is null or upper(btrim(coalesce(moneda_costo,''))) not in ('MXN','USD','EUR') or moneda_costo<>upper(btrim(moneda_costo));
+        alter table public.proyecto_materiales_no_listados alter column moneda_costo set default 'MXN';
+        alter table public.proyecto_materiales_no_listados drop constraint if exists proyecto_materiales_no_listados_moneda_costo_check;
+        alter table public.proyecto_materiales_no_listados add constraint proyecto_materiales_no_listados_moneda_costo_check check (moneda_costo in ('MXN','USD','EUR'));
+    end if;
+end $$;
+insert into public.crm_migraciones(version,aplicada_at) values('CRM-V66-MATERIALES-NO-PLAN-CANTIDAD-MONEDA-RESPONSIVE-2026-08-13',now()) on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+notify pgrst,'reload schema';
+commit;
+select 'OK' as estado,'CRM-V66-MATERIALES-NO-PLAN-CANTIDAD-MONEDA-RESPONSIVE-2026-08-13' as revision;

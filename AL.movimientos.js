@@ -1835,3 +1835,24 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 'use strict';
 const params=new URLSearchParams(location.search);const type=String(params.get('tipo')||'').toLowerCase();const order=String(params.get('oc')||'').trim();const warehouse=String(params.get('almacen')||'').trim();if(!type&&!order&&!warehouse)return;let attempts=0;function apply(){attempts+=1;const orderInput=document.getElementById('orden_compra_val');const warehouseSelect=document.getElementById('bodega_destino_val');if(type==='entrada'&&typeof window.cambiarTipo==='function')window.cambiarTipo('entrada');if(orderInput)orderInput.value=order;if(warehouse&&warehouseSelect){const exists=[...warehouseSelect.options].some(option=>option.value===warehouse);if(exists){warehouseSelect.value=warehouse;if(typeof window.manejarCambioBodegaMovimiento==='function')Promise.resolve(window.manejarCambioBodegaMovimiento('destino')).catch(()=>{})}}const ready=(!order||Boolean(orderInput))&&(!warehouse||Boolean(warehouseSelect&&[...warehouseSelect.options].some(option=>option.value===warehouse)));if(!ready&&attempts<40)setTimeout(apply,150)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(apply,250),{once:true});else setTimeout(apply,250);
 })();
+
+(function(){
+    'use strict';
+    window.actualizarModoBusquedaProducto = function(){
+        const input=document.getElementById('producto_search');
+        if(!input)return;
+        if(typeof currentType!=='undefined'&&currentType==='salida'){
+            const proyecto=typeof proyectoSeleccionadoActual==='function'?proyectoSeleccionadoActual():(document.getElementById('proyecto_val')?.value||'');
+            if(!proyecto){input.disabled=true;input.placeholder='Selecciona primero el proyecto de entrega...';return;}
+            if(typeof cargandoPlanEntrega!=='undefined'&&cargandoPlanEntrega){input.disabled=true;input.placeholder='Cargando proyecto y catálogo...';return;}
+            input.disabled=!Array.isArray(catalogoProductos)||catalogoProductos.length===0;
+            input.placeholder=input.disabled?'Cargando catálogo desde Supabase...':'Busca cualquier material del catálogo; si no está en el proyecto se registrará fuera del plan...';
+            return;
+        }
+        input.disabled=!Array.isArray(catalogoProductos)||catalogoProductos.length===0;
+        input.placeholder=input.disabled?'Cargando catálogo desde Supabase...':'Busca por código, modelo, descripción, marca o modismo...';
+    };
+    const oldRender=window.renderPlanEntregaProyecto;
+    if(typeof oldRender==='function')window.renderPlanEntregaProyecto=function(){const result=oldRender.apply(this,arguments);window.actualizarModoBusquedaProducto();return result;};
+    setTimeout(()=>window.actualizarModoBusquedaProducto(),0);
+})();

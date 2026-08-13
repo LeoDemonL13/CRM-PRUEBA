@@ -560,6 +560,10 @@
             es_incompleto: boolean(row.es_incompleto),
             origenAlta: text(row.origen_alta),
             origen_alta: text(row.origen_alta),
+            createdAt: row.created_at || '',
+            created_at: row.created_at || '',
+            updatedAt: row.updated_at || '',
+            updated_at: row.updated_at || '',
             camposPendientes: Array.isArray(row.campos_pendientes) ? row.campos_pendientes : [],
             campos_pendientes: Array.isArray(row.campos_pendientes) ? row.campos_pendientes : [],
             activo: row.activo !== false
@@ -3358,7 +3362,7 @@
                 updates.updated_at = new Date().toISOString();
                 const updateExisting = await client.from('materiales').update(updates).eq('codigo', code).select('*').maybeSingle();
                 assertNoError(updateExisting.error, 'No se pudieron actualizar los datos comerciales del material.');
-                if (updateExisting.data) return materialFromDb(updateExisting.data);
+                if (updateExisting.data) { invalidateMaterialSnapshot(); return materialFromDb(updateExisting.data); }
             }
             return materialFromDb(currentResult.data);
         }
@@ -3395,6 +3399,7 @@
         const createdResult = await client.from('materiales').select('*').eq('codigo', finalCode).maybeSingle();
         assertNoError(createdResult.error, 'El material se creó, pero no pudo recuperarse del catálogo.');
         if (!createdResult.data) throw new Error('El material se creó, pero no pudo recuperarse del catálogo.');
+        invalidateMaterialSnapshot();
         return materialFromDb(createdResult.data);
     }
     async function syncProjectUnlistedMaterials(projectNumber = '') {
@@ -3426,6 +3431,7 @@
                     categoria: text(row.categoria),
                     unidad: text(row.unidad),
                     precio: number(row.precio_unitario),
+                    monedaCosto: normalizeCurrencyCode(row.moneda_costo),
                     codigoMarca: text(row.codigo_marca),
                     origen: 'proyecto_no_listado_legacy'
                 });
@@ -3456,16 +3462,16 @@
                 codigo: text(row.material_codigo), descripcion: text(row.material_codigo), desc: text(row.material_codigo), unidad: text(row.unidad), precio: number(row.precio_unitario), stock: 0, imagen: ''
             };
             return {
-                id: row.id, proyecto: text(row.proyecto_numero), codigo: text(row.material_codigo), cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), observaciones: text(row.observaciones), esNoListado: false, esIncompleto: boolean(material.esIncompleto ?? material.es_incompleto), estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material
+                id: row.id, proyecto: text(row.proyecto_numero), codigo: text(row.material_codigo), cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), monedaCosto: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), moneda_costo: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), observaciones: text(row.observaciones), esNoListado: false, esIncompleto: boolean(material.esIncompleto ?? material.es_incompleto), estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material
             };
         });
         const manual = (manualMissing ? [] : (manualResult.data || [])).filter(row => !listedCodes.has(lower(row.codigo_manual))).map(row => {
             const code = text(row.codigo_manual);
             const material = materialByCode.get(lower(code)) || {
-                codigo: code, descripcion: text(row.descripcion) || code, desc: text(row.descripcion) || code, categoria: text(row.categoria), codigoMarca: text(row.codigo_marca), codigo_marca: text(row.codigo_marca), unidad: text(row.unidad) || 'pieza', precio: number(row.precio_unitario), stock: 0, imagen: '', esIncompleto: true, es_incompleto: true
+                codigo: code, descripcion: text(row.descripcion) || code, desc: text(row.descripcion) || code, categoria: text(row.categoria), codigoMarca: text(row.codigo_marca), codigo_marca: text(row.codigo_marca), unidad: text(row.unidad) || 'pieza', precio: number(row.precio_unitario), monedaCosto: normalizeCurrencyCode(row.moneda_costo), moneda_costo: normalizeCurrencyCode(row.moneda_costo), stock: 0, imagen: '', esIncompleto: true, es_incompleto: true
             };
             return {
-                id: `manual-${row.id}`, legacyId: row.id, proyecto: text(row.proyecto_numero), codigo: code, cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), observaciones: text(row.observaciones), esNoListado: true, es_no_listado: true, esIncompleto: true, estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material: { ...material, esNoListado: true, es_no_listado: true, esIncompleto: true }
+                id: `manual-${row.id}`, legacyId: row.id, proyecto: text(row.proyecto_numero), codigo: code, cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), monedaCosto: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), moneda_costo: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), observaciones: text(row.observaciones), esNoListado: true, es_no_listado: true, esIncompleto: true, estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material: { ...material, esNoListado: true, es_no_listado: true, esIncompleto: true }
             };
         });
         return [...listed, ...manual];
@@ -3597,7 +3603,7 @@
             const keepLegacy = Boolean(line.esNoListado ?? line.es_no_listado) || (legacy && !currentByCode.has(lower(code)));
             if (keepLegacy && !legacyMissing) {
                 manualRows.push({
-                    proyecto_numero: project, codigo_manual: code, descripcion: text(line.descripcion ?? material.descripcion ?? material.desc) || code, categoria: text(line.categoria ?? material.categoria) || null, codigo_marca: text(line.codigoMarca ?? line.codigo_marca ?? material.codigoMarca ?? material.codigo_marca) || null, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada ?? legacy?.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante ?? legacy?.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: text(legacy?.estado_solicitud) || text(line.estadoSolicitud) || 'pendiente', aprobada_por: legacy?.aprobada_por || null, aprobada_at: legacy?.aprobada_at || null, rechazo_motivo: legacy?.rechazo_motivo || null, updated_at: new Date().toISOString()
+                    proyecto_numero: project, codigo_manual: code, descripcion: text(line.descripcion ?? material.descripcion ?? material.desc) || code, categoria: text(line.categoria ?? material.categoria) || null, codigo_marca: text(line.codigoMarca ?? line.codigo_marca ?? material.codigoMarca ?? material.codigo_marca) || null, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada ?? legacy?.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante ?? legacy?.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), moneda_costo: normalizeCurrencyCode(line.monedaCosto ?? line.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: text(legacy?.estado_solicitud) || text(line.estadoSolicitud) || 'pendiente', aprobada_por: legacy?.aprobada_por || null, aprobada_at: legacy?.aprobada_at || null, rechazo_motivo: legacy?.rechazo_motivo || null, updated_at: new Date().toISOString()
                 });
             } else {
                 const current = currentByCode.get(lower(code));

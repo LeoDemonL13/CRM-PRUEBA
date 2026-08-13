@@ -7,21 +7,21 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=65" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=65">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=65">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=65">
-<link rel="manifest" href="/site.webmanifest?v=65">
+<link rel="icon" href="/favicon.ico?v=66" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=66">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=66">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=66">
+<link rel="manifest" href="/site.webmanifest?v=66">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=65"><script src="skilled-theme.js?v=65"></script>
-<script src="navegacion-suave.js?v=65"></script>
+<link rel="stylesheet" href="interfaz.css?v=66"><script src="skilled-theme.js?v=66"></script>
+<script src="navegacion-suave.js?v=66"></script>
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=65"></script>
-<script src="auth-guard.js?v=65"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=65">
+    <script src="skilled-supabase.js?v=66"></script>
+<script src="auth-guard.js?v=66"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=66">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js" defer></script>
@@ -105,9 +105,10 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=65" defer></script>
-<script src="skilled-search.js?v=65"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='65',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+    <script src="skilled-sidebar.js?v=66" defer></script>
+<script src="skilled-search.js?v=66"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='66',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v66-responsive.css?v=66">
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -500,7 +501,7 @@
                                 </table>
                                 <div id="editor-plan-vacio" class="px-5 py-10 text-center text-xs text-gray-500">Busca un material para agregarlo al plan.</div>
                             </div>
-                            <div class="mt-3 text-right text-[10px] text-gray-500">Costo total planeado (sin guardar): <span id="total-editor-plan" class="font-mono text-gray-300">$0.00</span></div>
+                            <div class="mt-3 text-right text-[10px] text-gray-500">Costo planeado por moneda (sin guardar): <span id="total-editor-plan" class="font-mono text-gray-300">$0.00</span></div>
                         </div>
                     </div>
                 </div>
@@ -691,16 +692,16 @@
         </div>
     </div>
 
-    <div id="modal-no-listado-plan" class="hidden fixed inset-0 z-[90] bg-black/75 items-center justify-center p-4">
-        <div class="w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
+    <div id="modal-no-listado-plan" class="crm-fit-overlay hidden fixed inset-0 z-[90] bg-black/75 items-center justify-center p-4">
+        <div class="crm-fit-dialog w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
+            <div class="crm-fit-head px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
                 <div>
                     <h3 class="text-sm font-bold text-white">Añadir material no enlistado</h3>
                     <p class="text-[10px] text-gray-500 mt-1">Se agregará al plan y quedará identificado por su código de marca / modelo para completar después su información comercial.</p>
                 </div>
                 <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
-            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="crm-fit-body p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="sm:col-span-2">
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Descripción *</label>
                     <input id="plan-nl-descripcion" type="text" placeholder="Ej. Conector especial para instalación" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
@@ -722,12 +723,19 @@
                     <input id="plan-nl-unidad" type="text" placeholder="PIEZA, METRO, LOTE..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Cantidad requerida *</label>
+                    <input id="plan-nl-cantidad" type="number" min="0.01" step="0.01" value="1" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Precio unitario</label>
                     <input id="plan-nl-precio" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
                 </div>
-                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Moneda del costo</label><select id="plan-nl-moneda" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"><option value="MXN">MXN · Peso mexicano</option><option value="USD">USD · Dólar estadounidense</option><option value="EUR">EUR · Euro</option></select></div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Moneda del costo</label>
+                    <select id="plan-nl-moneda" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"><option value="MXN">MXN — Peso mexicano</option><option value="USD">USD — Dólar estadounidense</option><option value="EUR">EUR — Euro</option></select>
+                </div>
             </div>
-            <div class="px-6 py-4 border-t border-[#161f38] flex justify-end gap-3">
+            <div class="crm-fit-foot px-6 py-4 border-t border-[#161f38] flex justify-end gap-3">
                 <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button>
                 <button type="button" onclick="agregarMaterialNoListadoPlan()" class="px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold">Añadir al plan</button>
             </div>
@@ -792,6 +800,9 @@
 
         const formatoNumero = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 });
         const formatoMoneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+        function codigoMonedaMaterial(linea = {}, material = {}) { const codigo = String(linea.monedaCosto || linea.moneda_costo || material.monedaCosto || material.moneda_costo || 'MXN').toUpperCase(); return ['MXN','USD','EUR'].includes(codigo) ? codigo : 'MXN'; }
+        function formatoCostoPorMoneda(valor, moneda = 'MXN') { try { return `${new Intl.NumberFormat('es-MX', { style: 'currency', currency: moneda, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(valor || 0))} ${moneda}`; } catch (_) { return `${Number(valor || 0).toFixed(2)} ${moneda}`; } }
+        function resumenCostosPorMoneda(lineas = []) { const totales = { MXN:0, USD:0, EUR:0 }; lineas.forEach(linea => { const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {}; const moneda = codigoMonedaMaterial(linea, material); const precio = Number(linea.precioUnitario || material.precio || 0); totales[moneda] += Number(linea.cantidadPlaneada || 0) * precio; }); const activos = Object.entries(totales).filter(([,valor]) => Math.abs(valor) > 0.000001); return activos.length ? activos.map(([moneda,valor]) => formatoCostoPorMoneda(valor,moneda)).join(' · ') : formatoCostoPorMoneda(0,'MXN'); }
 
         function escapeHTML(valor) {
             return String(valor ?? '')
@@ -1110,7 +1121,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=65');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=66');
             }
             return cliente;
         }
@@ -1420,12 +1431,12 @@
                     <td class="px-5 py-3.5 text-[10px] font-mono font-semibold text-blue-300">${escapeHTML(linea.codigo)}</td>
                     <td class="px-4 py-3.5"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div class="min-w-0"><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}</div><div class="mt-2 w-32 max-w-full h-1.5 rounded-full bg-[#060a14] overflow-hidden"><div class="h-full ${avance >= 100 ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full" style="width:${avance}%"></div></div></div></div></td>
                     <td class="px-4 py-3.5 text-[10px] text-gray-400">${escapeHTML(linea.unidad || material.unidad || '—')}</td>
-                    <td class="px-4 py-3.5 text-right text-[10px] text-gray-400">${formatoMoneda.format(precio)}</td>
+                    <td class="px-4 py-3.5 text-right text-[10px] text-gray-400">${escapeHTML(formatoCostoPorMoneda(precio, monedaCosto))}</td>
                     <td class="px-4 py-3.5 text-center text-xs font-semibold text-gray-200">${formatoNumero.format(planeado)}</td>
                     <td class="px-4 py-3.5 text-center text-xs font-semibold ${entregado > 0 ? 'text-emerald-300' : 'text-gray-500'}">${formatoNumero.format(entregado)}</td>
                     <td class="px-4 py-3.5 text-center text-xs font-semibold ${Number(linea.cantidadSobrante || 0) > 0 ? 'text-amber-300' : 'text-emerald-300'}">${formatoNumero.format(linea.cantidadSobrante)}</td>
                     <td class="px-4 py-3.5 text-center"><span class="inline-flex px-2 py-1 rounded-full border text-[9px] font-semibold ${estado.clase}" title="${escapeHTML(estado.detalle)}">${escapeHTML(estado.texto)}</span><div class="mt-1 text-[8px] text-gray-600">${escapeHTML(estado.detalle)}</div></td>
-                    <td class="px-4 py-3.5 text-right text-xs font-semibold text-gray-300">${formatoMoneda.format(costo)}</td>
+                    <td class="px-4 py-3.5 text-right text-xs font-semibold text-gray-300">${escapeHTML(formatoCostoPorMoneda(costo, monedaCosto))}</td>
                     <td class="px-4 py-3.5 text-[10px] text-gray-500">${escapeHTML(linea.observaciones || '—')}</td>
                 </tr>`;
             }).join('');
@@ -1498,7 +1509,7 @@
             planBorrador.push({
                 id: null,
                 codigo: material.codigo,
-                cantidadPlaneada: 1,
+                cantidadPlaneada: cantidad,
                 cantidadEntregada: 0,
                 cantidadSobrante: 0,
                 unidad: material.unidad || '',
@@ -1518,6 +1529,8 @@
         function abrirMaterialNoListadoPlan() {
             ['plan-nl-descripcion', 'plan-nl-codigo', 'plan-nl-codigo-marca', 'plan-nl-categoria', 'plan-nl-unidad'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('plan-nl-precio').value = '0';
+            document.getElementById('plan-nl-cantidad').value = '1';
+            document.getElementById('plan-nl-moneda').value = 'MXN';
             const modal = document.getElementById('modal-no-listado-plan');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1537,9 +1550,11 @@
             const categoria = document.getElementById('plan-nl-categoria').value.trim();
             const codigoMarca = document.getElementById('plan-nl-codigo-marca').value.trim();
             const precio = Math.max(0, Number(document.getElementById('plan-nl-precio').value) || 0);
+            const cantidad = Math.max(0, Number(document.getElementById('plan-nl-cantidad').value) || 0);
             const monedaCosto = document.getElementById('plan-nl-moneda').value || 'MXN';
             if (!descripcion) { alert('Escribe la descripción del material.'); return; }
             if (!unidad) { alert('Escribe la unidad del material.'); return; }
+            if (!(cantidad > 0)) { alert('La cantidad requerida debe ser mayor a cero.'); return; }
             if (planBorrador.some(item => claveProyecto(item.codigo) === claveProyecto(codigo))) {
                 alert('Ya existe un material con ese código o referencia dentro del plan.');
                 return;
@@ -1586,7 +1601,7 @@
             if (!planBorrador.length) {
                 tbody.innerHTML = '';
                 vacio.classList.remove('hidden');
-                document.getElementById('total-editor-plan').textContent = formatoMoneda.format(0);
+                document.getElementById('total-editor-plan').textContent = formatoCostoPorMoneda(0, 'MXN');
                 return;
             }
 
@@ -1595,6 +1610,7 @@
                 tbody.innerHTML = planBorrador.map((linea, indice) => {
                     const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {};
                     const precio = Number(linea.precioUnitario || material.precio || 0);
+                    const monedaCosto = codigoMonedaMaterial(linea, material);
                     const costo = Number(linea.cantidadPlaneada || 0) * precio;
                     return `<tr class="hover:bg-[#0d1425] transition">
                         <td class="px-4 py-3 text-[10px] font-mono text-blue-300">${escapeHTML(linea.codigo)}</td>
@@ -1608,17 +1624,15 @@
                 }).join('');
             } else {
                 planBorrador.forEach((linea, indice) => {
-                    const precio = Number(linea.precioUnitario || linea.material?.precio || 0);
+                    const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {};
+                    const precio = Number(linea.precioUnitario || material.precio || 0);
+                    const monedaCosto = codigoMonedaMaterial(linea, material);
                     const celda = document.getElementById(`costo-linea-${indice}`);
-                    if (celda) celda.textContent = formatoMoneda.format(Number(linea.cantidadPlaneada || 0) * precio);
+                    if (celda) celda.textContent = formatoCostoPorMoneda(Number(linea.cantidadPlaneada || 0) * precio, monedaCosto);
                 });
             }
 
-            const total = planBorrador.reduce((suma, linea) => {
-                const precio = Number(linea.precioUnitario || linea.material?.precio || 0);
-                return suma + Number(linea.cantidadPlaneada || 0) * precio;
-            }, 0);
-            document.getElementById('total-editor-plan').textContent = formatoMoneda.format(total);
+            document.getElementById('total-editor-plan').textContent = resumenCostosPorMoneda(planBorrador);
         }
 
         async function guardarPlanProyecto() {
@@ -2483,9 +2497,9 @@ ${proyecto}`);
 
         cargarProyectos();
     </script>
-<script src="AL.proyectos.js?v=65"></script>
+<script src="AL.proyectos.js?v=66"></script>
 
 
-<script src="skilled-performance.js?v=65" defer></script>
+<script src="skilled-performance.js?v=66" defer></script>
 </body>
 </html>

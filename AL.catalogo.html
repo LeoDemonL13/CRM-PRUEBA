@@ -3,21 +3,21 @@
 <head>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=65" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=65">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=65">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=65">
-<link rel="manifest" href="/site.webmanifest?v=65">
+<link rel="icon" href="/favicon.ico?v=66" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=66">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=66">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=66">
+<link rel="manifest" href="/site.webmanifest?v=66">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>Skilled - Catálogo de Productos</title>
-    <link rel="stylesheet" href="interfaz.css?v=65"><script src="skilled-theme.js?v=65"></script>
-    <script src="navegacion-suave.js?v=65"></script>
+    <link rel="stylesheet" href="interfaz.css?v=66"><script src="skilled-theme.js?v=66"></script>
+    <script src="navegacion-suave.js?v=66"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=65"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=65">
+    <script src="skilled-supabase.js?v=66"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=66">
     <style>
         body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#060814}
         .lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.lista-scroll::-webkit-scrollbar-track{background:transparent}
@@ -30,8 +30,9 @@
         body.tema-claro .form-section{background:#f7f9fc;border-color:#dfe4ef}
         body.tema-claro .product-input{background:#fff;border-color:#cbd5e1;color:#111827}
     </style>
-<script src="skilled-search.js?v=65"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='65',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<script src="skilled-search.js?v=66"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='66',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v66-responsive.css?v=66">
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <aside></aside>
@@ -67,9 +68,9 @@
 
 <div id="modal-categoria" class="hidden fixed inset-0 z-50 bg-black/70 items-center justify-center p-4"><div class="w-full max-w-md bg-[#10172a] border border-[#243257] rounded-2xl overflow-hidden"><div class="p-5 border-b border-[#243257] flex justify-between"><h3 id="categoria-titulo" class="font-bold text-white">Nueva categoría</h3><button onclick="cerrarCategoria()">✕</button></div><div class="p-5 space-y-4"><div><label class="text-xs font-semibold">Nombre *</label><input id="categoria-nombre" class="mt-2 w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-sm"></div><div><label class="text-xs font-semibold">Imagen (URL — opcional)</label><input id="categoria-imagen" oninput="previewCategoria()" class="mt-2 w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-sm" placeholder="https://..."></div><div id="categoria-preview" class="h-36 bg-[#060a14] border border-[#243257] rounded-lg flex items-center justify-center text-gray-600">Vista previa</div><button id="quitar-imagen-categoria" type="button" onclick="quitarImagenCategoria()" class="hidden text-xs text-rose-400">Quitar imagen</button><div><label class="text-xs font-semibold">Descripción</label><textarea id="categoria-descripcion" rows="2" class="mt-2 w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-sm"></textarea></div></div><div class="p-4 border-t border-[#243257] flex items-center gap-2"><button id="btn-eliminar-categoria" type="button" onclick="eliminarCategoriaActual()" class="hidden px-4 py-2.5 rounded-lg bg-rose-950/30 border border-rose-500/30 text-rose-300 text-sm font-semibold hover:bg-rose-950/50">Eliminar categoría y materiales</button><div class="ml-auto flex gap-2"><button onclick="cerrarCategoria()" class="px-4 py-2.5 rounded-lg bg-[#1b253c] text-sm">Cancelar</button><button onclick="guardarCategoria()" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold">Guardar</button></div></div></div></div>
 
-<div id="modal-producto" class="crm-workspace-overlay hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm items-center justify-center p-4"><div class="crm-workspace-dialog w-full max-w-5xl max-h-[94vh] overflow-y-auto lista-scroll bg-[#10172a] border border-[#243257] rounded-2xl shadow-2xl"><div class="sticky top-0 z-10 p-5 border-b border-[#243257] bg-[#10172a] flex items-start justify-between"><div><h3 id="producto-titulo" class="font-bold text-white text-lg">Nuevo producto</h3><p class="mt-1 text-xs text-gray-500">Información general, datos comerciales y existencias del material.</p></div><button onclick="cerrarProducto()" class="text-xl text-gray-500 hover:text-white">×</button></div><div class="p-5 space-y-5"><section class="form-section"><div class="form-section-title">Información general</div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="text-xs font-semibold">Código *</label><input id="p-codigo" class="product-input"></div><div><label class="text-xs font-semibold">Descripción *</label><input id="p-descripcion" class="product-input"></div><div class="sm:col-span-2"><label class="text-xs font-semibold">Modismos / otros nombres</label><textarea id="p-modismos" rows="2" placeholder="Ej. cincho, cinturón plástico, amarre..." class="product-input"></textarea><p class="mt-1 text-[10px] text-gray-500">Separa cada nombre con coma, punto y coma o salto de línea.</p></div><div><label class="text-xs font-semibold">Categoría *</label><input id="p-categoria" list="catalogo-categorias-v125" placeholder="Selecciona o escribe una categoría" class="product-input"><datalist id="catalogo-categorias-v125"></datalist></div><div><label class="text-xs font-semibold">Unidad *</label><input id="p-unidad" placeholder="PIEZA, METRO..." class="product-input"></div><div><label class="text-xs font-semibold">Tipo de cable</label><input id="p-tipo" class="product-input"></div><div><label class="text-xs font-semibold">Tamaño mm²/AWG</label><input id="p-tamano" class="product-input"></div></div></section><section class="form-section"><div class="form-section-title">Información comercial</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Marca</label><input id="p-marca" class="product-input" placeholder="Marca o fabricante"></div><div><label class="text-xs font-semibold">Código de marca / modelo *</label><input id="p-codigo-marca" class="product-input" placeholder="Ej. 3RT2026-1BB40, 48-22-8426, modelo del fabricante"></div><div><label class="text-xs font-semibold">Proveedor</label><input id="p-proveedor" class="product-input" placeholder="Proveedor principal"></div><div><label class="text-xs font-semibold">Contacto del proveedor</label><input id="p-contacto-proveedor" class="product-input" placeholder="Nombre, teléfono o correo"></div><div><label class="text-xs font-semibold">Costo referencial</label><input id="p-precio" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Moneda del costo</label><select id="p-moneda-costo" class="product-input"><option value="MXN">MXN · Peso mexicano</option><option value="USD">USD · Dólar estadounidense</option><option value="EUR">EUR · Euro</option></select></div></div></section><section class="form-section"><div class="form-section-title">Existencia y ubicación</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Almacén</label><select id="p-almacen" onchange="cambiarAlmacenProducto()" class="product-input"></select></div><div><label class="text-xs font-semibold">Stock en almacén</label><input id="p-stock" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock mínimo</label><input id="p-minimo" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock medio</label><input id="p-medio" type="number" min="0" step="0.01" class="product-input" placeholder="Se calcula automáticamente"></div><div><label class="text-xs font-semibold">Stock máximo</label><input id="p-maximo" type="number" min="0" step="0.01" class="product-input" placeholder="Por defecto: 2 × mínimo"></div></div><p class="mt-3 text-[10px] text-gray-500">El nivel medio y el máximo pueden editarse. Si quedan vacíos o en cero, el CRM calcula el máximo como dos veces el mínimo y el medio como el punto intermedio.</p></section><section class="form-section"><div class="form-section-title">Imagen del material</div><div class="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4 items-start"><div><label class="text-xs font-semibold">URL de imagen</label><input id="p-imagen" oninput="previewProducto()" class="product-input" placeholder="https://..."></div><div id="p-preview" class="h-40 bg-white rounded-xl flex items-center justify-center text-gray-500 overflow-hidden">Vista previa</div></div></section></div><div class="sticky bottom-0 p-4 border-t border-[#243257] bg-[#10172a] flex justify-end gap-2"><button onclick="cerrarProducto()" class="px-4 py-2.5 rounded-lg bg-[#1b253c]">Cancelar</button><button onclick="guardarProducto()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">Guardar producto</button></div></div></div>
+<div id="modal-producto" class="crm-workspace-overlay hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm items-center justify-center p-4"><div class="crm-workspace-dialog w-full max-w-5xl max-h-[94vh] overflow-y-auto lista-scroll bg-[#10172a] border border-[#243257] rounded-2xl shadow-2xl"><div class="sticky top-0 z-10 p-5 border-b border-[#243257] bg-[#10172a] flex items-start justify-between"><div><h3 id="producto-titulo" class="font-bold text-white text-lg">Nuevo producto</h3><p class="mt-1 text-xs text-gray-500">Información general, datos comerciales y existencias del material.</p></div><button onclick="cerrarProducto()" class="text-xl text-gray-500 hover:text-white">×</button></div><div class="p-5 space-y-5"><section class="form-section"><div class="form-section-title">Información general</div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="text-xs font-semibold">Código *</label><input id="p-codigo" class="product-input"></div><div><label class="text-xs font-semibold">Descripción *</label><input id="p-descripcion" class="product-input"></div><div class="sm:col-span-2"><label class="text-xs font-semibold">Modismos / otros nombres</label><textarea id="p-modismos" rows="2" placeholder="Ej. cincho, cinturón plástico, amarre..." class="product-input"></textarea><p class="mt-1 text-[10px] text-gray-500">Separa cada nombre con coma, punto y coma o salto de línea.</p></div><div><label class="text-xs font-semibold">Categoría *</label><input id="p-categoria" list="catalogo-categorias-v125" placeholder="Selecciona o escribe una categoría" class="product-input"><datalist id="catalogo-categorias-v125"></datalist></div><div><label class="text-xs font-semibold">Unidad *</label><input id="p-unidad" placeholder="PIEZA, METRO..." class="product-input"></div><div><label class="text-xs font-semibold">Tipo de cable</label><input id="p-tipo" class="product-input"></div><div><label class="text-xs font-semibold">Tamaño mm²/AWG</label><input id="p-tamano" class="product-input"></div></div></section><section class="form-section"><div class="form-section-title">Información comercial</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Marca</label><input id="p-marca" class="product-input" placeholder="Marca o fabricante"></div><div><label class="text-xs font-semibold">Código de marca / modelo *</label><input id="p-codigo-marca" class="product-input" placeholder="Ej. 3RT2026-1BB40, 48-22-8426, modelo del fabricante"></div><div><label class="text-xs font-semibold">Proveedor</label><input id="p-proveedor" class="product-input" placeholder="Proveedor principal"></div><div><label class="text-xs font-semibold">Contacto del proveedor</label><input id="p-contacto-proveedor" class="product-input" placeholder="Nombre, teléfono o correo"></div><div><label class="text-xs font-semibold">Precio unitario</label><input id="p-precio" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Moneda del costo</label><select id="p-moneda-costo" class="product-input"><option value="MXN">MXN — Peso mexicano</option><option value="USD">USD — Dólar estadounidense</option><option value="EUR">EUR — Euro</option></select></div></div></section><section class="form-section"><div class="form-section-title">Existencia y ubicación</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Almacén</label><select id="p-almacen" onchange="cambiarAlmacenProducto()" class="product-input"></select></div><div><label class="text-xs font-semibold">Stock en almacén</label><input id="p-stock" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock mínimo</label><input id="p-minimo" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock medio</label><input id="p-medio" type="number" min="0" step="0.01" class="product-input" placeholder="Se calcula automáticamente"></div><div><label class="text-xs font-semibold">Stock máximo</label><input id="p-maximo" type="number" min="0" step="0.01" class="product-input" placeholder="Por defecto: 2 × mínimo"></div></div><p class="mt-3 text-[10px] text-gray-500">El nivel medio y el máximo pueden editarse. Si quedan vacíos o en cero, el CRM calcula el máximo como dos veces el mínimo y el medio como el punto intermedio.</p></section><section class="form-section"><div class="form-section-title">Imagen del material</div><div class="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4 items-start"><div><label class="text-xs font-semibold">URL de imagen</label><input id="p-imagen" oninput="previewProducto()" class="product-input" placeholder="https://..."></div><div id="p-preview" class="h-40 bg-white rounded-xl flex items-center justify-center text-gray-500 overflow-hidden">Vista previa</div></div></section></div><div class="sticky bottom-0 p-4 border-t border-[#243257] bg-[#10172a] flex justify-end gap-2"><button onclick="cerrarProducto()" class="px-4 py-2.5 rounded-lg bg-[#1b253c]">Cancelar</button><button onclick="guardarProducto()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">Guardar producto</button></div></div></div>
 
-<script src="skilled-sidebar.js?v=65" defer></script>
+<script src="skilled-sidebar.js?v=66" defer></script>
 <script>
 (function () {
     if (localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen') === 'claro') {
@@ -102,6 +103,21 @@ function esc(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function monedaMaterial(material) {
+    const codigo = String(material?.monedaCosto || material?.moneda_costo || material?.moneda || 'MXN').toUpperCase();
+    return ['MXN','USD','EUR'].includes(codigo) ? codigo : 'MXN';
+}
+
+function formatearCostoMaterial(material) {
+    const moneda = monedaMaterial(material);
+    const valor = Number(material?.precio || 0);
+    try {
+        return `${new Intl.NumberFormat('es-MX', { style: 'currency', currency: moneda, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valor)} ${moneda}`;
+    } catch (_) {
+        return `${valor.toFixed(2)} ${moneda}`;
+    }
 }
 
 function imagenHTML(url, alt, classes = 'w-full h-full object-contain') {
@@ -161,9 +177,6 @@ function llenarSelectores() {
         .map(a => `<option value="${a.id}">${esc(a.nombre)}</option>`)
         .join('');
 }
-
-function monedaMaterial(material) { const value = String(material?.monedaCosto || material?.moneda_costo || 'MXN').toUpperCase(); return ['MXN','USD','EUR'].includes(value) ? value : 'MXN'; }
-function costoMaterial(material) { const moneda = monedaMaterial(material); const locale = moneda === 'EUR' ? 'es-ES' : 'es-MX'; return Number(material?.precio || 0).toLocaleString(locale,{style:'currency',currency:moneda,minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 function textoFiltro() {
     return ($('cat-search').value || $('busqueda-global').value || '').trim().toLowerCase();
@@ -292,7 +305,7 @@ function renderMateriales() {
                     ${Array.isArray(material.modismos) && material.modismos.length ? `<p class="text-[10px] text-blue-300/80 mt-1 line-clamp-2">También: ${esc(material.modismos.join(', '))}</p>` : ''}
                     <div class="mt-4 flex justify-between items-end">
                         <div><p class="font-bold ${bajo ? 'text-rose-400' : 'text-white'}">${material.stock} ${esc(material.unidad || '')}</p><p class="text-[10px] text-gray-600">Mín. ${material.stockMinimo} · Med. ${material.stockMedio} · Máx. ${material.stockMaximo}</p></div>
-                        <p class="font-mono text-xs">${esc(costoMaterial(material))}</p><p class="mt-0.5 text-[9px] text-gray-600 text-right">${esc(monedaMaterial(material))}</p>
+                        <p class="font-mono text-xs">${esc(formatearCostoMaterial(material))}</p>
                     </div>
                 </div>
                 <div class="border-t border-[#243257] mt-4 pt-2 flex justify-end">${botonesMaterial(index, material)}</div>
@@ -309,7 +322,7 @@ function renderMateriales() {
                 <td class="px-4 py-3">${esc(material.categoria || '—')}</td>
                 <td class="px-4 py-3"><div class="font-semibold text-gray-200">${esc(material.marca || 'Sin marca')}</div><div class="mt-1 font-mono text-[9px] text-blue-300">${esc(material.codigoMarca || material.codigo_marca || 'Código de marca pendiente')}</div><div class="mt-1 text-[9px] text-gray-500">${esc(material.proveedor || 'Proveedor no asignado')}</div><div class="mt-1 text-[9px] text-gray-600">${esc(material.contactoProveedor || '')}</div></td>
                 <td class="px-4 py-3"><span class="font-bold ${bajo ? 'text-rose-400' : 'text-white'}">${material.stock} ${esc(material.unidad || '')}</span><div class="text-[10px] text-gray-600">Mín. ${material.stockMinimo}</div></td>
-                <td class="px-4 py-3 text-right font-mono"><div>${esc(costoMaterial(material))}</div><div class="mt-1 text-[9px] text-gray-600">${esc(monedaMaterial(material))}</div></td>
+                <td class="px-4 py-3 text-right font-mono">${esc(formatearCostoMaterial(material))}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">${botonesMaterial(index, material)}</td>
             </tr>`;
     }).join('');
@@ -436,6 +449,7 @@ async function guardarProducto() {
         contactoProveedor: $('p-contacto-proveedor').value.trim(),
         precio: Number($('p-precio').value) || 0,
         monedaCosto: $('p-moneda-costo').value || 'MXN',
+        moneda_costo: $('p-moneda-costo').value || 'MXN',
         stock: Number($('p-stock').value) || 0,
         stockMinimo: Number($('p-minimo').value) || 0,
         stockMedio: Number($('p-medio').value) || 0,
@@ -529,9 +543,9 @@ $('cat-filter').addEventListener('change', () => {
 
 cargarCatalogoVisual();
 </script>
-<script src="AL.catalogo.js?v=65"></script>
-<script src="auth-guard.js?v=65"></script>
+<script src="AL.catalogo.js?v=66"></script>
+<script src="auth-guard.js?v=66"></script>
 
-<script src="skilled-performance.js?v=65" defer></script>
+<script src="skilled-performance.js?v=66" defer></script>
 </body>
 </html>

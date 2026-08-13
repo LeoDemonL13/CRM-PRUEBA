@@ -204,7 +204,17 @@
 
     window.materialesFiltrados = function () {
         const list = originalFiltered();
-        return soloIncompletos ? list.filter(item => item.esIncompleto || item.es_incompleto) : list;
+        if (!soloIncompletos) return list;
+        return list.filter(item => item.esIncompleto || item.es_incompleto).sort((a,b) => {
+            const ao = String(a.origenAlta || a.origen_alta || '');
+            const bo = String(b.origenAlta || b.origen_alta || '');
+            const amanual = /no_listado|incompleto|plan_proyecto|entrega_directa|movimiento/i.test(ao) ? 1 : 0;
+            const bmanual = /no_listado|incompleto|plan_proyecto|entrega_directa|movimiento/i.test(bo) ? 1 : 0;
+            if (amanual !== bmanual) return bmanual - amanual;
+            const at = new Date(a.updatedAt || a.updated_at || a.createdAt || a.created_at || 0).getTime() || 0;
+            const bt = new Date(b.updatedAt || b.updated_at || b.createdAt || b.created_at || 0).getTime() || 0;
+            return bt - at;
+        });
     };
 
     function updateIncompleteCounter() {
@@ -244,6 +254,9 @@
         originalOpenProduct(material);
         installCablePanel();
         updateCableVisibility();
+        const currency = String(material?.monedaCosto || material?.moneda_costo || 'MXN').toUpperCase();
+        const currencySelect = document.getElementById('p-moneda-costo');
+        if (currencySelect) currencySelect.value = ['MXN','USD','EUR'].includes(currency) ? currency : 'MXN';
         const incomplete = Boolean(material?.esIncompleto || material?.es_incompleto);
         document.getElementById('aviso-producto-incompleto')?.classList.toggle('hidden', !incomplete);
         const detail = document.getElementById('detalle-pendientes-producto');
@@ -266,6 +279,8 @@
             proveedor: document.getElementById('p-proveedor')?.value.trim() || '',
             contactoProveedor: document.getElementById('p-contacto-proveedor')?.value.trim() || '',
             precio: Number(document.getElementById('p-precio').value) || 0,
+            monedaCosto: document.getElementById('p-moneda-costo')?.value || 'MXN',
+            moneda_costo: document.getElementById('p-moneda-costo')?.value || 'MXN',
             stock: Number(document.getElementById('p-stock').value) || 0,
             stockMinimo: Number(document.getElementById('p-minimo').value) || 0,
             stockMedio: Number(document.getElementById('p-medio')?.value) || 0,
