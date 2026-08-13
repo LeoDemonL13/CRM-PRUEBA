@@ -5921,6 +5921,108 @@
         return rows;
     }
 
+    async function listMaterialPackages(options = {}) {
+        const includeInactive = options.includeInactive === true;
+        const { data, error } = await client.rpc('crm_listar_paquetes_materiales', { p_incluir_inactivos: includeInactive });
+        if (error) {
+            const code = text(error.code);
+            if (['PGRST202','42883','PGRST204','42P01'].includes(code)) throw new Error('Falta ejecutar SQL_MAESTRO_CRM.sql V70 para habilitar Paquetes de materiales predeterminados.');
+            assertNoError(error, 'No se pudieron consultar los paquetes de materiales.');
+        }
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function saveMaterialPackage(payload = {}) {
+        const id = Number(payload.id || payload.paqueteId || 0) || null;
+        const items = (Array.isArray(payload.items) ? payload.items : []).map(item => ({
+            codigo: text(item.codigo ?? item.materialCodigo),
+            cantidad: Math.max(0, number(item.cantidad)),
+            notas: text(item.notas)
+        })).filter(item => item.codigo && item.cantidad > 0);
+        const datos = {
+            nombre: text(payload.nombre),
+            descripcion: text(payload.descripcion),
+            categoria: text(payload.categoria) || 'General',
+            activo: payload.activo !== false,
+            orden: Number(payload.orden || 0) || 0
+        };
+        if (!datos.nombre) throw new Error('Captura el nombre del paquete.');
+        const { data, error } = await client.rpc('crm_guardar_paquete_materiales', { p_paquete_id: id, p_datos: datos, p_items: items });
+        assertNoError(error, 'No se pudo guardar el paquete de materiales. Ejecuta SQL_MAESTRO_CRM.sql V70.');
+        return Number(data) || data;
+    }
+
+    async function deleteMaterialPackage(id) {
+        const packageId = Number(id || 0);
+        if (!packageId) throw new Error('Paquete no válido.');
+        const { data, error } = await client.rpc('crm_eliminar_paquete_materiales', { p_paquete_id: packageId });
+        assertNoError(error, 'No se pudo eliminar el paquete de materiales.');
+        return data === true;
+    }
+
+    async function listMaterialPackageProjects() {
+        const { data, error } = await client.rpc('crm_listar_proyectos_paquetes');
+        assertNoError(error, 'No se pudieron consultar los proyectos disponibles para la solicitud.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function createMaterialPackageRequest(payload = {}) {
+        const packageId = Number(payload.paqueteId ?? payload.packageId ?? payload.id);
+        if (!packageId) throw new Error('Selecciona el paquete que deseas solicitar.');
+        const { data, error } = await client.rpc('crm_solicitar_paquete_materiales', {
+            p_paquete_id: packageId,
+            p_cantidad: Math.max(1, Math.min(100, Math.round(number(payload.cantidadPaquetes ?? payload.cantidad ?? 1) || 1))),
+            p_proyecto: text(payload.proyecto) || null,
+            p_destinatario: text(payload.destinatario) || null,
+            p_prioridad: text(payload.prioridad) || 'normal',
+            p_notas: text(payload.notas) || null
+        });
+        assertNoError(error, 'No se pudo enviar la solicitud del paquete. Ejecuta SQL_MAESTRO_CRM.sql V70.');
+        return data || {};
+    }
+
+    async function listMaterialPackageRequests(options = {}) {
+        const { data, error } = await client.rpc('crm_listar_solicitudes_paquetes', { p_mias: options.mineOnly === true });
+        assertNoError(error, 'No se pudieron consultar las solicitudes de paquetes.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function updateMaterialPackageRequest(id, estado, notas = '') {
+        const requestId = Number(id || 0);
+        if (!requestId) throw new Error('Solicitud no válida.');
+        const { data, error } = await client.rpc('crm_actualizar_solicitud_paquete', {
+            p_solicitud_id: requestId,
+            p_estado: text(estado),
+            p_notas: text(notas) || null
+        });
+        assertNoError(error, 'No se pudo actualizar la solicitud del paquete.');
+        return data === true;
+    }
+
+    async function fulfillMaterialPackageRequest(id, warehouseId, notas = '') {
+        const requestId = Number(id || 0);
+        const almacenId = Number(warehouseId || 0);
+        if (!requestId) throw new Error('Solicitud no válida.');
+        if (!almacenId) throw new Error('Selecciona el almacén que surtirá el paquete.');
+        const { data, error } = await client.rpc('crm_entregar_solicitud_paquete', {
+            p_solicitud_id: requestId,
+            p_almacen_id: almacenId,
+            p_notas: text(notas) || null
+        });
+        assertNoError(error, 'No se pudo entregar el paquete. Revisa la existencia de todos sus materiales.');
+        invalidateMaterialSnapshot();
+        return data || {};
+    }
+
+    async function countMaterialPackageRequests() {
+        const { data, error } = await client.rpc('crm_contar_solicitudes_paquetes');
+        if (error) {
+            if (['PGRST202','42883','PGRST204','42P01'].includes(text(error.code))) return 0;
+            assertNoError(error, 'No se pudo consultar el indicador de paquetes.');
+        }
+        return Number(data) || 0;
+    }
+
     async function healthCheck() {
         const { error } = await client.from('materiales').select('codigo').limit(1);
         assertNoError(error, 'No se pudo conectar con Supabase.');
@@ -5955,6 +6057,15 @@
         closeRHOfficeAssetAssignment,
         getExecutiveRHOfficeAssets,
         getSkyProfileData,
+        listMaterialPackages,
+        saveMaterialPackage,
+        deleteMaterialPackage,
+        listMaterialPackageProjects,
+        createMaterialPackageRequest,
+        listMaterialPackageRequests,
+        updateMaterialPackageRequest,
+        fulfillMaterialPackageRequest,
+        countMaterialPackageRequests,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,
