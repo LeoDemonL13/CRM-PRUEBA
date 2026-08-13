@@ -69,12 +69,8 @@
         tomar_del_almacen:bool(row.tomar_del_almacen)
     });
     async function listMovements(options={}){
-        const project=text(options.project??options.proyecto);
-        let query=client.from('movimientos').select('*').order('fecha',{ascending:true});
-        if(project)query=query.eq('proyecto',project);
-        const {data,error}=await query;
-        if(error)throw new Error(error.message||'No se pudieron consultar los movimientos.');
-        return (data||[]).map(mapMovement);
+        const rows=await base.listMovements(options);
+        return Array.isArray(rows)?rows:[];
     }
     async function listProjectStocks(project){
         const value=text(project);

@@ -881,6 +881,7 @@
             return;
         }
         try{
+            if(typeof SkilledDB.syncProjectUnlistedMaterials==='function')await SkilledDB.syncProjectUnlistedMaterials(text(value));
             planEntregaProyecto=await SkilledDB.listProjectMovementPlan(text(value),{includeOutsidePlan:true});
         }catch(error){
             planEntregaProyecto=[];
@@ -890,6 +891,28 @@
             renderPlanEntregaProyecto();
         }
     };
+    let projectRefreshBusy=false;
+    let projectRefreshAt=0;
+    async function refreshSelectedProject(force=false){
+        const value=project();
+        if(!value||projectRefreshBusy||document.hidden)return;
+        const now=Date.now();
+        if(!force&&now-projectRefreshAt<1500)return;
+        projectRefreshBusy=true;
+        projectRefreshAt=now;
+        try{
+            await window.cargarPlanEntregaProyecto(value);
+            renderPlanEntregaProyecto();
+        }catch(error){
+            console.warn('No se pudo actualizar el proyecto seleccionado.',error);
+        }finally{
+            projectRefreshBusy=false;
+        }
+    }
+    window.refrescarProyectoMovimiento=()=>refreshSelectedProject(true);
+    window.addEventListener('focus',()=>refreshSelectedProject(false));
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshSelectedProject(false)});
+
     function ensureTransferMode(){
         const wrapper=document.getElementById('wrapper-proyecto-movimiento');
         if(!wrapper)return;
@@ -1661,6 +1684,7 @@
                     result=await SkilledDB.registerMovement({requestId,tipo_movimiento:type,motivo:reason,fecha:date,fechaOrdenCompra:text(document.getElementById('fecha_orden_compra_val')?.value),referencia:text(document.getElementById('referencia_movimiento_val')?.value),productos:products});
                 }
             }
+            window.dispatchEvent(new CustomEvent('skilled:movement-saved',{detail:{project:source,requestId:result?.requestId||requestId,type}}));
             const ticketProducts=products.map(item=>({...item,producto:{...item.producto,unidad:item.producto?.unidad||item.unidad||''}}));
             if(window.SkilledTickets){
                 const titles={entrada:'Comprobante de entrada de material',salida:'Comprobante de salida de material',ajuste:'Comprobante de ajuste de material',traspaso:'Comprobante de traspaso de material',prestamo:'Comprobante de préstamo de material'};
@@ -1798,7 +1822,13 @@ const previousRender=window.renderPlanEntregaProyecto;
 if(typeof previousRender==='function'){
  window.renderPlanEntregaProyecto=function(){normalizePlan();addLegend();return previousRender.apply(this,arguments)};
 }
-window.addEventListener('skilled:movement-saved',renderAfterNormalize);
+window.addEventListener('skilled:movement-saved',async event=>{
+ const value=text(event?.detail?.project);
+ if(value&&typeof window.cargarPlanEntregaProyecto==='function'){
+  try{await window.cargarPlanEntregaProyecto(value)}catch(_){}
+ }
+ renderAfterNormalize();
+});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(renderAfterNormalize,300),{once:true});else setTimeout(renderAfterNormalize,300);
 })();
 (function(){
