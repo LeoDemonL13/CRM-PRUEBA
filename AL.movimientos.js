@@ -507,9 +507,13 @@
                 ?`${outside?'<span class="text-[9px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-amber-300">Fuera del plan</span>':approval(line)}<span class="text-[9px] px-1.5 py-0.5 rounded border border-emerald-500/25 bg-emerald-950/20 text-emerald-300">Entregado: ${number(line.entregado)}</span><span class="text-[9px] px-1.5 py-0.5 rounded border border-amber-500/25 bg-amber-950/20 text-amber-300">Sobrante ya registrado: ${number(line.sobrante??line.cantidadSobrante)}</span><span class="text-[9px] px-1.5 py-0.5 rounded border border-violet-500/25 bg-violet-950/20 text-violet-300">Disponible para traspasar: ${stocks.transferAvailable}</span>`
                 :`${outside?'<span class="text-[9px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-amber-300">Fuera del plan</span>':approval(line)}<span class="text-[9px] px-1.5 py-0.5 rounded border border-violet-500/20 bg-violet-950/20 text-violet-300">Reservado para el proyecto: ${stocks.reserved}</span>`;
         }
-        const noStock=(currentType==='salida'||currentType==='traspaso'||(currentType==='ajuste'&&key(typeof stockAdj!=='undefined'?stockAdj:'')==='disminuir'))&&stocks.total<=0;
-        const noGeneralForEntry=entryUsesGeneral()&&stocks.general<=0;
-        const disabled=blocked||(!outside&&state==='rechazada'&&!fromGeneral)||noGeneralForEntry;
+        const consumesLocal=currentType==='salida'||currentType==='traspaso'||(currentType==='ajuste'&&key(typeof stockAdj!=='undefined'?stockAdj:'')==='disminuir');
+        const usedLocal=consumesLocal?inList(product.codigo):0;
+        const usedGeneralEntry=entryUsesGeneral()?itemsAgregados.filter(item=>item.tipo==='entrada'&&Boolean(item.tomarDelAlmacen)&&text(item.proyecto)===project()&&key(item.producto?.codigo)===key(product.codigo)&&text(item.bodegaDestino)===warehouse()).reduce((sum,item)=>sum+number(item.cantidad),0):0;
+        const localAvailable=entryUsesGeneral()?Math.max(0,stocks.general-usedGeneralEntry):consumesLocal?Math.max(0,stocks.total-usedLocal):stocks.total;
+        const noStock=currentType==='salida'&&localAvailable<=0;
+        const noGeneralForEntry=entryUsesGeneral()&&localAvailable<=0;
+        const disabled=blocked||(!outside&&state==='rechazada'&&!fromGeneral)||noStock||noGeneralForEntry;
         let label=completed&&currentType==='salida'?'<span class="text-[9px] text-emerald-300 whitespace-nowrap">Extra fuera del plan</span>':'';
         if(currentType==='entrada'&&!outside&&Math.max(0,number(line.requerido)-number(line.ingresado))<=0)label='<span class="text-[9px] text-amber-300 whitespace-nowrap">Agregar extra exclusivo</span>';
         if(currentType==='entrada'&&entryUsesGeneral())label='<span class="text-[9px] text-blue-300 whitespace-nowrap">Reservar para el proyecto</span>';
@@ -518,13 +522,13 @@
         const disponibilidad=currentType==='salida'
             ?blocked
                 ?'<span class="block mt-1 text-[8px] text-amber-300">No se puede dar salida hasta que la solicitud sea aprobada.</span>'
-                :`<span class="block mt-1 text-[8px] ${stocks.total>0?'text-blue-300':'text-rose-400'}">${stocks.total>0?`Puedes capturar hasta ${stocks.total} entre reserva y almacén general`:'Puedes escribir la cantidad; al agregar se volverá a consultar la existencia'}</span>`
+                :`<span class="block mt-1 text-[8px] ${localAvailable>0?'text-blue-300':'text-rose-400'}">${localAvailable>0?`Disponible para agregar: ${localAvailable}`:'Toda la existencia disponible ya está agregada a la lista'}</span>`
             :'';
         const avisoAprobacion=blocked?'<div class="mt-2 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-[9px] leading-relaxed text-amber-200"><strong>Aún en aprobación.</strong> Este material no puede añadirse a una salida del plan hasta que la solicitud sea aprobada en Solicitudes de material.</div>':'';
         const draftToken=quantityDraftKey(line);
         const draftValue=disabled?0:(quantityDrafts.has(draftToken)?quantityDrafts.get(draftToken):1);
         const control=`<div class="lg:w-64">${label}<div class="flex items-center gap-2 mt-1"><input id="v129-qty-${index}" data-v129-qty="1" data-qty-token="${draftToken}" oninput="guardarCantidadMovimientoV133(this.dataset.qtyToken,this.value)" type="number" min="0" step="0.01" inputmode="decimal" value="${html(draftValue)}" ${disabled?'disabled':''} class="min-w-0 flex-1 bg-[#060a14] border ${blocked?'border-amber-500/25':'border-[#243257]'} rounded-lg px-3 py-2 text-xs text-center text-white"><button type="button" onclick="agregarLineaMovimientoV129(${index})" ${disabled?'disabled':''} class="w-10 h-9 rounded-lg border ${disabled?'border-[#243257] text-gray-600 cursor-not-allowed':'border-blue-500/30 bg-blue-950/10 text-blue-300 hover:text-white'} text-lg font-bold">+</button></div>${disponibilidad}</div>`;
-        return`<div class="px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-3"><div class="flex items-center gap-3 min-w-0 flex-1">${typeof imagenProductoHTML==='function'?imagenProductoHTML(product,'w-10 h-10'):''}<div class="min-w-0 flex-1"><div class="flex items-center gap-2"><p class="text-xs font-semibold text-white truncate">${html(product.desc||product.descripcion||product.codigo)}</p>${outside?'<span class="px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">Fuera del plan</span>':''}</div><p class="text-[9px] text-gray-500 font-mono mt-0.5">${html(product.codigo)} · ${html(product.unidad||'')}</p><div class="flex flex-wrap gap-1.5 mt-1.5">${badges}</div>${avisoAprobacion}</div></div>${control}</div>`;
+        return`<div data-v129-code="${encodeURIComponent(text(product.codigo))}" class="px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-3"><div class="flex items-center gap-3 min-w-0 flex-1">${typeof imagenProductoHTML==='function'?imagenProductoHTML(product,'w-10 h-10'):''}<div class="min-w-0 flex-1"><div class="flex items-center gap-2"><p class="text-xs font-semibold text-white truncate">${html(product.desc||product.descripcion||product.codigo)}</p>${outside?'<span class="px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">Fuera del plan</span>':''}</div><p class="text-[9px] text-gray-500 font-mono mt-0.5">${html(product.codigo)} · ${html(product.unidad||'')}</p><div class="flex flex-wrap gap-1.5 mt-1.5">${badges}</div>${avisoAprobacion}</div></div>${control}</div>`;
     }
     window.renderPlanEntregaProyecto=function(){
         const panel=document.getElementById('panel-materiales-proyecto');
@@ -544,6 +548,9 @@
             return;
         }
         if(typeof cargandoPlanEntrega!=='undefined'&&cargandoPlanEntrega){summary.textContent='Consultando materiales y existencias del proyecto...';list.innerHTML='<div class="px-4 py-8 text-center text-xs text-gray-500">Cargando materiales...</div>';return}
+        const previousScroll=list.scrollTop;
+        const activeToken=document.activeElement?.dataset?.qtyToken||'';
+        const activeSelection=document.activeElement&&typeof document.activeElement.selectionStart==='number'?[document.activeElement.selectionStart,document.activeElement.selectionEnd]:null;
         rendered=visibleRows();
         const plan=(planEntregaProyecto||[]).filter(line=>!isOutside(line));
         const outside=(planEntregaProyecto||[]).filter(isOutside);
@@ -564,7 +571,28 @@
                     ?'No hay entradas no solicitadas reservadas para este proyecto. Usa el buscador para consultar materiales disponibles en el stock general del almacén.'
                     :'No hay materiales en este filtro.';
         list.innerHTML=rendered.length?rendered.map(rowHtml).join(''):`<div class="px-4 py-8 text-center text-xs text-gray-500">${empty}</div>`;
+        list.scrollTop=previousScroll;
+        if(activeToken){
+            const active=[...list.querySelectorAll('[data-qty-token]')].find(node=>node.dataset.qtyToken===activeToken);
+            if(active){
+                active.focus({preventScroll:true});
+                if(activeSelection&&typeof active.setSelectionRange==='function')try{active.setSelectionRange(activeSelection[0],activeSelection[1])}catch(_){}
+            }
+        }
     };
+    function actualizarFilaMovimientoLocal(code){
+        const index=rendered.findIndex(row=>key(productOf(row)?.codigo||row?.codigo)===key(code));
+        if(index<0)return;
+        const list=document.getElementById('lista-plan-proyecto');
+        if(!list)return;
+        const token=encodeURIComponent(text(code));
+        const row=[...list.querySelectorAll('[data-v129-code]')].find(node=>node.dataset.v129Code===token);
+        if(!row)return;
+        const scroll=list.scrollTop;
+        row.outerHTML=rowHtml(rendered[index],index);
+        list.scrollTop=scroll;
+    }
+    window.actualizarFilaMovimientoLocalV69=actualizarFilaMovimientoLocal;
     function classify(line,quantity,code,excludeId='',targetProject=effectiveProject()){
         if(!targetProject)return{cantidadDentroPlan:0,cantidadFueraPlan:0,alcance:'sin_plan'};
         if(!line||isOutside(line)||line.forzarFueraPlan)return{cantidadDentroPlan:0,cantidadFueraPlan:quantity,alcance:'fuera_plan'};
@@ -646,7 +674,7 @@
         });
         renderLista();
         actualizarPreviewHeader();
-        renderPlanEntregaProyecto();
+        actualizarFilaMovimientoLocal(product.codigo);
     }
     window.agregarProducto=function(){
         if(!productoSeleccionado)return alert('Primero busca y selecciona un producto.');
@@ -666,11 +694,6 @@
         const quantity=number(quantityInput?.value);
         if(quantity<=0)return alert('Escribe una cantidad mayor a cero.');
         const draftToken=text(quantityInput?.dataset?.qtyToken);
-        if(currentType==='salida'&&project()&&typeof window.recargarPlanEntregaProyecto==='function'){
-            try{
-                await window.recargarPlanEntregaProyecto();
-            }catch(error){}
-        }
         const refreshed=lineByCode(code);
         const line=original.desdeAlmacenGeneral
             ?{...(refreshed||original),material:productOf(original),desdeAlmacenGeneral:true,forzarFueraPlan:Boolean(original.forzarFueraPlan),lineaProyectoOriginal:refreshed||original.lineaProyectoOriginal||null}
@@ -684,17 +707,13 @@
         }
         if(draftToken)quantityDrafts.set(draftToken,'0');
         addItem(product,line,quantity);
+        if(quantityInput)quantityInput.value='0';
     };
     window.agregarLineaMovimientoV125=window.agregarLineaMovimientoV129;
     window.agregarReservadoMovimientoV129=async function(index){
         const original=rendered[index];
         if(!original||currentType!=='salida')return;
         const code=text(original.codigo||original.material?.codigo);
-        if(project()&&typeof window.recargarPlanEntregaProyecto==='function'){
-            try{
-                await window.recargarPlanEntregaProyecto();
-            }catch(error){}
-        }
         const line=lineByCode(code)||original;
         const estado=key(line.estadoSolicitud||line.estado_solicitud);
         if(!isOutside(line)&&estado!=='aprobada')return alert('La solicitud debe estar aprobada antes de surtir el material.');
@@ -707,11 +726,22 @@
         if(cantidad<=0)return alert('Toda la cantidad reservada ya está agregada a la lista o la reserva ya no tiene existencia.');
         addItem(product,line,cantidad);
         const input=document.getElementById(`v129-qty-${index}`);
-        if(input)input.value='0';
+        if(input){
+            input.value='0';
+            if(input.dataset.qtyToken)quantityDrafts.set(input.dataset.qtyToken,'0');
+        }
+    };
+    window.guardarCantidadListaV69=function(id,value){
+        const item=itemsAgregados.find(row=>String(row.id)===String(id));
+        if(!item)return;
+        item.cantidadBorrador=text(value);
+        const parsed=Number(String(value).replace(',','.'));
+        if(Number.isFinite(parsed)&&parsed>0)item.cantidad=parsed;
     };
     window.actualizarCantidadItemV129=function(id,value){
         const item=itemsAgregados.find(row=>String(row.id)===String(id));
         if(!item)return;
+        delete item.cantidadBorrador;
         const quantity=number(value);
         if(quantity<=0){eliminarItem(id);return}
         const orderPending=number(item.cantidadOrdenPendiente??item.cantidad_orden_pendiente);
@@ -755,7 +785,7 @@
         }
         Object.assign(item,classify(line,quantity,product.codigo,item.id));
         actualizarPreviewHeader();
-        renderPlanEntregaProyecto();
+        actualizarFilaMovimientoLocal(product.codigo);
     };
     window.renderLista=function(){
         const empty=document.getElementById('lista-vacia');
@@ -767,8 +797,16 @@
             const sourceLabel=item.tipo==='salida'?(item.stockFuente==='mixto'?'Reserva + almacén general':item.stockFuente==='reserva_proyecto'?'Reserva del proyecto':item.stockFuente==='almacen_general'?'Almacén general':''):'';
             const pendingOrder=number(item.cantidadOrdenPendiente??item.cantidad_orden_pendiente);
             const tags=[item.proyecto,item.ubicacion,item.ordenCompra,item.solicitudCompraFolio?`Solicitud ${item.solicitudCompraFolio}`:'',item.solicitudCompraId&&pendingOrder>0?`Pendiente OC: ${pendingOrder} ${item.producto?.unidad||''}`:'',item.tomarDelAlmacen?'Apartado desde almacén general':'',sourceLabel,item.tipo==='entrada'&&item.origenEntrada==='ingreso_nuevo_exclusivo_proyecto'?'Ingreso reservado para el proyecto':'',item.tipo==='entrada'&&!item.tomarDelAlmacen&&item.origenEntrada!=='ingreso_nuevo_exclusivo_proyecto'?'Ingreso nuevo al almacén':'',item.alcance==='fuera_plan'?'Fuera del plan':item.alcance==='mixto'?'Plan + extra':''].filter(Boolean);
-            return`<div class="fila-nueva px-5 py-3.5 flex items-start justify-between gap-3 hover:bg-[#0d1425] transition"><div class="min-w-0 flex items-start gap-3">${imagenProductoHTML(item.producto)}<div class="min-w-0"><div class="flex items-center gap-2 text-${config.color}-400">${config.icon}<p class="text-xs font-semibold text-white truncate">${html(item.producto.desc||item.producto.descripcion)}</p></div><p class="text-[10px] text-gray-500 font-mono mt-0.5">${html(item.producto.codigo)}</p>${tags.length?`<div class="flex flex-wrap gap-1 mt-1.5">${tags.map(tag=>`<span class="text-[9px] text-gray-400 bg-[#141d34] border border-[#232f4e] px-1.5 py-0.5 rounded">${html(tag)}</span>`).join('')}</div>`:''}</div></div><div class="flex items-center gap-2 shrink-0"><input type="number" min="0.01" step="0.01" value="${number(item.cantidad)}" onchange="actualizarCantidadItemV129('${item.id}',this.value)" class="w-24 bg-[#060a14] border border-${config.color}-500/30 rounded-lg px-2 py-1.5 text-xs text-center text-${config.color}-300"><span class="text-[9px] text-gray-500">${html(item.producto.unidad||'pz')}</span><button type="button" onclick="eliminarItem('${item.id}')" class="text-gray-600 hover:text-rose-400 transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg></button></div></div>`;
+            return`<div class="fila-nueva px-5 py-3.5 flex items-start justify-between gap-3 hover:bg-[#0d1425] transition"><div class="min-w-0 flex items-start gap-3">${imagenProductoHTML(item.producto)}<div class="min-w-0"><div class="flex items-center gap-2 text-${config.color}-400">${config.icon}<p class="text-xs font-semibold text-white truncate">${html(item.producto.desc||item.producto.descripcion)}</p></div><p class="text-[10px] text-gray-500 font-mono mt-0.5">${html(item.producto.codigo)}</p>${tags.length?`<div class="flex flex-wrap gap-1 mt-1.5">${tags.map(tag=>`<span class="text-[9px] text-gray-400 bg-[#141d34] border border-[#232f4e] px-1.5 py-0.5 rounded">${html(tag)}</span>`).join('')}</div>`:''}</div></div><div class="flex items-center gap-2 shrink-0"><input type="number" min="0.01" step="0.01" value="${html(item.cantidadBorrador??number(item.cantidad))}" oninput="guardarCantidadListaV69('${item.id}',this.value)" onblur="actualizarCantidadItemV129('${item.id}',this.value)" class="w-24 bg-[#060a14] border border-${config.color}-500/30 rounded-lg px-2 py-1.5 text-xs text-center text-${config.color}-300"><span class="text-[9px] text-gray-500">${html(item.producto.unidad||'pz')}</span><button type="button" onclick="eliminarItem('${item.id}')" class="text-gray-600 hover:text-rose-400 transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg></button></div></div>`;
         }).join('');
+    };
+    window.eliminarItem=function(id){
+        const current=itemsAgregados.find(item=>String(item.id)===String(id));
+        const code=current?.producto?.codigo||'';
+        itemsAgregados=itemsAgregados.filter(item=>String(item.id)!==String(id));
+        renderLista();
+        actualizarPreviewHeader();
+        if(code)actualizarFilaMovimientoLocal(code);
     };
     window.validarDisponibilidad=function(product,quantity=0,show=true){
         const line=lineByCode(product?.codigo);
@@ -846,7 +884,7 @@
         if(typeof sonarEscaneo==='function')sonarEscaneo(true);
     };
     window.validarListaAntesDeGuardar=async function(){
-        const materials=await SkilledDB.listMaterials();
+        const materials=await SkilledDB.listMaterials({refresh:true});
         const materialMap=new Map(materials.map(item=>[key(item.codigo),item]));
         let latestPlan=[];
         if(project())latestPlan=await SkilledDB.listProjectMovementPlan(project(),{includeOutsidePlan:true});
@@ -871,20 +909,27 @@
         }
         return true;
     };
+    let proyectoPlanCargadoV69='';
     window.cargarPlanEntregaProyecto=async function(value){
-        planEntregaProyecto=[];
-        cargandoPlanEntrega=true;
-        renderPlanEntregaProyecto();
-        if(!text(value)){
+        const next=text(value);
+        const sameProject=Boolean(next&&next===proyectoPlanCargadoV69&&Array.isArray(planEntregaProyecto)&&planEntregaProyecto.length);
+        if(!sameProject){
+            planEntregaProyecto=[];
+            cargandoPlanEntrega=true;
+            renderPlanEntregaProyecto();
+        }else cargandoPlanEntrega=true;
+        if(!next){
+            proyectoPlanCargadoV69='';
             cargandoPlanEntrega=false;
             renderPlanEntregaProyecto();
             return;
         }
         try{
-            if(typeof SkilledDB.syncProjectUnlistedMaterials==='function')await SkilledDB.syncProjectUnlistedMaterials(text(value));
-            planEntregaProyecto=await SkilledDB.listProjectMovementPlan(text(value),{includeOutsidePlan:true});
+            if(typeof SkilledDB.syncProjectUnlistedMaterials==='function')await SkilledDB.syncProjectUnlistedMaterials(next);
+            planEntregaProyecto=await SkilledDB.listProjectMovementPlan(next,{includeOutsidePlan:true});
+            proyectoPlanCargadoV69=next;
         }catch(error){
-            planEntregaProyecto=[];
+            if(!sameProject)planEntregaProyecto=[];
             alert(`No se pudieron cargar los materiales del proyecto: ${error.message}`);
         }finally{
             cargandoPlanEntrega=false;
@@ -902,7 +947,6 @@
         projectRefreshAt=now;
         try{
             await window.cargarPlanEntregaProyecto(value);
-            renderPlanEntregaProyecto();
         }catch(error){
             console.warn('No se pudo actualizar el proyecto seleccionado.',error);
         }finally{
@@ -1674,6 +1718,7 @@
                 ticketDestination=destinationLoanType==='proyecto'?`Proyecto ${destinationLoan}`:destinationLoanWarehouse;
             }else{
                 await validateStandardMovement();
+                if(typeof window.validarListaAntesDeGuardar==='function')await window.validarListaAntesDeGuardar();
                 products=normalizedStandardItems();
                 const transferItem=type==='traspaso'?products.find(item=>item.tipo==='traspaso'&&(item.traspasoModo||item.traspaso_modo)):null;
                 const projectTransfer=Boolean(source&&transferItem);

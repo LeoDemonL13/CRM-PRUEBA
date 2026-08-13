@@ -1,0 +1,30 @@
+#modal-proyecto.crm-workspace-overlay{background:rgba(0,0,0,.42)!important;align-items:center!important;justify-content:center!important;padding:18px!important}
+#modal-proyecto .crm-project-dialog{width:min(620px,calc(100vw - 36px))!important;max-width:620px!important;max-height:min(82dvh,720px)!important;min-height:0!important;overflow:hidden!important;border-radius:14px!important}
+#modal-proyecto .crm-dialog-head{padding:12px 16px!important}
+#modal-proyecto .crm-dialog-scroll{padding:14px 16px!important}
+#modal-proyecto .crm-dialog-scroll>.grid{gap:10px!important}
+#modal-proyecto .crm-dialog-foot{padding:10px 16px!important}
+#modal-proyecto input,#modal-proyecto select{padding-top:.52rem!important;padding-bottom:.52rem!important}
+#modal-proyecto #ayuda-tipo-control{padding:.55rem .75rem!important;line-height:1.45!important}
+#lista-productos .fila-nueva{animation:none!important}
+@media(min-width:641px){
+ #modal-proyecto .crm-project-dialog .sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #modal-proyecto .crm-project-dialog .sm\:col-span-2{grid-column:span 2/span 2!important}
+}
+@media(max-height:760px) and (min-width:641px){
+ #modal-proyecto.crm-workspace-overlay{padding:10px!important}
+ #modal-proyecto .crm-project-dialog{max-height:calc(100dvh - 20px)!important}
+ #modal-proyecto .crm-dialog-head{padding:9px 14px!important}
+ #modal-proyecto .crm-dialog-scroll{padding:10px 14px!important}
+ #modal-proyecto .crm-dialog-scroll>.grid{gap:8px!important}
+ #modal-proyecto .crm-dialog-foot{padding:8px 14px!important}
+ #modal-proyecto input,#modal-proyecto select{padding-top:.42rem!important;padding-bottom:.42rem!important}
+}
+@media(max-width:640px){
+ #modal-proyecto.crm-workspace-overlay{padding:6px!important;align-items:stretch!important}
+ #modal-proyecto .crm-project-dialog{width:100%!important;max-width:none!important;height:auto!important;max-height:calc(100dvh - 12px)!important;border-radius:12px!important}
+ #modal-proyecto .crm-project-dialog .sm\:grid-cols-2{grid-template-columns:1fr!important}
+ #modal-proyecto .crm-project-dialog .sm\:col-span-2{grid-column:auto!important}
+ #modal-proyecto .crm-dialog-scroll{padding:12px!important}
+ #modal-proyecto .crm-dialog-foot{padding:9px 12px!important}
+}
