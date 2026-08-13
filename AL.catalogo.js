@@ -151,6 +151,7 @@
         const pending = [];
         if (!String(material?.categoria || '').trim()) pending.push('categoria');
         if (!String(material?.unidad || '').trim()) pending.push('unidad');
+        if (!String(material?.codigoMarca || material?.codigo_marca || '').trim()) pending.push('codigo_marca');
         if (isCableCategory(material?.categoria) && !String(material?.tipoCable || material?.tipo_cable || '').trim()) pending.push('tipo_cable');
         if (isCableCategory(material?.categoria) && !String(material?.tamano || material?.tamano_mm2 || '').trim()) pending.push('tamano_mm2');
         if (!(Number(material?.precio) > 0)) pending.push('precio');
@@ -161,6 +162,7 @@
         const labels = {
             categoria: 'categoría',
             unidad: 'unidad',
+            codigo_marca: 'código de marca / modelo',
             precio: 'precio',
             imagen: 'imagen',
             tipo_cable: 'tipo de cable',
@@ -260,6 +262,7 @@
             tipoCable: isCableCategory(document.getElementById('p-categoria').value) ? document.getElementById('p-tipo').value.trim() : '',
             tamano: isCableCategory(document.getElementById('p-categoria').value) ? document.getElementById('p-tamano').value.trim() : '',
             marca: document.getElementById('p-marca')?.value.trim() || '',
+            codigoMarca: document.getElementById('p-codigo-marca')?.value.trim() || '',
             proveedor: document.getElementById('p-proveedor')?.value.trim() || '',
             contactoProveedor: document.getElementById('p-contacto-proveedor')?.value.trim() || '',
             precio: Number(document.getElementById('p-precio').value) || 0,

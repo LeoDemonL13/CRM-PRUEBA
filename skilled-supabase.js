@@ -536,6 +536,8 @@
             stock_maximo: totalMaximum,
             precio: number(row.precio),
             marca: text(row.marca),
+            codigoMarca: text(row.codigo_marca),
+            codigo_marca: text(row.codigo_marca),
             proveedor: text(row.proveedor),
             contactoProveedor: text(row.contacto_proveedor),
             contacto_proveedor: text(row.contacto_proveedor),
@@ -569,6 +571,7 @@
         const pendientes = [];
         if (!categoria) pendientes.push('categoria');
         if (!unidad) pendientes.push('unidad');
+        if (!text(material.codigoMarca ?? material.codigo_marca)) pendientes.push('codigo_marca');
         if (cable && !tipoCable) pendientes.push('tipo_cable');
         if (cable && !tamanoCable) pendientes.push('tamano_mm2');
         if (precio <= 0) pendientes.push('precio');
@@ -582,6 +585,7 @@
             unidad: unidad || null,
             precio,
             marca: text(material.marca) || null,
+            codigo_marca: text(material.codigoMarca ?? material.codigo_marca) || null,
             proveedor: text(material.proveedor) || null,
             contacto_proveedor: text(material.contactoProveedor ?? material.contacto_proveedor) || null,
             modismos: Array.isArray(material.modismos)
@@ -608,6 +612,8 @@
             material?.tamano,
             material?.tamano_mm2,
             material?.marca,
+            material?.codigoMarca,
+            material?.codigo_marca,
             material?.proveedor,
             material?.contactoProveedor,
             material?.contacto_proveedor,
@@ -1099,6 +1105,11 @@
                 row.codigo = existing.codigo;
                 row.stock = number(existing.stock);
                 row.stock_minimo = number(existing.stock_minimo);
+                if (!row.codigo_marca && text(existing.codigo_marca)) {
+                    row.codigo_marca = text(existing.codigo_marca);
+                    row.campos_pendientes = (row.campos_pendientes || []).filter(field => field !== 'codigo_marca');
+                    row.es_incompleto = row.campos_pendientes.length > 0;
+                }
                 updated += 1;
             } else {
                 row.stock = 0;
@@ -1450,6 +1461,7 @@
             const unidad = text(item.unidad ?? product.unidad);
             const categoria = text(item.categoria ?? product.categoria);
             const precio = number(item.precio ?? item.precio_unitario ?? product.precio);
+            const codigoMarca = text(item.codigoMarca ?? item.codigo_marca ?? product.codigoMarca ?? product.codigo_marca);
 
             return {
                 ...item,
@@ -1461,6 +1473,8 @@
                 descripcion,
                 unidad,
                 categoria,
+                codigoMarca,
+                codigo_marca: codigoMarca,
                 producto: {
                     ...product,
                     codigo,
@@ -1468,6 +1482,8 @@
                     descripcion,
                     unidad,
                     categoria,
+                    codigoMarca,
+                    codigo_marca: codigoMarca,
                     precio,
                     esNoListado,
                     es_no_listado: esNoListado
@@ -1531,6 +1547,22 @@
             }));
         }
         assertNoError(error, 'No se pudo registrar el movimiento.');
+
+        for (const item of normalizedProducts.filter(product => product.esNoListado)) {
+            try {
+                await createIncompleteMaterial({
+                    codigo: item.codigo,
+                    descripcion: item.descripcion,
+                    categoria: item.categoria,
+                    unidad: item.unidad,
+                    precio: item.precio,
+                    codigoMarca: item.codigoMarca,
+                    origen: 'movimiento_no_listado'
+                });
+            } catch (syncError) {
+                console.warn('El movimiento se registró, pero no se pudo sincronizar el material no enlistado con el catálogo.', syncError);
+            }
+        }
 
         const commonPurchaseDate = text(payload.fechaOrdenCompra ?? payload.fecha_orden_compra ?? normalizedProducts.find(item => item.fechaOrdenCompra)?.fechaOrdenCompra);
         const commonReference = text(payload.referencia ?? normalizedProducts.find(item => item.referencia)?.referencia);
@@ -2411,7 +2443,7 @@
         return rows.filter(row => {
             if (category && lower(row.categoria) !== category) return false;
             if (search) {
-                const values = [row.codigo, row.descripcion, row.categoria, row.almacenNombre, row.marca, row.proveedor, row.contactoProveedor, ...(Array.isArray(row.modismos) ? row.modismos : [])];
+                const values = [row.codigo, row.descripcion, row.categoria, row.almacenNombre, row.marca, row.codigoMarca, row.codigo_marca, row.proveedor, row.contactoProveedor, ...(Array.isArray(row.modismos) ? row.modismos : [])];
                 const hay = window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, search) : values.some(value => lower(value).includes(search));
                 if (!hay) return false;
             }
@@ -3282,6 +3314,7 @@
         const category = rawCategory || 'Sin clasificar';
         const unit = rawUnit || 'pieza';
         const price = number(payload.precio);
+        const brandCode = text(payload.codigoMarca ?? payload.codigo_marca ?? payload.modelo);
         const origin = text(payload.origen ?? payload.origenAlta) || 'alta_manual';
         if (!code || !description) {
             throw new Error('Código y descripción son obligatorios.');
@@ -3289,24 +3322,41 @@
         await ensureCategoryExists(category);
         const currentResult = await client.from('materiales').select('*').eq('codigo', code).maybeSingle();
         assertNoError(currentResult.error, 'No se pudo consultar el catálogo.');
-        if (currentResult.data) return materialFromDb(currentResult.data);
+        if (currentResult.data) {
+            if (brandCode && text(currentResult.data.codigo_marca) !== brandCode) {
+                const pending = Array.isArray(currentResult.data.campos_pendientes)
+                    ? currentResult.data.campos_pendientes.filter(field => field !== 'codigo_marca')
+                    : [];
+                const updateExisting = await client.from('materiales').update({
+                    codigo_marca: brandCode,
+                    campos_pendientes: pending,
+                    es_incompleto: pending.length > 0,
+                    updated_at: new Date().toISOString()
+                }).eq('codigo', code).select('*').maybeSingle();
+                assertNoError(updateExisting.error, 'No se pudo guardar el código de marca / modelo del material.');
+                if (updateExisting.data) return materialFromDb(updateExisting.data);
+            }
+            return materialFromDb(currentResult.data);
+        }
         const { data, error } = await client.rpc('crear_material_incompleto', {
             p_codigo: code,
             p_descripcion: description,
             p_categoria: category,
             p_unidad: unit,
             p_precio: price,
+            p_codigo_marca: brandCode || null,
             p_origen: origin
         });
         if (error) {
             const codeValue = text(error.code);
-            if (['PGRST202','42883','PGRST204','42703'].includes(codeValue)) throw new Error('Falta aplicar la actualización SQL V44 para registrar materiales incompletos.');
+            if (['PGRST202','42883','PGRST204','42703'].includes(codeValue)) throw new Error('Falta aplicar la actualización SQL V63 para registrar materiales incompletos con código de marca / modelo.');
             assertNoError(error, 'No se pudo crear el material incompleto.');
         }
         const finalCode = text(data || code);
         const pending = [];
         if (!rawCategory) pending.push('categoria');
         if (!rawUnit) pending.push('unidad');
+        if (!brandCode) pending.push('codigo_marca');
         if (price <= 0) pending.push('precio');
         pending.push('imagen');
         const updateResult = await client.from('materiales').update({
@@ -3351,6 +3401,7 @@
                     categoria: text(row.categoria),
                     unidad: text(row.unidad),
                     precio: number(row.precio_unitario),
+                    codigoMarca: text(row.codigo_marca),
                     origen: 'proyecto_no_listado_legacy'
                 });
                 catalog.add(lower(material.codigo || code));
@@ -3386,7 +3437,7 @@
         const manual = (manualMissing ? [] : (manualResult.data || [])).filter(row => !listedCodes.has(lower(row.codigo_manual))).map(row => {
             const code = text(row.codigo_manual);
             const material = materialByCode.get(lower(code)) || {
-                codigo: code, descripcion: text(row.descripcion) || code, desc: text(row.descripcion) || code, categoria: text(row.categoria), unidad: text(row.unidad) || 'pieza', precio: number(row.precio_unitario), stock: 0, imagen: '', esIncompleto: true, es_incompleto: true
+                codigo: code, descripcion: text(row.descripcion) || code, desc: text(row.descripcion) || code, categoria: text(row.categoria), codigoMarca: text(row.codigo_marca), codigo_marca: text(row.codigo_marca), unidad: text(row.unidad) || 'pieza', precio: number(row.precio_unitario), stock: 0, imagen: '', esIncompleto: true, es_incompleto: true
             };
             return {
                 id: `manual-${row.id}`, legacyId: row.id, proyecto: text(row.proyecto_numero), codigo: code, cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), observaciones: text(row.observaciones), esNoListado: true, es_no_listado: true, esIncompleto: true, estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material: { ...material, esNoListado: true, es_no_listado: true, esIncompleto: true }
@@ -3511,7 +3562,7 @@
             let material = catalogByCode.get(lower(code)) || sourceMaterial;
             if (!code) throw new Error('Uno de los materiales no tiene código o referencia.');
             if (!catalogByCode.has(lower(code))) {
-                material = await createIncompleteMaterial({ codigo: code, descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc) || code, categoria: text(line.categoria ?? sourceMaterial.categoria), unidad: text(line.unidad ?? sourceMaterial.unidad), precio: number(line.precioUnitario ?? sourceMaterial.precio), origen: 'plan_proyecto' });
+                material = await createIncompleteMaterial({ codigo: code, descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc) || code, categoria: text(line.categoria ?? sourceMaterial.categoria), unidad: text(line.unidad ?? sourceMaterial.unidad), precio: number(line.precioUnitario ?? sourceMaterial.precio), codigoMarca: text(line.codigoMarca ?? line.codigo_marca ?? sourceMaterial.codigoMarca ?? sourceMaterial.codigo_marca), origen: 'plan_proyecto' });
                 code = material.codigo;
                 catalogByCode.set(lower(code), material);
             }
@@ -3521,7 +3572,7 @@
             const keepLegacy = Boolean(line.esNoListado ?? line.es_no_listado) || (legacy && !currentByCode.has(lower(code)));
             if (keepLegacy && !legacyMissing) {
                 manualRows.push({
-                    proyecto_numero: project, codigo_manual: code, descripcion: text(line.descripcion ?? material.descripcion ?? material.desc) || code, categoria: text(line.categoria ?? material.categoria) || null, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada ?? legacy?.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante ?? legacy?.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: text(legacy?.estado_solicitud) || text(line.estadoSolicitud) || 'pendiente', aprobada_por: legacy?.aprobada_por || null, aprobada_at: legacy?.aprobada_at || null, rechazo_motivo: legacy?.rechazo_motivo || null, updated_at: new Date().toISOString()
+                    proyecto_numero: project, codigo_manual: code, descripcion: text(line.descripcion ?? material.descripcion ?? material.desc) || code, categoria: text(line.categoria ?? material.categoria) || null, codigo_marca: text(line.codigoMarca ?? line.codigo_marca ?? material.codigoMarca ?? material.codigo_marca) || null, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada ?? legacy?.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante ?? legacy?.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: text(legacy?.estado_solicitud) || text(line.estadoSolicitud) || 'pendiente', aprobada_por: legacy?.aprobada_por || null, aprobada_at: legacy?.aprobada_at || null, rechazo_motivo: legacy?.rechazo_motivo || null, updated_at: new Date().toISOString()
                 });
             } else {
                 const current = currentByCode.get(lower(code));
@@ -5789,7 +5840,7 @@
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
         const { data, error } = await client.rpc('crm_sky_perfil_consultar', { p_fuente: sourceKey, p_filtro: text(filter) || null });
-        assertNoError(error, 'Sky no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql V62.');
+        assertNoError(error, 'Sky no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql V63.');
         const rows = Array.isArray(data) ? data : [];
         if (sourceKey === 'materiales') {
             return rows.map(row => ({
@@ -5797,7 +5848,7 @@
                 tipoCable: text(row.tipo_cable), tipo_cable: text(row.tipo_cable), tamano: text(row.tamano_mm2), tamano_mm2: text(row.tamano_mm2),
                 unidad: text(row.unidad), precio: number(row.precio), stock: number(row.stock), stockMinimo: number(row.stock_minimo), stock_minimo: number(row.stock_minimo),
                 stockMedio: number(row.stock_medio), stock_medio: number(row.stock_medio), stockMaximo: number(row.stock_maximo), stock_maximo: number(row.stock_maximo),
-                marca: text(row.marca), proveedor: text(row.proveedor), contactoProveedor: text(row.contacto_proveedor), contacto_proveedor: text(row.contacto_proveedor),
+                marca: text(row.marca), codigoMarca: text(row.codigo_marca), codigo_marca: text(row.codigo_marca), proveedor: text(row.proveedor), contactoProveedor: text(row.contacto_proveedor), contacto_proveedor: text(row.contacto_proveedor),
                 rollosDisponibles: number(row.rollos_disponibles), rollos_disponibles: number(row.rollos_disponibles), metrosRollos: number(row.metros_rollos), metros_rollos: number(row.metros_rollos),
                 modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : [],
                 almacenes: Array.isArray(row.almacenes) ? row.almacenes.map(item => ({

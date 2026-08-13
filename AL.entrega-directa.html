@@ -6,23 +6,23 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=62" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=62">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=62">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=62">
-<link rel="manifest" href="/site.webmanifest?v=62">
+<link rel="icon" href="/favicon.ico?v=63" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=63">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=63">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=63">
+<link rel="manifest" href="/site.webmanifest?v=63">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=62"><script src="skilled-theme.js?v=62"></script>
-<script src="navegacion-suave.js?v=62"></script>
+<link rel="stylesheet" href="interfaz.css?v=63"><script src="skilled-theme.js?v=63"></script>
+<script src="navegacion-suave.js?v=63"></script>
 <title>Skilled - Entrega directa</title>
     <!-- FUENTE DE DATOS ÚNICA: SUPABASE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=62"></script>
-<script src="auth-guard.js?v=62"></script>
+    <script src="skilled-supabase.js?v=63"></script>
+<script src="auth-guard.js?v=63"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
-    <script src="AL.ticket-materiales.js?v=62"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=62">
+    <script src="AL.ticket-materiales.js?v=63"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=63">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <style>
         body {
@@ -94,9 +94,9 @@
         .ed-scanner-pulse { animation: edScannerPulse .35s ease-out; }
         @keyframes edScannerPulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.5); } 100% { box-shadow: 0 0 0 18px rgba(52,211,153,0); } }
     </style>
-    <script src="skilled-sidebar.js?v=62" defer></script>
-<script src="skilled-search.js?v=62"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='62',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+    <script src="skilled-sidebar.js?v=63" defer></script>
+<script src="skilled-search.js?v=63"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='63',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
     <script>
@@ -440,11 +440,11 @@
     <!-- Modal: material no enlistado en entrega directa -->
     <div id="modal-no-listado-entrega" class="hidden fixed inset-0 bg-black/75 z-[70] items-center justify-center p-4">
         <div class="bg-[#090d1a] border border-[#232f4e] rounded-xl w-full max-w-xl shadow-2xl">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-[#161f38]"><div><h3 class="text-sm font-bold text-white">Material no enlistado</h3><p class="text-[10px] text-gray-500 mt-1">Aparecerá en el ticket, pero no descontará stock del catálogo.</p></div><button type="button" onclick="cerrarMaterialNoListadoEntrega()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></div>
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#161f38]"><div><h3 class="text-sm font-bold text-white">Material no enlistado</h3><p class="text-[10px] text-gray-500 mt-1">Puedes capturar su código de marca / modelo para identificar exactamente el material requerido y conservar su trazabilidad.</p></div><button type="button" onclick="cerrarMaterialNoListadoEntrega()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button></div>
             <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="sm:col-span-2"><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Descripción *</label><input id="ed-nl-descripcion" type="text" placeholder="Ej. Material comprado directamente para la obra" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
                 <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código o referencia</label><input id="ed-nl-codigo" type="text" placeholder="Se genera si lo dejas vacío" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
-                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label><input id="ed-nl-categoria" type="text" placeholder="Ej. Misceláneos" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código de marca / modelo</label><input id="ed-nl-codigo-marca" type="text" placeholder="Número de parte o modelo del fabricante" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div><div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label><input id="ed-nl-categoria" type="text" placeholder="Ej. Misceláneos" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
                 <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Unidad *</label><input id="ed-nl-unidad" type="text" placeholder="PIEZA, METRO, LOTE..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
                 <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Precio unitario</label><input id="ed-nl-precio" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
             </div>
@@ -728,7 +728,7 @@
 
         function abrirMaterialNoListadoEntrega() {
             cerrarModalMaterial();
-            ['ed-nl-descripcion', 'ed-nl-codigo', 'ed-nl-categoria', 'ed-nl-unidad'].forEach(id => document.getElementById(id).value = '');
+            ['ed-nl-descripcion', 'ed-nl-codigo', 'ed-nl-codigo-marca', 'ed-nl-categoria', 'ed-nl-unidad'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('ed-nl-precio').value = '0';
             const modal = document.getElementById('modal-no-listado-entrega');
             modal.classList.remove('hidden'); modal.classList.add('flex');
@@ -745,12 +745,13 @@
             const unidad = document.getElementById('ed-nl-unidad').value.trim();
             const codigo = document.getElementById('ed-nl-codigo').value.trim() || generarCodigoNoListadoEntrega();
             const categoria = document.getElementById('ed-nl-categoria').value.trim();
+            const codigoMarca = document.getElementById('ed-nl-codigo-marca').value.trim();
             const precio = Math.max(0, Number(document.getElementById('ed-nl-precio').value) || 0);
             if (!descripcion) { alert('Escribe la descripción del material.'); return; }
             if (!unidad) { alert('Escribe la unidad del material.'); return; }
             const existente = entregaMateriales.find(it => it.producto.codigo.toLowerCase() === codigo.toLowerCase());
             if (existente) existente.cantidad += 1;
-            else entregaMateriales.push({ producto: { codigo, desc: descripcion, descripcion, unidad, categoria, precio, esNoListado: true, es_no_listado: true }, cantidad: 1, stockDisponible: null, esNoListado: true });
+            else entregaMateriales.push({ producto: { codigo, desc: descripcion, descripcion, unidad, categoria, codigoMarca, codigo_marca: codigoMarca, precio, esNoListado: true, es_no_listado: true }, cantidad: 1, stockDisponible: null, esNoListado: true });
             cerrarMaterialNoListadoEntrega();
             renderMateriales();
         }
@@ -1174,10 +1175,10 @@
         renderMateriales();
         actualizarDisplayDatos();
     </script>
-<script src="AL.entrega-directa.js?v=62"></script>
-<script src="AL.materiales-incompletos.js?v=62"></script>
+<script src="AL.entrega-directa.js?v=63"></script>
+<script src="AL.materiales-incompletos.js?v=63"></script>
 
 
-<script src="skilled-performance.js?v=62" defer></script>
+<script src="skilled-performance.js?v=63" defer></script>
 </body>
 </html>

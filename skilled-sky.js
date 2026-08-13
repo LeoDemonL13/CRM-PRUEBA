@@ -664,7 +664,7 @@
         const words = new Set(BASE_SPEECH_WORDS);
         const push = value => normalize(value).split(' ').forEach(token => { if (token.length >= 3 && token.length <= 28 && !/^\d+$/.test(token)) words.add(token); });
         if (profile === 'almacen' || profile === 'consulta') {
-            (Array.isArray(cache.materials) ? cache.materials : []).slice(0, 1600).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
+            (Array.isArray(cache.materials) ? cache.materials : []).slice(0, 1600).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.codigoMarca,item.codigo_marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
             (Array.isArray(cache.tools) ? cache.tools : []).slice(0, 600).forEach(item => [item.sku,item.descripcion,item.marca,item.modelo,item.clasificacion].forEach(push));
             (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0, 300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
             (Array.isArray(cache.projects) ? cache.projects : []).slice(0, 700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
@@ -678,7 +678,7 @@
         } else if (profile === 'rh') {
             (Array.isArray(cache.rhPeople) ? cache.rhPeople : []).slice(0,900).forEach(item => [item.numero_empleado,item.nombre,item.apellidos,item.puesto,item.departamento].forEach(push));
         } else if (isExecutiveReadProfile(profile)) {
-            (Array.isArray(cache.materials) ? cache.materials : []).slice(0,1400).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
+            (Array.isArray(cache.materials) ? cache.materials : []).slice(0,1400).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.codigoMarca,item.codigo_marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
             (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0,300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
             (Array.isArray(cache.projectDetails) ? cache.projectDetails : []).slice(0,700).forEach(item => [item.proyecto,item.nombreProyecto,item.cliente].forEach(push));
             (Array.isArray(cache.coSuppliers) ? cache.coSuppliers : []).slice(0,500).forEach(item => [item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email].forEach(push));
@@ -1621,12 +1621,12 @@
     }
 
     function materialSearchText(material) {
-        const values = [material.codigo, material.descripcion, material.desc, material.categoria, material.unidad, material.marca, material.tipoCable, material.tamano, ...(Array.isArray(material.modismos) ? material.modismos : [])];
+        const values = [material.codigo, material.descripcion, material.desc, material.categoria, material.unidad, material.marca, material.codigoMarca, material.codigo_marca, material.tipoCable, material.tamano, ...(Array.isArray(material.modismos) ? material.modismos : [])];
         return normalize(values.join(' '));
     }
 
     function rankMaterial(material, rawQuery) {
-        const values = [material.codigo,material.descripcion,material.desc,material.categoria,material.unidad,material.marca,material.tipoCable,material.tamano,material.proveedor,material.contactoProveedor,...(Array.isArray(material.modismos)?material.modismos:[])];
+        const values = [material.codigo,material.descripcion,material.desc,material.categoria,material.unidad,material.marca,material.codigoMarca,material.codigo_marca,material.tipoCable,material.tamano,material.proveedor,material.contactoProveedor,...(Array.isArray(material.modismos)?material.modismos:[])];
         if (window.SkilledSearch?.score) {
             let score = window.SkilledSearch.score(values, rawQuery);
             const queryNorm = normalize(rawQuery), code = normalize(material.codigo);
@@ -1683,7 +1683,7 @@
             const stock = Array.isArray(material.almacenes) ? material.almacenes.reduce((sum,row) => sum + number(row.stock), 0) : number(material.stock);
             const locations = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(row => number(row.stock) > 0 || text(row.ubicacion)).slice(0, 2).map(row => `${row.nombre || 'Almacén'}${row.ubicacion ? ` · ${row.ubicacion}` : ''}`).join(' / ');
             const rollDetail = /^(cable|cables)$/i.test(text(material.categoria)) && number(material.rollosDisponibles ?? material.rollos_disponibles) > 0 ? ` · ${formatNumber(material.rollosDisponibles ?? material.rollos_disponibles)} rollo(s)` : '';
-            return { title: `${material.codigo || 'Sin código'} · ${material.descripcion || material.desc || 'Material'}`, detail: `${formatNumber(stock)} ${material.unidad || 'unidades'}${rollDetail}${locations ? ` · ${locations}` : ''}` };
+            return { title: `${material.codigo || 'Sin código'} · ${material.descripcion || material.desc || 'Material'}`, detail: `${material.marca || 'Sin marca'}${material.codigoMarca || material.codigo_marca ? ` · ${material.codigoMarca || material.codigo_marca}` : ''} · ${formatNumber(stock)} ${material.unidad || 'unidades'}${rollDetail}${locations ? ` · ${locations}` : ''}` };
         });
         const queryLabel = queryText || normalize(raw);
         const detail = `${formatNumber(totalStock)} unidades acumuladas entre las coincidencias. ${matches.length > cards.length ? `Se muestran las primeras ${cards.length} de ${matches.length}.` : 'Se muestran todas las coincidencias encontradas.'}`;
@@ -1712,6 +1712,15 @@
         const inventories = (Array.isArray(material.almacenes) ? material.almacenes : []).filter(item => locationOnly ? Boolean(text(item.ubicacion)) || number(item.stock) > 0 : number(item.stock) !== 0 || Boolean(text(item.ubicacion)));
         const total = (material.almacenes || []).reduce((sum, item) => sum + number(item.stock), 0);
         const cards = inventories.map(item => ({ title: item.nombre || 'Almacén', detail: `${formatNumber(item.stock)} ${material.unidad || 'unidades'}${item.ubicacion ? ` · ${item.ubicacion}` : ' · sin ubicación específica'}` }));
+        const rawNorm = commandNormalize(raw);
+        const asksBrandCode = /\b(codigo|código|numero|número|referencia|modelo|parte|part number)\b.*\b(marca|fabricante|modelo|parte)\b|\b(codigo|código)\s+de\s+(marca|fabricante)\b/.test(rawNorm);
+        if (asksBrandCode) {
+            const brandCode = text(material.codigoMarca || material.codigo_marca);
+            const main = brandCode ? `${material.descripcion}: el código de marca / modelo es ${brandCode}.` : `${material.descripcion} todavía no tiene código de marca / modelo registrado.`;
+            const detail = `${material.marca ? `Marca ${material.marca}. ` : ''}${brandCode ? 'Este dato corresponde a la referencia o modelo oficial del fabricante.' : 'Puedes completarlo desde el catálogo de materiales.'}`;
+            setAnswer('Código de marca / modelo', main, detail, [{ title: `${material.codigo} · ${material.descripcion}`, detail: `${material.marca || 'Sin marca'} · ${brandCode || 'Pendiente de capturar'}` }], { href: `AL.catalogo.html?q=${encodeURIComponent(material.codigo)}`, label: 'Abrir material' });
+            return main;
+        }
         if (locationOnly) {
             const located = inventories.filter(item => text(item.ubicacion));
             const main = located.length ? `${material.descripcion} tiene ${located.length === 1 ? 'esta ubicación' : 'estas ubicaciones'}.` : `${material.descripcion} todavía no tiene una ubicación física específica registrada.`;
@@ -2657,7 +2666,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=62'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=63'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3291,7 +3300,7 @@
                 const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(rows,query,item=>fields(item)):rows.filter(item=>matchesTokens(fields(item),searchTokens(query)));
                 ranked.slice(0,6).forEach(item=>hits.push({tipo,titulo:titleFn(item),detalle:detailFn(item)}));
             };
-            add('Material',materials,m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,...(m.modismos||[])],m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`);
+            add('Material',materials,m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,...(m.modismos||[])],m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`);
             add('Persona',people,p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo],p=>`${p.nombre||''} ${p.apellidos||''}`.trim(),p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`);
             add('Herramienta',tools,t=>[t.sku,t.descripcion,t.clasificacion,t.marca,t.modelo],t=>`${t.sku||'—'} · ${t.descripcion||'Herramienta'}`,t=>`${formatNumber(t.disponibles)} disponibles`);
             add('Almacén',warehouses,w=>[w.nombre,w.tipo,w.ubicacion,w.encargado],w=>w.nombre||'Almacén',w=>`${w.ubicacion||'Sin ubicación'} · ${formatNumber(w.materiales)} materiales`);
@@ -3554,7 +3563,7 @@
                 hits.forEach(hit=>{const line=`${hit.tipo||'Dato'}: ${hit.titulo||hit.nombre||''}${hit.detalle?` — ${hit.detalle}`:''}`;const key=normalize(line);if(!seen.has(key)&&lines.length<12){seen.add(key);lines.push(line)}});
             } else if (profile==='almacen') {
                 const mats=await loadData('materials').catch(()=>[]);
-                const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(mats,query,m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,...(m.modismos||[])]):[];
+                const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(mats,query,m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,...(m.modismos||[])]):[];
                 ranked.slice(0,8).forEach(m=>lines.push(`Material: ${m.codigo} — ${m.descripcion||m.desc}; stock ${formatNumber(m.stock)} ${m.unidad||''}; categoría ${m.categoria||'—'}`));
             } else if (profile==='rh') {
                 const people=await loadData('rhPeople').catch(()=>[]);
@@ -3597,14 +3606,14 @@
         const commonProject = {type:'Proyecto',key:'projects',fields:p=>[p.proyecto,p.nombre,p.cliente,p.responsable,p.estado],title:p=>`${p.proyecto||'—'} · ${p.nombre||'Proyecto'}`,detail:p=>`${p.cliente||'Sin cliente'} · ${p.estado||'sin estado'}`};
         const configs = {
             almacen:[
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,...(m.modismos||[])],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,...(m.modismos||[])],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
                 {type:'Herramienta',key:'tools',fields:t=>[t.sku,t.descripcion,t.clasificacion,t.marca,t.modelo],title:t=>`${t.sku||'—'} · ${t.descripcion||'Herramienta'}`,detail:t=>`${t.estado||'sin estado'}`},
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`},
                 commonProject
             ],
             compras:[
                 {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.contacto,p.email,p.telefono,p.whatsapp,p.rfc],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${m.categoria||'Sin categoría'} · ${m.proveedor||'sin proveedor'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${m.categoria||'Sin categoría'} · ${m.proveedor||'sin proveedor'}`},
                 {type:'Cotización',key:'coQuotations',fields:q=>[q.folio,q.estado,q.prioridad,q.proveedor,q.descripcion,q.material,q.proyecto],title:q=>q.folio||q.descripcion||q.material||'Cotización',detail:q=>`${q.estado||'sin estado'} · ${q.prioridad||'sin prioridad'}`},
                 commonProject
             ],
@@ -3621,19 +3630,19 @@
             ],
             proyectos:[
                 commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
                 {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
                 {type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proveedor,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'} · ${o.proveedor||'sin proveedor'}`}
             ],
             planeacion:[
                 commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
                 {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
             ],
             coordinacion:[
                 commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
                 {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
                 {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
@@ -3641,12 +3650,12 @@
             logistica:[
                 commonProject,
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
                 {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`}
             ],
             administrador:[
                 commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
                 {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
                 {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
@@ -3658,7 +3667,7 @@
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
             ],
             tsi:[
-                {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
+                {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
                 commonProject
             ],
             consulta:[commonProject]

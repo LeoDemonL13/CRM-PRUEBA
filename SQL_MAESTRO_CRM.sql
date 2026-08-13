@@ -4442,6 +4442,7 @@ alter table if exists public.rh_proyecto_asignaciones add column if not exists p
 alter table if exists public.existencias_almacen add column if not exists stock_medio numeric not null default 0;
 alter table if exists public.existencias_almacen add column if not exists stock_maximo numeric not null default 0;
 
+alter table public.materiales add column if not exists codigo_marca text;
 alter table public.materiales add column if not exists es_incompleto boolean not null default false;
 alter table public.materiales add column if not exists origen_alta text;
 alter table public.materiales add column if not exists campos_pendientes text[] not null default '{}';
@@ -4542,7 +4543,7 @@ as $$
 declare v_result jsonb;
 begin
     if auth.uid() is null or not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','gerente_general','subgerente')) then raise exception using errcode='42501',message='Esta consulta de Sky está disponible solo para Dirección.'; end if;
-    select coalesce(jsonb_agg(jsonb_build_object('codigo',m.codigo,'descripcion',m.descripcion,'categoria',m.categoria,'tipo_cable',m.tipo_cable,'tamano_mm2',m.tamano_mm2,'unidad',m.unidad,'marca',m.marca,'proveedor',m.proveedor,'modismos',to_jsonb(m.modismos),'stock',coalesce(inv.stock,0),'stock_minimo',coalesce(inv.stock_minimo,0),'stock_medio',coalesce(inv.stock_medio,0),'stock_maximo',coalesce(inv.stock_maximo,0),'almacenes',coalesce(inv.almacenes,'[]'::jsonb)) order by m.codigo),'[]'::jsonb)
+    select coalesce(jsonb_agg(jsonb_build_object('codigo',m.codigo,'descripcion',m.descripcion,'categoria',m.categoria,'tipo_cable',m.tipo_cable,'tamano_mm2',m.tamano_mm2,'unidad',m.unidad,'marca',m.marca,'codigo_marca',m.codigo_marca,'proveedor',m.proveedor,'modismos',to_jsonb(m.modismos),'stock',coalesce(inv.stock,0),'stock_minimo',coalesce(inv.stock_minimo,0),'stock_medio',coalesce(inv.stock_medio,0),'stock_maximo',coalesce(inv.stock_maximo,0),'almacenes',coalesce(inv.almacenes,'[]'::jsonb)) order by m.codigo),'[]'::jsonb)
     into v_result
     from public.materiales m
     left join lateral(
@@ -5656,8 +5657,8 @@ begin
     if q in ('leo','leito') then q:='leobardo'; end if;
     likeq:='%'||q||'%';
 
-    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Material','titulo',m.codigo||' · '||m.descripcion,'detalle',coalesce(m.categoria,'Sin categoría')||' · '||coalesce(m.marca,'Sin marca'))),'[]'::jsonb)
-    into r from (select * from public.materiales m where coalesce(m.activo,true)=true and lower(concat_ws(' ',m.codigo,m.descripcion,m.categoria,m.marca,m.proveedor)) like likeq order by m.descripcion limit 12) m;
+    select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Material','titulo',m.codigo||' · '||m.descripcion,'detalle',concat_ws(' · ',coalesce(m.categoria,'Sin categoría'),coalesce(m.marca,'Sin marca'),nullif(m.codigo_marca,'')))),'[]'::jsonb)
+    into r from (select * from public.materiales m where coalesce(m.activo,true)=true and lower(concat_ws(' ',m.codigo,m.descripcion,m.categoria,m.marca,m.codigo_marca,m.proveedor)) like likeq order by m.descripcion limit 12) m;
 
     select r || coalesce(jsonb_agg(jsonb_build_object('tipo','Persona','titulo',btrim(coalesce(p.nombre,'')||' '||coalesce(p.apellidos,'')),'detalle',concat_ws(' · ',nullif(p.puesto,''),nullif(p.departamento,''),nullif(p.numero_empleado,'')))),'[]'::jsonb)
     into r from (select * from public.rh_personal p where lower(concat_ws(' ',p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo)) like likeq order by p.nombre,p.apellidos limit 10) p;
@@ -6757,7 +6758,7 @@ begin
         select coalesce(jsonb_agg(jsonb_build_object(
             'codigo',m.codigo,'descripcion',m.descripcion,'categoria',m.categoria,'tipo_cable',m.tipo_cable,'tamano_mm2',m.tamano_mm2,
             'unidad',m.unidad,'precio',case when v_role in ('administrador','compras','finanzas','gerente_general','subgerente','sky_demo') then coalesce(m.precio,0) else 0 end,
-            'marca',m.marca,'proveedor',m.proveedor,'contacto_proveedor',case when v_role in ('administrador','compras','gerente_general','subgerente','sky_demo') then m.contacto_proveedor else null end,
+            'marca',m.marca,'codigo_marca',m.codigo_marca,'proveedor',m.proveedor,'contacto_proveedor',case when v_role in ('administrador','compras','gerente_general','subgerente','sky_demo') then m.contacto_proveedor else null end,
             'modismos',to_jsonb(m.modismos),'stock',coalesce(inv.stock,0),'stock_minimo',coalesce(inv.stock_minimo,0),'stock_medio',coalesce(inv.stock_medio,0),'stock_maximo',coalesce(inv.stock_maximo,0),
             'almacenes',coalesce(inv.almacenes,'[]'::jsonb),'rollos_disponibles',coalesce(rr.rollos_disponibles,0),'metros_rollos',coalesce(rr.metros_rollos,0),'activo',coalesce(m.activo,true)
         ) order by m.codigo),'[]'::jsonb)
@@ -6774,7 +6775,7 @@ begin
         ) rr on true
         where coalesce(m.activo,true)=true
           and (v_role<>'tsi' or lower(btrim(coalesce(m.categoria,'')))='epp')
-          and (v_filtro is null or lower(concat_ws(' ',m.codigo,m.descripcion,m.categoria,m.marca,m.proveedor,m.tipo_cable,m.tamano_mm2)) like '%'||lower(v_filtro)||'%');
+          and (v_filtro is null or lower(concat_ws(' ',m.codigo,m.descripcion,m.categoria,m.marca,m.codigo_marca,m.proveedor,m.tipo_cable,m.tamano_mm2)) like '%'||lower(v_filtro)||'%');
         return coalesce(v_result,'[]'::jsonb);
     end if;
 
@@ -6926,3 +6927,122 @@ commit;
 select 'OK' as estado,
        'CRM-V62-SKY-PERFILES-CONTEXTO-2026-08-13' as revision,
        case when to_regprocedure('public.crm_sky_perfil_consultar(text,text)') is not null then 'OK' else 'FALTA' end as sky_perfiles;
+
+
+begin;
+
+alter table public.materiales add column if not exists codigo_marca text;
+alter table if exists public.proyecto_materiales_no_listados add column if not exists codigo_marca text;
+
+update public.materiales m
+set campos_pendientes=coalesce((
+        select array_agg(x order by ord)
+        from (
+            select 'categoria'::text x,1 ord where nullif(btrim(coalesce(m.categoria,'')),'') is null
+            union all select 'unidad',2 where nullif(btrim(coalesce(m.unidad,'')),'') is null
+            union all select 'codigo_marca',3 where nullif(btrim(coalesce(m.codigo_marca,'')),'') is null
+            union all select 'tipo_cable',4 where lower(btrim(coalesce(m.categoria,''))) in ('cable','cables') and nullif(btrim(coalesce(m.tipo_cable,'')),'') is null
+            union all select 'tamano_mm2',5 where lower(btrim(coalesce(m.categoria,''))) in ('cable','cables') and nullif(btrim(coalesce(m.tamano_mm2,'')),'') is null
+            union all select 'precio',6 where coalesce(m.precio,0)<=0
+            union all select 'imagen',7 where nullif(btrim(coalesce(m.imagen_url,'')),'') is null
+        ) q
+    ),'{}'::text[]),
+    es_incompleto=(
+        nullif(btrim(coalesce(m.categoria,'')),'') is null
+        or nullif(btrim(coalesce(m.unidad,'')),'') is null
+        or nullif(btrim(coalesce(m.codigo_marca,'')),'') is null
+        or (lower(btrim(coalesce(m.categoria,''))) in ('cable','cables') and nullif(btrim(coalesce(m.tipo_cable,'')),'') is null)
+        or (lower(btrim(coalesce(m.categoria,''))) in ('cable','cables') and nullif(btrim(coalesce(m.tamano_mm2,'')),'') is null)
+        or coalesce(m.precio,0)<=0
+        or nullif(btrim(coalesce(m.imagen_url,'')),'') is null
+    ),
+    updated_at=now();
+
+create or replace function public.crm_material_completitud_v63_trg()
+returns trigger
+language plpgsql
+set search_path=public
+as $$
+declare
+    v_pendientes text[]:=array[]::text[];
+begin
+    if nullif(btrim(coalesce(new.categoria,'')),'') is null then v_pendientes:=array_append(v_pendientes,'categoria'); end if;
+    if nullif(btrim(coalesce(new.unidad,'')),'') is null then v_pendientes:=array_append(v_pendientes,'unidad'); end if;
+    if nullif(btrim(coalesce(new.codigo_marca,'')),'') is null then v_pendientes:=array_append(v_pendientes,'codigo_marca'); end if;
+    if lower(btrim(coalesce(new.categoria,''))) in ('cable','cables') and nullif(btrim(coalesce(new.tipo_cable,'')),'') is null then v_pendientes:=array_append(v_pendientes,'tipo_cable'); end if;
+    if lower(btrim(coalesce(new.categoria,''))) in ('cable','cables') and nullif(btrim(coalesce(new.tamano_mm2,'')),'') is null then v_pendientes:=array_append(v_pendientes,'tamano_mm2'); end if;
+    if coalesce(new.precio,0)<=0 then v_pendientes:=array_append(v_pendientes,'precio'); end if;
+    if nullif(btrim(coalesce(new.imagen_url,'')),'') is null then v_pendientes:=array_append(v_pendientes,'imagen'); end if;
+    new.campos_pendientes:=v_pendientes;
+    new.es_incompleto:=coalesce(array_length(v_pendientes,1),0)>0;
+    return new;
+end;
+$$;
+
+drop trigger if exists trg_material_completitud_v63 on public.materiales;
+create trigger trg_material_completitud_v63
+before insert or update of categoria,unidad,codigo_marca,tipo_cable,tamano_mm2,precio,imagen_url on public.materiales
+for each row execute function public.crm_material_completitud_v63_trg();
+
+create or replace function public.crear_material_incompleto(
+    p_codigo text,
+    p_descripcion text,
+    p_categoria text,
+    p_unidad text,
+    p_precio numeric,
+    p_codigo_marca text,
+    p_origen text
+)
+returns text
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_codigo text:=btrim(coalesce(p_codigo,''));
+    v_descripcion text:=btrim(coalesce(p_descripcion,''));
+    v_categoria_raw text:=btrim(coalesce(p_categoria,''));
+    v_unidad_raw text:=btrim(coalesce(p_unidad,''));
+    v_codigo_marca_raw text:=btrim(coalesce(p_codigo_marca,''));
+    v_categoria text:=coalesce(nullif(v_categoria_raw,''),'Sin clasificar');
+    v_unidad text:=coalesce(nullif(v_unidad_raw,''),'pieza');
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','jefe_almacen','almacen','proyectos','compras']) then
+        raise exception using errcode='42501',message='Tu perfil no puede crear materiales incompletos.';
+    end if;
+    if v_codigo='' or v_descripcion='' then raise exception 'Código y descripción son obligatorios.'; end if;
+    if exists(select 1 from public.materiales m where lower(btrim(m.codigo))=lower(v_codigo)) then
+        update public.materiales
+        set codigo_marca=coalesce(nullif(v_codigo_marca_raw,''),codigo_marca),
+            updated_at=now()
+        where lower(btrim(codigo))=lower(v_codigo);
+        select m.codigo into v_codigo from public.materiales m where lower(btrim(m.codigo))=lower(v_codigo) limit 1;
+        return v_codigo;
+    end if;
+    if to_regclass('public.categorias_materiales') is not null then
+        insert into public.categorias_materiales(nombre,activo,updated_at)
+        values(v_categoria,true,now())
+        on conflict(nombre) do update set activo=true,updated_at=now();
+    end if;
+    insert into public.materiales(codigo,descripcion,categoria,unidad,precio,codigo_marca,imagen_url,origen_alta,activo,updated_at)
+    values(v_codigo,v_descripcion,v_categoria,v_unidad,greatest(coalesce(p_precio,0),0),nullif(v_codigo_marca_raw,''),null,coalesce(nullif(btrim(coalesce(p_origen,'')),''),'alta_manual'),true,now());
+    return v_codigo;
+end;
+$$;
+
+revoke all on function public.crear_material_incompleto(text,text,text,text,numeric,text,text) from public,anon;
+grant execute on function public.crear_material_incompleto(text,text,text,text,numeric,text,text) to authenticated;
+
+create index if not exists materiales_codigo_marca_lower_idx on public.materiales(lower(codigo_marca));
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V63-CODIGO-MARCA-MODELO-2026-08-13',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V63-CODIGO-MARCA-MODELO-2026-08-13' as revision,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='materiales' and column_name='codigo_marca') then 'OK' else 'FALTA' end as codigo_marca_materiales,
+       (select count(*) from public.materiales where coalesce(es_incompleto,false)=true) as materiales_por_completar;

@@ -52,6 +52,7 @@
             const descripcion = text(document.getElementById('plan-nl-descripcion')?.value);
             const categoria = text(document.getElementById('plan-nl-categoria')?.value);
             const unidad = text(document.getElementById('plan-nl-unidad')?.value);
+            const codigoMarca = text(document.getElementById('plan-nl-codigo-marca')?.value);
             const precio = Math.max(0, number(document.getElementById('plan-nl-precio')?.value));
             if (!codigo || !descripcion || !categoria || !unidad) {
                 return alert('Código, descripción, categoría y unidad son obligatorios.');
@@ -60,7 +61,7 @@
                 return alert('Ya existe un material con ese código dentro del plan.');
             }
             try {
-                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, origen: 'plan_proyecto' });
+                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, codigoMarca, origen: 'plan_proyecto' });
                 if (Array.isArray(catalogoMateriales) && !catalogoMateriales.some(item => String(item.codigo).toLowerCase() === codigo.toLowerCase())) {
                     catalogoMateriales.push(material);
                 }
@@ -93,12 +94,13 @@
             const descripcion = text(document.getElementById('ed-nl-descripcion')?.value);
             const categoria = text(document.getElementById('ed-nl-categoria')?.value);
             const unidad = text(document.getElementById('ed-nl-unidad')?.value);
+            const codigoMarca = text(document.getElementById('ed-nl-codigo-marca')?.value);
             const precio = Math.max(0, number(document.getElementById('ed-nl-precio')?.value));
             if (!codigo || !descripcion || !categoria || !unidad) {
                 return alert('Código, descripción, categoría y unidad son obligatorios.');
             }
             try {
-                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, origen: 'entrega_directa' });
+                const material = await SkilledDB.createIncompleteMaterial({ codigo, descripcion, categoria, unidad, precio, codigoMarca, origen: 'entrega_directa' });
                 const existing = entregaMateriales.find(item => String(item.producto?.codigo).toLowerCase() === material.codigo.toLowerCase());
                 if (existing) existing.cantidad += 1;
                 else entregaMateriales.push({

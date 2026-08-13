@@ -7,21 +7,21 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=62" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=62">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=62">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=62">
-<link rel="manifest" href="/site.webmanifest?v=62">
+<link rel="icon" href="/favicon.ico?v=63" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=63">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=63">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=63">
+<link rel="manifest" href="/site.webmanifest?v=63">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=62"><script src="skilled-theme.js?v=62"></script>
-<script src="navegacion-suave.js?v=62"></script>
+<link rel="stylesheet" href="interfaz.css?v=63"><script src="skilled-theme.js?v=63"></script>
+<script src="navegacion-suave.js?v=63"></script>
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=62"></script>
-<script src="auth-guard.js?v=62"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=62">
+    <script src="skilled-supabase.js?v=63"></script>
+<script src="auth-guard.js?v=63"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=63">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js" defer></script>
@@ -105,9 +105,9 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=62" defer></script>
-<script src="skilled-search.js?v=62"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='62',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+    <script src="skilled-sidebar.js?v=63" defer></script>
+<script src="skilled-search.js?v=63"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='63',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -696,7 +696,7 @@
             <div class="px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
                 <div>
                     <h3 class="text-sm font-bold text-white">Añadir material no enlistado</h3>
-                    <p class="text-[10px] text-gray-500 mt-1">Se registrará únicamente dentro del plan de este proyecto.</p>
+                    <p class="text-[10px] text-gray-500 mt-1">Se agregará al plan y quedará identificado por su código de marca / modelo para completar después su información comercial.</p>
                 </div>
                 <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
@@ -708,6 +708,10 @@
                 <div>
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código o referencia</label>
                     <input id="plan-nl-codigo" type="text" placeholder="Se genera si lo dejas vacío" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código de marca / modelo</label>
+                    <input id="plan-nl-codigo-marca" type="text" placeholder="Número de parte o modelo del fabricante" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label>
@@ -1105,7 +1109,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=62');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=63');
             }
             return cliente;
         }
@@ -1511,7 +1515,7 @@
         }
 
         function abrirMaterialNoListadoPlan() {
-            ['plan-nl-descripcion', 'plan-nl-codigo', 'plan-nl-categoria', 'plan-nl-unidad'].forEach(id => document.getElementById(id).value = '');
+            ['plan-nl-descripcion', 'plan-nl-codigo', 'plan-nl-codigo-marca', 'plan-nl-categoria', 'plan-nl-unidad'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('plan-nl-precio').value = '0';
             const modal = document.getElementById('modal-no-listado-plan');
             modal.classList.remove('hidden');
@@ -1530,6 +1534,7 @@
             const unidad = document.getElementById('plan-nl-unidad').value.trim();
             let codigo = document.getElementById('plan-nl-codigo').value.trim() || generarCodigoNoListadoPlan();
             const categoria = document.getElementById('plan-nl-categoria').value.trim();
+            const codigoMarca = document.getElementById('plan-nl-codigo-marca').value.trim();
             const precio = Math.max(0, Number(document.getElementById('plan-nl-precio').value) || 0);
             if (!descripcion) { alert('Escribe la descripción del material.'); return; }
             if (!unidad) { alert('Escribe la unidad del material.'); return; }
@@ -1537,7 +1542,7 @@
                 alert('Ya existe un material con ese código o referencia dentro del plan.');
                 return;
             }
-            const material = { codigo, desc: descripcion, descripcion, categoria, unidad, precio, stock: 0, imagen: '', esNoListado: true };
+            const material = { codigo, desc: descripcion, descripcion, categoria, codigoMarca, codigo_marca: codigoMarca, unidad, precio, stock: 0, imagen: '', esNoListado: true };
             planBorrador.push({
                 id: null,
                 codigo,
@@ -2474,9 +2479,9 @@ ${proyecto}`);
 
         cargarProyectos();
     </script>
-<script src="AL.proyectos.js?v=62"></script>
+<script src="AL.proyectos.js?v=63"></script>
 
 
-<script src="skilled-performance.js?v=62" defer></script>
+<script src="skilled-performance.js?v=63" defer></script>
 </body>
 </html>
