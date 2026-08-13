@@ -5786,6 +5786,52 @@
         const {data,error}=await client.rpc('crm_sky_direccion_activos_oficina');assertNoError(error,'Sky no pudo consultar los resguardos de RH.');return data||{activos:[],asignaciones:[]};
     }
 
+    async function getSkyProfileData(source, filter = '') {
+        const sourceKey = lower(source);
+        const { data, error } = await client.rpc('crm_sky_perfil_consultar', { p_fuente: sourceKey, p_filtro: text(filter) || null });
+        assertNoError(error, 'Sky no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql V62.');
+        const rows = Array.isArray(data) ? data : [];
+        if (sourceKey === 'materiales') {
+            return rows.map(row => ({
+                codigo: text(row.codigo), descripcion: text(row.descripcion), desc: text(row.descripcion), categoria: text(row.categoria),
+                tipoCable: text(row.tipo_cable), tipo_cable: text(row.tipo_cable), tamano: text(row.tamano_mm2), tamano_mm2: text(row.tamano_mm2),
+                unidad: text(row.unidad), precio: number(row.precio), stock: number(row.stock), stockMinimo: number(row.stock_minimo), stock_minimo: number(row.stock_minimo),
+                stockMedio: number(row.stock_medio), stock_medio: number(row.stock_medio), stockMaximo: number(row.stock_maximo), stock_maximo: number(row.stock_maximo),
+                marca: text(row.marca), proveedor: text(row.proveedor), contactoProveedor: text(row.contacto_proveedor), contacto_proveedor: text(row.contacto_proveedor),
+                rollosDisponibles: number(row.rollos_disponibles), rollos_disponibles: number(row.rollos_disponibles), metrosRollos: number(row.metros_rollos), metros_rollos: number(row.metros_rollos),
+                modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : [],
+                almacenes: Array.isArray(row.almacenes) ? row.almacenes.map(item => ({
+                    id: Number(item.id || 0), nombre: text(item.nombre), stock: number(item.stock),
+                    stockMinimo: number(item.stockMinimo ?? item.stock_minimo), stock_minimo: number(item.stockMinimo ?? item.stock_minimo),
+                    stockMedio: number(item.stockMedio ?? item.stock_medio), stock_medio: number(item.stockMedio ?? item.stock_medio),
+                    stockMaximo: number(item.stockMaximo ?? item.stock_maximo), stock_maximo: number(item.stockMaximo ?? item.stock_maximo), ubicacion: text(item.ubicacion)
+                })) : [], activo: row.activo !== false
+            }));
+        }
+        if (sourceKey === 'vehiculos') return rows.map(row => vehicleFromDb(row));
+        if (sourceKey === 'proyectos' || sourceKey === 'projectdetails') {
+            return rows.map(row => ({
+                proyecto: text(row.proyecto), idProyecto: text(row.idProyecto ?? row.proyecto), nombreProyecto: text(row.nombreProyecto ?? row.nombre), nombre: text(row.nombre ?? row.nombreProyecto),
+                cliente: text(row.cliente), ordenCompra: text(row.ordenCompra), planta: text(row.planta), nave: text(row.nave), responsableSkilled: text(row.responsableSkilled ?? row.responsable), responsable: text(row.responsable ?? row.responsableSkilled),
+                fechaAsignacion: text(row.fechaAsignacion), fechaEntrega: text(row.fechaEntrega), estado: text(row.estado), tipoControl: text(row.tipoControl ?? row.tipo_control) || 'materiales', tipo_control: text(row.tipo_control ?? row.tipoControl) || 'materiales',
+                presupuestoPlaneado: number(row.presupuestoPlaneado ?? row.presupuesto_planeado), presupuesto_planeado: number(row.presupuesto_planeado ?? row.presupuestoPlaneado),
+                lineas: number(row.lineas), planeado: number(row.planeado), consumido: number(row.consumido), costoPlaneado: number(row.costoPlaneado), costoConsumido: number(row.costoConsumido),
+                costoRealProyecto: number(row.costoRealProyecto ?? row.costoConsumido), costoMateriales: number(row.costoMateriales), costoNomina: number(row.costoNomina), costoFueraPlan: number(row.costoFueraPlan),
+                avance: number(row.avance), movimientos: number(row.movimientos), cantidadMovimientos: number(row.cantidadMovimientos ?? row.movimientos), ultimoMovimiento: text(row.ultimoMovimiento)
+            }));
+        }
+        if (sourceKey === 'herramientas') {
+            return rows.map(row => ({ ...row, id: Number(row.id || 0), sku: text(row.sku), descripcion: text(row.descripcion), desc: text(row.descripcion), clasificacion: text(row.clasificacion), marca: text(row.marca), modelo: text(row.modelo), uso: text(row.uso), unidad: text(row.unidad) || 'pieza', total: number(row.total), disponibles: number(row.disponibles), asignadas: number(row.asignadas), otros: number(row.otros), estado: number(row.disponibles) > 0 ? 'disponible' : number(row.asignadas) > 0 ? 'asignada' : 'sin disponibilidad', activo: row.activo !== false }));
+        }
+        if (sourceKey === 'compras' || sourceKey === 'purchases') {
+            return rows.map(row => ({ ...row, id: Number(row.id || 0), folio: text(row.folio), materialCodigo: text(row.materialCodigo), descripcion: text(row.descripcion), estado: text(row.estado), estadoCompras: text(row.estadoCompras), proveedor: text(row.proveedor), ordenCompra: text(row.ordenCompra), prioridad: text(row.prioridad), cantidadSolicitada: number(row.cantidadSolicitada), cantidadRecibida: number(row.cantidadRecibida), proyecto: text(row.proyecto) }));
+        }
+        if (sourceKey === 'cotizaciones' || sourceKey === 'quotations') {
+            return rows.map(row => ({ ...row, id: text(row.id), folio: text(row.folio), origen: text(row.origen), estado: text(row.estado), prioridad: text(row.prioridad), fechaRequerida: text(row.fechaRequerida), solicitadoPor: text(row.solicitadoPor), referencia: text(row.referencia), notas: text(row.notas), items: Array.isArray(row.items) ? row.items : [] }));
+        }
+        return rows;
+    }
+
     async function healthCheck() {
         const { error } = await client.from('materiales').select('codigo').limit(1);
         assertNoError(error, 'No se pudo conectar con Supabase.');
@@ -5819,6 +5865,7 @@
         assignRHOfficeAsset,
         closeRHOfficeAssetAssignment,
         getExecutiveRHOfficeAssets,
+        getSkyProfileData,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,

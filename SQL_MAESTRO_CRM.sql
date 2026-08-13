@@ -59,7 +59,26 @@ alter table public.perfiles_usuario add column if not exists telefono text;
 alter table public.perfiles_usuario add column if not exists puesto text;
 alter table public.perfiles_usuario add column if not exists departamento text;
 alter table public.perfiles_usuario add column if not exists foto_url text;
-update public.perfiles_usuario set rol=case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end where rol is distinct from case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end;
+update public.perfiles_usuario
+set rol = case
+    when lower(btrim(coalesce(rol,''))) in ('administrador','admin','administracion','administración') then 'administrador'
+    when lower(btrim(coalesce(rol,''))) in ('jefe_almacen','jefe almacen','jefe de almacen','jefe de almacén','responsable almacen','responsable de almacen') then 'jefe_almacen'
+    when lower(btrim(coalesce(rol,''))) in ('almacen','almacén','almacenista','bodega','bodeguero') then 'almacen'
+    when lower(btrim(coalesce(rol,''))) in ('compras','comprador','compradora','abastecimiento') then 'compras'
+    when lower(btrim(coalesce(rol,''))) in ('proyectos','proyecto','project manager','lider de proyecto','líder de proyecto') then 'proyectos'
+    when lower(btrim(coalesce(rol,''))) in ('planeacion','planeación','planeador','planeadora') then 'planeacion'
+    when lower(btrim(coalesce(rol,''))) in ('coordinacion','coordinación','coordinador','coordinadora') then 'coordinacion'
+    when lower(btrim(coalesce(rol,''))) in ('logistica','logística','logistico','logístico','logistica vehicular','logística vehicular') then 'logistica'
+    when lower(btrim(coalesce(rol,''))) in ('recepcion','recepción','recepcionista','front desk','entrada principal','caseta','atencion a visitantes','atención a visitantes') then 'recepcion'
+    when lower(btrim(coalesce(rol,''))) in ('rh','rrhh','recursos humanos','capital humano') then 'rh'
+    when lower(btrim(coalesce(rol,''))) in ('finanzas','financiero','financiera','contabilidad') then 'finanzas'
+    when lower(btrim(coalesce(rol,''))) in ('gerente_general','gerente general','gg','gerencia general','gerencia','direccion','dirección','director','directora') then 'gerente_general'
+    when lower(btrim(coalesce(rol,''))) in ('subgerente','subgerencia','sg','sub gerente') then 'subgerente'
+    when lower(btrim(coalesce(rol,''))) in ('tsi','sistemas','tecnologia','tecnología','tecnologias de la informacion','tecnologías de la información') then 'tsi'
+    when lower(btrim(coalesce(rol,''))) in ('sky_demo','sky demo','sky','demo') then 'sky_demo'
+    when lower(btrim(coalesce(rol,''))) in ('consulta','consultas','lector','lectura','solo lectura') then 'consulta'
+    else 'consulta'
+end;
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
 check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
@@ -1186,7 +1205,26 @@ begin
     end loop;
 end;
 $$;
-update public.perfiles_usuario set rol=case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end where rol is distinct from case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end;
+update public.perfiles_usuario
+set rol = case
+    when lower(btrim(coalesce(rol,''))) in ('administrador','admin','administracion','administración') then 'administrador'
+    when lower(btrim(coalesce(rol,''))) in ('jefe_almacen','jefe almacen','jefe de almacen','jefe de almacén','responsable almacen','responsable de almacen') then 'jefe_almacen'
+    when lower(btrim(coalesce(rol,''))) in ('almacen','almacén','almacenista','bodega','bodeguero') then 'almacen'
+    when lower(btrim(coalesce(rol,''))) in ('compras','comprador','compradora','abastecimiento') then 'compras'
+    when lower(btrim(coalesce(rol,''))) in ('proyectos','proyecto','project manager','lider de proyecto','líder de proyecto') then 'proyectos'
+    when lower(btrim(coalesce(rol,''))) in ('planeacion','planeación','planeador','planeadora') then 'planeacion'
+    when lower(btrim(coalesce(rol,''))) in ('coordinacion','coordinación','coordinador','coordinadora') then 'coordinacion'
+    when lower(btrim(coalesce(rol,''))) in ('logistica','logística','logistico','logístico','logistica vehicular','logística vehicular') then 'logistica'
+    when lower(btrim(coalesce(rol,''))) in ('recepcion','recepción','recepcionista','front desk','entrada principal','caseta','atencion a visitantes','atención a visitantes') then 'recepcion'
+    when lower(btrim(coalesce(rol,''))) in ('rh','rrhh','recursos humanos','capital humano') then 'rh'
+    when lower(btrim(coalesce(rol,''))) in ('finanzas','financiero','financiera','contabilidad') then 'finanzas'
+    when lower(btrim(coalesce(rol,''))) in ('gerente_general','gerente general','gg','gerencia general','gerencia','direccion','dirección','director','directora') then 'gerente_general'
+    when lower(btrim(coalesce(rol,''))) in ('subgerente','subgerencia','sg','sub gerente') then 'subgerente'
+    when lower(btrim(coalesce(rol,''))) in ('tsi','sistemas','tecnologia','tecnología','tecnologias de la informacion','tecnologías de la información') then 'tsi'
+    when lower(btrim(coalesce(rol,''))) in ('sky_demo','sky demo','sky','demo') then 'sky_demo'
+    when lower(btrim(coalesce(rol,''))) in ('consulta','consultas','lector','lectura','solo lectura') then 'consulta'
+    else 'consulta'
+end;
 
 alter table public.perfiles_usuario
     add constraint perfiles_usuario_rol_check
@@ -6518,7 +6556,7 @@ commit;
 
 select 'OK' as estado,
        'SQL_MAESTRO_CRM.sql' as archivo_maestro,
-       'V61_SKY_BUSQUEDA_ROLES_CORREGIDOS' as revision;
+       'V62_SKY_INTELIGENCIA_CHAT_REUNIONES' as revision;
 
 -- Usuario demo Sky de solo lectura
 -- Ejecuta este bloque después de crear el usuario skydemo@skilled.mx en Authentication.
@@ -6578,15 +6616,313 @@ select 'OK' as estado,
 
 
 update public.perfiles_usuario
-set rol='recepcion'
-where lower(btrim(coalesce(rol,''))) in ('recepción','recepcionista','front desk','entrada principal','caseta');
+set rol = case
+    when lower(btrim(coalesce(rol,''))) in ('administrador','admin','administracion','administración') then 'administrador'
+    when lower(btrim(coalesce(rol,''))) in ('jefe_almacen','jefe almacen','jefe de almacen','jefe de almacén','responsable almacen','responsable de almacen') then 'jefe_almacen'
+    when lower(btrim(coalesce(rol,''))) in ('almacen','almacén','almacenista','bodega','bodeguero') then 'almacen'
+    when lower(btrim(coalesce(rol,''))) in ('compras','comprador','compradora','abastecimiento') then 'compras'
+    when lower(btrim(coalesce(rol,''))) in ('proyectos','proyecto','project manager','lider de proyecto','líder de proyecto') then 'proyectos'
+    when lower(btrim(coalesce(rol,''))) in ('planeacion','planeación','planeador','planeadora') then 'planeacion'
+    when lower(btrim(coalesce(rol,''))) in ('coordinacion','coordinación','coordinador','coordinadora') then 'coordinacion'
+    when lower(btrim(coalesce(rol,''))) in ('logistica','logística','logistico','logístico','logistica vehicular','logística vehicular') then 'logistica'
+    when lower(btrim(coalesce(rol,''))) in ('recepcion','recepción','recepcionista','front desk','entrada principal','caseta','atencion a visitantes','atención a visitantes') then 'recepcion'
+    when lower(btrim(coalesce(rol,''))) in ('rh','rrhh','recursos humanos','capital humano') then 'rh'
+    when lower(btrim(coalesce(rol,''))) in ('finanzas','financiero','financiera','contabilidad') then 'finanzas'
+    when lower(btrim(coalesce(rol,''))) in ('gerente_general','gerente general','gg','gerencia general','gerencia','direccion','dirección','director','directora') then 'gerente_general'
+    when lower(btrim(coalesce(rol,''))) in ('subgerente','subgerencia','sg','sub gerente') then 'subgerente'
+    when lower(btrim(coalesce(rol,''))) in ('tsi','sistemas','tecnologia','tecnología','tecnologias de la informacion','tecnologías de la información') then 'tsi'
+    when lower(btrim(coalesce(rol,''))) in ('sky_demo','sky demo','sky','demo') then 'sky_demo'
+    when lower(btrim(coalesce(rol,''))) in ('consulta','consultas','lector','lectura','solo lectura') then 'consulta'
+    else 'consulta'
+end;
 
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
 check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
-insert into public.crm_migraciones_aplicadas(version,aplicada_at)
+insert into public.crm_migraciones(version,aplicada_at)
 values('CRM-V61-SKY-RECEPCION-CHAT-REUNIONES-2026-08-13',now())
 on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 notify pgrst,'reload schema';
+
+
+begin;
+
+drop policy if exists crm_chat_insert on public.crm_chat_mensajes;
+create policy crm_chat_insert on public.crm_chat_mensajes
+for insert to authenticated
+with check (
+    autor_id=auth.uid()
+    and exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true)
+);
+
+create or replace function public.crm_chat_enviar(p_mensaje text,p_destinatario uuid default null)
+returns bigint
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_id bigint;
+    v_text text:=btrim(coalesce(p_mensaje,''));
+begin
+    if auth.uid() is null then raise exception using errcode='42501',message='La sesión no está activa.'; end if;
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true) then
+        raise exception using errcode='42501',message='Tu perfil no está autorizado para enviar mensajes por el chat.';
+    end if;
+    if char_length(v_text)=0 then raise exception 'Escribe un mensaje.'; end if;
+    if char_length(v_text)>1500 then raise exception 'El mensaje puede contener hasta 1500 caracteres.'; end if;
+    if p_destinatario is not null and not exists(select 1 from public.perfiles_usuario p where p.id=p_destinatario and p.activo=true) then
+        raise exception 'El destinatario no está disponible.';
+    end if;
+    perform public.crm_chat_limpiar();
+    insert into public.crm_chat_mensajes(autor_id,destinatario_id,mensaje,expira_at)
+    values(auth.uid(),p_destinatario,v_text,public.crm_chat_expira_hoy())
+    returning id into v_id;
+    return v_id;
+end;
+$$;
+revoke all on function public.crm_chat_enviar(text,uuid) from public,anon;
+grant execute on function public.crm_chat_enviar(text,uuid) to authenticated;
+
+create or replace function public.crm_convocar_reunion_general(
+    p_titulo text default 'Reunión general',
+    p_fecha timestamptz default null,
+    p_mensaje text default ''
+) returns bigint
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_id bigint;
+    v_title text:=left(btrim(coalesce(p_titulo,'Reunión general')),120);
+    v_note text:=left(btrim(coalesce(p_mensaje,'')),700);
+    v_date timestamptz:=coalesce(p_fecha,now()+interval '15 minutes');
+    v_author text;
+    v_payload text;
+begin
+    if auth.uid() is null then raise exception using errcode='42501',message='La sesión no está activa.'; end if;
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true) then
+        raise exception using errcode='42501',message='Tu perfil no puede emitir convocatorias.';
+    end if;
+    select coalesce(nullif(btrim(nombre),''),'Usuario') into v_author from public.perfiles_usuario where id=auth.uid();
+    v_payload:='@@REUNION@@'||jsonb_build_object('titulo',v_title,'fecha',v_date,'nota',v_note,'convoca',coalesce(v_author,'Usuario'))::text;
+    perform public.crm_chat_limpiar();
+    insert into public.crm_chat_mensajes(autor_id,destinatario_id,mensaje,expira_at)
+    values(auth.uid(),null,v_payload,public.crm_chat_expira_hoy()) returning id into v_id;
+    return v_id;
+end;
+$$;
+revoke all on function public.crm_convocar_reunion_general(text,timestamptz,text) from public,anon;
+grant execute on function public.crm_convocar_reunion_general(text,timestamptz,text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V62-SKY-INTELIGENCIA-CHAT-REUNIONES-2026-08-13',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V62-SKY-INTELIGENCIA-CHAT-REUNIONES-2026-08-13' as revision,
+       case when to_regprocedure('public.crm_chat_enviar(text,uuid)') is not null then 'OK' else 'FALTA' end as chat_sky,
+       case when to_regprocedure('public.crm_convocar_reunion_general(text,timestamp with time zone,text)') is not null then 'OK' else 'FALTA' end as reuniones_sky;
+
+begin;
+
+create or replace function public.crm_sky_perfil_consultar(p_fuente text,p_filtro text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_role text;
+    v_fuente text:=lower(btrim(coalesce(p_fuente,'')));
+    v_filtro text:=nullif(btrim(coalesce(p_filtro,'')),'');
+    v_result jsonb:='[]'::jsonb;
+    v_financial boolean:=false;
+begin
+    if auth.uid() is null then raise exception using errcode='42501',message='La sesión no está activa.'; end if;
+    select lower(btrim(p.rol)) into v_role from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true;
+    if v_role is null then raise exception using errcode='42501',message='Tu perfil no está activo para Sky.'; end if;
+    if v_role not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then
+        raise exception using errcode='42501',message='Sky no está habilitado para este perfil.';
+    end if;
+    v_financial:=v_role in ('administrador','finanzas','gerente_general','subgerente','sky_demo');
+
+    if v_fuente='materiales' then
+        select coalesce(jsonb_agg(jsonb_build_object(
+            'codigo',m.codigo,'descripcion',m.descripcion,'categoria',m.categoria,'tipo_cable',m.tipo_cable,'tamano_mm2',m.tamano_mm2,
+            'unidad',m.unidad,'precio',case when v_role in ('administrador','compras','finanzas','gerente_general','subgerente','sky_demo') then coalesce(m.precio,0) else 0 end,
+            'marca',m.marca,'proveedor',m.proveedor,'contacto_proveedor',case when v_role in ('administrador','compras','gerente_general','subgerente','sky_demo') then m.contacto_proveedor else null end,
+            'modismos',to_jsonb(m.modismos),'stock',coalesce(inv.stock,0),'stock_minimo',coalesce(inv.stock_minimo,0),'stock_medio',coalesce(inv.stock_medio,0),'stock_maximo',coalesce(inv.stock_maximo,0),
+            'almacenes',coalesce(inv.almacenes,'[]'::jsonb),'rollos_disponibles',coalesce(rr.rollos_disponibles,0),'metros_rollos',coalesce(rr.metros_rollos,0),'activo',coalesce(m.activo,true)
+        ) order by m.codigo),'[]'::jsonb)
+        into v_result
+        from public.materiales m
+        left join lateral(
+            select sum(coalesce(e.stock,0))::numeric stock,sum(coalesce(e.stock_minimo,0))::numeric stock_minimo,sum(coalesce(e.stock_medio,0))::numeric stock_medio,sum(coalesce(e.stock_maximo,0))::numeric stock_maximo,
+            coalesce(jsonb_agg(jsonb_build_object('id',a.id,'nombre',a.nombre,'stock',coalesce(e.stock,0),'stockMinimo',coalesce(e.stock_minimo,0),'stockMedio',coalesce(e.stock_medio,0),'stockMaximo',coalesce(e.stock_maximo,0),'ubicacion',e.ubicacion) order by a.nombre),'[]'::jsonb) almacenes
+            from public.existencias_almacen e left join public.almacenes a on a.id=e.almacen_id where e.material_codigo=m.codigo
+        ) inv on true
+        left join lateral(
+            select count(*) filter(where r.activo=true and r.metros_disponibles>0)::bigint rollos_disponibles,coalesce(sum(r.metros_disponibles) filter(where r.activo=true),0)::numeric metros_rollos
+            from public.cable_rollos r where r.material_codigo=m.codigo
+        ) rr on true
+        where coalesce(m.activo,true)=true
+          and (v_role<>'tsi' or lower(btrim(coalesce(m.categoria,'')))='epp')
+          and (v_filtro is null or lower(concat_ws(' ',m.codigo,m.descripcion,m.categoria,m.marca,m.proveedor,m.tipo_cable,m.tamano_mm2)) like '%'||lower(v_filtro)||'%');
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente in ('proyectos','projectdetails') then
+        select coalesce(jsonb_agg(jsonb_build_object(
+            'proyecto',p.numero_proyecto,'idProyecto',p.numero_proyecto,'nombre',p.nombre_proyecto,'nombreProyecto',p.nombre_proyecto,'cliente',p.cliente,
+            'ordenCompra',p.orden_compra,'planta',p.planta,'nave',p.nave,'responsable',p.responsable_skilled,'responsableSkilled',p.responsable_skilled,
+            'fechaAsignacion',p.fecha_asignacion,'fechaEntrega',p.fecha_entrega,'estado',p.estado,'tipoControl',coalesce(p.tipo_control,'materiales'),'tipo_control',coalesce(p.tipo_control,'materiales'),
+            'planeado',coalesce(plan.qty,0),'consumido',greatest(coalesce(mov.qty,0),0),
+            'costoPlaneado',case when v_financial then case when p.tipo_control='presupuesto' then greatest(coalesce(p.presupuesto_planeado,0),0) else greatest(coalesce(plan.cost,0),0)+greatest(coalesce(pay.nomina_planeada,0),0) end else 0 end,
+            'presupuestoPlaneado',case when v_financial then greatest(coalesce(p.presupuesto_planeado,0),0) else 0 end,
+            'presupuesto_planeado',case when v_financial then greatest(coalesce(p.presupuesto_planeado,0),0) else 0 end,
+            'costoConsumido',case when v_financial then greatest(coalesce(mov.cost,0),0)+greatest(coalesce(pay.nomina_real,0),0) else 0 end,
+            'costoRealProyecto',case when v_financial then greatest(coalesce(mov.cost,0),0)+greatest(coalesce(pay.nomina_real,0),0) else 0 end,
+            'costoMateriales',case when v_financial then greatest(coalesce(mov.cost,0),0) else 0 end,
+            'costoNomina',case when v_financial then greatest(coalesce(pay.nomina_real,0),0) else 0 end,
+            'costoFueraPlan',0,
+            'avance',case when p.tipo_control='presupuesto' and v_financial and coalesce(p.presupuesto_planeado,0)>0 then (greatest(coalesce(mov.cost,0),0)+greatest(coalesce(pay.nomina_real,0),0))*100.0/p.presupuesto_planeado when coalesce(plan.qty,0)>0 then greatest(coalesce(mov.qty,0),0)*100.0/plan.qty else 0 end,
+            'movimientos',coalesce(mov.movimientos,0),'cantidadMovimientos',coalesce(mov.movimientos,0),'ultimoMovimiento',mov.ultimo_movimiento
+        ) order by p.numero_proyecto),'[]'::jsonb)
+        into v_result
+        from public.proyectos p
+        left join lateral(
+            select coalesce(sum(x.cantidad),0)::numeric qty,coalesce(sum(x.cantidad*x.precio),0)::numeric cost
+            from (
+                select coalesce(pm.cantidad_planeada,0)::numeric cantidad,coalesce(nullif(pm.precio_unitario,0),m.precio,0)::numeric precio
+                from public.proyecto_materiales pm left join public.materiales m on m.codigo=pm.material_codigo where pm.proyecto_numero=p.numero_proyecto
+                union all
+                select coalesce(pn.cantidad_planeada,0)::numeric,coalesce(pn.precio_unitario,0)::numeric
+                from public.proyecto_materiales_no_listados pn where pn.proyecto_numero=p.numero_proyecto
+            ) x
+        ) plan on true
+        left join lateral(
+            select coalesce(sum(case when lower(coalesce(mv.tipo,''))='salida' then coalesce(mv.cantidad,0) when lower(coalesce(mv.tipo,''))='reingreso' then -coalesce(mv.cantidad,0) when lower(coalesce(mv.tipo,''))='ajuste' and lower(coalesce(mv.ajuste_accion,''))='disminuir' then coalesce(mv.cantidad,0) else 0 end),0)::numeric qty,
+                   coalesce(sum((case when lower(coalesce(mv.tipo,''))='salida' then coalesce(mv.cantidad,0) when lower(coalesce(mv.tipo,''))='reingreso' then -coalesce(mv.cantidad,0) when lower(coalesce(mv.tipo,''))='ajuste' and lower(coalesce(mv.ajuste_accion,''))='disminuir' then coalesce(mv.cantidad,0) else 0 end)*coalesce(nullif(mv.precio_unitario,0),m.precio,0)),0)::numeric cost,
+                   count(*)::bigint movimientos,max(coalesce(mv.fecha,mv.created_at)) ultimo_movimiento
+            from public.movimientos mv left join public.materiales m on m.codigo=mv.material_codigo where mv.proyecto=p.numero_proyecto
+        ) mov on true
+        left join lateral(
+            select coalesce(sum((case when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*greatest(coalesce(rp.horas_jornada_diaria,8)-coalesce(rp.horas_comida_diaria,1),0) else coalesce(nullif(rp.salario_semanal_calculado,0),rp.tarifa_pago,rp.salario,0)/greatest(coalesce(rp.dias_laborales_semana,6),1) end)*greatest(0,(coalesce(a.fecha_fin,p.fecha_entrega,current_date)-a.fecha_inicio+1))*greatest(coalesce(rp.dias_laborales_semana,6),1)/7.0*coalesce(a.porcentaje_dedicacion,100)/100.0),0)::numeric nomina_planeada,
+                   coalesce(sum((case when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*greatest(coalesce(rp.horas_jornada_diaria,8)-coalesce(rp.horas_comida_diaria,1),0) else coalesce(nullif(rp.salario_semanal_calculado,0),rp.tarifa_pago,rp.salario,0)/greatest(coalesce(rp.dias_laborales_semana,6),1) end)*greatest(0,(least(current_date,coalesce(a.fecha_fin,p.fecha_entrega,current_date))-a.fecha_inicio+1))*greatest(coalesce(rp.dias_laborales_semana,6),1)/7.0*coalesce(a.porcentaje_dedicacion,100)/100.0),0)::numeric nomina_real
+            from public.rh_proyecto_asignaciones a join public.rh_personal rp on rp.id=a.personal_id where a.proyecto_numero=p.numero_proyecto and a.estado<>'cancelado'
+        ) pay on true
+        where v_filtro is null or lower(concat_ws(' ',p.numero_proyecto,p.nombre_proyecto,p.cliente,p.responsable_skilled,p.estado,p.planta,p.nave)) like '%'||lower(v_filtro)||'%';
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente='personal' then
+        if v_role not in ('administrador','proyectos','planeacion','coordinacion','logistica','recepcion','rh','gerente_general','subgerente','sky_demo') then
+            raise exception using errcode='42501',message='Tu perfil no puede consultar personal mediante Sky.';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',rp.id,'numero_empleado',rp.numero_empleado,'nombre',rp.nombre,'apellidos',rp.apellidos,'nombreCompleto',btrim(concat_ws(' ',rp.nombre,rp.apellidos)),'puesto',rp.puesto,'departamento',rp.departamento,'estado',rp.estado,'correo',coalesce(nullif(rp.correo_corporativo,''),rp.correo),'telefono',rp.telefono) order by rp.apellidos,rp.nombre),'[]'::jsonb)
+        into v_result
+        from public.rh_personal rp
+        where lower(coalesce(rp.estado,''))<>'baja'
+          and (v_filtro is null or lower(concat_ws(' ',rp.numero_empleado,rp.nombre,rp.apellidos,rp.puesto,rp.departamento,rp.correo_corporativo,rp.correo,rp.telefono)) like '%'||lower(v_filtro)||'%');
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente in ('proveedores','suppliers') then
+        if v_role not in ('administrador','compras','coordinacion','recepcion','finanzas','gerente_general','subgerente','sky_demo') then
+            raise exception using errcode='42501',message='Tu perfil no puede consultar proveedores mediante Sky.';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'clave',p.clave,'razon_social',p.razon_social,'nombre_comercial',p.nombre_comercial,'rfc',p.rfc,'contacto',p.contacto,'email',p.email,'telefono',p.telefono,'whatsapp',p.telefono,'categoria',p.categoria,'dias_credito',p.dias_credito,'moneda',p.moneda,'evaluacion',p.evaluacion,'tiempo_entrega_dias',p.tiempo_entrega_dias,'estado',p.estado) order by coalesce(nullif(p.nombre_comercial,''),p.razon_social)),'[]'::jsonb)
+        into v_result from public.co_proveedores p
+        where lower(coalesce(p.estado,'activo'))<>'inactivo'
+          and (v_filtro is null or lower(concat_ws(' ',p.clave,p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.categoria)) like '%'||lower(v_filtro)||'%');
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente='vehiculos' then
+        if v_role not in ('administrador','jefe_almacen','almacen','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','sky_demo') then
+            raise exception using errcode='42501',message='Tu perfil no puede consultar vehículos mediante Sky.';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',v.id,'numero_economico',v.numero_economico,'placas',v.placas,'marca',v.marca,'modelo',v.modelo,'anio',v.anio,'tipo',v.tipo,'color',v.color,'combustible',v.combustible,'kilometraje',v.kilometraje,'estado',v.estado,'proyecto',v.proyecto,'asignado_a',v.asignado_a,'responsable',v.responsable,'vigencia_seguro',v.vigencia_seguro,'vigencia_tarjeta',v.vigencia_tarjeta,'proxima_verificacion',v.proxima_verificacion,'activo',v.activo) order by v.numero_economico),'[]'::jsonb)
+        into v_result from public.vehiculos v
+        where coalesce(v.activo,true)=true
+          and (v_filtro is null or lower(concat_ws(' ',v.numero_economico,v.placas,v.marca,v.modelo,v.tipo,v.estado,v.proyecto,v.responsable)) like '%'||lower(v_filtro)||'%');
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente='herramientas' then
+        if v_role not in ('administrador','jefe_almacen','almacen','proyectos','planeacion','coordinacion','gerente_general','subgerente','sky_demo') then
+            raise exception using errcode='42501',message='Tu perfil no puede consultar herramientas mediante Sky.';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',h.id,'sku',h.sku,'descripcion',h.descripcion,'clasificacion',h.clasificacion,'marca',h.marca,'modelo',h.modelo,'uso',h.uso,'unidad',h.unidad,'activo',h.activo,'total',coalesce(u.total,0),'disponibles',coalesce(u.disponibles,0),'asignadas',coalesce(u.asignadas,0),'otros',coalesce(u.otros,0)) order by h.descripcion),'[]'::jsonb)
+        into v_result from public.herramientas_catalogo h
+        left join lateral(
+            select sum(coalesce(nullif(hu.cantidad,0),1)) total,sum(case when lower(coalesce(hu.estado,'disponible'))='disponible' then coalesce(nullif(hu.cantidad,0),1) else 0 end) disponibles,sum(case when lower(coalesce(hu.estado,''))='asignada' then coalesce(nullif(hu.cantidad,0),1) else 0 end) asignadas,sum(case when lower(coalesce(hu.estado,'disponible')) not in ('disponible','asignada') then coalesce(nullif(hu.cantidad,0),1) else 0 end) otros
+            from public.herramientas_unidades hu where hu.herramienta_id=h.id and coalesce(hu.activo,true)=true and lower(coalesce(hu.estado,''))<>'baja'
+        ) u on true
+        where coalesce(h.activo,true)=true
+          and (v_filtro is null or lower(concat_ws(' ',h.sku,h.descripcion,h.clasificacion,h.marca,h.modelo,h.uso)) like '%'||lower(v_filtro)||'%');
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente in ('compras','purchases') then
+        if v_role not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','finanzas','gerente_general','subgerente','sky_demo') then
+            raise exception using errcode='42501',message='Tu perfil no puede consultar compras mediante Sky.';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',s.id,'folio',s.folio,'materialCodigo',s.material_codigo,'descripcion',s.descripcion,'estado',s.estado,'estadoCompras',s.estado_compras,'proveedor',s.proveedor,'ordenCompra',s.orden_compra,'prioridad',s.prioridad,'cantidadSolicitada',s.cantidad_solicitada,'cantidadRecibida',s.cantidad_recibida,'createdAt',s.created_at) order by s.created_at desc),'[]'::jsonb)
+        into v_result from public.solicitudes_compra s
+        where v_filtro is null or lower(concat_ws(' ',s.folio,s.material_codigo,s.descripcion,s.estado,s.estado_compras,s.proveedor,s.orden_compra,s.prioridad)) like '%'||lower(v_filtro)||'%';
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente in ('cotizaciones','quotations') then
+        if v_role not in ('administrador','compras','coordinacion','finanzas','gerente_general','subgerente','sky_demo') then
+            raise exception using errcode='42501',message='Tu perfil no puede consultar cotizaciones mediante Sky.';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',q.id,'folio',q.folio,'origen',q.origen,'estado',q.estado,'prioridad',q.prioridad,'fechaRequerida',q.fecha_requerida,'solicitadoPor',q.solicitado_por,'referencia',q.referencia,'notas',q.notas,'createdAt',q.created_at,'items',coalesce(i.items,'[]'::jsonb)) order by q.created_at desc),'[]'::jsonb)
+        into v_result from public.co_cotizaciones q
+        left join lateral(
+            select coalesce(jsonb_agg(jsonb_build_object('id',ci.id,'materialCodigo',ci.material_codigo,'descripcion',ci.descripcion,'marca',ci.marca,'unidad',ci.unidad,'cantidad',ci.cantidad,'almacenId',ci.almacen_id,'almacenNombre',ci.almacen_nombre,'existenciaActual',ci.existencia_actual,'stockMinimo',ci.stock_minimo,'stockMedio',ci.stock_medio,'stockMaximo',ci.stock_maximo,'estado',ci.estado,'proveedorSeleccionadoId',ci.proveedor_seleccionado_id,'ofertaSeleccionadaId',ci.oferta_seleccionada_id) order by ci.id),'[]'::jsonb) items
+            from public.co_cotizacion_items ci where ci.cotizacion_id=q.id
+        ) i on true
+        where v_filtro is null or lower(concat_ws(' ',q.folio,q.origen,q.estado,q.prioridad,q.referencia,q.notas,coalesce(i.items::text,''))) like '%'||lower(v_filtro)||'%';
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente='categorias' then
+        select coalesce(jsonb_agg(jsonb_build_object('nombre',x.categoria,'categoria',x.categoria,'materiales',x.materiales) order by x.categoria),'[]'::jsonb)
+        into v_result from (select btrim(coalesce(m.categoria,'Sin categoría')) categoria,count(*)::bigint materiales from public.materiales m where coalesce(m.activo,true)=true and nullif(btrim(coalesce(m.categoria,'')),'') is not null and (v_role<>'tsi' or lower(btrim(coalesce(m.categoria,'')))='epp') group by btrim(m.categoria)) x;
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    if v_fuente='almacenes' then
+        if v_role not in ('administrador','jefe_almacen','almacen','proyectos','planeacion','coordinacion','logistica','gerente_general','subgerente','sky_demo') then raise exception using errcode='42501',message='Tu perfil no puede consultar almacenes mediante Sky.'; end if;
+        select coalesce(jsonb_agg(jsonb_build_object('id',a.id,'nombre',a.nombre,'tipo',a.tipo,'ubicacion',a.ubicacion,'encargado',a.encargado,'estado',a.estado,'materiales',coalesce(x.materiales,0),'stock_total',coalesce(x.stock_total,0)) order by a.nombre),'[]'::jsonb)
+        into v_result from public.almacenes a
+        left join lateral(select count(distinct e.material_codigo)::bigint materiales,coalesce(sum(e.stock),0)::numeric stock_total from public.existencias_almacen e where e.almacen_id=a.id) x on true
+        where lower(coalesce(a.estado,'activo'))<>'inactivo';
+        return coalesce(v_result,'[]'::jsonb);
+    end if;
+
+    raise exception 'Fuente de Sky no válida: %',p_fuente;
+end;
+$$;
+revoke all on function public.crm_sky_perfil_consultar(text,text) from public,anon;
+grant execute on function public.crm_sky_perfil_consultar(text,text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V62-SKY-PERFILES-CONTEXTO-2026-08-13',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V62-SKY-PERFILES-CONTEXTO-2026-08-13' as revision,
+       case when to_regprocedure('public.crm_sky_perfil_consultar(text,text)') is not null then 'OK' else 'FALTA' end as sky_perfiles;

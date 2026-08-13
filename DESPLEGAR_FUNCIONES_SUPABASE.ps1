@@ -11,4 +11,4 @@ supabase functions deploy rh-enviar-nomina-whatsapp --project-ref $projectRef --
 supabase functions deploy contactar-proveedor --project-ref $projectRef --no-verify-jwt --use-api
 supabase functions deploy sky-transcribir --project-ref $projectRef --use-api
 supabase functions deploy enviar-solicitud-proveedor --project-ref $projectRef --use-api
-Write-Host 'Funciones desplegadas. Regresa al CRM y usa Diagnosticar WhatsApp.' -ForegroundColor Green
+Write-Host 'Funciones desplegadas. Regresa al CRM, actualiza la página y prueba Sky, Chat y WhatsApp.' -ForegroundColor Green

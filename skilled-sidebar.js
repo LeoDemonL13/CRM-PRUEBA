@@ -34,7 +34,7 @@
     }
     function pageProfileKey() {
         const requested = String(new URLSearchParams(location.search).get('perfil') || '').toLowerCase();
-        if (['almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','tsi','proyectos','consulta'].includes(requested)) return requested;
+        if (['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(requested)) return requested;
         const file = currentFile().toLowerCase();
         const warehouseLegacyFiles = new Set(['inicio.html','catalogo.html','almacenes.html','bajo-minimo.html','etiquetas.html','escaner.html','herramientas.html','historial-movimientos.html','reportes.html','solicitudes-compra.html','importar-materiales.html','estado-herramientas.html','proyectos.html']);
         if (warehouseLegacyFiles.has(file)) return 'almacen';
@@ -47,9 +47,9 @@
         if (file.startsWith('sky.')) return 'sky_demo';
         if (file.startsWith('al.')) return 'almacen';
         const bodyProfile = String(document.body?.dataset?.profile || document.documentElement?.dataset?.profile || '').toLowerCase();
-        if (['almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','tsi','proyectos','consulta'].includes(bodyProfile)) return bodyProfile;
+        if (['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(bodyProfile)) return bodyProfile;
         const remembered = sessionStorage.getItem('skilled_active_profile');
-        return ['almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','tsi','proyectos','consulta'].includes(remembered) ? remembered : '';
+        return ['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(remembered) ? remembered : '';
     }
     function sidebarProfileKey(role = currentRole()) {
         const pageProfile = pageProfileKey();
@@ -58,18 +58,11 @@
             return pageProfile;
         }
         const value = String(role || 'consulta').toLowerCase();
-        if (value === 'compras') return 'compras';
-        if (value === 'rh') return 'rh';
-        if (value === 'finanzas') return 'finanzas';
-        if (value === 'gerente_general') return 'gerente_general';
-        if (value === 'subgerente') return 'subgerente';
-        if (value === 'tsi') return 'tsi';
-        if (value === 'sky_demo') return 'sky_demo';
-        if (value === 'proyectos') return 'proyectos';
-        if (value === 'consulta') return 'consulta';
+        if (value === 'jefe_almacen') return 'almacen';
+        if (['administrador','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(value)) return value;
         return 'almacen';
     }
-    const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente','sky_demo']);
+    const skyProfiles = new Set(['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta']);
     function skyAllowed() {
         const profile=pageProfileKey();
         const allowed=skyProfiles.has(profile);
@@ -1143,7 +1136,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const demoProfile=sidebarProfileKey()==='sky_demo';
         const searchButton=document.getElementById('skilled-mobile-search-open');
         if(searchButton)searchButton.hidden=demoProfile;
-        if(chat)chat.hidden=demoProfile;
+        if(chat)chat.hidden=false;
         if (mobile) {
             if (sky && sky.parentElement !== dock) dock.appendChild(sky);
             if (chat && !demoProfile && chat.parentElement !== dock) dock.appendChild(chat);
@@ -1218,7 +1211,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=61');
+                await loadOptionalScript('skilled-sky.js?v=62');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1243,7 +1236,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=61');
+                await loadOptionalScript('skilled-chat.js?v=62');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1264,7 +1257,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=61').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=62').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1273,12 +1266,12 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
 
     let chatIdleScheduled = false;
     function scheduleChatNotifications() {
-        if (chatIdleScheduled || sidebarProfileKey() === 'sky_demo' || window.SkilledChat) return;
+        if (chatIdleScheduled || window.SkilledChat) return;
         chatIdleScheduled = true;
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=61'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=62'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
@@ -1286,7 +1279,6 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     }
 
     function ensureChat() {
-        if (sidebarProfileKey() === 'sky_demo') return;
         if (window.SkilledChat || document.querySelector('script[src*="skilled-chat.js"]')) return;
         createLazyChatButton();
         scheduleChatNotifications();

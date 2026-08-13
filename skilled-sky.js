@@ -5,10 +5,10 @@
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
     const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', lg:'logistica', rec:'recepcion', re:'recepcion', tsi:'tsi' };
-    const profileNames = { administrador:'Administración', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', recepcion:'Recepción', tsi:'TSI', consulta: 'Consulta' };
-    const profileCodes = { administrador:'ADM', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
+    const profileNames = { administrador:'Administración', jefe_almacen:'Jefe de almacén', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', recepcion:'Recepción', tsi:'TSI', consulta: 'Consulta' };
+    const profileCodes = { administrador:'ADM', jefe_almacen:'JA', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
     const customProfiles = new Map();
-    const skyProfiles = new Set(['administrador','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta']);
+    const skyProfiles = new Set(['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta']);
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
@@ -25,7 +25,8 @@
         const remembered = String(sessionStorage.getItem('skilled_active_profile') || '').toLowerCase();
         if (remembered) return remembered;
         const role = currentRole();
-        if (['compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta'].includes(role)) return role;
+        if (role === 'jefe_almacen') return 'almacen';
+        if (['administrador','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta'].includes(role)) return role;
         return 'almacen';
     }
     function skyAllowed() {
@@ -36,20 +37,26 @@
     }
     function profileConfig(profile = detectProfile()) {
         const base = {
-            almacen: { title: 'Sky · Asistente de almacén', subtitle: 'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos y flotilla.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia de material','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación de material','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas pendientes','¿Qué herramientas están vencidas?'],['Vehículos disponibles','¿Qué vehículos están disponibles?']] },
-            compras: { title: 'Sky · Asistente de Compras', subtitle: 'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y servicios.', placeholder: 'Ej. ¿Quién vende tubo conduit?', examples: [['Quién vende material','¿Quién vende tubo conduit?'],['Contacto de proveedor','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones por revisar','¿Qué cotizaciones requieren atención?'],['Comparar proveedores','Compara proveedores de la cotización abierta'],['Órdenes por atender','¿Qué órdenes de compra requieren atención?'],['Proyectos','¿Qué proyectos están activos?']] },
-            rh: { title: 'Sky · Asistente de RH', subtitle: 'Personal, proyectos, incidencias, documentos, contratos, nómina y capacitación.', placeholder: 'Ej. ¿Cuántos trabajadores activos tenemos?', examples: [['Personal activo','¿Cuántos trabajadores activos tenemos?'],['Buscar colaborador','Busca a Eduardo'],['Equipo asignado','¿Qué equipo tiene asignado Leobardo?'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Proyectos sin personal','¿Qué proyectos no tienen personal asignado?']] },
-            finanzas: { title: 'Sky · Asistente de finanzas', subtitle: 'Consulta de presupuestos y costos de proyectos con datos operativos disponibles.', placeholder: 'Ej. ¿Cuál es el costo consumido del proyecto 2508?', examples: [['Costo de proyecto','¿Cuál es el costo consumido del proyecto 2508?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 2508?'],['Proyectos con mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Estado financiero','¿Qué puede consultar Sky en Finanzas?']] },
-            gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
-            subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
-            sky_demo: { title: 'Sky · Modo presentación', subtitle: 'Asistente transversal de solo lectura para mostrar cómo Sky puede apoyar a las distintas áreas de Skilled.', placeholder: 'Ej. Soy planeador, ¿en qué me puedes ayudar?', examples: [['Planeación','Soy planeador, ¿en qué me puedes ayudar?'],['Finanzas','Soy de Finanzas, ¿en qué me puedes ayudar?'],['Logística','Soy de Logística, ¿en qué me puedes ayudar?'],['Compras','Soy de Compras, ¿en qué me puedes ayudar?'],['RH','Soy de RH, ¿en qué me puedes ayudar?'],['Almacén','Soy de Almacén, ¿en qué me puedes ayudar?'],['Quién te creó','¿Quién te está creando?']] },
-            recepcion: { title: 'Sky · Asistente de Recepción', subtitle: 'Orientación rápida para visitantes, avisos internos, responsables, proyectos, proveedores, citas, vehículos y comunicación con áreas autorizadas.', placeholder: 'Ej. Soy de Recepción, ¿en qué me puedes ayudar?', examples: [['Ayuda de recepción','Soy de Recepción, ¿en qué me puedes ayudar?'],['Avisar llegada','Dile a Compras que llegó un proveedor'],['Buscar responsable','Busca al responsable del proyecto 26001'],['Generar reunión','Genera una reunión general a las 4 para revisar pendientes'],['Contacto interno','Busca a Eduardo'],['Vehículos','¿Qué vehículos están disponibles?'],['Quién te creó','¿Quién te creó?']] },
-            proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
-            consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
+            administrador: { title:'Sky · Asistente de Administración', subtitle:'Vista transversal autorizada para coordinar operación, proyectos, personal, materiales, compras, proveedores, vehículos, chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención y a quién debo avisar?', examples:[['Resumen operativo','Dame un resumen de lo que requiere atención'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','Busca a Eduardo'],['Compras','¿Qué compras siguen pendientes?'],['Mensaje interno','Dile a Compras que revise la orden pendiente'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            jefe_almacen: { title:'Sky · Asistente de Jefatura de Almacén', subtitle:'Existencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y coordinación mediante chat.', placeholder:'Ej. ¿Qué materiales requieren atención?', examples:[['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Herramientas','¿Qué herramientas están vencidas?'],['Proyecto','¿Qué materiales tiene el proyecto 26001?'],['Mensaje','Avisa a Compras que necesitamos revisar mínimos'],['Reunión','Convoca a Almacén mañana a las 9 para revisar pendientes']] },
+            almacen: { title:'Sky · Asistente de Almacén', subtitle:'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y comunicación interna.', placeholder:'Ej. ¿Cuántos tipos de tubos tengo?', examples:[['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas','¿Qué herramientas están vencidas?'],['Mensaje','Avisa a Compras que falta material']] },
+            compras: { title:'Sky · Asistente de Compras', subtitle:'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y comunicación interna.', placeholder:'Ej. ¿Quién vende tubo conduit?', examples:[['Proveedor','¿Quién vende tubo conduit?'],['Contacto','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones','¿Qué cotizaciones requieren atención?'],['Comparación','Compara proveedores de la cotización abierta'],['Órdenes','¿Qué órdenes de compra requieren atención?'],['Mensaje','Dile a Almacén que ya llegó la orden 1234']] },
+            proyectos: { title:'Sky · Asistente de Proyectos', subtitle:'Avance, responsables, materiales, personal, solicitudes, costos autorizados, vehículos y coordinación entre áreas.', placeholder:'Ej. ¿Cómo va el proyecto 26001?', examples:[['Estado','¿Cómo va el proyecto 26001?'],['Materiales','¿Qué materiales tiene el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Responsable','¿Quién es responsable del proyecto 26001?'],['Mensaje','Dile a Planeación que revise el proyecto 26001'],['Reunión','Genera una reunión con Coordinación a las 4 para revisar el proyecto 26001']] },
+            planeacion: { title:'Sky · Asistente de Planeación', subtitle:'Proyectos, materiales, personal, compras, proveedores, vehículos y coordinación contextual sin recorrer varios módulos.', placeholder:'Ej. Dame un resumen del proyecto 26001', examples:[['Proyecto','Dame un resumen del proyecto 26001'],['Materiales','¿Qué materiales tenemos para el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Compras','¿Qué compras están relacionadas con el proyecto?'],['Mensaje','Avisa a Coordinación que el plan del proyecto está listo'],['Reunión','Convoca mañana a las 9 con Coordinación para revisar el plan']] },
+            coordinacion: { title:'Sky · Asistente de Coordinación', subtitle:'Punto de consulta entre proyectos, personal, materiales, compras, proveedores, logística y comunicación interna.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Material','¿Hay tubo conduit disponible?'],['Proveedor','Busca el proveedor ABB'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            logistica: { title:'Sky · Asistente de Logística', subtitle:'Flotilla, proyectos, personal, materiales, responsables y coordinación mediante chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
+            recepcion: { title:'Sky · Asistente de Recepción', subtitle:'Orientación de visitantes, responsables, proyectos, proveedores, vehículos, avisos internos y reuniones con lenguaje natural.', placeholder:'Ej. Llegó ABB, avisa a Compras', examples:[['Ayuda','Soy de Recepción, ¿en qué me puedes ayudar?'],['Avisar llegada','Dile a Compras que llegó el proveedor ABB'],['Responsable','Busca al responsable del proyecto 26001'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Persona','Busca a Eduardo'],['Vehículos','¿Qué vehículos están disponibles?']] },
+            rh: { title:'Sky · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántos trabajadores activos tenemos?', examples:[['Personal','¿Cuántos trabajadores activos tenemos?'],['Colaborador','Busca a Eduardo'],['Equipo','¿Qué equipo tiene asignado Leobardo?'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Mensaje','Dile a Coordinación que RH ya actualizó el personal']] },
+            finanzas: { title:'Sky · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras y proveedores autorizados, con comunicación interna y reuniones.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Proveedor','Busca el proveedor ABB'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
+            gerente_general: { title:'Sky · Asistente de Gerencia General', subtitle:'Consulta ejecutiva transversal de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos, además de chat y reuniones.', placeholder:'Ej. Dame un resumen ejecutivo del proyecto 26001', examples:[['Resumen ejecutivo','Dame un resumen ejecutivo del proyecto 26001'],['Personal','¿Cuántas personas tengo en el proyecto 26001?'],['Material','¿Cuántos tipos de tubos tengo?'],['Proveedor','¿Quién vende tubo conduit?'],['Compras','¿Cuántas compras están pendientes?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            subgerente: { title:'Sky · Asistente de Subgerencia', subtitle:'Consulta ejecutiva transversal de operación, proyectos, personal, compras, proveedores, finanzas y vehículos, con chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención hoy?', examples:[['Atención','¿Qué requiere atención hoy?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Proveedor','¿Quién vende tubo conduit?'],['Mensaje','Dile a Coordinación que necesito el avance'],['Reunión','Convoca una reunión general mañana a las 9']] },
+            tsi: { title:'Sky · Asistente de TSI', subtitle:'Orientación del CRM, consulta de EPP y proyectos autorizados, explicación de procesos, chat interno y apoyo para coordinar incidencias.', placeholder:'Ej. Explícame cómo se relacionan Compras y Almacén', examples:[['CRM','Explícame cómo se relacionan Compras y Almacén'],['EPP','Busca chaleco gabardina azul'],['Proyecto','¿Cómo va el proyecto 26001?'],['Incidencia','Ayúdame a describir una falla del CRM'],['Mensaje','Dile a Administración que revisaré la incidencia'],['Reunión','Genera una reunión con Administración a las 4 para revisar el sistema']] },
+            sky_demo: { title:'Sky · Modo presentación', subtitle:'Demostración transversal de conversación, consultas seguras, mensajes internos y reuniones sin modificar registros operativos.', placeholder:'Ej. Soy gerente, ¿en qué me puedes ayudar?', examples:[['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Recepción','Soy de Recepción, ¿en qué me puedes ayudar?'],['Mensaje','Dile a Compras que llegó el proveedor ABB'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Proyecto','Dame un resumen del proyecto 26001'],['Quién te creó','¿Quién te desarrolló?']] },
+            consulta: { title:'Sky · Asistente de Consulta', subtitle:'Búsquedas de lectura en los datos autorizados, con conversación contextual y comunicación interna cuando corresponde.', placeholder:'Ej. Busca el proyecto 26001', examples:[['Proyecto','Busca el proyecto 26001'],['Continuación','¿Y quién es el responsable?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
         };
         if (base[profile]) return base[profile];
         const label = profileNames[profile] || profile.replace(/[_-]+/g, ' ').replace(/\b\w/g, value => value.toUpperCase());
-        return { title: `Sky · Asistente de ${label}`, subtitle: 'Asistente contextual del CRM. Este perfil puede registrar sus propias consultas en Sky.', placeholder: `Pregunta algo sobre ${label}`, examples: [['Ayuda del perfil',`¿Qué puede hacer Sky en ${label}?`],['Buscar en CRM','Busca información disponible para este perfil']] };
+        return { title:`Sky · Asistente de ${label}`, subtitle:'Asistente contextual del CRM con conversación natural, búsquedas autorizadas, chat y reuniones.', placeholder:`Pregunta algo sobre ${label}`, examples:[['Ayuda',`¿Qué puede hacer Sky en ${label}?`],['Buscar','Busca información disponible para este perfil'],['Mensaje','Envía un mensaje por el chat'],['Reunión','Genera una reunión']] };
     }
     const shortcutLabel = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? '⌥ + S' : 'Alt + S';
 
@@ -210,7 +217,7 @@
     let handsFreeEnabled = localStorage.getItem('skilled_sky_handsfree') === '1';
     let handsFreeTimer = null;
     let handsFreeResumeAt = 0;
-    let conversationContext = { material:null, vehicle:null, project:null, supplier:null, area:'', lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 };
+    let conversationContext = { material:null, vehicle:null, project:null, supplier:null, area:'', pendingAction:null, lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 };
     function saveConversationContext(){conversationContext.updatedAt=Date.now()}
     function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
     const ttl = 45000;
@@ -342,7 +349,7 @@
     }
     function archiveCurrentAnswer(){}
     function clearSkyConversation(){
-        activeQuestion='';conversationContext={material:null,vehicle:null,project:null,supplier:null,area:'',lastIntent:'',lastEntity:'',lastQuery:'',updatedAt:0};saveConversationContext();if(historyNode)historyNode.innerHTML='';if(transcriptInput)transcriptInput.value='';const config=profileConfig();setAnswer('Nueva conversación','Listo. Empezamos una consulta nueva.',config.subtitle);setStatus('Listo para consultar.');
+        activeQuestion='';conversationContext={material:null,vehicle:null,project:null,supplier:null,area:'',pendingAction:null,lastIntent:'',lastEntity:'',lastQuery:'',updatedAt:0};saveConversationContext();if(historyNode)historyNode.innerHTML='';if(transcriptInput)transcriptInput.value='';const config=profileConfig();setAnswer('Nueva conversación','Listo. Empezamos una consulta nueva.',config.subtitle);setStatus('Listo para consultar.');
     }
 
     function navigationOptions(profile=detectProfile()){
@@ -1551,28 +1558,39 @@
         return data || [];
     }
 
+    function skyBridgeProfile(profile = detectProfile()) {
+        return ['proyectos','planeacion','coordinacion','logistica','recepcion','finanzas','tsi','consulta'].includes(profile);
+    }
+
+    function skyBridge(source, filter = '') {
+        if (!window.SkilledDB?.getSkyProfileData) return null;
+        return SkilledDB.getSkyProfileData(source, filter);
+    }
+
     async function loadData(key) {
         const dynamicKeys = new Set(['low','purchases','assignments','coSupplierRequests','coStore','coQuotations','rhIncidents','executiveAlerts']);
         const keyTtl = dynamicKeys.has(key) ? 15000 : 300000;
         if (cache[key] !== undefined && Date.now() - Number(cacheTimes[key] || 0) < keyTtl) return cache[key];
         if (dataPromises.has(key)) return dataPromises.get(key);
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
+        const profile = detectProfile();
+        const bridge = skyBridgeProfile(profile);
         const loaders = {
-            materials: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : SkilledDB.listMaterials(),
-            low: () => SkilledDB.listLowStock(),
-            purchases: () => SkilledDB.listPurchaseRequests({}),
-            tools: () => SkilledDB.listTools(),
+            materials: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : bridge && SkilledDB.getSkyProfileData ? skyBridge('materiales') : SkilledDB.listMaterials(),
+            low: async () => bridge && SkilledDB.getSkyProfileData ? (await skyBridge('materiales')).filter(item => number(item.stock) <= number(item.stockMinimo ?? item.stock_minimo)) : SkilledDB.listLowStock(),
+            purchases: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('compras') : SkilledDB.listPurchaseRequests({}),
+            tools: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('herramientas') : SkilledDB.listTools(),
             assignments: () => SkilledDB.listToolAssignments({}),
-            vehicles: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveVehicles === 'function' ? SkilledDB.listExecutiveVehicles() : SkilledDB.listVehicles(),
-            projects: () => SkilledDB.listProjectOptions(),
-            projectDetails: () => SkilledDB.listProjects(),
-            coSuppliers: () => tableRows('co_proveedores'),
+            vehicles: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveVehicles === 'function' ? SkilledDB.listExecutiveVehicles() : bridge && SkilledDB.getSkyProfileData ? skyBridge('vehiculos') : SkilledDB.listVehicles(),
+            projects: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('proyectos') : SkilledDB.listProjectOptions(),
+            projectDetails: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('projectDetails') : SkilledDB.listProjects(),
+            coSuppliers: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('proveedores') : tableRows('co_proveedores'),
             coProviderMaterials: () => SkilledDB.listProviderMaterials({ activeOnly: true }),
             coSupplierRequests: () => SkilledDB.listSupplierRequests({}),
             coServices: () => SkilledDB.listServices(),
             coStore: () => SkilledDB.listStoreRequests(),
-            coQuotations: () => typeof SkilledDB.listQuotationRequests === 'function' ? SkilledDB.listQuotationRequests({}) : [],
-            rhPeople: () => tableRows('rh_personal'),
+            coQuotations: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('cotizaciones') : typeof SkilledDB.listQuotationRequests === 'function' ? SkilledDB.listQuotationRequests({}) : [],
+            rhPeople: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('personal') : tableRows('rh_personal'),
             rhAssignments: () => tableRows('rh_proyecto_asignaciones'),
             rhIncidents: () => tableRows('rh_incidencias'),
             rhDocuments: () => tableRows('rh_documentos', '*,personal:rh_personal(id,numero_empleado,nombre,apellidos,puesto)'),
@@ -1584,7 +1602,7 @@
             executiveTools: () => SkilledDB.getExecutiveSkyTools(),
             executiveWarehouses: () => SkilledDB.getExecutiveSkyWarehouses(),
             executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts(),
-            categories: () => isExecutiveReadProfile(detectProfile()) && typeof SkilledDB.listExecutiveSkyCategories === 'function' ? SkilledDB.listExecutiveSkyCategories() : SkilledDB.listCategories(),
+            categories: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveSkyCategories === 'function' ? SkilledDB.listExecutiveSkyCategories() : bridge && SkilledDB.getSkyProfileData ? skyBridge('categorias') : SkilledDB.listCategories(),
             executiveSearch: () => []
         };
         if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
@@ -2140,10 +2158,23 @@
         const norm = commandNormalize(raw);
         if (/prepar|picking|ruta/.test(norm)) return answerProjectRoute(raw);
         if (/solicitud|solicitudes|material pedido|material solicitado/.test(norm)) {
-            const rows = await SkilledDB.listMaterialRequests({});
-            const pending = rows.filter(item => !['entregado', 'rechazado', 'cancelado', 'cerrado'].includes(normalize(item.estado)));
-            const cards = pending.slice(0, 7).map(item => ({ title: `${item.proyecto || 'Proyecto'} · ${item.descripcion || item.materialDescripcion || item.materialCodigo || 'Material'}`, detail: `${formatNumber(item.cantidad || item.cantidadSolicitada)} ${item.unidad || ''} · ${item.estado || 'pendiente'}` }));
-            setAnswer('Solicitudes de material', pending.length ? `${pending.length} solicitud${pending.length === 1 ? '' : 'es'} siguen abiertas.` : 'No hay solicitudes abiertas.', '', cards, { href: 'AL.solicitudes-material.html', label: 'Abrir solicitudes' });
+            let rows=[];
+            let purchaseFallback=false;
+            try {
+                if (skyBridgeProfile(detectProfile())) throw new Error('usar consulta segura del perfil');
+                rows=await SkilledDB.listMaterialRequests({});
+            } catch (_) {
+                purchaseFallback=true;
+                rows=await loadData('purchases').catch(()=>[]);
+            }
+            const pending = rows.filter(item => !['entregado','rechazado','cancelado','cerrado','recibida','compra_realizada'].includes(normalize(item.estadoCompras || item.estado)));
+            const cards = pending.slice(0, 7).map(item => ({ title: `${item.proyecto || item.folio || 'Solicitud'} · ${item.descripcion || item.materialDescripcion || item.materialCodigo || item.codigo || 'Material'}`, detail: `${formatNumber(item.cantidad || item.cantidadSolicitada)} ${item.unidad || ''} · ${item.estadoCompras || item.estado || 'pendiente'}` }));
+            if(purchaseFallback){
+                const message=pending.length?`${pending.length} solicitud${pending.length===1?'':'es'} de compra relacionada${pending.length===1?'':'s'} sigue${pending.length===1?'':'n'} abierta${pending.length===1?'':'s'}.`:'No encontré solicitudes de compra abiertas en la información autorizada para este perfil.';
+                setAnswer('Solicitudes relacionadas',message,'En este perfil Sky usa la vista segura de solicitudes de compra; el detalle operativo de solicitudes de material permanece protegido.',cards);
+                return message;
+            }
+            setAnswer('Solicitudes de material', pending.length ? `${pending.length} solicitud${pending.length === 1 ? '' : 'es'} siguen abiertas.` : 'No hay solicitudes abiertas.', '', cards, detectProfile()==='almacen'?{ href: 'AL.solicitudes-material.html', label: 'Abrir solicitudes' }:null);
             return pending.length ? `Hay ${pending.length} solicitudes de material abiertas.` : 'No hay solicitudes abiertas.';
         }
         const projects = await loadData('projectDetails');
@@ -2189,6 +2220,32 @@
     }
 
     const skyAreaCatalog = {
+        administracion: {
+            label:'Administración',
+            aliases:['administracion','administración','administrador','administradora','admin'],
+            intro:'Si eres de Administración, puedo ayudarte a revisar información transversal autorizada, ubicar responsables y coordinar avisos o reuniones sin recorrer cada módulo manualmente.',
+            abilities:[
+                ['Operación','Relacionar proyectos, materiales, personal, compras, proveedores y vehículos autorizados.'],
+                ['Prioridades','Ayudar a identificar pendientes y ordenar la información que requiere seguimiento.'],
+                ['Personas y áreas','Localizar colaboradores o áreas activas dentro del CRM.'],
+                ['Chat interno','Enviar mensajes a una persona, un área o al canal General con una instrucción explícita.'],
+                ['Reuniones','Generar y publicar convocatorias cuando indicas destino y hora.']
+            ],
+            examples:['¿Qué requiere atención hoy?','Dile a Compras que revise la orden pendiente','Genera una reunión general a las 4 para revisar pendientes']
+        },
+        proyectos: {
+            label:'Proyectos',
+            aliases:['proyectos','proyecto','project manager','lider de proyecto','líder de proyecto'],
+            intro:'Si eres de Proyectos, puedo ayudarte a reunir estado, responsables, materiales, personal, compras y logística para reducir búsquedas entre módulos.',
+            abilities:[
+                ['Estado y avance','Consultar estado, avance y fechas registradas del proyecto.'],
+                ['Materiales','Cruzar materiales planeados, existencias y datos autorizados relacionados.'],
+                ['Personal','Consultar personas asignadas y responsables registrados.'],
+                ['Coordinación','Enviar mensajes a áreas o personas sin salir de Sky.'],
+                ['Reuniones','Convocar reuniones para un proyecto cuando me das destino, hora y motivo.']
+            ],
+            examples:['Dame un resumen del proyecto 26001','¿Cuántas personas tiene el proyecto 26001?','Convoca a Coordinación a las 4 para revisar el proyecto 26001']
+        },
         planeacion: {
             label:'Planeación',
             aliases:['planeador','planeadora','planeacion','planeación'],
@@ -2198,7 +2255,9 @@
                 ['Materiales','Material planeado, existencias, ubicaciones y solicitudes relacionadas.'],
                 ['Personal','Personas asignadas a un proyecto y funciones registradas por RH.'],
                 ['Compras','Pendientes, proveedores y cotizaciones vinculadas cuando la información está disponible.'],
-                ['Logística','Vehículos disponibles y estado actual de la flotilla.']
+                ['Logística','Vehículos disponibles y estado actual de la flotilla.'],
+                ['Chat interno','Enviar avisos a personas o áreas y conservar el contexto de la conversación.'],
+                ['Reuniones','Crear convocatorias cuando indicas destino, hora y motivo.']
             ],
             examples:['¿Cómo va el proyecto 26001?','¿Cuántas personas tiene el proyecto 26001?','¿Qué materiales tenemos para el proyecto 26001?']
         },
@@ -2211,7 +2270,9 @@
                 ['Composición del gasto','Separar materiales y sueldos registrados.'],
                 ['Desviaciones','Detectar proyectos por encima de lo planeado o que requieren atención.'],
                 ['Fechas','Relacionar costo, avance y cercanía de la entrega.'],
-                ['Crecimiento','Gastos y cuentas por pagar se ampliarán conforme esos módulos tengan más datos transaccionales conectados.']
+                ['Crecimiento','Gastos y cuentas por pagar se ampliarán conforme esos módulos tengan más datos transaccionales conectados.'],
+                ['Chat interno','Enviar un resumen o aviso a Dirección, Compras u otra persona autorizada.'],
+                ['Reuniones','Convocar revisiones financieras con destino, hora y motivo.']
             ],
             examples:['¿Cómo va el presupuesto del proyecto 26001?','¿Qué proyecto tiene mayor gasto?','¿Qué proyectos están por encima de lo planeado?']
         },
@@ -2224,7 +2285,9 @@
                 ['Proyectos','Consultar el proyecto y su situación general antes de coordinar un movimiento.'],
                 ['Personal','Revisar cuántas personas están asignadas a un proyecto.'],
                 ['Materiales','Consultar existencias y ubicaciones para apoyar una preparación o traslado.'],
-                ['Alertas','Identificar información operativa pendiente que pueda afectar una entrega.']
+                ['Alertas','Identificar información operativa pendiente que pueda afectar una entrega.'],
+                ['Chat interno','Avisar salidas, llegadas y necesidades a personas o áreas.'],
+                ['Reuniones','Coordinar reuniones de operación o logística desde Sky.']
             ],
             examples:['¿Qué vehículos están disponibles?','¿Cómo está la camioneta Ford?','¿Cuántas personas van en el proyecto 26001?']
         },
@@ -2237,7 +2300,9 @@
                 ['Cotizaciones','Consultar solicitudes y cotizaciones que requieren atención.'],
                 ['Órdenes','Revisar órdenes y solicitudes de compra registradas.'],
                 ['Materiales','Relacionar proveedor, precio referencial, plazo y material cuando existe esa relación.'],
-                ['Comunicación','Ayudarte a localizar los datos necesarios para contactar al proveedor.']
+                ['Comunicación','Ayudarte a localizar los datos necesarios para contactar al proveedor.'],
+                ['Chat interno','Enviar avisos internos a Almacén, Recepción, Finanzas u otras áreas.'],
+                ['Reuniones','Convocar revisiones de compra, proveedor o abastecimiento.']
             ],
             examples:['¿Quién vende tubo conduit?','Dame el WhatsApp y correo de ABB','¿Qué compras están pendientes?']
         },
@@ -2251,7 +2316,9 @@
                 ['Asistencias','Incidencias, permisos, vacaciones e incapacidades registradas.'],
                 ['Documentos','Vencimientos de documentos y contratos.'],
                 ['Resguardos','Equipos de cómputo y materiales de oficina asignados a cada trabajador.'],
-                ['Capacitación','Cursos programados o en curso.']
+                ['Capacitación','Cursos programados o en curso.'],
+                ['Chat interno','Enviar avisos a responsables, Coordinación u otras áreas.'],
+                ['Reuniones','Convocar reuniones internas cuando indicas destino, hora y motivo.']
             ],
             examples:['¿Cuántos trabajadores activos tenemos?','¿Qué equipo tiene asignado Leobardo?','¿Quién está ausente hoy?']
         },
@@ -2265,7 +2332,9 @@
                 ['Mínimos','Materiales agotados o por debajo del mínimo.'],
                 ['Herramientas','Disponibilidad y asignaciones registradas.'],
                 ['Proyectos','Estado, materiales y solicitudes relacionadas.'],
-                ['Vehículos','Disponibilidad y estado de la flotilla.']
+                ['Vehículos','Disponibilidad y estado de la flotilla.'],
+                ['Chat interno','Avisar a Compras, Proyectos u otra persona sobre faltantes o movimientos.'],
+                ['Reuniones','Convocar revisiones de inventario, entrega o proyecto.']
             ],
             examples:['¿Cuánto tubo de una pulgada tenemos?','¿Dónde está el alcohol isopropílico?','¿Qué materiales están bajo mínimo?']
         },
@@ -2278,7 +2347,9 @@
                 ['Personal','Cuadrillas o personas asignadas a un proyecto.'],
                 ['Materiales','Existencias, ubicaciones y situación de materiales.'],
                 ['Compras','Pendientes y proveedores relacionados.'],
-                ['Vehículos','Disponibilidad para apoyar la operación.']
+                ['Vehículos','Disponibilidad para apoyar la operación.'],
+                ['Chat interno','Coordinar avisos con Proyectos, Planeación, Logística, Compras o personas específicas.'],
+                ['Reuniones','Generar convocatorias de coordinación desde una instrucción natural.']
             ],
             examples:['Dame un resumen del proyecto 26001','¿Cuántas personas tiene el proyecto 26001?','¿Qué requiere atención hoy?']
         },
@@ -2289,7 +2360,7 @@
             abilities:[
                 ['Orientar visitantes','Identificar a qué área o responsable se debe canalizar una visita, proveedor o llamada.'],
                 ['Avisos internos','Enviar mensajes por el chat a una persona, un área o el canal General cuando esté permitido.'],
-                ['Reuniones','Preparar convocatorias de reunión y dejar la confirmación lista para enviarse.'],
+                ['Reuniones','Generar y publicar convocatorias cuando la instrucción incluye destino y hora; si falta un dato, Sky pregunta solo lo necesario.'],
                 ['Proyectos y responsables','Buscar proyectos, responsables, clientes y datos operativos autorizados.'],
                 ['Proveedores','Consultar contactos, correos, WhatsApp y estados de atención disponibles.'],
                 ['Vehículos','Consultar disponibilidad o estado cuando el perfil lo autoriza.']
@@ -2305,20 +2376,37 @@
                 ['Consulta','Localizar información autorizada durante una revisión o demostración.'],
                 ['Diagnóstico','Ayudar a describir una incidencia y ubicar el apartado involucrado.'],
                 ['Búsqueda','Encontrar materiales, proyectos, personal, proveedores o vehículos cuando el modo de consulta lo autoriza.'],
-                ['Crecimiento','Mis capacidades técnicas irán aumentando conforme se conecten más funciones de TSI.']
+                ['Crecimiento','Mis capacidades técnicas irán aumentando conforme se conecten más funciones de TSI.'],
+                ['Chat interno','Enviar avisos internos para coordinar incidencias o soporte.'],
+                ['Reuniones','Convocar revisiones técnicas con la persona o área indicada.']
             ],
             examples:['¿Qué puedes consultar del CRM?','Explícame cómo se relacionan Compras y Almacén','¿Qué puede hacer Sky por ahora?']
         },
+        consulta: {
+            label:'Consulta',
+            aliases:['consulta','consultas','lector','lectura','solo lectura'],
+            intro:'Si usas un perfil de Consulta, puedo ayudarte a localizar y relacionar información autorizada, mantener el contexto de tus preguntas y coordinar comunicación interna sin modificar registros operativos.',
+            abilities:[
+                ['Búsqueda contextual','Buscar proyectos, materiales, proveedores, vehículos u otros datos permitidos y continuar con preguntas relacionadas.'],
+                ['Orientación','Explicar qué apartado contiene la información o qué área puede atender una solicitud.'],
+                ['Chat interno','Enviar mensajes a una persona, área o canal General cuando lo pides explícitamente.'],
+                ['Reuniones','Generar convocatorias por chat cuando indicas destino, hora y motivo.'],
+                ['Seguridad','Mantener las acciones operativas de modificación fuera del perfil de solo consulta.']
+            ],
+            examples:['Busca el proyecto 26001 y dime quién es responsable','Dile a Recepción que ya llegué','Genera una reunión con Coordinación mañana a las 9 para revisar pendientes']
+        },
         direccion: {
             label:'Dirección',
-            aliases:['gerencia general','gerente general','subgerencia','subgerente','direccion','dirección','gerencia'],
+            aliases:['gerencia general','gerente general','gerente','subgerencia','subgerente','direccion','dirección','gerencia','director','directora'],
             intro:'Si eres de Dirección, puedo ayudarte con una vista transversal de la operación sin obligarte a entrar a cada módulo.',
             abilities:[
                 ['Resumen ejecutivo','Proyectos, gasto real, planeado, desviaciones y fechas.'],
                 ['Almacén','Materiales, existencias, ubicaciones, herramientas y alertas.'],
                 ['RH','Personal por proyecto y resguardos de equipos.'],
                 ['Compras','Proveedores, contactos, cotizaciones y pendientes.'],
-                ['Vehículos','Disponibilidad y estado actual.']
+                ['Vehículos','Disponibilidad y estado actual.'],
+                ['Comunicación','Enviar mensajes internos a personas o áreas con una instrucción explícita.'],
+                ['Reuniones','Generar y publicar convocatorias cuando indicas destino, hora y motivo.']
             ],
             examples:['Dame un resumen ejecutivo','¿Qué requiere atención hoy?','¿Cuántas personas tiene el proyecto 26001?']
         }
@@ -2561,8 +2649,7 @@
     let chatModulePromise = null;
     function ensureChatModule() {
         if (window.SkilledChat) return Promise.resolve(window.SkilledChat);
-        if (detectProfile() === 'sky_demo') return Promise.resolve(null);
-        if (chatModulePromise) return chatModulePromise;
+                if (chatModulePromise) return chatModulePromise;
         chatModulePromise = new Promise((resolve, reject) => {
             const existing = [...document.scripts].find(node => /skilled-chat\.js/i.test(node.src || ''));
             if (existing && window.SkilledChat) return resolve(window.SkilledChat);
@@ -2570,7 +2657,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=61'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=62'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -2580,15 +2667,27 @@
         const source = text(stripWakeWord(raw)).trim();
         const norm = commandNormalize(source);
         if (!source) return null;
-        if (/\b(puedes|podrias|podrías|sabes)\b.*\b(enviar|mandar|escribir|avisar)\b.*\b(mensaje|mensajes|chat)\b/.test(norm) && !/\b(?:que|diciendo|:)\s*\S+/.test(source)) return { capability:true };
-        const verb='(?:manda(?:me|le|les)?|mánda(?:me|le|les)?|envia(?:me|le|les)?|envía(?:me|le|les)?|dile|diles|escribele|escríbele|escribeles|escríbeles|avisa(?:le|les)?|avísale|avísales|notifica(?:le|les)?|notifícale|notifícales)';
-        const polite='(?:por\\s+favor\\s+)?(?:puedes\\s+|podrias\\s+|podrías\\s+)?';
-        let m = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje\\s+)?(?:por\\s+el\\s+chat\\s+|en\\s+el\\s+chat\\s+)?(?:a\\s+)?(?:todos|todas|todo\\s+el\\s+equipo|todos\\s+los\\s+usuarios|general)\\s*(?:que|diciendo|con\\s+el\\s+mensaje|:|-)\\s*(.+)$`,'i'));
-        if (m) return { recipient:'general', message:text(m[1]), broadcast:true };
-        m = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje\\s+)?(?:por\\s+el\\s+chat\\s+|en\\s+el\\s+chat\\s+)?(?:(?:a|al|a\\s+la|a\\s+los|a\\s+las)\\s+)?(.+?)\\s*(?:que|diciendo|con\\s+el\\s+mensaje|:|-)\\s*(.+)$`,'i'));
+        const verb='(?:manda(?:me|le|les)?|mánda(?:me|le|les)?|envia(?:me|le|les)?|envía(?:me|le|les)?|dile|diles|di(?:le|les)?|escribele|escríbele|escribeles|escríbeles|avisa(?:le|les)?|avísale|avísales|notifica(?:le|les)?|notifícale|notifícales|comenta(?:le|les)?|coméntale|coméntales|informale|infórmale|informales|infórmales|hazle\s+saber|hazles\s+saber|comunica(?:le|les)?|comunícale|comunícales)';
+        const polite='(?:por\\s+favor\\s+)?(?:puedes\\s+|podrias\\s+|podrías\\s+|quiero\\s+que\\s+|necesito\\s+que\\s+)?';
+        const payloadMarker='(?:que|diciendo|diciéndole|diciendole|con\\s+el\\s+mensaje|mensaje\\s*:|:|-)';
+        const capability=/\b(puedes|podrias|podrías|sabes|eres capaz)\b.*\b(enviar|mandar|escribir|avisar|notificar)\b.*\b(mensaje|mensajes|chat)\b/.test(norm);
+        const hasPayload=/(?:\bque\b|\bdiciendo\b|\bdiciendole\b|:|[“”"'])\s*\S+/.test(source);
+        if (capability && !hasPayload) return { capability:true };
+        let m = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje\\s+)?(?:por\\s+el\\s+chat\\s+|en\\s+el\\s+chat\\s+)?(?:a\\s+)?(?:todos|todas|todo\\s+el\\s+equipo|todos\\s+los\\s+usuarios|general)\\s*${payloadMarker}\\s*(.+)$`,'i'));
+        if (m) return { recipient:'general', message:text(m[1]).replace(/^[“”"']|[“”"']$/g,''), broadcast:true };
+        m = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje\\s+)?(?:por\\s+el\\s+chat\\s+|en\\s+el\\s+chat\\s+)?(?:(?:a|al|a\\s+la|a\\s+los|a\\s+las)\\s+)?(.+?)\\s*${payloadMarker}\\s*(.+)$`,'i'));
+        if (m) return { recipient:text(m[1]), message:text(m[2]).replace(/^[“”"']|[“”"']$/g,''), broadcast:false };
+        m = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje\\s+)?(?:por\\s+el\\s+chat\\s+|en\\s+el\\s+chat\\s+)?(?:(?:a|al|a\\s+la|a\\s+los|a\\s+las)\\s+)?(.+?)\\s+[“"'](.+)[”"']\\s*$`,'i'));
         if (m) return { recipient:text(m[1]), message:text(m[2]), broadcast:false };
         m = source.match(/^(?:mensaje|chat)\s+(?:para|a)\s+(.+?)\s*:\s*(.+)$/i);
         if (m) return { recipient:text(m[1]), message:text(m[2]), broadcast:false };
+        const generic = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje)?(?:\\s+por\\s+el\\s+chat|\\s+en\\s+el\\s+chat)?\\s*$`,'i'));
+        if (generic) return { recipient:'', message:'', incomplete:true, missing:'recipient_message' };
+        m = source.match(new RegExp(`^${polite}${verb}\\s+(?:un\\s+)?(?:mensaje\\s+)?(?:por\\s+el\\s+chat\\s+|en\\s+el\\s+chat\\s+)?(?:(?:a|al|a\\s+la|a\\s+los|a\\s+las)\\s+)?(.+?)\\s*$`,'i'));
+        if (m) {
+            const recipient=text(m[1]).replace(/^(?:mensaje\s+)?(?:a|al|a la|a los|a las)\s+/i,'');
+            if (recipient && !/^(?:mensaje|chat)$/i.test(recipient)) return { recipient, message:'', incomplete:true, missing:'message' };
+        }
         return null;
     }
 
@@ -2597,14 +2696,6 @@
         const target = text(recipient);
         const body = text(message);
         if (!target || !body) return null;
-        if (profile === 'sky_demo') {
-            setAnswer('Mensaje preparado', 'En la demo no puedo enviar mensajes porque esta cuenta es de solo lectura.', `Mensaje para ${target}: “${body}”`, [
-                { title:'Destinatario', detail:target },
-                { title:'Mensaje', detail:body },
-                { title:'Modo demo', detail:'Sin acciones de escritura.' }
-            ]);
-            return { handled:true, voice:'Preparé el mensaje, pero la cuenta demo es de solo lectura y no puede enviarlo.' };
-        }
         let chat;
         try { chat = await ensureChatModule(); } catch (error) {
             setAnswer('Chat no disponible','No pude cargar el módulo de chat interno.',error?.message || 'Intenta abrir Chat una vez y vuelve a pedírmelo.');
@@ -2614,7 +2705,13 @@
             setAnswer('Chat no disponible','Esta versión del módulo de chat todavía no permite envíos desde Sky.','Actualiza skilled-chat.js junto con esta versión del CRM.');
             return { handled:true, voice:'El chat interno todavía no está listo para enviar desde Sky.' };
         }
-        const result = await chat.sendTo(target, body, { allowAmbiguous:false });
+        let result;
+        try { result = await chat.sendTo(target, body, { allowAmbiguous:false }); }
+        catch (error) {
+            const detail=error?.message||'No fue posible registrar el mensaje en el chat.';
+            setAnswer('No pude enviar el mensaje',detail,'No marcaré el mensaje como enviado hasta que Supabase confirme el registro.');
+            return { handled:true, voice:`No pude enviar el mensaje. ${detail}` };
+        }
         if (!result?.ok) {
             if (result?.reason === 'ambiguous') {
                 const cards=(result.matches||[]).slice(0,6).map(user=>({title:user.nombre||'Usuario',detail:[user.puesto,user.departamento].filter(Boolean).join(' · ')||'Usuario del CRM'}));
@@ -2637,90 +2734,286 @@
     }
 
 
+    function meetingTimeNormalized(raw) {
+        let norm=commandNormalize(raw);
+        const words={una:'1',uno:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9',diez:'10',once:'11',doce:'12'};
+        for(const [word,value] of Object.entries(words))norm=norm.replace(new RegExp(`\\b${word}\\b`,'g'),value);
+        return norm.replace(/\ba medio dia\b|\bal mediodia\b|\bmediodia\b/g,'a las 12 pm').replace(/\ba media noche\b|\ba medianoche\b|\bmedianoche\b/g,'a las 12 am');
+    }
+
     function parseSkyDateTime(raw) {
-        const norm=commandNormalize(raw);
+        const norm=meetingTimeNormalized(raw);
         const now=new Date();
-        let d=new Date(now.getTime()+15*60000);
-        if (/\bmanana\b|\bmañana\b/.test(norm)) d.setDate(d.getDate()+1);
-        if (/\bpasado manana\b|\bpasado mañana\b/.test(norm)) d.setDate(d.getDate()+2);
-        let m=norm.match(/\b(?:a\s+las|alas|a\s+la|la)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
+        const relative=norm.match(/\ben\s+(\d{1,3})\s*(minuto|minutos|hora|horas)\b/);
+        if(relative){const amount=Number(relative[1]);const minutes=relative[2].startsWith('hora')?amount*60:amount;return new Date(now.getTime()+minutes*60000)}
+        if(/\ben media hora\b/.test(norm))return new Date(now.getTime()+30*60000);
+        let d=new Date(now);d.setSeconds(0,0);
+        let daySpecified=false;
+        const explicitDate=norm.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+        if(explicitDate){let year=explicitDate[3]?Number(explicitDate[3]):now.getFullYear();if(year<100)year+=2000;d.setFullYear(year,Number(explicitDate[2])-1,Number(explicitDate[1]));daySpecified=true}
+        else if(/\bpasado manana\b/.test(norm)){d.setDate(d.getDate()+2);daySpecified=true}
+        else if(/\bmanana\b/.test(norm)){d.setDate(d.getDate()+1);daySpecified=true}
+        else if(/\bhoy\b/.test(norm)){daySpecified=true}
+        else{
+            const weekdays={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
+            const dayName=Object.keys(weekdays).find(name=>new RegExp(`\\b${name}\\b`).test(norm));
+            if(dayName){const delta=(weekdays[dayName]-d.getDay()+7)%7;d.setDate(d.getDate()+delta);daySpecified=true;d._skyWeekday=true}
+        }
+        let m=norm.match(/\b(?:a\s+las|alas|a\s+la)\s+(\d{1,2})(?::(\d{2})|\s+y\s+media)?\s*(am|pm)?\b/);
         if(!m)m=norm.match(/\b(\d{1,2})(?::(\d{2}))\s*(am|pm)?\b/);
-        if(m){let h=Number(m[1]);const min=Number(m[2]||0);const ap=m[3]||'';if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;if(!ap&&h>=1&&h<=7&&now.getHours()>=12)h+=12;d.setHours(h,min,0,0);if(d.getTime()<now.getTime()-60000)d.setDate(d.getDate()+1)}
+        if(!m)m=norm.match(/\b(\d{1,2})\s*(am|pm)\b/);
+        if(m){
+            let h=Number(m[1]);let min=Number(m[2]||0);let ap=m[3]||'';
+            if(m[0].includes('y media'))min=30;
+            if(!ap&&m.length===3&&/^(am|pm)$/.test(m[2]||''))ap=m[2];
+            if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;
+            if(!ap&&h>=1&&h<=7)h+=12;
+            d.setHours(h,min,0,0);
+            if(d.getTime()<=now.getTime()+60000&&!/\bhoy\b/.test(norm)){
+                if(d._skyWeekday)d.setDate(d.getDate()+7);else if(!daySpecified)d.setDate(d.getDate()+1);
+            }
+        }else d=new Date(now.getTime()+15*60000);
+        try{delete d._skyWeekday}catch(_){}
         return d;
+    }
+
+    function meetingTimeInfo(raw) {
+        const norm=meetingTimeNormalized(raw);
+        return {
+            hasExplicitTime:/\ben\s+(?:\d{1,3}\s*(?:minuto|minutos|hora|horas)|media hora)\b|\b(?:a\s+las|alas|a\s+la)\s+\d{1,2}(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b|\b\d{1,2}:\d{2}\s*(?:am|pm)?\b|\b\d{1,2}\s*(?:am|pm)\b/.test(norm),
+            hasExplicitDay:/\b(hoy|manana|pasado manana|lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b|\b\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?\b/.test(norm)
+        };
+    }
+
+    function extractMeetingAudience(source) {
+        const norm=commandNormalize(source);
+        if (/\b(general|todos|todas|todo el equipo|todos los usuarios|toda la empresa|equipo completo)\b/.test(norm)) return { audience:'general', specified:true };
+        let head=source.split(/\b(?:para revisar|para ver|para tratar|sobre|tema de|del tema|por motivo de|porque|para hablar de|para checar|para revisar lo de)\b/i)[0] || source;
+        head=head.replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,' ')
+            .replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,' ')
+            .replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,' ')
+            .replace(/\b\d{1,2}:\d{2}\s*(?:am|pm)?\b/ig,' ')
+            .replace(/^(?:oye\s+)?(?:sky[,;:\s-]*)?/i,'')
+            .replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s*/i,'')
+            .replace(/^(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?\s*/i,'')
+            .replace(/\s+/g,' ').trim();
+        const m=head.match(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+|el\s+|la\s+|los\s+|las\s+)?(.+)$/i);
+        if(!m?.[1])return{audience:'general',specified:false};
+        let candidate=text(m[1]).replace(/\s+(?:una\s+)?(?:reunion|reunión|junta|cita)\b.*$/i,'').replace(/[,.!?]+$/,'').trim();
+        if(!candidate||/^(?:las?\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i.test(candidate))return{audience:'general',specified:false};
+        return{audience:candidate,specified:true};
     }
 
     function parseMeetingCommand(raw) {
         const source=text(stripWakeWord(raw)).trim();
         const norm=commandNormalize(source);
-        if(!/\b(reunion|reunión|junta|convoca|convocar|cita|meeting)\b/.test(norm))return null;
-        if(/\b(?:que|qué)\s+(?:es|son|significa)/.test(norm))return null;
-        const capability=/\b(puedes|sabes|podrias|podrías)\b.*\b(reunion|reunión|junta|convocar)\b/.test(norm)&&!/\b(?:a\s+las|alas|mañana|manana|hoy|para|con|general)\b/.test(norm);
+        if(!/\b(reunion|reunión|junta|convoca|convocar|cita|meeting|reunir)\b/.test(norm))return null;
+        const chatIntent=parseChatCommand(source);
+        if(chatIntent&&!chatIntent.capability)return null;
+        if(/\b(?:que|qué)\s+(?:es|son|significa)\b/.test(norm))return null;
+        const timeInfo=meetingTimeInfo(source);
+        const actionVerb=/\b(genera|generar|crea|crear|convoca|convocar|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\b/.test(norm);
+        const prepareOnly=/\b(prepara|preparar|arma|armar)\b/.test(norm);
+        const explicitSend=/\b(enviala|envíala|mandala|mándala|enviar convocatoria|manda la convocatoria|mandar convocatoria|confirmala|confírmala|publicala|publícala)\b/.test(norm);
+        const audienceInfo=extractMeetingAudience(source);
+        const topic=source.match(/\b(?:para revisar|para ver|para tratar|sobre|tema de|del tema|por motivo de|porque|para hablar de|para checar|para revisar lo de)\s+(.+)$/i);
+        const capabilitySource=source.replace(/^[¿?¡!\s]+/,'');
+        const capabilityLead=/^(?:oye\s+)?(?:sky[,;:\s-]*)?(?:puedes|podrias|podrías|sabes|eres capaz)\b/i.test(capabilitySource);
+        const capability=capabilityLead&&!timeInfo.hasExplicitTime&&!audienceInfo.specified&&!topic;
         if(capability)return{capability:true};
-        let audience='general';
-        const am=source.match(/\b(?:con|para|a)\s+(.+?)\s+(?:a\s+las|alas|mañana|manana|hoy|para\s+revisar|para\s+ver|por\s+motivo|sobre|porque|que|con\s+el\s+tema|del\s+tema|$)/i);
-        if(am&&am[1]&&!/reunion|reunión|junta|cita/i.test(am[1]))audience=text(am[1]).replace(/^(todos|todas|general|todo el equipo)$/i,'general');
-        const date=parseSkyDateTime(source);
         let title='Reunión general';
-        let note=text(source.replace(/^(?:puedes\s+|podrias\s+|podrías\s+)?(?:generar|crear|convocar|agenda|agendar|programa|programar|haz|hacer|prepara|preparar|abre)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:hoy|manana|mañana|pasado manana|pasado mañana)\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/ig,'').trim());
-        const topic=source.match(/\b(?:para revisar|para ver|sobre|tema de|del tema|por motivo de|porque)\s+(.+)$/i);
+        let note='';
         if(topic){note=text(topic[1]);title=`Reunión · ${note.slice(0,80)}`}
-        if(!note)note=title==='Reunión general'?'Reunión solicitada desde Sky.':title;
-        const explicitSend=/\b(enviala|envíala|mandala|mándala|enviar convocatoria|manda la convocatoria|mandar convocatoria)\b/.test(norm);
-        return{audience,title,note,date,explicitSend};
+        if(!note){
+            const cleaned=text(source.replace(/^(?:oye\s+)?(?:sky[,;:\s-]*)?/i,'').replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,'').replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,'').replace(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+)?[^,.;]+$/i,'').trim());
+            if(cleaned&&commandNormalize(cleaned)!==commandNormalize(audienceInfo.audience))note=cleaned;
+        }
+        if(!note)note='Reunión solicitada desde Sky.';
+        return{
+            audience:audienceInfo.audience,
+            audienceSpecified:audienceInfo.specified,
+            title,
+            note,
+            date:parseSkyDateTime(source),
+            actionVerb,
+            autoSendRequested:Boolean(explicitSend||(actionVerb&&!prepareOnly)),
+            hasExplicitTime:timeInfo.hasExplicitTime,
+            hasExplicitDay:timeInfo.hasExplicitDay,
+            explicitSend
+        };
+    }
+
+    function setPendingAction(action) {
+        conversationContext.pendingAction={...action,createdAt:Date.now(),expiresAt:Date.now()+3*60*1000};
+        saveConversationContext();
+    }
+
+    function clearPendingAction() {
+        conversationContext.pendingAction=null;
+        saveConversationContext();
+    }
+
+    function getPendingAction() {
+        const pending=conversationContext.pendingAction;
+        if(!pending)return null;
+        if(Number(pending.expiresAt||0)<Date.now()){clearPendingAction();return null}
+        return pending;
+    }
+
+    async function executeMeetingPlan(parsed) {
+        if(parsed?.hasExplicitTime && parsed?.date instanceof Date && parsed.date.getTime()<=Date.now()+60000){
+            setPendingAction({type:'meeting',...parsed,hasExplicitTime:false});
+            const message='Esa hora ya pasó. Dime otra hora y conservaré el destino y el motivo de la reunión.';
+            setAnswer('Necesito otra hora',message);
+            return{handled:true,voice:message};
+        }
+        let chat;
+        try{chat=await ensureChatModule()}catch(error){setAnswer('Reunión no disponible','No pude cargar el módulo de chat interno.',error?.message||'Abre Chat una vez y vuelve a intentarlo.');return{handled:true,voice:'No pude cargar el módulo de chat interno.'}}
+        if(!chat?.scheduleMeeting){
+            if(chat?.openMeeting){chat.openMeeting();const message='Abrí la convocatoria de reunión. Completa los datos que falten y envíala.';setAnswer('Reunión',message);return{handled:true,voice:message}}
+            setAnswer('Reunión no disponible','El módulo de chat aún no expone reuniones desde Sky.','Actualiza skilled-chat.js junto con esta versión del CRM.');return{handled:true,voice:'El chat interno aún no está listo para generar reuniones desde Sky.'}
+        }
+        const autoSend=Boolean(parsed.autoSendRequested&&parsed.hasExplicitTime&&parsed.audienceSpecified);
+        let result;
+        try { result=await chat.scheduleMeeting({audience:parsed.audience,title:parsed.title,note:parsed.note,date:parsed.date,autoSend}); }
+        catch (error) {
+            const detail=error?.message||'No fue posible registrar la convocatoria en el chat.';
+            setAnswer('No pude enviar la reunión',detail,'No marcaré la convocatoria como enviada hasta que Supabase confirme el registro.');
+            return {handled:true,voice:`No pude enviar la reunión. ${detail}`};
+        }
+        if(result?.ok===false){
+            const detail=result?.reason==='ambiguous'?'Encontré más de un destinatario posible. Dime un nombre o área más específica.':result?.reason==='not_found'?`No encontré a “${parsed.audience}” entre los usuarios activos.`:result?.error||'No fue posible publicar la convocatoria.';
+            setAnswer('No pude enviar la reunión',detail,'No se registró una convocatoria como enviada.');
+            return{handled:true,voice:detail};
+        }
+        const when=parsed.date.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'}).replace(/\.$/,'');
+        const audienceLabel=commandNormalize(parsed.audience)==='general'?'General':(parsed.audience||'General');
+        const sent=Boolean(autoSend&&(result?.autoSent||result?.id||result?.ids));
+        const message=sent?`Listo. La convocatoria se envió para ${audienceLabel} el ${when}.`:`Preparé la convocatoria para ${audienceLabel} el ${when}. Revisa los datos y confirma el envío.`;
+        setAnswer(sent?'Reunión enviada':'Reunión preparada',message,`Motivo: ${parsed.note}.`,[
+            {title:'Destino',detail:audienceLabel},
+            {title:'Fecha y hora',detail:when},
+            {title:'Estado',detail:sent?'Convocatoria publicada en el chat':'Pendiente de confirmación'}
+        ]);
+        rememberConversation('meeting',parsed.audience||'general',parsed.note);
+        clearPendingAction();
+        return{handled:true,voice:message};
+    }
+
+    async function answerPendingAction(raw) {
+        const pending=getPendingAction();
+        if(!pending)return null;
+        const source=text(stripWakeWord(raw));
+        const norm=commandNormalize(source);
+        if(/^(cancela|cancelar|olvidalo|olvídalo|ya no|dejalo|déjalo|no importa)$/.test(norm)){
+            clearPendingAction();
+            const message='De acuerdo. Cancelé esa acción pendiente.';
+            setAnswer('Acción cancelada',message);
+            return{handled:true,voice:message};
+        }
+        const looksLikeNewQuestion=/^[¿?]/.test(source.trim())||/^(quien|quién|donde|dónde|como|cómo|cuanto|cuánto|cual|cuál|por que|por qué)\b/.test(norm)||/^que\s+(hora|fecha|dia|día|perfil|pagina|página|seccion|sección|puedes|sabes|haces|eres|significa)\b/.test(norm);
+        if(looksLikeNewQuestion){clearPendingAction();return null}
+        if(pending.type==='chat'){
+            const fresh=parseChatCommand(source);
+            if(fresh&&!fresh.incomplete&&!fresh.capability){clearPendingAction();return null}
+            let recipient=text(pending.recipient);
+            let message=text(pending.message);
+            if(!recipient){
+                const combined=source.match(/^(?:a|para)\s+(.+?)\s+(?:que|diciendo|diciéndole|diciendole|:|-)\s*(.+)$/i);
+                if(combined){recipient=text(combined[1]);message=text(combined[2])}
+                else{
+                    const candidate=text(source.replace(/^(?:a|para|al|a la|a los|a las)\s+/i,''));
+                    if(candidate.split(/\s+/).length<=8)recipient=candidate;
+                }
+                if(!recipient){
+                    const messageText='¿A quién quieres enviar el mensaje? Puedes decir un nombre, puesto, área o “General”.';
+                    setAnswer('Falta el destinatario',messageText);
+                    return{handled:true,voice:messageText};
+                }
+            }else if(!message){
+                message=text(source.replace(/^(?:que|mensaje(?:\s+es)?|diciendo|diciéndole|diciendole)\s+/i,''));
+            }
+            if(!message){
+                setPendingAction({...pending,recipient,message:''});
+                const messageText=`¿Qué mensaje quieres que le envíe a ${recipient}?`;
+                setAnswer('Falta el mensaje',messageText,'Dímelo de forma natural; no necesitas repetir el destinatario.');
+                return{handled:true,voice:messageText};
+            }
+            clearPendingAction();
+            return executeChatMessage(recipient,message);
+        }
+        if(pending.type==='meeting'){
+            const updated={...pending};
+            const timeInfo=meetingTimeInfo(source);
+            if(!updated.hasExplicitTime&&timeInfo.hasExplicitTime){updated.date=parseSkyDateTime(source);updated.hasExplicitTime=true;updated.hasExplicitDay=updated.hasExplicitDay||timeInfo.hasExplicitDay}
+            if(!updated.audienceSpecified){
+                const fromCommand=extractMeetingAudience(source);
+                if(fromCommand.specified){updated.audience=fromCommand.audience;updated.audienceSpecified=true}
+                else if(!timeInfo.hasExplicitTime&&source.split(/\s+/).length<=8){
+                    const candidate=text(source.replace(/^(?:con|para|a|al|a la|a los|a las)\s+/i,'').replace(/[,.!?]+$/,''));
+                    if(candidate){updated.audience=candidate;updated.audienceSpecified=true}
+                }
+            }
+            if(!updated.hasExplicitTime||!updated.audienceSpecified){
+                setPendingAction(updated);
+                const missing=[];
+                if(!updated.audienceSpecified)missing.push('para quién es la reunión');
+                if(!updated.hasExplicitTime)missing.push('a qué hora será');
+                const message=`Solo me falta saber ${missing.join(' y ')}.`;
+                setAnswer('Completemos la reunión',message,'Puedes responder únicamente con el dato que falta.');
+                return{handled:true,voice:message};
+            }
+            clearPendingAction();
+            return executeMeetingPlan(updated);
+        }
+        clearPendingAction();
+        return null;
     }
 
     async function answerMeetingAction(raw) {
         const parsed=parseMeetingCommand(raw);
         if(!parsed)return null;
         if(parsed.capability){
-            const message='Sí. Puedo preparar una reunión desde Sky, abrir la convocatoria con fecha, hora y motivo, y dejarla lista para confirmar antes de enviarla por el chat interno.';
-            setAnswer('Reuniones con Sky',message,'Prueba: “Genera una reunión general a las 4 para revisar pendientes” o “Convoca una junta mañana a las 9 con Compras para revisar proveedores”.',[
-                {title:'Seguridad',detail:'Sky prepara la acción; una persona confirma antes de enviarla.'},
-                {title:'Chat',detail:'La convocatoria queda visible en el chat interno como tarjeta de reunión.'},
-                {title:'Áreas',detail:'Puede preparar mensajes para General, áreas o personas según permisos.'}
+            const message='Sí. Puedo generar reuniones desde Sky y publicarlas por el chat interno cuando la instrucción sea clara. Si falta un dato importante, te preguntaré únicamente lo necesario y recordaré el resto.';
+            setAnswer('Reuniones con Sky',message,'Prueba: “Genera una reunión general a las 4 para revisar pendientes” o “Convoca mañana a las 9 con Compras para revisar proveedores”.',[
+                {title:'Acción directa',detail:'Con destino y hora claros, Sky puede publicar la convocatoria.'},
+                {title:'Conversación',detail:'Si falta hora o destinatario, Sky lo pregunta y continúa sin hacerte repetir todo.'},
+                {title:'Chat',detail:'La reunión aparece como tarjeta dentro del chat interno.'}
             ]);
             return{handled:true,voice:message};
         }
-        const profile=detectProfile();
-        if(profile==='sky_demo'){
-            const main=`Preparé una reunión de demostración para ${parsed.audience||'general'} el ${parsed.date.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}.`;
-            setAnswer('Reunión preparada',main,'La cuenta demo es de solo lectura, así que no puede enviar convocatorias reales.',[
-                {title:'Título',detail:parsed.title},
-                {title:'Motivo',detail:parsed.note},
-                {title:'Destino',detail:parsed.audience||'General'}
-            ]);
-            return{handled:true,voice:main};
+        if(parsed.autoSendRequested&&(!parsed.hasExplicitTime||!parsed.audienceSpecified)){
+            setPendingAction({type:'meeting',...parsed});
+            const missing=[];
+            if(!parsed.audienceSpecified)missing.push('para quién es la reunión');
+            if(!parsed.hasExplicitTime)missing.push('a qué hora será');
+            const message=`Puedo hacerlo. Solo me falta saber ${missing.join(' y ')}.`;
+            setAnswer('Completemos la reunión',message,'Respóndeme únicamente con el dato que falta; conservaré el motivo y lo que ya me dijiste.');
+            return{handled:true,voice:message};
         }
-        let chat;
-        try{chat=await ensureChatModule()}catch(error){setAnswer('Reunión no disponible','No pude cargar el módulo de chat interno.',error?.message||'Abre Chat una vez y vuelve a intentarlo.');return{handled:true,voice:'No pude cargar el módulo de chat interno.'}}
-        if(!chat?.scheduleMeeting){
-            if(chat?.openMeeting){chat.openMeeting();const message='Abrí la convocatoria de reunión general. Completa los datos y confirma el envío.';setAnswer('Reunión general',message);return{handled:true,voice:message}}
-            setAnswer('Reunión no disponible','El módulo de chat aún no expone reuniones desde Sky.','Actualiza skilled-chat.js junto con esta versión del CRM.');return{handled:true,voice:'El chat interno aún no está listo para generar reuniones desde Sky.'}
-        }
-        const result=await chat.scheduleMeeting({audience:parsed.audience,title:parsed.title,note:parsed.note,date:parsed.date,autoSend:false});
-        const message=result?.general?'Preparé la convocatoria de reunión general. Revisa los datos y confirma el envío.':'Preparé la reunión como mensaje interno. Revisa el chat antes de enviarla si necesitas ajustar algo.';
-        setAnswer('Reunión preparada',message,`Fecha: ${parsed.date.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}. Motivo: ${parsed.note}.`,[
-            {title:'Destino',detail:parsed.audience||'General'},
-            {title:'Título',detail:parsed.title},
-            {title:'Confirmación',detail:'Sky no la envía automáticamente para evitar convocatorias accidentales.'}
-        ]);
-        rememberConversation('meeting',parsed.audience||'general',parsed.note);
-        return{handled:true,voice:message};
+        return executeMeetingPlan(parsed);
     }
 
     async function answerChatAction(raw, plan = null) {
-        const parsed = plan ? { recipient:text(plan.recipient || plan.entity), message:text(plan.message || plan.query) } : parseChatCommand(raw);
+        const parsed = plan ? { recipient:text(plan.recipient || plan.entity), message:text(plan.message || plan.query), incomplete:false } : parseChatCommand(raw);
         if (!parsed) return null;
         if (parsed.capability) {
-            const demo=detectProfile()==='sky_demo';
-            const message=demo?'En esta cuenta demo puedo preparar mensajes, pero no enviarlos porque es de solo lectura.':'Sí. Si me lo pides de forma explícita, puedo enviar mensajes por el chat interno a una persona, a un área o al chat General.';
-            setAnswer('Mensajes con Sky',message,demo?'Prueba: “Prepara un mensaje para Compras diciendo que el material ya llegó”.':'Prueba: “Dile a Compras que el material ya llegó” o “Manda un mensaje general que la reunión inicia a las 4”.',[
+            const message='Sí. Puedo enviar mensajes por el chat interno a una persona, a un área o al chat General. También puedo continuar la instrucción en varios turnos si primero me dices el destinatario y después el mensaje.';
+            setAnswer('Mensajes con Sky',message,'Prueba: “Dile a Compras que el material ya llegó” o “Manda un mensaje general que la reunión inicia a las 4”.',[
                 {title:'Persona',detail:'“Dile a Eduardo que revise el proyecto 26001”.'},
                 {title:'Área',detail:'“Avisa a Compras que ya llegó el material”.'},
                 {title:'General',detail:'“Manda un mensaje general que la reunión inicia a las 4”.'}
             ]);
             return {handled:true,voice:message};
         }
+        if(parsed.incomplete || !text(parsed.recipient) || !text(parsed.message)){
+            const recipient=text(parsed.recipient);
+            setPendingAction({type:'chat',recipient,message:text(parsed.message)});
+            const message=recipient?`¿Qué mensaje quieres que le envíe a ${recipient}?`:'Claro. ¿A quién quieres enviarlo? Después me dices el mensaje.';
+            setAnswer('Completemos el mensaje',message,'Puedes indicar una persona, puesto, área o “General”. Recordaré este paso para que no tengas que repetir la instrucción.');
+            return{handled:true,voice:message};
+        }
+        clearPendingAction();
         return executeChatMessage(parsed.recipient, parsed.message, parsed);
     }
 
@@ -2781,9 +3074,10 @@
             setAnswer('De acuerdo','Me quedo en silencio.');
             return {handled:true,voice:''};
         }
+        const pendingAction=await answerPendingAction(raw);if(pendingAction)return pendingAction;
         const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
-        const meetingAction=await answerMeetingAction(raw);if(meetingAction)return meetingAction;
         const chatAction=await answerChatAction(raw);if(chatAction)return chatAction;
+        const meetingAction=await answerMeetingAction(raw);if(meetingAction)return meetingAction;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
         const crmObjective=answerCRMObjective(raw);if(crmObjective)return crmObjective;
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
@@ -2797,9 +3091,9 @@
         if (/^(hola|buenos dias|buenas tardes|buenas noches|que tal|hey)\b/.test(norm)) {
             const profile=detectProfile();
             const message = profile==='sky_demo'
-                ? 'Hola. Soy Sky. Estoy en modo demostración de solo lectura. Puedes decirme de qué área eres —Planeación, Finanzas, Logística, Compras, Recursos Humanos, Almacén o Coordinación— o hacerme una pregunta directamente. También puedo redactar, explicar y ayudarte a organizar ideas.'
+                ? 'Hola. Soy Sky. Estoy en modo demostración seguro. Puedo conversar, consultar información autorizada, enviar avisos por el chat y generar convocatorias; no modificaré inventarios, compras, nómina ni proyectos.'
                 : `Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile] || profile}. Dime qué necesitas y lo resolvemos juntos.`;
-            setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Si una información todavía no está conectada al CRM, te lo diré con claridad en lugar de inventarla.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
+            setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Los datos operativos permanecen protegidos; las acciones de comunicación requieren una instrucción explícita.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
             return { handled:true, voice:message };
         }
         if (/\b(que buen dia|qué buen día|bonito dia|bonito día|lindo dia|lindo día|hace buen dia|hace buen día|esta bonito el dia|está bonito el día)\b/.test(norm)) {
@@ -2852,17 +3146,6 @@
             setAnswer('Año actual', String(date.year), capitalize(date.dateLong));
             return { handled:true, voice:message };
         }
-        if (/\b(reunion general|convoca(?:r)? una reunion|convoca(?:r)? reunion|reunir a todos|reunion con todos|junta general)\b/.test(norm)) {
-            if (window.SkilledChat?.openMeeting) {
-                window.SkilledChat.openMeeting();
-                const message='Abrí la convocatoria de reunión general. Revisa la hora y el mensaje antes de enviarla a los usuarios.';
-                setAnswer('Reunión general', message, 'La convocatoria no se envía automáticamente: primero debes confirmarla.', [{title:'Seguridad',detail:'Sky prepara la acción, pero una persona confirma el envío.'},{title:'Notificación',detail:'Los usuarios reciben aviso en el CRM y, si lo autorizaron, también en el navegador.'}]);
-                return {handled:true,voice:message};
-            }
-            const message='El módulo de comunicación todavía no está disponible en esta pantalla.';
-            setAnswer('Reunión general',message);
-            return {handled:true,voice:message};
-        }
         if (/\b(busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea|googlear|busqueda web)\b/.test(norm)) {
             let term=text(raw).replace(/^(?:sky[,;:\s-]*)?/i,'').replace(/\b(?:busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea(?:r)?|busqueda web)\b/ig,'').replace(/^[,:;\s-]+/,'').trim();
             if (!term) {
@@ -2886,7 +3169,7 @@
             const profile=detectProfile();
             const area=profileNames[profile] || profile;
             const message=profile==='sky_demo'
-                ? `Hola ${userName}. Soy Sky. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Skilled Proyectos Industriales. En esta demostración puedo conversar con personal de distintas áreas, explicar cómo puedo ayudarles y consultar información autorizada del CRM. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
+                ? `Hola ${userName}. Soy Sky. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Skilled Proyectos Industriales. En esta demostración puedo conversar, consultar información autorizada, enviar avisos internos y generar reuniones sin modificar registros operativos. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
                 : `Hola ${userName}. Soy Sky, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
             setAnswer('Mucho gusto, soy Sky', message, profile==='sky_demo' ? 'Puedes comenzar con: “Soy planeador, ¿en qué me puedes ayudar?”, “Soy de Finanzas”, “Soy de Logística” o simplemente preguntarme por un proyecto, material, proveedor, trabajador, vehículo o dato que esté conectado.' : `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
                 profile==='sky_demo' ? [{title:'Conversación por área',detail:'Me dices de qué área eres y adapto mis ejemplos y capacidades.'},{title:'Consulta transversal',detail:'Puedo reunir datos autorizados de varias áreas sin mostrar sus módulos operativos.'},{title:'En crecimiento',detail:'Si una función aún no está disponible, lo reconoceré y te diré qué sí puedo hacer hoy.'}] : [{title:'Consulta natural',detail:'Puedes usar frases completas o modismos comunes.'},{title:'Contexto por perfil',detail:`Ahora estoy trabajando como asistente de ${area}.`},{title:'Modo seguro',detail:'No modifico inventario ni autorizaciones solo por voz.'}]);
@@ -2931,7 +3214,7 @@
             const config=profileConfig();
             if(detectProfile()==='sky_demo'){
                 const areas=Object.values(skyAreaCatalog).map(entry=>({title:entry.label,detail:`Dime: “Soy de ${entry.label}, ¿en qué me puedes ayudar?”`}));
-                const message='Puedo conversar con personal de distintas áreas y explicar qué puedo hacer por cada una. También puedo responder consultas transversales de solo lectura con la información que ya está conectada al CRM.';
+                const message='Puedo conversar con personal de distintas áreas, explicar qué puedo hacer por cada una, responder consultas transversales y ejecutar comunicación interna cuando me das una instrucción explícita. Los registros operativos siguen protegidos.';
                 setAnswer('¿Cómo puede ayudarte Sky?',message,'Puedes presentarte por tu área o preguntarme directamente por materiales, proyectos, personal, proveedores, compras, costos, vehículos, herramientas o resguardos. Si un dato aún no está conectado, te lo diré con claridad.',areas.slice(0,8));
                 return {handled:true,voice:message};
             }
@@ -2953,7 +3236,7 @@
 
     async function answerCategories(raw) {
         const profile=detectProfile();
-        if (!(profile==='almacen' || profile==='compras' || isExecutiveReadProfile(profile))) return null;
+        if (!(isExecutiveReadProfile(profile) || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile))) return null;
         let rows=[];
         try { rows=await loadData('categories'); } catch (_) {
             const materials=await loadData('materials');
@@ -3383,6 +3666,25 @@
         return configs[profile] || [];
     }
 
+    function isConversationalUtterance(raw) {
+        const norm=commandNormalize(raw);
+        if(!norm)return true;
+        if(/\b(soy|me llamo|trabajo en|pertenezco a|mi area|mi departamento|estoy en el area|quiero saber como me ayudas|platica conmigo|hablemos|que opinas|explicame|cuentame)\b/.test(norm)&&!/\b(busca|buscar|encuentra|localiza|muestra|dame|cuanto|cuantos|donde|quien|proyecto|material|proveedor|vehiculo|personal|stock|existencia|presupuesto|cotizacion|orden de compra)\b/.test(norm))return true;
+        if(/^(soy|estoy|trabajo|pertenezco)\b/.test(norm))return true;
+        return false;
+    }
+
+    function shouldRunSmartSearch(raw, profile = detectProfile()) {
+        const norm=commandNormalize(raw);
+        if(!norm||isConversationalUtterance(raw))return false;
+        if(/\b(mensaje|chat|dile|diles|avisa|avisale|avísale|manda|envia|envía|escribele|escríbele|reunion|reunión|junta|convoca|agenda|agendar|programa|programar)\b/.test(norm))return false;
+        if(hasStrongLocalIntent(raw,profile))return true;
+        if(/\b(busca|buscar|encuentra|encontrar|localiza|localizar|muestra|mostrar|dame|lista|listar|quien es|quién es|donde esta|dónde está|informacion de|información de)\b/.test(norm))return true;
+        const words=norm.split(' ').filter(Boolean);
+        if(words.length<=4&&!/\b(soy|estoy|quiero|puedes|podrias|podrías|ayuda|ayudar|hacer|sirves|opinas|sientes|gracias|hola)\b/.test(norm))return true;
+        return false;
+    }
+
     async function answerScopedSmartSearch(raw, profile = detectProfile()) {
         if (isExecutiveReadProfile(profile)) return answerExecutiveGlobalSearch(raw);
         const q = expandEntityAliases(stripWakeWord(raw));
@@ -3452,7 +3754,7 @@
         if(words.length<3)return false;
         const followup=/^(y|tambien|también|ahora|ese|esa|esos|esas|el mismo|la misma)\b/.test(norm)||/\b(compara|comparame|compárame|resume|resumen|prioridad|prioridades|critico|crítico|riesgo|mayor|menor|mas alto|más alto|menos|cerca de entrega|requiere atencion|requiere atención|relaciona|combina)\b/.test(norm);
         if(followup)return true;
-        if(/\b(mensaje|chat|dile|avisa|manda|envia|envía|escribele|escríbele)\b/.test(norm)&&words.length>=4)return true;
+        if(/\b(mensaje|chat|dile|avisa|avisale|avísale|manda|envia|envía|escribele|escríbele|comenta|coméntale|informa|infórmale|reunion|reunión|junta|convoca|agenda|agendar)\b/.test(norm)&&words.length>=3)return true;
         if(words.length>=7)return true;
         return !hasStrongLocalIntent(raw,profile)&&words.length>=5;
     }
@@ -3485,31 +3787,36 @@
             const result = await answerChatAction(raw, plan);
             return result?.voice || null;
         }
+        if (plan.intent === 'meeting') {
+            const result = await answerMeetingAction(raw);
+            return result?.voice || null;
+        }
         if (plan.intent === 'global_search') return executive ? answerExecutiveGlobalSearch(queryText) : null;
-        if (plan.intent === 'categories') return (executive || profile === 'compras') ? answerCategories(queryText) : null;
+        if (plan.intent === 'categories') return (executive || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile)) ? answerCategories(queryText) : null;
         if (['material_family','material_stock','material_location'].includes(plan.intent)) {
-            if (!(executive || profile === 'compras' || profile === 'almacen')) return null;
+            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi','consulta'].includes(profile))) return null;
             if (plan.intent === 'material_family') return answerMaterialFamily(queryText);
             return answerMaterial(queryText, plan.intent === 'material_location');
         }
-        if (plan.intent === 'low_stock') return (executive || profile === 'compras' || profile === 'almacen') ? answerLowStock() : null;
+        if (plan.intent === 'low_stock') return (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador'].includes(profile)) ? answerLowStock() : null;
         if (plan.intent === 'purchase_order') {
             if (executive) return answerExecutivePurchasing(raw);
             if (profile === 'compras') return answerPurchasing(raw);
             if (profile === 'almacen') return answerPurchase(raw);
             return null;
         }
-        if (plan.intent === 'tools') return (executive || profile === 'almacen') ? answerTools(raw) : null;
-        if (plan.intent === 'vehicles') return (executive || profile === 'rh' || profile === 'almacen') ? answerVehicles(raw) : null;
+        if (plan.intent === 'tools') return (executive || ['almacen','proyectos','planeacion','coordinacion','administrador'].includes(profile)) ? answerTools(raw) : null;
+        if (plan.intent === 'vehicles') return (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','recepcion','finanzas','administrador'].includes(profile)) ? answerVehicles(raw) : null;
         if (plan.intent === 'project') {
             if (executive) return answerExecutive(raw);
             if (profile === 'finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion'].includes(profile)) return answerProjects(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion','administrador','tsi','consulta'].includes(profile)) return answerProjects(raw);
             return null;
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) {
             if (executive) return answerExecutivePurchasing(raw);
-            return (profile === 'compras' || profile === 'recepcion') ? answerPurchasing(raw) : null;
+            if(profile==='compras'||profile==='administrador')return answerPurchasing(raw);
+            return ['recepcion','coordinacion','finanzas'].includes(profile)?answerScopedSmartSearch(raw,profile):null;
         }
         if (plan.intent === 'rh_assets') {
             if (executive) return answerRHOfficeAssets(raw,true);
@@ -3517,7 +3824,7 @@
         }
         if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) {
             if (executive) return answerExecutivePeople(raw, []);
-            return profile === 'rh' ? answerRH(raw) : null;
+            return ['rh','proyectos','planeacion','coordinacion','logistica','recepcion','administrador'].includes(profile) ? (profile==='rh'?answerRH(raw):answerScopedSmartSearch(raw,profile)) : null;
         }
         if (plan.intent === 'finance') return (executive || profile === 'finanzas') ? (executive ? answerExecutive(raw) : answerFinance(raw)) : null;
         if (plan.intent === 'executive') return executive ? answerExecutive(raw) : null;
@@ -3536,23 +3843,24 @@
         if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
-            const chatText=profile==='sky_demo'?'La demo es de solo lectura, así que puedo preparar un mensaje, pero no enviarlo.':'También puedo enviar mensajes por el Chat interno y preparar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
+            const chatText='También puedo enviar mensajes por el Chat interno y generar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
             setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}.`,`No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área. ${chatText} ${voiceText}`,examples);
             return `Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. ${chatText} ${voiceText}`;
         }
         if (/\b(vehiculo|vehiculos|camioneta|pickup|placa|placas|flotilla|montacargas|generador)\b/.test(norm)) {
-            if (executive || profile==='rh' || profile==='almacen') return answerVehicles(raw);
+            if (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','recepcion','finanzas','administrador'].includes(profile)) return answerVehicles(raw);
             return null;
         }
         if (/\b(proyecto|proyectos|avance|entrega|responsable)\b/.test(norm)) {
             if (executive) return answerExecutive(raw);
             if (profile==='finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion'].includes(profile)) return answerProjects(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion','administrador','tsi','consulta'].includes(profile)) return answerProjects(raw);
             return null;
         }
         if (/\b(proveedor|proveedores|cotizacion|cotizaciones|orden de compra|compras|requisicion|precio|plazo|rfc|whatsapp|correo|email)\b/.test(norm)) {
             if (executive) return answerExecutivePurchasing(raw);
-            if (profile==='compras' || profile==='recepcion') return answerPurchasing(raw);
+            if (profile==='compras'||profile==='administrador') return answerPurchasing(raw);
+            if (['recepcion','coordinacion','finanzas'].includes(profile)) return answerScopedSmartSearch(raw,profile);
             return null;
         }
         if (officeAssetIntent(raw)) {
@@ -3563,6 +3871,7 @@
         if (/\b(personal|persona|personas|trabajador|trabajadores|empleado|empleados|colaborador|colaboradores|rh|recursos humanos)\b/.test(norm)) {
             if (executive) return answerExecutivePeople(raw,[]);
             if (profile==='rh') return answerRH(raw);
+            if (['proyectos','planeacion','coordinacion','logistica','recepcion','administrador'].includes(profile)) return answerScopedSmartSearch(raw,profile);
             return null;
         }
         if (/\b(categoria|categorias|categoría|categorías)\b/.test(norm) && /\b(cuantas|cuántas|cuantos|cuántos|lista|listar|muestra|mostrar|hay|tiene|tenemos|almacen|almacén|catalogo|catálogo)\b/.test(norm)) {
@@ -3570,7 +3879,7 @@
             return null;
         }
         if (/\b(material|materiales|tubo|tuberia|cable|tornillo|pija|pijas|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|stock|existencia|ubicacion|ubicación|rack|almacen|almacén)\b/.test(norm)) {
-            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile))) return null;
+            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi','consulta'].includes(profile))) return null;
             if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicación|rack|almacen|almacén/.test(norm)) return answerMaterial(raw,true);
             return answerMaterial(raw,false);
@@ -3589,7 +3898,12 @@
         if (profile === 'rh') return localIntent ? answerRH(raw) : null;
         if (isExecutiveReadProfile(profile)) return localIntent ? answerExecutive(raw) : null;
         if (profile === 'finanzas') return localIntent ? answerFinance(raw) : null;
-        if (['proyectos','planeacion','coordinacion','logistica'].includes(profile)) return localIntent ? answerProjects(raw) : null;
+        if (['proyectos','planeacion','coordinacion','logistica'].includes(profile)) {
+            if (!localIntent) return null;
+            const scoped=await answerScopedSmartSearch(raw,profile).catch(()=>null);
+            return scoped || answerProjects(raw);
+        }
+        if (profile === 'recepcion' || profile === 'administrador' || profile === 'tsi') return localIntent ? answerScopedSmartSearch(raw,profile) : null;
         if (profile === 'consulta') {
             const norm = commandNormalize(raw);
             if (/proyecto/.test(norm)) return answerProjects(raw);
@@ -3640,8 +3954,6 @@
             let usedAI = false;
             if (!simple.handled) {
                 voice = await dispatchByProfile(cleanRaw);
-                if (!voice) voice = await answerScopedSmartSearch(cleanRaw, detectProfile());
-                if (!voice && isExecutiveReadProfile()) voice = await answerExecutiveGlobalSearch(cleanRaw);
                 if (!voice) {
                     const plan = await interpretWithSkyAI(cleanRaw);
                     if (plan) {
@@ -3649,6 +3961,8 @@
                         usedAI = Boolean(voice);
                     }
                 }
+                if (!voice && shouldRunSmartSearch(cleanRaw, detectProfile())) voice = await answerScopedSmartSearch(cleanRaw, detectProfile());
+                if (!voice && isExecutiveReadProfile() && shouldRunSmartSearch(cleanRaw, detectProfile())) voice = await answerExecutiveGlobalSearch(cleanRaw);
                 if (!voice) {voice = await answerGeneralAI(cleanRaw, detectProfile());usedAI=Boolean(voice);}
                 if (!voice) voice = await answerGeneric(cleanRaw, detectProfile());
             }
