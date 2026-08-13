@@ -1613,14 +1613,19 @@
         return(itemsAgregados||[]).map(item=>{
             const projectTransfer=item.tipo==='traspaso'&&item.proyecto&&(item.traspasoModo||item.traspaso_modo);
             const product=item.producto||{};
+            const catalogado=Boolean(product.catalogado??product.esCatalogado??product.es_catalogado);
+            const marcadoNoListado=Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado);
+            const codigoItem=text(item.codigo||product.codigo);
+            const esNoListado=catalogado?false:(marcadoNoListado||/^NL-/i.test(codigoItem));
+            const proyectoItem=item.tipo==='entrada'&&text(item.origenEntrada||item.origen_entrada)==='ingreso_nuevo_almacen'?'':(Object.prototype.hasOwnProperty.call(item,'proyecto')?text(item.proyecto):source);
             return{
                 ...item,
-                codigo:text(item.codigo||product.codigo),
+                codigo:codigoItem,
                 descripcion:text(item.descripcion||product.descripcion||product.desc),
                 unidad:text(item.unidad||product.unidad),
                 categoria:text(item.categoria||product.categoria),
                 precio:number(item.precio??item.precio_unitario??product.precio),
-                proyecto:text(item.proyecto||source),
+                proyecto:proyectoItem,
                 ubicacion:projectTransfer?'':text(item.ubicacion||ubicacionMovimientoTexto()),
                 ubicacionOrigen:projectTransfer?'':text(item.ubicacionOrigen||document.getElementById('ubicacion_origen_val')?.value),
                 ubicacionDestino:projectTransfer?'':text(item.ubicacionDestino||document.getElementById('ubicacion_destino_val')?.value),
@@ -1632,8 +1637,8 @@
                 bodegaDestino:projectTransfer&&text(item.traspasoModo||item.traspaso_modo)==='proyecto'?'':text(item.bodegaDestino||destination),
                 recibeNombre:text(item.recibeNombre||receiver),
                 recibeTipo:text(item.recibeTipo||'persona'),
-                esNoListado:Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado)||/^NL-/i.test(text(item.codigo||product.codigo)),
-                es_no_listado:Boolean(item.esNoListado??item.es_no_listado??product.esNoListado??product.es_no_listado)||/^NL-/i.test(text(item.codigo||product.codigo))
+                esNoListado,
+                es_no_listado:esNoListado
             };
         });
     }
@@ -1697,7 +1702,7 @@
             itemsAgregados=[];
             renderLista();
             actualizarPreviewHeader();
-            if(typeof cargarCatalogo==='function')await cargarCatalogo();
+            if(typeof cargarCatalogo==='function')await cargarCatalogo(true);
             if(type==='prestamo'){
                 document.getElementById('motivo_val').value='';
                 document.getElementById('proyecto_val').value=savedSource;

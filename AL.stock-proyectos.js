@@ -26,8 +26,8 @@
         cantidad:number(row.cantidad),
         unidad:text(row.unidad),
         categoria:text(row.categoria_manual),
-        esNoListado:bool(row.es_no_listado)||/^NL-/i.test(text(row.material_codigo||row.codigo_manual)),
-        es_no_listado:bool(row.es_no_listado)||/^NL-/i.test(text(row.material_codigo||row.codigo_manual)),
+        esNoListado:!text(row.material_codigo)&&(bool(row.es_no_listado)||/^NL-/i.test(text(row.codigo_manual))),
+        es_no_listado:!text(row.material_codigo)&&(bool(row.es_no_listado)||/^NL-/i.test(text(row.codigo_manual))),
         proyecto:text(row.proyecto),
         proyectoDestino:text(row.proyecto_destino),
         proyecto_destino:text(row.proyecto_destino),
@@ -116,7 +116,7 @@
                 descripcion:text(move?.descripcion||move?.desc||normalizedCode),
                 unidad:text(move?.unidad),
                 categoria:text(move?.categoria),
-                esNoListado:bool(move?.esNoListado??move?.es_no_listado)||/^NL-/i.test(normalizedCode)
+                esNoListado:bool(move?.esNoListado??move?.es_no_listado)
             });
         };
         (movements||[]).forEach(move=>{

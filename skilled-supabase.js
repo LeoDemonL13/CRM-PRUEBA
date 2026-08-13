@@ -522,6 +522,11 @@
 
         return {
             codigo: text(row.codigo),
+            catalogado: true,
+            esCatalogado: true,
+            es_catalogado: true,
+            esNoListado: false,
+            es_no_listado: false,
             descripcion,
             desc: descripcion,
             categoria: text(row.categoria),
@@ -1472,9 +1477,11 @@
         const normalizedProducts = products.map(item => {
             const product = item.producto || {};
             const codigo = text(item.codigo ?? product.codigo);
-            const esNoListado = boolean(
+            const catalogado = boolean(product.catalogado ?? product.esCatalogado ?? product.es_catalogado);
+            const marcadoNoListado = boolean(
                 item.esNoListado ?? item.es_no_listado ?? product.esNoListado ?? product.es_no_listado
-            ) || /^NL-[A-Z0-9_-]+$/i.test(codigo);
+            );
+            const esNoListado = catalogado ? false : (marcadoNoListado || /^NL-[A-Z0-9_-]+$/i.test(codigo));
             const descripcion = text(item.descripcion ?? item.desc ?? product.descripcion ?? product.desc);
             const unidad = text(item.unidad ?? product.unidad);
             const categoria = text(item.categoria ?? product.categoria);
