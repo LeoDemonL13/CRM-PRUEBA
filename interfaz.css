@@ -366,3 +366,21 @@ body:not(.login-dark) .skilled-header-button{border-radius:8px!important}
   body:not(.login-dark) .profile-actions>*{flex:1 1 calc(50% - 4px);justify-content:center}
   body:not(.login-dark) .crm-primary,body:not(.login-dark) .crm-secondary{min-height:40px}
 }
+
+/* V67 · Ventanas y formularios ajustados al viewport */
+.crm-workspace-overlay{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important}
+.crm-workspace-dialog{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important}
+.crm-workspace-dialog:not(.crm-dialog-shell){overflow-y:auto!important}
+.crm-dialog-shell{min-height:0!important;overflow:hidden!important}
+.crm-dialog-scroll,.crm-dialog-auto-scroll{min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable}
+.crm-dialog-shell>form.crm-dialog-auto-scroll,.crm-dialog-shell>.crm-dialog-auto-scroll{flex:1 1 auto!important}
+.crm-dialog-form{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
+.crm-dialog-head,.crm-dialog-foot{flex:0 0 auto!important}
+@media(max-height:720px) and (min-width:641px){
+ .crm-workspace-overlay{padding:8px!important}
+ .crm-workspace-dialog{max-height:calc(100dvh - 16px)!important}
+}
+@media(max-width:640px){
+ .crm-workspace-overlay{padding:0!important;align-items:stretch!important}
+ .crm-workspace-dialog{height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
+}

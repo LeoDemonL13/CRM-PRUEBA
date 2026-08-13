@@ -1,0 +1,40 @@
+.crm-fit-overlay{overflow:auto;overscroll-behavior:contain;align-items:center}
+.crm-fit-dialog{max-height:calc(100dvh - 1.5rem);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.crm-fit-body{overflow-y:auto;min-height:0;overscroll-behavior:contain}
+.crm-fit-head,.crm-fit-foot{flex:0 0 auto}
+.crm-workspace-dialog{max-height:calc(100dvh - 1.5rem)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+.crm-workspace-dialog>.p-5.space-y-5{overflow-y:auto!important;min-height:0!important;flex:1 1 auto}
+.crm-workspace-dialog>.sticky.top-0,.crm-workspace-dialog>.sticky.bottom-0{position:relative!important;top:auto!important;bottom:auto!important;flex:0 0 auto}
+@media (max-width:640px){
+  .crm-fit-overlay,.crm-workspace-overlay{padding:.5rem!important;align-items:flex-start!important}
+  .crm-fit-dialog,.crm-workspace-dialog{max-height:calc(100dvh - 1rem)!important;border-radius:.85rem!important;margin:auto 0!important}
+  .crm-fit-head,.crm-fit-foot{padding:.8rem 1rem!important}
+  .crm-fit-body{padding:1rem!important}
+  .crm-fit-body.grid{grid-template-columns:minmax(0,1fr)!important}
+  .crm-fit-body .sm\:col-span-2{grid-column:auto!important}
+  .crm-workspace-dialog>.p-5.space-y-5{padding:1rem!important}
+  .crm-workspace-dialog .form-section .grid{grid-template-columns:minmax(0,1fr)!important}
+  .crm-workspace-dialog .sm\:col-span-2,.crm-workspace-dialog .md\:grid-cols-\[1fr_260px\]{grid-column:auto!important;grid-template-columns:minmax(0,1fr)!important}
+}
+@media (max-height:720px){
+  .crm-fit-dialog,.crm-workspace-dialog{max-height:calc(100dvh - .75rem)!important}
+  .crm-fit-overlay,.crm-workspace-overlay{padding:.35rem!important}
+}
+
+.crm-project-dialog{max-height:calc(100dvh - 2rem)!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+.crm-project-dialog .crm-dialog-form{display:flex!important;flex:1 1 auto!important;min-height:0!important;flex-direction:column!important;overflow:hidden!important}
+.crm-project-dialog .crm-dialog-scroll{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable}
+.crm-project-dialog .crm-dialog-head,.crm-project-dialog .crm-dialog-foot{flex:0 0 auto!important}
+@media(max-height:760px) and (min-width:641px){
+ .crm-project-dialog{max-height:calc(100dvh - 1rem)!important}
+ .crm-project-dialog .crm-dialog-head{padding-top:.8rem!important;padding-bottom:.8rem!important}
+ .crm-project-dialog .crm-dialog-scroll{padding-top:1rem!important;padding-bottom:1rem!important}
+ .crm-project-dialog .crm-dialog-foot{padding-top:.7rem!important;padding-bottom:.7rem!important}
+}
+@media(max-width:640px){
+ .crm-project-dialog{height:100dvh!important;max-height:100dvh!important;border-radius:0!important;border-left:0!important;border-right:0!important}
+ .crm-project-dialog .crm-dialog-scroll{padding:1rem!important}
+ .crm-project-dialog .crm-dialog-foot{padding:.75rem 1rem!important;flex-wrap:wrap!important}
+ .crm-project-dialog .crm-dialog-foot>div{width:100%!important;display:grid!important;grid-template-columns:1fr 1fr!important;margin-left:0!important}
+ .crm-project-dialog #btn-eliminar-proyecto:not(.hidden){width:100%!important;text-align:center!important}
+}
