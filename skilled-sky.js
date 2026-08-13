@@ -4,11 +4,11 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
-    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', tsi:'tsi' };
-    const profileNames = { administrador:'Administración', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', tsi:'TSI', consulta: 'Consulta' };
-    const profileCodes = { administrador:'ADM', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', tsi:'TSI', consulta: 'CN' };
+    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', lg:'logistica', rec:'recepcion', re:'recepcion', tsi:'tsi' };
+    const profileNames = { administrador:'Administración', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', recepcion:'Recepción', tsi:'TSI', consulta: 'Consulta' };
+    const profileCodes = { administrador:'ADM', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
     const customProfiles = new Map();
-    const skyProfiles = new Set(['administrador','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','tsi','consulta']);
+    const skyProfiles = new Set(['administrador','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta']);
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
@@ -25,7 +25,7 @@
         const remembered = String(sessionStorage.getItem('skilled_active_profile') || '').toLowerCase();
         if (remembered) return remembered;
         const role = currentRole();
-        if (['compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','consulta'].includes(role)) return role;
+        if (['compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta'].includes(role)) return role;
         return 'almacen';
     }
     function skyAllowed() {
@@ -43,6 +43,7 @@
             gerente_general: { title: 'Sky · Asistente de Gerencia General', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántos tipos de tubos tengo?', examples: [['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
             subgerente: { title: 'Sky · Asistente de Subgerencia', subtitle: 'Consulta ejecutiva de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos sin abrir los módulos operativos.', placeholder: 'Ej. ¿Cuántas personas tengo en el proyecto 26001?', examples: [['Personal de proyecto','¿Cuántas personas tengo en el proyecto 26001?'],['Resguardo de equipo','¿Qué equipo tiene asignado Leobardo?'],['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Proveedor de material','¿Quién vende tubo conduit?'],['Compras pendientes','¿Cuántas compras están pendientes?'],['Comunicaciones','¿Cuántos correos y WhatsApp se enviaron a proveedores?'],['Vehículos','¿Qué vehículos están disponibles?']] },
             sky_demo: { title: 'Sky · Modo presentación', subtitle: 'Asistente transversal de solo lectura para mostrar cómo Sky puede apoyar a las distintas áreas de Skilled.', placeholder: 'Ej. Soy planeador, ¿en qué me puedes ayudar?', examples: [['Planeación','Soy planeador, ¿en qué me puedes ayudar?'],['Finanzas','Soy de Finanzas, ¿en qué me puedes ayudar?'],['Logística','Soy de Logística, ¿en qué me puedes ayudar?'],['Compras','Soy de Compras, ¿en qué me puedes ayudar?'],['RH','Soy de RH, ¿en qué me puedes ayudar?'],['Almacén','Soy de Almacén, ¿en qué me puedes ayudar?'],['Quién te creó','¿Quién te está creando?']] },
+            recepcion: { title: 'Sky · Asistente de Recepción', subtitle: 'Orientación rápida para visitantes, avisos internos, responsables, proyectos, proveedores, citas, vehículos y comunicación con áreas autorizadas.', placeholder: 'Ej. Soy de Recepción, ¿en qué me puedes ayudar?', examples: [['Ayuda de recepción','Soy de Recepción, ¿en qué me puedes ayudar?'],['Avisar llegada','Dile a Compras que llegó un proveedor'],['Buscar responsable','Busca al responsable del proyecto 26001'],['Generar reunión','Genera una reunión general a las 4 para revisar pendientes'],['Contacto interno','Busca a Eduardo'],['Vehículos','¿Qué vehículos están disponibles?'],['Quién te creó','¿Quién te creó?']] },
             proyectos: { title: 'Sky · Asistente de proyectos', subtitle: 'Avance, costos, solicitudes y preparación de proyectos.', placeholder: 'Ej. ¿Cómo va el proyecto 2508?', examples: [['Estado de proyecto','¿Cómo va el proyecto 2508?'],['Costo de proyecto','¿Cuánto se ha consumido en el proyecto 2508?'],['Preparar materiales','Prepara la ruta del proyecto 2508'],['Solicitudes','¿Qué solicitudes de material están pendientes?']] },
             consulta: { title: 'Sky · Asistente de consulta', subtitle: 'Búsquedas de lectura en los datos autorizados para tu cuenta.', placeholder: 'Ej. Busca tubo de 1 pulgada', examples: [['Buscar material','Busca tubo de 1 pulgada'],['Ubicación','¿Dónde está el material AL-001?'],['Proyecto','¿Cómo va el proyecto 2508?']] }
         };
@@ -2281,6 +2282,20 @@
             ],
             examples:['Dame un resumen del proyecto 26001','¿Cuántas personas tiene el proyecto 26001?','¿Qué requiere atención hoy?']
         },
+        recepcion: {
+            label:'Recepción',
+            aliases:['recepcion','recepción','recepcionista','front desk','entrada principal','caseta','atencion a visitantes','atención a visitantes'],
+            intro:'Si eres de Recepción, puedo ayudarte a orientar personas, localizar responsables, avisar llegadas, preparar mensajes internos y consultar información autorizada sin abrir varios apartados.',
+            abilities:[
+                ['Orientar visitantes','Identificar a qué área o responsable se debe canalizar una visita, proveedor o llamada.'],
+                ['Avisos internos','Enviar mensajes por el chat a una persona, un área o el canal General cuando esté permitido.'],
+                ['Reuniones','Preparar convocatorias de reunión y dejar la confirmación lista para enviarse.'],
+                ['Proyectos y responsables','Buscar proyectos, responsables, clientes y datos operativos autorizados.'],
+                ['Proveedores','Consultar contactos, correos, WhatsApp y estados de atención disponibles.'],
+                ['Vehículos','Consultar disponibilidad o estado cuando el perfil lo autoriza.']
+            ],
+            examples:['Soy de Recepción, ¿en qué me puedes ayudar?','Dile a Compras que llegó el proveedor ABB','Genera una reunión general a las 4 para revisar pendientes']
+        },
         tsi: {
             label:'TSI',
             aliases:['tsi','sistemas','tecnologias de la informacion','tecnología de la información','soporte tecnico','soporte técnico'],
@@ -2487,7 +2502,15 @@
                 ['Busca Eduardo','Búsqueda transversal'],
                 ['Busca conduit','Materiales y proveedores'],
                 ['Busca proyecto 26001','Proyecto, personal y costos'],
+                ['Soy de Recepción, ¿en qué me ayudas?','Demostración por área'],
                 ['Soy de Finanzas, ¿en qué me ayudas?','Demostración por área']
+            ],
+            recepcion:[
+                ['Soy de Recepción, ¿en qué me ayudas?','Capacidades para recepción'],
+                ['Dile a Compras que llegó un proveedor','Mensaje interno'],
+                ['Genera una reunión general a las 4','Convocatoria'],
+                ['Busca a Eduardo','Directorio operativo'],
+                ['Busca proyecto 26001','Proyecto y responsable']
             ],
             proyectos:[
                 ['Busca proyecto 26001','Proyectos'],
@@ -2547,7 +2570,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=60'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=61'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -2613,6 +2636,78 @@
         return { handled:true, voice:main };
     }
 
+
+    function parseSkyDateTime(raw) {
+        const norm=commandNormalize(raw);
+        const now=new Date();
+        let d=new Date(now.getTime()+15*60000);
+        if (/\bmanana\b|\bmañana\b/.test(norm)) d.setDate(d.getDate()+1);
+        if (/\bpasado manana\b|\bpasado mañana\b/.test(norm)) d.setDate(d.getDate()+2);
+        let m=norm.match(/\b(?:a\s+las|alas|a\s+la|la)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
+        if(!m)m=norm.match(/\b(\d{1,2})(?::(\d{2}))\s*(am|pm)?\b/);
+        if(m){let h=Number(m[1]);const min=Number(m[2]||0);const ap=m[3]||'';if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;if(!ap&&h>=1&&h<=7&&now.getHours()>=12)h+=12;d.setHours(h,min,0,0);if(d.getTime()<now.getTime()-60000)d.setDate(d.getDate()+1)}
+        return d;
+    }
+
+    function parseMeetingCommand(raw) {
+        const source=text(stripWakeWord(raw)).trim();
+        const norm=commandNormalize(source);
+        if(!/\b(reunion|reunión|junta|convoca|convocar|cita|meeting)\b/.test(norm))return null;
+        if(/\b(?:que|qué)\s+(?:es|son|significa)/.test(norm))return null;
+        const capability=/\b(puedes|sabes|podrias|podrías)\b.*\b(reunion|reunión|junta|convocar)\b/.test(norm)&&!/\b(?:a\s+las|alas|mañana|manana|hoy|para|con|general)\b/.test(norm);
+        if(capability)return{capability:true};
+        let audience='general';
+        const am=source.match(/\b(?:con|para|a)\s+(.+?)\s+(?:a\s+las|alas|mañana|manana|hoy|para\s+revisar|para\s+ver|por\s+motivo|sobre|porque|que|con\s+el\s+tema|del\s+tema|$)/i);
+        if(am&&am[1]&&!/reunion|reunión|junta|cita/i.test(am[1]))audience=text(am[1]).replace(/^(todos|todas|general|todo el equipo)$/i,'general');
+        const date=parseSkyDateTime(source);
+        let title='Reunión general';
+        let note=text(source.replace(/^(?:puedes\s+|podrias\s+|podrías\s+)?(?:generar|crear|convocar|agenda|agendar|programa|programar|haz|hacer|prepara|preparar|abre)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:hoy|manana|mañana|pasado manana|pasado mañana)\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/ig,'').trim());
+        const topic=source.match(/\b(?:para revisar|para ver|sobre|tema de|del tema|por motivo de|porque)\s+(.+)$/i);
+        if(topic){note=text(topic[1]);title=`Reunión · ${note.slice(0,80)}`}
+        if(!note)note=title==='Reunión general'?'Reunión solicitada desde Sky.':title;
+        const explicitSend=/\b(enviala|envíala|mandala|mándala|enviar convocatoria|manda la convocatoria|mandar convocatoria)\b/.test(norm);
+        return{audience,title,note,date,explicitSend};
+    }
+
+    async function answerMeetingAction(raw) {
+        const parsed=parseMeetingCommand(raw);
+        if(!parsed)return null;
+        if(parsed.capability){
+            const message='Sí. Puedo preparar una reunión desde Sky, abrir la convocatoria con fecha, hora y motivo, y dejarla lista para confirmar antes de enviarla por el chat interno.';
+            setAnswer('Reuniones con Sky',message,'Prueba: “Genera una reunión general a las 4 para revisar pendientes” o “Convoca una junta mañana a las 9 con Compras para revisar proveedores”.',[
+                {title:'Seguridad',detail:'Sky prepara la acción; una persona confirma antes de enviarla.'},
+                {title:'Chat',detail:'La convocatoria queda visible en el chat interno como tarjeta de reunión.'},
+                {title:'Áreas',detail:'Puede preparar mensajes para General, áreas o personas según permisos.'}
+            ]);
+            return{handled:true,voice:message};
+        }
+        const profile=detectProfile();
+        if(profile==='sky_demo'){
+            const main=`Preparé una reunión de demostración para ${parsed.audience||'general'} el ${parsed.date.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}.`;
+            setAnswer('Reunión preparada',main,'La cuenta demo es de solo lectura, así que no puede enviar convocatorias reales.',[
+                {title:'Título',detail:parsed.title},
+                {title:'Motivo',detail:parsed.note},
+                {title:'Destino',detail:parsed.audience||'General'}
+            ]);
+            return{handled:true,voice:main};
+        }
+        let chat;
+        try{chat=await ensureChatModule()}catch(error){setAnswer('Reunión no disponible','No pude cargar el módulo de chat interno.',error?.message||'Abre Chat una vez y vuelve a intentarlo.');return{handled:true,voice:'No pude cargar el módulo de chat interno.'}}
+        if(!chat?.scheduleMeeting){
+            if(chat?.openMeeting){chat.openMeeting();const message='Abrí la convocatoria de reunión general. Completa los datos y confirma el envío.';setAnswer('Reunión general',message);return{handled:true,voice:message}}
+            setAnswer('Reunión no disponible','El módulo de chat aún no expone reuniones desde Sky.','Actualiza skilled-chat.js junto con esta versión del CRM.');return{handled:true,voice:'El chat interno aún no está listo para generar reuniones desde Sky.'}
+        }
+        const result=await chat.scheduleMeeting({audience:parsed.audience,title:parsed.title,note:parsed.note,date:parsed.date,autoSend:false});
+        const message=result?.general?'Preparé la convocatoria de reunión general. Revisa los datos y confirma el envío.':'Preparé la reunión como mensaje interno. Revisa el chat antes de enviarla si necesitas ajustar algo.';
+        setAnswer('Reunión preparada',message,`Fecha: ${parsed.date.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}. Motivo: ${parsed.note}.`,[
+            {title:'Destino',detail:parsed.audience||'General'},
+            {title:'Título',detail:parsed.title},
+            {title:'Confirmación',detail:'Sky no la envía automáticamente para evitar convocatorias accidentales.'}
+        ]);
+        rememberConversation('meeting',parsed.audience||'general',parsed.note);
+        return{handled:true,voice:message};
+    }
+
     async function answerChatAction(raw, plan = null) {
         const parsed = plan ? { recipient:text(plan.recipient || plan.entity), message:text(plan.message || plan.query) } : parseChatCommand(raw);
         if (!parsed) return null;
@@ -2642,7 +2737,7 @@
 
     function answerCRMObjective(raw) {
         const norm=commandNormalize(raw);
-        if(!/(objetivo|para que sirve|qué se busca|que se busca|reduccion|reducción|tiempo|ahorra|ahorro|nube|conectados|una sola nube|beneficio|beneficios|proceso|procesos|evolucion|evolución)/.test(norm))return null;
+        if(!/\b(objetivo|para que sirve|qué se busca|que se busca|reduccion|reducción|tiempo|ahorra|ahorro|nube|conectados|una sola nube|beneficio|beneficios|proceso|procesos|evolucion|evolución)\b/.test(norm))return null;
         const message='El CRM busca unir Almacén, Compras, RH, Finanzas, Proyectos, Dirección y áreas de apoyo en una sola nube operativa para reducir capturas repetidas, búsquedas manuales, llamadas internas y pérdida de trazabilidad.';
         setAnswer('Objetivo del CRM',message,'Sky ayuda como una capa de consulta natural: el personal puede preguntar por materiales, proyectos, proveedores, personal, vehículos o pendientes sin recorrer varias pantallas. Conforme evoluciona, podrá orientar mejor el trabajo diario y relacionar información entre áreas con permisos controlados.',[
             {title:'Búsqueda más rápida',detail:'Pasar de revisar varias hojas o módulos a escribir o decir una consulta.'},
@@ -2687,6 +2782,7 @@
             return {handled:true,voice:''};
         }
         const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
+        const meetingAction=await answerMeetingAction(raw);if(meetingAction)return meetingAction;
         const chatAction=await answerChatAction(raw);if(chatAction)return chatAction;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
         const crmObjective=answerCRMObjective(raw);if(crmObjective)return crmObjective;
@@ -3272,6 +3368,12 @@
                 {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
                 {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
             ],
+            recepcion:[
+                commonProject,
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo,p.telefono],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
+                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
+                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
+            ],
             tsi:[
                 {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
                 commonProject
@@ -3334,7 +3436,7 @@
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso|cajon|posicion)\b/.test(norm)) return true;
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
-        if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
+        if ((profile === 'compras' || profile === 'recepcion') && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
         if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
@@ -3402,12 +3504,12 @@
         if (plan.intent === 'project') {
             if (executive) return answerExecutive(raw);
             if (profile === 'finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen'].includes(profile)) return answerProjects(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion'].includes(profile)) return answerProjects(raw);
             return null;
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) {
             if (executive) return answerExecutivePurchasing(raw);
-            return profile === 'compras' ? answerPurchasing(raw) : null;
+            return (profile === 'compras' || profile === 'recepcion') ? answerPurchasing(raw) : null;
         }
         if (plan.intent === 'rh_assets') {
             if (executive) return answerRHOfficeAssets(raw,true);
@@ -3434,7 +3536,7 @@
         if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
-            const chatText=profile==='sky_demo'?'La demo es de solo lectura, así que puedo preparar un mensaje, pero no enviarlo.':'También puedo enviar mensajes por el Chat interno cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
+            const chatText=profile==='sky_demo'?'La demo es de solo lectura, así que puedo preparar un mensaje, pero no enviarlo.':'También puedo enviar mensajes por el Chat interno y preparar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
             setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}.`,`No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área. ${chatText} ${voiceText}`,examples);
             return `Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. ${chatText} ${voiceText}`;
         }
@@ -3445,12 +3547,12 @@
         if (/\b(proyecto|proyectos|avance|entrega|responsable)\b/.test(norm)) {
             if (executive) return answerExecutive(raw);
             if (profile==='finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen'].includes(profile)) return answerProjects(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion'].includes(profile)) return answerProjects(raw);
             return null;
         }
         if (/\b(proveedor|proveedores|cotizacion|cotizaciones|orden de compra|compras|requisicion|precio|plazo|rfc|whatsapp|correo|email)\b/.test(norm)) {
             if (executive) return answerExecutivePurchasing(raw);
-            if (profile==='compras') return answerPurchasing(raw);
+            if (profile==='compras' || profile==='recepcion') return answerPurchasing(raw);
             return null;
         }
         if (officeAssetIntent(raw)) {

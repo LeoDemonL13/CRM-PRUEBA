@@ -3,7 +3,7 @@
 if(window.SkilledChat)return;
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const txt=v=>String(v??'').trim();
-const roleLabels={administrador:'Administrador',jefe_almacen:'Jefe de almacén',almacen:'Almacén',compras:'Compras',proyectos:'Proyectos',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerente General',subgerente:'Subgerente',sky_demo:'Sky · Presentación',tsi:'TSI',consulta:'Consulta'};
+const roleLabels={administrador:'Administrador',jefe_almacen:'Jefe de almacén',almacen:'Almacén',compras:'Compras',proyectos:'Proyectos',planeacion:'Planeación',coordinacion:'Coordinación',logistica:'Logística',recepcion:'Recepción',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerente General',subgerente:'Subgerente',sky_demo:'Sky · Presentación',tsi:'TSI',consulta:'Consulta'};
 let overlay=null,meetingOverlay=null,users=[],selected=null,profile=null,pollTimer=null,busy=false,channel=null,unread=0,lastKnownId=0,notificationStarted=false;
 const unreadKey=()=>`skilled_chat_last_${txt(profile?.id||window.SkilledSession?.user?.id||'local')}`;
 function style(){if(document.getElementById('skilled-chat-style'))return;const s=document.createElement('style');s.id='skilled-chat-style';s.textContent=`
@@ -38,6 +38,7 @@ const roleAliases={
   subgerente:['subgerencia','subgerente','sub gerencia'],
   almacen:['almacen','bodega','equipo de almacen','area de almacen'],
   proyectos:['proyectos','proyecto','equipo de proyectos'],
+  recepcion:['recepcion','recepción','recepcionista','front desk','entrada principal','caseta'],
   tsi:['tsi'],
   administrador:['administrador','admin']
 };
@@ -58,10 +59,11 @@ function subscribeRealtime(){try{channel=SkilledDB.client.channel(`crm-chat-${cu
 async function pollNew(){if(document.hidden||!currentId())return;try{let q=SkilledDB.client.from('crm_chat_mensajes').select('id,autor_id,destinatario_id,mensaje,creado_at').gt('id',lastKnownId).order('id',{ascending:true}).limit(30);const{data,error}=await q;if(error)throw error;(data||[]).forEach(notifyIncoming)}catch(_){}}
 async function open(){create();overlay.classList.add('is-open');markRead();try{await ensureProfile();await loadUsers();await loadMessages()}catch(e){document.getElementById('chat-messages').innerHTML=`<div class="chat-error">${esc(e.message)}</div>`}}
 function close(){overlay?.classList.remove('is-open')}
-function openMeeting(){create();createMeeting();const d=new Date(Date.now()+15*60*1000);document.getElementById('chat-meeting-date').value=localDateTimeValue(d);meetingOverlay.classList.add('open');document.getElementById('chat-meeting-title')?.focus()}
+function openMeeting(){return scheduleMeeting({audience:'general',title:'Reunión general',note:'',date:new Date(Date.now()+15*60*1000),autoSend:false})}
+async function scheduleMeeting(options={}){create();createMeeting();const audience=txt(options.audience||'general');const title=txt(options.title)||'Reunión general';const note=txt(options.note);const date=options.date instanceof Date?options.date:new Date(options.date||Date.now()+15*60*1000);if(audience&&norm(audience)!=='general'&&!/^(todos|todas|todo el equipo|todos los usuarios)$/.test(norm(audience))){const payload='@@REUNION@@'+JSON.stringify({titulo:title,fecha:date.toISOString(),mensaje:note,destino:audience});if(options.autoSend)return sendTo(audience,payload,{allowAmbiguous:false});await openTo(audience);const box=document.getElementById('chat-text');if(box){box.value=payload;box.focus()}showToast('Reunión preparada',`Mensaje de reunión para ${audience}.`);return{ok:true,general:false,audience}}document.getElementById('chat-meeting-title').value=title;document.getElementById('chat-meeting-date').value=localDateTimeValue(date);document.getElementById('chat-meeting-note').value=note;meetingOverlay.classList.add('open');if(options.autoSend){await sendMeeting();return{ok:true,general:true,autoSent:true}}document.getElementById('chat-meeting-title')?.focus();showToast('Reunión preparada','Revisa los datos y confirma el envío.');return{ok:true,general:true,audience:'general'}}
 function closeMeeting(){meetingOverlay?.classList.remove('open')}
 async function sendMeeting(){const title=txt(document.getElementById('chat-meeting-title')?.value)||'Reunión general';const rawDate=document.getElementById('chat-meeting-date')?.value;const date=rawDate?new Date(rawDate):new Date(Date.now()+15*60*1000);const note=txt(document.getElementById('chat-meeting-note')?.value);const button=document.getElementById('chat-meeting-send');button.disabled=true;button.textContent='Enviando…';try{await rpc('crm_convocar_reunion_general',{p_titulo:title,p_fecha:date.toISOString(),p_mensaje:note});closeMeeting();showToast('Convocatoria enviada',`${title} · ${date.toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'})}`);if(overlay?.classList.contains('is-open')){selected=null;renderUsers();await loadMessages()}}catch(e){alert(e.message||'No se pudo enviar la convocatoria.')}finally{button.disabled=false;button.textContent='Enviar convocatoria'}}
 function boot(){create();window.addEventListener('skilled:sessionready',primeNotifications,{once:true});if(window.SkilledSession?.user)primeNotifications()}
-window.SkilledChat=Object.freeze({open,close,refresh:loadMessages,openMeeting,requestNotifications,loadUsers,resolveRecipients,sendTo,sendGeneral,openTo});
+window.SkilledChat=Object.freeze({open,close,refresh:loadMessages,openMeeting,scheduleMeeting,requestNotifications,loadUsers,resolveRecipients,sendTo,sendGeneral,openTo});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

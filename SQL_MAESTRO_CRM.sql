@@ -59,10 +59,10 @@ alter table public.perfiles_usuario add column if not exists telefono text;
 alter table public.perfiles_usuario add column if not exists puesto text;
 alter table public.perfiles_usuario add column if not exists departamento text;
 alter table public.perfiles_usuario add column if not exists foto_url text;
-update public.perfiles_usuario set rol=case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' else lower(btrim(coalesce(rol,'consulta'))) end where rol is distinct from case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' else lower(btrim(coalesce(rol,'consulta'))) end;
+update public.perfiles_usuario set rol=case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end where rol is distinct from case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end;
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
-check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
 
 
@@ -1186,11 +1186,11 @@ begin
     end loop;
 end;
 $$;
-update public.perfiles_usuario set rol=case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' else lower(btrim(coalesce(rol,'consulta'))) end where rol is distinct from case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' else lower(btrim(coalesce(rol,'consulta'))) end;
+update public.perfiles_usuario set rol=case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end where rol is distinct from case lower(btrim(coalesce(rol,''))) when 'admin' then 'administrador' when 'administracion' then 'administrador' when 'dirección' then 'gerente_general' when 'direccion' then 'gerente_general' when 'gerencia' then 'gerente_general' when 'gg' then 'gerente_general' when 'sg' then 'subgerente' when 'subgerencia' then 'subgerente' when 'rrhh' then 'rh' when 'recursos humanos' then 'rh' when 'sky' then 'sky_demo' when 'demo' then 'sky_demo' when 'recepción' then 'recepcion' when 'recepcionista' then 'recepcion' when 'front desk' then 'recepcion' else lower(btrim(coalesce(rol,'consulta'))) end;
 
 alter table public.perfiles_usuario
     add constraint perfiles_usuario_rol_check
-    check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+    check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
 create or replace function public.crm_usuario_tiene_rol(p_roles text[])
 returns boolean
@@ -1227,7 +1227,7 @@ declare
     v_jwt_role text := coalesce(current_setting('request.jwt.claim.role', true), '');
 begin
     p_rol:=lower(btrim(p_rol));
-    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then
+    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then
         raise exception 'Rol no válido: %', p_rol;
     end if;
 
@@ -2566,7 +2566,7 @@ begin;
 
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
-check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
 create or replace function public.crm_asignar_rol_por_correo(
     p_correo text,
@@ -2584,7 +2584,7 @@ declare
     v_jwt_role text := coalesce(current_setting('request.jwt.claim.role', true), '');
 begin
     p_rol:=lower(btrim(p_rol));
-    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then
+    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then
         raise exception 'Rol no válido: %', p_rol;
     end if;
     if auth.uid() is not null then
@@ -4410,7 +4410,7 @@ alter table public.materiales add column if not exists campos_pendientes text[] 
 
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
-check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
 create or replace function public.crear_material_incompleto(
     p_codigo text,
@@ -4476,7 +4476,7 @@ declare
     v_jwt_role text:=coalesce(current_setting('request.jwt.claim.role',true),'');
 begin
     p_rol:=lower(btrim(p_rol));
-    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then raise exception 'Rol no válido: %',p_rol; end if;
+    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then raise exception 'Rol no válido: %',p_rol; end if;
     if auth.uid() is not null then
         if not public.crm_usuario_tiene_rol(array['administrador']) then raise exception using errcode='42501',message='Solo un administrador activo puede asignar roles.'; end if;
     elsif session_user not in ('postgres','supabase_admin') and v_jwt_role<>'service_role' then
@@ -4954,7 +4954,7 @@ begin;
 
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
-check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
 insert into public.perfiles_usuario(id,nombre,rol,activo,puesto,departamento)
 select u.id,coalesce(nullif(u.raw_user_meta_data->>'nombre',''),'Gerente General'),'gerente_general',true,'Gerente General','Dirección'
@@ -6079,7 +6079,7 @@ begin;
 
 alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
 alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
-check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
 
 create or replace function public.crm_asignar_rol_por_correo(
     p_correo text,
@@ -6097,7 +6097,7 @@ declare
     v_jwt_role text:=coalesce(current_setting('request.jwt.claim.role',true),'');
 begin
     p_rol:=lower(btrim(p_rol));
-    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then raise exception 'Rol no válido: %',p_rol; end if;
+    if p_rol not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then raise exception 'Rol no válido: %',p_rol; end if;
     if auth.uid() is not null then
         if not public.crm_usuario_tiene_rol(array['administrador']) then raise exception using errcode='42501',message='Solo un administrador activo puede asignar roles.'; end if;
     elsif session_user not in ('postgres','supabase_admin') and v_jwt_role<>'service_role' then
@@ -6518,7 +6518,7 @@ commit;
 
 select 'OK' as estado,
        'SQL_MAESTRO_CRM.sql' as archivo_maestro,
-       'V60_SKY_BUSQUEDA_ROLES_CORREGIDOS' as revision;
+       'V61_SKY_BUSQUEDA_ROLES_CORREGIDOS' as revision;
 
 -- Usuario demo Sky de solo lectura
 -- Ejecuta este bloque después de crear el usuario skydemo@skilled.mx en Authentication.
@@ -6564,14 +6564,29 @@ create policy co_configuracion_comunicacion_write on public.co_configuracion_com
 grant select,insert,update on public.co_configuracion_comunicacion to authenticated;
 
 insert into public.crm_migraciones(version,aplicada_at)
-values('CRM-V60-SKY-BUSQUEDA-ROLES-2026-08-13',now())
+values('CRM-V61-SKY-BUSQUEDA-ROLES-2026-08-13',now())
 on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 notify pgrst,'reload schema';
 commit;
 
 select 'OK' as estado,
-       'CRM-V60-SKY-BUSQUEDA-ROLES-2026-08-13' as revision,
+       'CRM-V61-SKY-BUSQUEDA-ROLES-2026-08-13' as revision,
        case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='rh_nomina_configuracion' and column_name='whatsapp_modo') then 'OK' else 'FALTA' end as rh_whatsapp_manual,
        case when to_regclass('public.co_configuracion_comunicacion') is not null then 'OK' else 'FALTA' end as compras_whatsapp_config,
        case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='co_solicitudes_proveedor' and column_name='whatsapp_manual_estado') then 'OK' else 'FALTA' end as compras_estados_chat;
+
+
+update public.perfiles_usuario
+set rol='recepcion'
+where lower(btrim(coalesce(rol,''))) in ('recepción','recepcionista','front desk','entrada principal','caseta');
+
+alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_rol_check;
+alter table public.perfiles_usuario add constraint perfiles_usuario_rol_check
+check (lower(btrim(rol)) in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'));
+
+insert into public.crm_migraciones_aplicadas(version,aplicada_at)
+values('CRM-V61-SKY-RECEPCION-CHAT-REUNIONES-2026-08-13',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
