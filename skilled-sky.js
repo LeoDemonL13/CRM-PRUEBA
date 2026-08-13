@@ -2547,7 +2547,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=58'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=59'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -2678,7 +2678,7 @@
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
         const navigation=tryNavigation(raw);if(navigation){if(navigation.list){const options=Object.keys(navigationOptions()).map(key=>({title:key,detail:`Puedes decir: abre ${key}`}));setAnswer('Apartados disponibles','Estos son los apartados a los que puedo llevarte desde tu perfil.','No puedo abrir secciones que tu cuenta no tenga autorizadas.',options)}return navigation;}
         if (/\b(que puedes hacer aqui|qué puedes hacer aquí|ayudame aqui|ayúdame aquí|como me ayudas aqui|cómo me ayudas aquí|esta pantalla|esta pagina|esta página)\b/.test(norm)) { const message=pageHelp(); return {handled:true,voice:message}; }
-        if (/\b(como estas|cómo estás|como te encuentras|cómo te encuentras|como andas|cómo andas|como vas|cómo vas|todo bien|que tal estas|qué tal estás|como sigue tu evolucion|cómo sigue tu evolución)\b/.test(norm)) {
+        if (/\b(como estas|cómo estás|como te encuentras|cómo te encuentras|como andas|cómo andas|como vas|cómo vas|todo bien|que tal estas|qué tal estás|como sigue tu evolucion|cómo sigue tu evolución|como te sientes|cómo te sientes|estas lista|estás lista|que novedades|qué novedades|que estas aprendiendo|qué estás aprendiendo)\b/.test(norm)) {
             const message='Aún estoy en evolución, pero estoy lista para ayudarte. Cada versión me permite conversar mejor, entender más contexto de Skilled y relacionar información entre las áreas autorizadas.';
             setAnswer('Estoy lista para ayudarte', message, 'Puedes hablarme como lo harías con una persona. Si necesitas información del CRM, intentaré consultarla; si es una pregunta general, también puedo orientarte, explicar, redactar o ayudarte a razonar una solución.');
             return { handled:true, voice:message };
@@ -3186,7 +3186,7 @@
     }
 
     async function answerGeneralAI(raw, profile = detectProfile()) {
-        if (!window.SkilledDB?.askSkyGeneral || skyDataSaverActive()) return null;
+        if (!window.SkilledDB?.askSkyGeneral) return null;
         try {
             const crmContext=await buildRelevantCRMContext(raw,profile);
             const context = { lastIntent:conversationContext.lastIntent, lastEntity:conversationContext.lastEntity, lastQuery:conversationContext.lastQuery, area:conversationContext.area, page:currentPageKey(), crmContext };
@@ -3291,7 +3291,7 @@
     }
 
     function shouldUseSkyAI(raw, profile = detectProfile()) {
-        if (!window.SkilledDB?.interpretSkyQuery || Date.now() < aiRetryAfter || skyDataSaverActive()) return false;
+        if (!window.SkilledDB?.interpretSkyQuery || Date.now() < aiRetryAfter) return false;
         const norm=commandNormalize(raw);
         const words=norm.split(' ').filter(Boolean);
         if(words.length<3)return false;
@@ -3378,7 +3378,7 @@
             setAnswer('Hola, soy Sky',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
             return 'Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte. Dime qué necesitas resolver y lo intentamos juntos.';
         }
-        if (/\b(que puedes hacer|que sabes hacer|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
+        if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
             const chatText=profile==='sky_demo'?'La demo es de solo lectura, así que puedo preparar un mensaje, pero no enviarlo.':'También puedo enviar mensajes por el Chat interno cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
@@ -3484,15 +3484,17 @@
             let voice = simple.handled ? simple.voice : '';
             let usedAI = false;
             if (!simple.handled) {
-                const plan = await interpretWithSkyAI(cleanRaw);
-                if (plan) {
-                    voice = await dispatchSkyAIPlan(plan, cleanRaw);
-                    usedAI = Boolean(voice);
-                }
-                if (!voice) voice = await dispatchByProfile(cleanRaw);
+                voice = await dispatchByProfile(cleanRaw);
                 if (!voice) voice = await answerScopedSmartSearch(cleanRaw, detectProfile());
                 if (!voice && isExecutiveReadProfile()) voice = await answerExecutiveGlobalSearch(cleanRaw);
-                if (!voice) voice = await answerGeneralAI(cleanRaw, detectProfile());
+                if (!voice) {
+                    const plan = await interpretWithSkyAI(cleanRaw);
+                    if (plan) {
+                        voice = await dispatchSkyAIPlan(plan, cleanRaw);
+                        usedAI = Boolean(voice);
+                    }
+                }
+                if (!voice) {voice = await answerGeneralAI(cleanRaw, detectProfile());usedAI=Boolean(voice);}
                 if (!voice) voice = await answerGeneric(cleanRaw, detectProfile());
             }
             rememberConversation(conversationContext.lastIntent,conversationContext.lastEntity,cleanRaw);

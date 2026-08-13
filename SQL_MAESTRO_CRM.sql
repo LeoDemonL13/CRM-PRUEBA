@@ -6525,3 +6525,47 @@ begin
         where id=(select id from auth.users where lower(email)='skydemo@skilled.mx' limit 1);
     end if;
 end $$;
+
+begin;
+
+alter table public.rh_nomina_configuracion
+    add column if not exists whatsapp_modo text not null default 'manual',
+    add column if not exists whatsapp_numero_remitente text;
+alter table public.rh_nomina_configuracion drop constraint if exists rh_nomina_config_whatsapp_modo_check;
+alter table public.rh_nomina_configuracion add constraint rh_nomina_config_whatsapp_modo_check check(whatsapp_modo in ('manual','cloud_api'));
+
+alter table public.co_solicitudes_proveedor
+    add column if not exists whatsapp_manual_estado text not null default 'pendiente',
+    add column if not exists whatsapp_manual_at timestamptz,
+    add column if not exists whatsapp_manual_nota text;
+alter table public.co_solicitudes_proveedor drop constraint if exists co_solicitudes_whatsapp_manual_estado_check;
+alter table public.co_solicitudes_proveedor add constraint co_solicitudes_whatsapp_manual_estado_check check(whatsapp_manual_estado in ('pendiente','abierto','enviado','respondido','cerrado'));
+
+create table if not exists public.co_configuracion_comunicacion(
+    id smallint primary key default 1 check(id=1),
+    whatsapp_modo text not null default 'manual' check(whatsapp_modo in ('manual','cloud_api')),
+    whatsapp_numero_remitente text,
+    whatsapp_nombre text not null default 'Compras',
+    updated_by uuid references auth.users(id) on delete set null,
+    updated_at timestamptz not null default now()
+);
+insert into public.co_configuracion_comunicacion(id) values(1) on conflict(id) do nothing;
+alter table public.co_configuracion_comunicacion enable row level security;
+drop policy if exists co_configuracion_comunicacion_select on public.co_configuracion_comunicacion;
+create policy co_configuracion_comunicacion_select on public.co_configuracion_comunicacion for select to authenticated using(public.crm_usuario_tiene_rol(array['administrador','compras']));
+drop policy if exists co_configuracion_comunicacion_write on public.co_configuracion_comunicacion;
+create policy co_configuracion_comunicacion_write on public.co_configuracion_comunicacion for all to authenticated using(public.crm_usuario_tiene_rol(array['administrador','compras'])) with check(public.crm_usuario_tiene_rol(array['administrador','compras']));
+grant select,insert,update on public.co_configuracion_comunicacion to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V59-WHATSAPP-MANUAL-MOVIL-SKY-2026-08-13',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V59-WHATSAPP-MANUAL-MOVIL-SKY-2026-08-13' as revision,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='rh_nomina_configuracion' and column_name='whatsapp_modo') then 'OK' else 'FALTA' end as rh_whatsapp_manual,
+       case when to_regclass('public.co_configuracion_comunicacion') is not null then 'OK' else 'FALTA' end as compras_whatsapp_config,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='co_solicitudes_proveedor' and column_name='whatsapp_manual_estado') then 'OK' else 'FALTA' end as compras_estados_chat;

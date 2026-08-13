@@ -766,14 +766,69 @@
         return wrap;
     }
 
+    function qrDataUrl(value){
+        return new Promise((resolve,reject)=>{
+            const host=document.createElement('div');
+            host.style.cssText='position:fixed;left:-9999px;top:-9999px;width:320px;height:320px;background:#fff';
+            document.body.appendChild(host);
+            try{
+                new QRCode(host,{text:value,width:300,height:300,colorDark:'#00416B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+                setTimeout(()=>{
+                    try{
+                        const canvas=host.querySelector('canvas');
+                        const image=host.querySelector('img');
+                        const url=canvas?.toDataURL('image/png')||image?.src||'';
+                        host.remove();
+                        if(!url) reject(new Error('No se pudo generar el QR de la ubicación.'));
+                        else resolve(url);
+                    }catch(error){host.remove();reject(error)}
+                },80);
+            }catch(error){host.remove();reject(error)}
+        });
+    }
+
+    function rackPrintLabelHtml(data,qr,slot){
+        const base=parseBaseCode(data.location.codigo)||{};
+        const materials=data.materials.length
+            ? data.materials.slice(0,MAX_MATERIALS_PER_POSITION).map(item=>`<div class="material"><b>${esc(item.codigo)}</b><span>${esc(item.descripcion||item.codigo)}</span></div>`).join('')
+            : '<div class="empty">Posición libre</div>';
+        return `<article class="label" style="--slot:${slot}"><div class="qr"><img src="${qr}" alt="QR ${esc(data.position)}"></div><div class="info"><header><img src="${new URL('logo-reporte.png',location.href).href}" alt="Skilled"><strong>UBICACIÓN DE ALMACÉN</strong></header><h1>${esc(data.position)}</h1><p>${esc(data.warehouse.nombre)} · Rack ${esc(String(base.rack||'').padStart(2,'0'))} · Zona ${esc(base.zona||'')} · Piso ${esc(base.piso||'')}</p><div class="materials">${materials}</div></div></article>`;
+    }
+
     async function printQrBatch(items){
-        const valid=(items||[]).filter(Boolean);if(!valid.length)return showToast('Selecciona al menos una posición para imprimir.',true);
-        const root=$('rack-print-root');root.innerHTML='';
-        for(let i=0;i<valid.length;i+=5){
-            const sheet=document.createElement('section');sheet.className='rack-print-sheet';root.appendChild(sheet);
-            valid.slice(i,i+5).forEach((data,offset)=>{const label=buildRackPrintLabel(data,i+offset);sheet.appendChild(label);const q=label.querySelector('.rack-print-qr');new QRCode(q,{text:data.value,width:220,height:220,colorDark:'#00416B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});});
+        const valid=(items||[]).filter(Boolean);
+        if(!valid.length)return showToast('Selecciona al menos una posición para imprimir.',true);
+        const prepared=[];
+        for(const data of valid) prepared.push({data,qr:await qrDataUrl(data.value)});
+        const sheets=[];
+        for(let i=0;i<prepared.length;i+=5){
+            const labels=prepared.slice(i,i+5).map((item,slot)=>rackPrintLabelHtml(item.data,item.qr,slot)).join('');
+            sheets.push(`<section class="sheet">${labels}</section>`);
         }
-        await new Promise(resolve=>setTimeout(resolve,220));window.print();
+        const frame=document.createElement('iframe');
+        frame.setAttribute('aria-hidden','true');
+        frame.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+        document.body.appendChild(frame);
+        const doc=frame.contentDocument;
+        doc.open();
+        doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas de ubicaciones</title><style>
+            *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;font-family:Arial,sans-serif;color:#102a43;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+            @page{size:Letter portrait;margin:0}
+            .sheet{position:relative;width:215.9mm;height:279.4mm;overflow:hidden;break-after:page;page-break-after:always;background:#fff}
+            .sheet:last-child{break-after:auto;page-break-after:auto}
+            .label{position:absolute;left:35.45mm;top:calc(9.7mm + (var(--slot) * 52mm));width:145mm;height:50mm;overflow:hidden;border:.45mm solid #00416b;background:#fff;padding:3.2mm 4mm;display:grid;grid-template-columns:37mm minmax(0,1fr);gap:4mm;break-inside:avoid;page-break-inside:avoid}
+            .qr{display:flex;align-items:center;justify-content:center}.qr img{width:34mm;height:34mm;display:block}
+            .info{min-width:0;display:flex;flex-direction:column}.info header{height:8.5mm;display:flex;align-items:flex-start;justify-content:space-between;gap:3mm;border-bottom:.5mm solid #00416b;padding-bottom:1.2mm}.info header img{width:34mm;max-height:8mm;object-fit:contain}.info header strong{font-size:6.5pt;color:#00416b;letter-spacing:.12em;text-align:right;white-space:nowrap}
+            h1{font-size:15pt;line-height:1;margin:1.5mm 0 .8mm;font-weight:900}p{font-size:7pt;color:#58738b;margin:0}.materials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8mm 3mm;margin-top:1.7mm}.material{display:flex;gap:1mm;min-width:0;font-size:6.2pt;border-bottom:.15mm solid #dbe3ec;padding-bottom:.5mm;white-space:nowrap;overflow:hidden}.material b{font-family:monospace;color:#00416b;flex:0 0 auto}.material span{overflow:hidden;text-overflow:ellipsis}.empty{font-size:7pt;color:#6b7280;margin-top:2mm}
+            @media screen{body{background:#eef2f7}.sheet{margin:8px auto;box-shadow:0 1px 9px rgba(0,0,0,.18)}}
+        </style></head><body>${sheets.join('')}</body></html>`);
+        doc.close();
+        await new Promise(resolve=>setTimeout(resolve,250));
+        const cleanup=()=>setTimeout(()=>frame.remove(),800);
+        frame.contentWindow.addEventListener('afterprint',cleanup,{once:true});
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        setTimeout(()=>{if(document.body.contains(frame))frame.remove()},120000);
     }
 
     function printSelectedQr(){

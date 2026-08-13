@@ -451,7 +451,7 @@
         style.textContent += `
 #skilled-mobile-dock,#skilled-mobile-search-backdrop,.skilled-mobile-header-copy{display:none}
 @media(max-width:760px){
-body{padding-bottom:calc(82px + env(safe-area-inset-bottom))!important}
+body{padding-bottom:calc(66px + env(safe-area-inset-bottom))!important}
 header.skilled-app-header{min-height:56px!important;height:56px!important;padding:0 10px!important;gap:8px!important;overflow:visible!important}
 header.skilled-app-header>.skilled-mobile-sidebar-toggle{display:inline-flex!important;margin:0!important;flex:0 0 38px!important;width:38px!important;height:38px!important}
 .skilled-mobile-header-copy{display:flex!important;flex-direction:column;justify-content:center;min-width:0;flex:1 1 auto;margin-left:2px}.skilled-mobile-header-copy strong{color:#eef5ff;font-size:11px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.skilled-mobile-header-copy span{margin-top:2px;color:#64748b;font-size:8px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}body.tema-claro .skilled-mobile-header-copy strong{color:#0f172a}body.tema-claro .skilled-mobile-header-copy span{color:#64748b}
@@ -459,14 +459,14 @@ header.skilled-app-header>div:first-of-type{min-width:0!important;flex:1 1 auto!
 header.skilled-app-header>div:last-child{gap:4px!important;margin-left:auto!important;flex:0 0 auto!important}
 header.skilled-app-header .skilled-header-button,header.skilled-app-header .crm-icon-button,header.skilled-app-header .skilled-profile-chip{display:none!important}
 header.skilled-app-header .skilled-global-search-host{display:none!important}
-#skilled-mobile-dock{position:fixed;left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));height:64px;z-index:184;display:flex;align-items:stretch;gap:4px;padding:5px;border:1px solid rgba(71,101,148,.55);border-radius:20px;background:rgba(7,14,28,.94);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 18px 55px rgba(0,0,0,.48)}
+#skilled-mobile-dock{position:fixed;left:50%;right:auto;transform:translateX(-50%);width:min(360px,calc(100vw - 18px));bottom:calc(6px + env(safe-area-inset-bottom));height:52px;z-index:184;display:flex;align-items:stretch;gap:2px;padding:3px;border:1px solid rgba(71,101,148,.55);border-radius:16px;background:rgba(7,14,28,.94);backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 14px 42px rgba(0,0,0,.42);transition:transform .2s ease,opacity .2s ease}
 #skilled-mobile-dock>*{flex:1 1 0;min-width:0}
-.skilled-mobile-dock-button,#skilled-mobile-dock #sky-open,#skilled-mobile-dock #chat-open{position:relative!important;inset:auto!important;width:100%!important;height:54px!important;min-width:0!important;min-height:54px!important;padding:5px 4px!important;border:0!important;border-radius:15px!important;background:transparent!important;box-shadow:none!important;color:#8fa3c0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:9px!important;font-weight:850!important;letter-spacing:.01em!important;text-transform:none!important}
+.skilled-mobile-dock-button,#skilled-mobile-dock #sky-open,#skilled-mobile-dock #chat-open{position:relative!important;inset:auto!important;width:100%!important;height:44px!important;min-width:0!important;min-height:44px!important;padding:4px 3px!important;border:0!important;border-radius:12px!important;background:transparent!important;box-shadow:none!important;color:#8fa3c0!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:5px!important;font-size:8.5px!important;font-weight:850!important;letter-spacing:.01em!important;text-transform:none!important}
 .skilled-mobile-dock-button:hover,#skilled-mobile-dock #sky-open:hover,#skilled-mobile-dock #chat-open:hover{background:rgba(37,99,235,.12)!important;color:#fff!important}
 #skilled-mobile-dock #sky-open{color:#93c5fd!important;background:linear-gradient(145deg,rgba(37,99,235,.18),rgba(30,64,175,.08))!important}
 #skilled-mobile-dock #sky-open span[data-sky-label],#skilled-mobile-dock #chat-open span{display:block!important;line-height:1!important}
 #skilled-mobile-dock #sky-open .sky-shortcut-badge,#skilled-mobile-dock #sky-open .sky-pulse,#skilled-mobile-dock #chat-open .chat-badge:not(.show){display:none!important}
-#skilled-mobile-dock svg,.skilled-mobile-dock-button svg{width:20px!important;height:20px!important;flex:none!important}
+#skilled-mobile-dock svg,.skilled-mobile-dock-button svg{width:17px!important;height:17px!important;flex:none!important}body.skilled-mobile-sidebar-open #skilled-mobile-dock,body.skilled-scanner-active #skilled-mobile-dock{opacity:0!important;pointer-events:none!important;transform:translate(-50%,120%)!important}
 #skilled-mobile-search-backdrop{display:none;position:fixed;inset:0;z-index:205;background:rgba(2,6,18,.62);backdrop-filter:blur(4px)}
 body.skilled-mobile-search-open #skilled-mobile-search-backdrop{display:block}
 body.skilled-mobile-search-open header.skilled-app-header .skilled-global-search-host{display:block!important;position:fixed!important;z-index:220!important;left:10px!important;right:10px!important;top:calc(10px + env(safe-area-inset-top));max-width:none!important;width:auto!important;padding:6px!important;border:1px solid #31558a!important;border-radius:16px!important;background:#081224!important;box-shadow:0 20px 70px rgba(0,0,0,.55)!important}
@@ -479,7 +479,7 @@ body.tema-claro #skilled-mobile-dock #sky-open{color:#2563eb!important;backgroun
 body.tema-claro.skilled-mobile-search-open header.skilled-app-header .skilled-global-search-host{background:#fff!important;border-color:#b8c9df!important}
 body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{background:#f7f9fc!important;color:#111827!important}
 }
-@media(max-width:430px){#skilled-mobile-dock{left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom));border-radius:18px}main{padding-bottom:28px!important}}
+@media(max-width:430px){#skilled-mobile-dock{width:calc(100vw - 14px);bottom:calc(4px + env(safe-area-inset-bottom));border-radius:14px}main{padding-bottom:18px!important}}
 `;
         document.head.appendChild(style);
     }
@@ -1100,6 +1100,13 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             dock = document.createElement('nav');
             dock.id = 'skilled-mobile-dock';
             dock.setAttribute('aria-label','Acciones rápidas');
+            const menu = document.createElement('button');
+            menu.id = 'skilled-mobile-menu-open';
+            menu.type = 'button';
+            menu.className = 'skilled-mobile-dock-button';
+            menu.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menú</span>`;
+            menu.addEventListener('click', () => document.body.classList.add('skilled-mobile-sidebar-open'));
+            dock.appendChild(menu);
             const search = document.createElement('button');
             search.id = 'skilled-mobile-search-open';
             search.type = 'button';
@@ -1211,7 +1218,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=58');
+                await loadOptionalScript('skilled-sky.js?v=59');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1236,7 +1243,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=58');
+                await loadOptionalScript('skilled-chat.js?v=59');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1257,7 +1264,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=58').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=59').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1271,7 +1278,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=58'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=59'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

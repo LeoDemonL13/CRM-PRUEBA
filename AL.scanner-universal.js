@@ -74,6 +74,7 @@
 
     function setCameraState(isActive){
         active=Boolean(isActive);
+        document.body.classList.toggle('skilled-scanner-active',active);
         const start=$('btn-start-scanner');
         const stop=$('btn-stop-scanner');
         const idle=$('scanner-idle');
@@ -293,7 +294,7 @@
             await loadScannerLibrary();
             setStatus('Solicitando acceso a la cámara…');
             scanner=scanner||new Html5Qrcode('universal-reader');
-            await scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.min(w*.82,360),height:Math.min(h*.52,240)}),aspectRatio:1.333},code=>resolve(code),()=>{});
+            const portrait=window.matchMedia('(orientation:portrait)').matches&&window.innerWidth<=900;await scanner.start({facingMode:'environment'},{fps:10,qrbox:(w,h)=>({width:Math.max(180,Math.min(w*(portrait?.82:.76),portrait?310:360)),height:Math.max(100,Math.min(h*(portrait?.28:.46),portrait?170:230))}),aspectRatio:portrait?.75:1.333},code=>resolve(code),()=>{});
             setCameraState(true);
             setStatus('Cámara activa. Centra el código dentro del marco.','ok');
         }catch(error){

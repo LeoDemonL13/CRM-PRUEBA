@@ -4455,6 +4455,9 @@
             errorWhatsapp: text(row.error_whatsapp),
             emailMessageId: text(row.email_message_id),
             whatsappMessageId: text(row.whatsapp_message_id),
+            whatsappManualEstado: text(row.whatsapp_manual_estado) || 'pendiente',
+            whatsappManualAt: text(row.whatsapp_manual_at),
+            whatsappManualNota: text(row.whatsapp_manual_nota),
             cotizacionId: text(row.cotizacion_id),
             tipo: text(row.tipo) || 'suministro',
             items: Array.isArray(row.co_solicitud_proveedor_items) ? row.co_solicitud_proveedor_items.map(item => ({
@@ -4550,6 +4553,9 @@
         if ('errorWhatsapp' in changes) row.error_whatsapp = text(changes.errorWhatsapp) || null;
         if ('emailMessageId' in changes) row.email_message_id = text(changes.emailMessageId) || null;
         if ('whatsappMessageId' in changes) row.whatsapp_message_id = text(changes.whatsappMessageId) || null;
+        if ('whatsappManualEstado' in changes) row.whatsapp_manual_estado = text(changes.whatsappManualEstado) || 'pendiente';
+        if ('whatsappManualAt' in changes) row.whatsapp_manual_at = text(changes.whatsappManualAt) || null;
+        if ('whatsappManualNota' in changes) row.whatsapp_manual_nota = text(changes.whatsappManualNota) || null;
         const { data, error } = await client.from('co_solicitudes_proveedor').update(row).eq('id', requestId).select('*,co_solicitud_proveedor_items(*)').single();
         assertNoError(error, 'No se pudo actualizar la solicitud al proveedor.');
         return supplierRequestFromDb(data);
