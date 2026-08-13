@@ -384,3 +384,5 @@ body:not(.login-dark) .skilled-header-button{border-radius:8px!important}
  .crm-workspace-overlay{padding:0!important;align-items:stretch!important}
  .crm-workspace-dialog{height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
 }
+
+.profile-empty.hidden,.profile-notice.hidden,.crm-secondary.hidden{display:none!important}
