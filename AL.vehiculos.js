@@ -136,7 +136,7 @@ function vehicleSilhouette(value){
    <path class="v19-bed-rib" d="M89 312V511M121 312V511M153 312V511M185 312V511M217 312V511M249 312V511M281 312V511M66 348H294M66 400H294M66 452H294"/>
    ${mirror(true,126)}${mirror(false,126)}
    <path class="v19-headlight" d="M89 45H132V65H89Z"/><path class="v19-headlight" d="M271 45H228V65H271Z"/>
-   <path class="v19-taillight" d="M50 496H69V533H50Z"/><path class="v19-taillight" d="M310 496H291V533H310Z"/>
+   <path class="v19-taillight" d="M50 496H69V543H50Z"/><path class="v19-taillight" d="M310 496H291V543H310Z"/>
    </g>`,
   motorcycle:`
    <ellipse class="v19-ground" cx="180" cy="300" rx="65" ry="240"/>

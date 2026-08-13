@@ -1218,7 +1218,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=59');
+                await loadOptionalScript('skilled-sky.js?v=60');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1243,7 +1243,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=59');
+                await loadOptionalScript('skilled-chat.js?v=60');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1264,7 +1264,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=59').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=60').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1278,7 +1278,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=59'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=60'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

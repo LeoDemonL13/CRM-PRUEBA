@@ -4,11 +4,11 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
-    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo' };
-    const profileNames = { almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', consulta: 'Consulta' };
-    const profileCodes = { almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', consulta: 'CN' };
+    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', tsi:'tsi' };
+    const profileNames = { administrador:'Administración', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', tsi:'TSI', consulta: 'Consulta' };
+    const profileCodes = { administrador:'ADM', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', tsi:'TSI', consulta: 'CN' };
     const customProfiles = new Map();
-    const skyProfiles = new Set(['compras','rh','finanzas','gerente_general','subgerente','sky_demo']);
+    const skyProfiles = new Set(['administrador','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','tsi','consulta']);
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
@@ -2547,7 +2547,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=59'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=60'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -2640,6 +2640,20 @@
         if ('requestIdleCallback' in window) requestIdleCallback(run,{timeout:1800}); else setTimeout(run,120);
     }
 
+    function answerCRMObjective(raw) {
+        const norm=commandNormalize(raw);
+        if(!/(objetivo|para que sirve|qué se busca|que se busca|reduccion|reducción|tiempo|ahorra|ahorro|nube|conectados|una sola nube|beneficio|beneficios|proceso|procesos|evolucion|evolución)/.test(norm))return null;
+        const message='El CRM busca unir Almacén, Compras, RH, Finanzas, Proyectos, Dirección y áreas de apoyo en una sola nube operativa para reducir capturas repetidas, búsquedas manuales, llamadas internas y pérdida de trazabilidad.';
+        setAnswer('Objetivo del CRM',message,'Sky ayuda como una capa de consulta natural: el personal puede preguntar por materiales, proyectos, proveedores, personal, vehículos o pendientes sin recorrer varias pantallas. Conforme evoluciona, podrá orientar mejor el trabajo diario y relacionar información entre áreas con permisos controlados.',[
+            {title:'Búsqueda más rápida',detail:'Pasar de revisar varias hojas o módulos a escribir o decir una consulta.'},
+            {title:'Menos retrabajo',detail:'Una misma nube evita capturar el mismo dato en varios lugares.'},
+            {title:'Trazabilidad',detail:'Movimientos, compras, proyectos y responsables quedan conectados.'},
+            {title:'Tiempo estimado',detail:'En consultas y seguimiento operativo puede reducir revisiones manuales entre 40% y 70%, según adopción y datos capturados.'},
+            {title:'Evolución',detail:'Sky seguirá creciendo por etapas, sin inventar datos que aún no estén conectados.'}
+        ]);
+        return {handled:true,voice:message};
+    }
+
     async function answerSimple(raw) {
         const norm = commandNormalize(raw);
         const date = localDateParts();
@@ -2675,6 +2689,7 @@
         const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
         const chatAction=await answerChatAction(raw);if(chatAction)return chatAction;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
+        const crmObjective=answerCRMObjective(raw);if(crmObjective)return crmObjective;
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
         const navigation=tryNavigation(raw);if(navigation){if(navigation.list){const options=Object.keys(navigationOptions()).map(key=>({title:key,detail:`Puedes decir: abre ${key}`}));setAnswer('Apartados disponibles','Estos son los apartados a los que puedo llevarte desde tu perfil.','No puedo abrir secciones que tu cuenta no tenga autorizadas.',options)}return navigation;}
         if (/\b(que puedes hacer aqui|qué puedes hacer aquí|ayudame aqui|ayúdame aquí|como me ayudas aqui|cómo me ayudas aquí|esta pantalla|esta pagina|esta página)\b/.test(norm)) { const message=pageHelp(); return {handled:true,voice:message}; }
@@ -3220,11 +3235,48 @@
                 {type:'Documento',key:'rhDocuments',fields:d=>[d.tipo,d.nombre,d.descripcion,d.estado,d.personal?.nombre,d.personal?.apellidos],title:d=>d.nombre||d.tipo||'Documento',detail:d=>d.estado||'Sin estado'},
                 commonProject
             ],
-            finanzas:[commonProject],
-            proyectos:[commonProject],
-            planeacion:[commonProject],
-            coordinacion:[commonProject],
-            logistica:[commonProject]
+            finanzas:[
+                commonProject,
+                {type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proveedor,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'} · ${o.proveedor||'sin proveedor'}`},
+                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.rfc,p.contacto,p.email].filter(Boolean).join(' · ')||'Sin datos'}
+            ],
+            proyectos:[
+                commonProject,
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
+                {type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proveedor,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'} · ${o.proveedor||'sin proveedor'}`}
+            ],
+            planeacion:[
+                commonProject,
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
+                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
+            ],
+            coordinacion:[
+                commonProject,
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
+                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
+                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
+            ],
+            logistica:[
+                commonProject,
+                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`}
+            ],
+            administrador:[
+                commonProject,
+                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
+                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
+                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
+                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
+            ],
+            tsi:[
+                {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
+                commonProject
+            ],
+            consulta:[commonProject]
         };
         return configs[profile] || [];
     }
@@ -3286,7 +3338,8 @@
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
         if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
-        if (profile === 'proyectos' && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable/.test(norm)) return true;
+        if (['proyectos','planeacion','coordinacion','logistica','administrador'].includes(profile) && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable|vehiculo|vehículo|personal|proveedor|compra|cotiz|ubicacion|ubicación|stock|existencia|pendiente|alerta/.test(norm)) return true;
+        if (profile === 'tsi' && /epp|casco|lente|guante|chaleco|botas|proteccion|protección|solicitud|proyecto|destinatario/.test(norm)) return true;
         return false;
     }
 
@@ -3411,11 +3464,11 @@
             return null;
         }
         if (/\b(categoria|categorias|categoría|categorías)\b/.test(norm) && /\b(cuantas|cuántas|cuantos|cuántos|lista|listar|muestra|mostrar|hay|tiene|tenemos|almacen|almacén|catalogo|catálogo)\b/.test(norm)) {
-            if (executive || profile==='compras' || profile==='almacen') return answerCategories(raw);
+            if (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile)) return answerCategories(raw);
             return null;
         }
         if (/\b(material|materiales|tubo|tuberia|cable|tornillo|pija|pijas|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|stock|existencia|ubicacion|ubicación|rack|almacen|almacén)\b/.test(norm)) {
-            if (!(executive || profile==='compras' || profile==='almacen')) return null;
+            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile))) return null;
             if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicación|rack|almacen|almacén/.test(norm)) return answerMaterial(raw,true);
             return answerMaterial(raw,false);
