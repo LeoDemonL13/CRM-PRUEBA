@@ -7046,3 +7046,41 @@ select 'OK' as estado,
        'CRM-V63-CODIGO-MARCA-MODELO-2026-08-13' as revision,
        case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='materiales' and column_name='codigo_marca') then 'OK' else 'FALTA' end as codigo_marca_materiales,
        (select count(*) from public.materiales where coalesce(es_incompleto,false)=true) as materiales_por_completar;
+
+
+begin;
+
+alter table public.materiales add column if not exists moneda_costo text default 'MXN';
+
+update public.materiales
+set moneda_costo=case upper(btrim(coalesce(moneda_costo,'')))
+    when 'USD' then 'USD'
+    when 'EUR' then 'EUR'
+    else 'MXN'
+end,
+updated_at=now()
+where moneda_costo is null
+   or upper(btrim(coalesce(moneda_costo,''))) not in ('MXN','USD','EUR')
+   or moneda_costo<>upper(btrim(moneda_costo));
+
+alter table public.materiales alter column moneda_costo set default 'MXN';
+alter table public.materiales alter column moneda_costo set not null;
+alter table public.materiales drop constraint if exists materiales_moneda_costo_check;
+alter table public.materiales add constraint materiales_moneda_costo_check check (moneda_costo in ('MXN','USD','EUR'));
+
+create index if not exists materiales_moneda_costo_idx on public.materiales(moneda_costo);
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V65-MONEDA-COSTO-MATERIALES-2026-08-13',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V65-MONEDA-COSTO-MATERIALES-2026-08-13' as revision,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='materiales' and column_name='moneda_costo') then 'OK' else 'FALTA' end as moneda_costo_materiales,
+       count(*) filter(where moneda_costo='MXN') as materiales_mxn,
+       count(*) filter(where moneda_costo='USD') as materiales_usd,
+       count(*) filter(where moneda_costo='EUR') as materiales_eur
+from public.materiales;

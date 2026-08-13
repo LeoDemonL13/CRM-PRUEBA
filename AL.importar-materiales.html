@@ -6,24 +6,24 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=64" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=64">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=64">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=64">
-<link rel="manifest" href="/site.webmanifest?v=64">
+<link rel="icon" href="/favicon.ico?v=65" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=65">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=65">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=65">
+<link rel="manifest" href="/site.webmanifest?v=65">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Importar materiales</title>
-<link rel="stylesheet" href="interfaz.css?v=64"><script src="skilled-theme.js?v=64"></script>
-<link rel="stylesheet" href="importaciones.css?v=64">
-<script src="navegacion-suave.js?v=64"></script>
+<link rel="stylesheet" href="interfaz.css?v=65"><script src="skilled-theme.js?v=65"></script>
+<link rel="stylesheet" href="importaciones.css?v=65">
+<script src="navegacion-suave.js?v=65"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=64"></script>
-<script src="auth-guard.js?v=64"></script>
-<link rel="stylesheet" href="tailwind-local.css?v=64">
+<script src="skilled-supabase.js?v=65"></script>
+<script src="auth-guard.js?v=65"></script>
+<link rel="stylesheet" href="tailwind-local.css?v=65">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-<script src="skilled-search.js?v=64"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='64',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<script src="skilled-search.js?v=65"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='65',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
@@ -65,7 +65,7 @@
 </main>
 
 </div>
-<script src="skilled-sidebar.js?v=64" defer></script>
+<script src="skilled-sidebar.js?v=65" defer></script>
     <script>
         const HEADERS = [
             'Código (SKU)',
@@ -88,7 +88,8 @@
             'Stock Mínimo',
             'Stock Medio',
             'Stock Máximo',
-            'Precio Unitario',
+            'Costo referencial',
+            'Moneda del costo',
             'URL Imagen (opcional)'
         ];
 
@@ -241,6 +242,8 @@
                     if (producto.codigoRollo && !(initial>0)) erroresPrevios.push(`Fila ${fila}: los metros iniciales del rollo deben ser mayores a cero.`);
                     if (producto.codigoRollo && (!Number.isFinite(available)||available<0||available>initial)) erroresPrevios.push(`Fila ${fila}: los metros disponibles deben quedar entre 0 y los metros iniciales.`);
                 }
+                const monedaCosto = String(producto.monedaCosto || '').trim().toUpperCase();
+                if (monedaCosto && !['MXN','USD','EUR'].includes(monedaCosto)) erroresPrevios.push(`Fila ${fila}: la moneda del costo debe ser MXN, USD o EUR.`);
                 const numericFields = [['stock inicial', producto.stockInicial], ['stock mínimo', producto.stockMinimo], ['stock medio', producto.stockMedio], ['stock máximo', producto.stockMaximo], ['precio', producto.precio], ['metros iniciales del rollo', producto.metrosInicialesRollo], ['metros disponibles del rollo', producto.metrosDisponiblesRollo]];
                 numericFields.forEach(([label, value]) => { if (String(value).trim() !== '' && (!Number.isFinite(Number(value)) || Number(value) < 0)) erroresPrevios.push(`Fila ${fila}: ${label} debe ser un número mayor o igual a cero.`); });
                 const min = Number(producto.stockMinimo) || 0;
@@ -305,7 +308,8 @@
                     stockMinimo: indiceCampo(m, ['Stock Mínimo', 'Stock Minimo']),
                     stockMedio: indiceCampo(m, ['Stock Medio']),
                     stockMaximo: indiceCampo(m, ['Stock Máximo', 'Stock Maximo']),
-                    precio: indiceCampo(m, ['Precio Unitario', 'Precio']),
+                    precio: indiceCampo(m, ['Costo referencial', 'Precio Unitario', 'Precio', 'Costo']),
+                    monedaCosto: indiceCampo(m, ['Moneda del costo', 'Moneda costo', 'Moneda', 'Currency']),
                     imagen: indiceCampo(m, ['URL Imagen (opcional)', 'URL Imagen', 'Imagen'])
                 };
 
@@ -339,6 +343,7 @@
                         stockMedio: valorCelda(fila, indices.stockMedio),
                         stockMaximo: valorCelda(fila, indices.stockMaximo),
                         precio: valorCelda(fila, indices.precio),
+                        monedaCosto: String(valorCelda(fila, indices.monedaCosto)).trim().toUpperCase(),
                         imagen: String(valorCelda(fila, indices.imagen)).trim()
                     });
                 }
@@ -359,12 +364,12 @@
                 if (cable && Array.isArray(producto.rollos) && producto.rollos.length) {
                     producto.rollos.forEach(rollo=>{
                         const stock=stocks.find(item=>Number(item?.id)===Number(rollo.almacenId))||stocks[0];
-                        output.push([producto.codigo||'',producto.descripcion||producto.desc||'',Array.isArray(producto.modismos)?producto.modismos.join(', '):(producto.modismosTexto||producto.modismos||''),producto.categoria||'',producto.marca||'',producto.codigoMarca||producto.codigo_marca||'',producto.proveedor||'',producto.contactoProveedor||producto.contacto_proveedor||'',rollo.almacenNombre||stock?.nombre||'',rollo.ubicacion||stock?.ubicacion||'',producto.tipoCable||producto.tipo_cable||'',producto.tamano||producto.tamano_mm2||'',rollo.codigoRollo||'',rollo.metrosIniciales??'',rollo.metrosDisponibles??'','METRO',rollo.metrosDisponibles??'',stock?(stock.stockMinimo??stock.stock_minimo??''):(producto.stockMinimo??''),stock?(stock.stockMedio??stock.stock_medio??''):(producto.stockMedio??''),stock?(stock.stockMaximo??stock.stock_maximo??''):(producto.stockMaximo??''),producto.precio??'',producto.imagen||producto.urlImagen||'']);
+                        output.push([producto.codigo||'',producto.descripcion||producto.desc||'',Array.isArray(producto.modismos)?producto.modismos.join(', '):(producto.modismosTexto||producto.modismos||''),producto.categoria||'',producto.marca||'',producto.codigoMarca||producto.codigo_marca||'',producto.proveedor||'',producto.contactoProveedor||producto.contacto_proveedor||'',rollo.almacenNombre||stock?.nombre||'',rollo.ubicacion||stock?.ubicacion||'',producto.tipoCable||producto.tipo_cable||'',producto.tamano||producto.tamano_mm2||'',rollo.codigoRollo||'',rollo.metrosIniciales??'',rollo.metrosDisponibles??'','METRO',rollo.metrosDisponibles??'',stock?(stock.stockMinimo??stock.stock_minimo??''):(producto.stockMinimo??''),stock?(stock.stockMedio??stock.stock_medio??''):(producto.stockMedio??''),stock?(stock.stockMaximo??stock.stock_maximo??''):(producto.stockMaximo??''),producto.precio??'',producto.monedaCosto||producto.moneda_costo||'MXN',producto.imagen||producto.urlImagen||'']);
                     });
                     return;
                 }
                 stocks.forEach(stock => output.push([
-                    producto.codigo || '', producto.descripcion || producto.desc || '', Array.isArray(producto.modismos) ? producto.modismos.join(', ') : (producto.modismosTexto || producto.modismos || ''), producto.categoria || '', producto.marca || '', producto.codigoMarca || producto.codigo_marca || '', producto.proveedor || '', producto.contactoProveedor || producto.contacto_proveedor || '', stock?.nombre || producto.almacenNombre || producto.almacen || '', stock?.ubicacion || producto.ubicacionAlmacen || '', cable ? (producto.tipoCable || producto.tipo_cable || '') : '', cable ? (producto.tamano || producto.tamano_mm2 || '') : '', '', '', '', producto.unidad || '', stock ? (stock.stock ?? '') : (producto.stock ?? ''), stock ? (stock.stockMinimo ?? stock.stock_minimo ?? '') : (producto.stockMinimo ?? ''), stock ? (stock.stockMedio ?? stock.stock_medio ?? '') : (producto.stockMedio ?? ''), stock ? (stock.stockMaximo ?? stock.stock_maximo ?? '') : (producto.stockMaximo ?? ''), producto.precio ?? '', producto.imagen || producto.urlImagen || ''
+                    producto.codigo || '', producto.descripcion || producto.desc || '', Array.isArray(producto.modismos) ? producto.modismos.join(', ') : (producto.modismosTexto || producto.modismos || ''), producto.categoria || '', producto.marca || '', producto.codigoMarca || producto.codigo_marca || '', producto.proveedor || '', producto.contactoProveedor || producto.contacto_proveedor || '', stock?.nombre || producto.almacenNombre || producto.almacen || '', stock?.ubicacion || producto.ubicacionAlmacen || '', cable ? (producto.tipoCable || producto.tipo_cable || '') : '', cable ? (producto.tamano || producto.tamano_mm2 || '') : '', '', '', '', producto.unidad || '', stock ? (stock.stock ?? '') : (producto.stock ?? ''), stock ? (stock.stockMinimo ?? stock.stock_minimo ?? '') : (producto.stockMinimo ?? ''), stock ? (stock.stockMedio ?? stock.stock_medio ?? '') : (producto.stockMedio ?? ''), stock ? (stock.stockMaximo ?? stock.stock_maximo ?? '') : (producto.stockMaximo ?? ''), producto.precio ?? '', producto.monedaCosto || producto.moneda_costo || 'MXN', producto.imagen || producto.urlImagen || ''
                 ]));
             });
             return output;
@@ -380,16 +385,16 @@
             ];
             const hoja = XLSX.utils.aoa_to_sheet(filas);
             hoja['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 21 } },
-                { s: { r: 1, c: 0 }, e: { r: 1, c: 21 } }
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 22 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 22 } }
             ];
             hoja['!cols'] = [
                 { wch: 18 }, { wch: 58 }, { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 28 },
                 { wch: 34 }, { wch: 24 }, { wch: 18 }, { wch: 18 }, { wch: 24 }, { wch: 23 },
                 { wch: 24 }, { wch: 27 }, { wch: 15 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
-                { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 65 }
+                { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 65 }
             ];
-            hoja['!autofilter'] = { ref: `A4:V${Math.max(4, filas.length)}` };
+            hoja['!autofilter'] = { ref: `A4:W${Math.max(4, filas.length)}` };
             hoja['!rows'] = [{ hpt: 28 }, { hpt: 34 }, { hpt: 8 }, { hpt: 24 }];
             hoja['!freeze'] = { xSplit: 0, ySplit: 4, topLeftCell: 'A5', activePane: 'bottomLeft', state: 'frozen' };
 
@@ -407,7 +412,8 @@
                 ['Tipo de cable / Tamaño mm²-AWG', 'Solo se leen y guardan cuando Categoría es exactamente Cable o Cables. Para otras categorías el CRM los ignora y limpia.', 'Solo cable'],
                 ['Código de rollo', 'Identificador físico del carrete o rollo. Permite repetir un mismo SKU en el mismo almacén si cada fila es un rollo distinto.', 'Cable con existencia'],
                 ['Metros iniciales / disponibles', 'Inicial = longitud original. Disponible = longitud que queda. Si disponible está vacío usa el metraje inicial.', 'Cable con rollo'],
-                ['Stock inicial / mínimo / medio / máximo / precio', 'Solo números mayores o iguales a cero. Si medio o máximo están vacíos, el CRM los calcula automáticamente.', 'No'],
+                ['Stock inicial / mínimo / medio / máximo / costo referencial', 'Solo números mayores o iguales a cero. Si medio o máximo están vacíos, el CRM los calcula automáticamente.', 'No'],
+                ['Moneda del costo', 'Usa MXN para pesos mexicanos, USD para dólares estadounidenses o EUR para euros. Si queda vacía en un material nuevo se usará MXN.', 'No'],
                 ['Stock Medio', 'Nivel operativo intermedio. Debe quedar entre el mínimo y el máximo.', 'No'],
                 ['Stock Máximo', 'Objetivo de reposición. La orden de compra sugerirá Máximo menos Existencia actual.', 'No'],
                 ['URL de imagen', 'Dirección HTTPS pública de la imagen.', 'No'],
@@ -540,6 +546,6 @@
     </script>
 
 
-<script src="skilled-performance.js?v=64" defer></script>
+<script src="skilled-performance.js?v=65" defer></script>
 </body>
 </html>

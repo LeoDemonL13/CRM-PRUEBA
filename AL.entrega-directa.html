@@ -6,23 +6,23 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=64" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=64">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=64">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=64">
-<link rel="manifest" href="/site.webmanifest?v=64">
+<link rel="icon" href="/favicon.ico?v=65" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=65">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=65">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=65">
+<link rel="manifest" href="/site.webmanifest?v=65">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=64"><script src="skilled-theme.js?v=64"></script>
-<script src="navegacion-suave.js?v=64"></script>
+<link rel="stylesheet" href="interfaz.css?v=65"><script src="skilled-theme.js?v=65"></script>
+<script src="navegacion-suave.js?v=65"></script>
 <title>Skilled - Entrega directa</title>
     <!-- FUENTE DE DATOS ÚNICA: SUPABASE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=64"></script>
-<script src="auth-guard.js?v=64"></script>
+    <script src="skilled-supabase.js?v=65"></script>
+<script src="auth-guard.js?v=65"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
-    <script src="AL.ticket-materiales.js?v=64"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=64">
+    <script src="AL.ticket-materiales.js?v=65"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=65">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     <style>
         body {
@@ -94,9 +94,9 @@
         .ed-scanner-pulse { animation: edScannerPulse .35s ease-out; }
         @keyframes edScannerPulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.5); } 100% { box-shadow: 0 0 0 18px rgba(52,211,153,0); } }
     </style>
-    <script src="skilled-sidebar.js?v=64" defer></script>
-<script src="skilled-search.js?v=64"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='64',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+    <script src="skilled-sidebar.js?v=65" defer></script>
+<script src="skilled-search.js?v=65"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='65',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
     <script>
@@ -447,6 +447,7 @@
                 <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código de marca / modelo</label><input id="ed-nl-codigo-marca" type="text" placeholder="Número de parte o modelo del fabricante" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div><div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label><input id="ed-nl-categoria" type="text" placeholder="Ej. Misceláneos" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
                 <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Unidad *</label><input id="ed-nl-unidad" type="text" placeholder="PIEZA, METRO, LOTE..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
                 <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Precio unitario</label><input id="ed-nl-precio" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Moneda del costo</label><select id="ed-nl-moneda" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"><option value="MXN">MXN · Peso mexicano</option><option value="USD">USD · Dólar estadounidense</option><option value="EUR">EUR · Euro</option></select></div>
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-[#161f38]"><button type="button" onclick="cerrarMaterialNoListadoEntrega()" class="px-4 py-2.5 text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button type="button" onclick="agregarMaterialNoListadoEntrega()" class="px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold">Añadir a la entrega</button></div>
         </div>
@@ -747,11 +748,12 @@
             const categoria = document.getElementById('ed-nl-categoria').value.trim();
             const codigoMarca = document.getElementById('ed-nl-codigo-marca').value.trim();
             const precio = Math.max(0, Number(document.getElementById('ed-nl-precio').value) || 0);
+            const monedaCosto = document.getElementById('ed-nl-moneda').value || 'MXN';
             if (!descripcion) { alert('Escribe la descripción del material.'); return; }
             if (!unidad) { alert('Escribe la unidad del material.'); return; }
             const existente = entregaMateriales.find(it => it.producto.codigo.toLowerCase() === codigo.toLowerCase());
             if (existente) existente.cantidad += 1;
-            else entregaMateriales.push({ producto: { codigo, desc: descripcion, descripcion, unidad, categoria, codigoMarca, codigo_marca: codigoMarca, precio, esNoListado: true, es_no_listado: true }, cantidad: 1, stockDisponible: null, esNoListado: true });
+            else entregaMateriales.push({ producto: { codigo, desc: descripcion, descripcion, unidad, categoria, codigoMarca, codigo_marca: codigoMarca, precio, monedaCosto, moneda_costo: monedaCosto, esNoListado: true, es_no_listado: true }, cantidad: 1, stockDisponible: null, esNoListado: true });
             cerrarMaterialNoListadoEntrega();
             renderMateriales();
         }
@@ -1054,6 +1056,10 @@
                     unidad: it.producto.unidad || '',
                     categoria: it.producto.categoria || '',
                     precio: Number(it.producto.precio || 0),
+                    monedaCosto: it.producto.monedaCosto || it.producto.moneda_costo || 'MXN',
+                    moneda_costo: it.producto.monedaCosto || it.producto.moneda_costo || 'MXN',
+                    codigoMarca: it.producto.codigoMarca || it.producto.codigo_marca || '',
+                    codigo_marca: it.producto.codigoMarca || it.producto.codigo_marca || '',
                     esNoListado: Boolean(it.producto.esNoListado)
                 },
                 esNoListado: Boolean(it.producto.esNoListado),
@@ -1175,10 +1181,10 @@
         renderMateriales();
         actualizarDisplayDatos();
     </script>
-<script src="AL.entrega-directa.js?v=64"></script>
-<script src="AL.materiales-incompletos.js?v=64"></script>
+<script src="AL.entrega-directa.js?v=65"></script>
+<script src="AL.materiales-incompletos.js?v=65"></script>
 
 
-<script src="skilled-performance.js?v=64" defer></script>
+<script src="skilled-performance.js?v=65" defer></script>
 </body>
 </html>

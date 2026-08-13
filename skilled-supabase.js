@@ -40,6 +40,11 @@
         return text(value).toLocaleLowerCase('es-MX');
     }
 
+    function normalizeCurrencyCode(value) {
+        const currency = text(value).toUpperCase();
+        return ['MXN', 'USD', 'EUR'].includes(currency) ? currency : 'MXN';
+    }
+
     function isCableCategory(value) {
         const category = lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
         return category === 'cable' || category === 'cables';
@@ -535,6 +540,8 @@
             stockMaximo: totalMaximum,
             stock_maximo: totalMaximum,
             precio: number(row.precio),
+            monedaCosto: normalizeCurrencyCode(row.moneda_costo),
+            moneda_costo: normalizeCurrencyCode(row.moneda_costo),
             marca: text(row.marca),
             codigoMarca: text(row.codigo_marca),
             codigo_marca: text(row.codigo_marca),
@@ -567,6 +574,7 @@
         const unidadOriginal = text(material.unidad);
         const unidad = cable ? 'METRO' : unidadOriginal;
         const precio = number(material.precio);
+        const monedaCosto = normalizeCurrencyCode(material.monedaCosto ?? material.moneda_costo ?? material.moneda);
         const imagen = text(material.imagen ?? material.urlImagen ?? material.imagen_url);
         const pendientes = [];
         if (!categoria) pendientes.push('categoria');
@@ -584,6 +592,7 @@
             tamano_mm2: tamanoCable || null,
             unidad: unidad || null,
             precio,
+            moneda_costo: monedaCosto,
             marca: text(material.marca) || null,
             codigo_marca: text(material.codigoMarca ?? material.codigo_marca) || null,
             proveedor: text(material.proveedor) || null,
@@ -614,6 +623,8 @@
             material?.marca,
             material?.codigoMarca,
             material?.codigo_marca,
+            material?.monedaCosto,
+            material?.moneda_costo,
             material?.proveedor,
             material?.contactoProveedor,
             material?.contacto_proveedor,
@@ -1110,6 +1121,9 @@
                     row.campos_pendientes = (row.campos_pendientes || []).filter(field => field !== 'codigo_marca');
                     row.es_incompleto = row.campos_pendientes.length > 0;
                 }
+                if (!text(product.monedaCosto ?? product.moneda_costo ?? product.moneda)) {
+                    row.moneda_costo = normalizeCurrencyCode(existing.moneda_costo);
+                }
                 updated += 1;
             } else {
                 row.stock = 0;
@@ -1461,6 +1475,7 @@
             const unidad = text(item.unidad ?? product.unidad);
             const categoria = text(item.categoria ?? product.categoria);
             const precio = number(item.precio ?? item.precio_unitario ?? product.precio);
+            const monedaCosto = normalizeCurrencyCode(item.monedaCosto ?? item.moneda_costo ?? product.monedaCosto ?? product.moneda_costo ?? product.moneda);
             const codigoMarca = text(item.codigoMarca ?? item.codigo_marca ?? product.codigoMarca ?? product.codigo_marca);
 
             return {
@@ -1468,6 +1483,8 @@
                 cantidad: number(item.cantidad),
                 precio,
                 precio_unitario: precio,
+                monedaCosto,
+                moneda_costo: monedaCosto,
                 esNoListado,
                 es_no_listado: esNoListado,
                 descripcion,
@@ -1485,6 +1502,8 @@
                     codigoMarca,
                     codigo_marca: codigoMarca,
                     precio,
+                    monedaCosto,
+                    moneda_costo: monedaCosto,
                     esNoListado,
                     es_no_listado: esNoListado
                 },
@@ -1556,6 +1575,7 @@
                     categoria: item.categoria,
                     unidad: item.unidad,
                     precio: item.precio,
+                    monedaCosto: item.monedaCosto,
                     codigoMarca: item.codigoMarca,
                     origen: 'movimiento_no_listado'
                 });
@@ -3314,6 +3334,7 @@
         const category = rawCategory || 'Sin clasificar';
         const unit = rawUnit || 'pieza';
         const price = number(payload.precio);
+        const currency = normalizeCurrencyCode(payload.monedaCosto ?? payload.moneda_costo ?? payload.moneda);
         const brandCode = text(payload.codigoMarca ?? payload.codigo_marca ?? payload.modelo);
         const origin = text(payload.origen ?? payload.origenAlta) || 'alta_manual';
         if (!code || !description) {
@@ -3323,17 +3344,20 @@
         const currentResult = await client.from('materiales').select('*').eq('codigo', code).maybeSingle();
         assertNoError(currentResult.error, 'No se pudo consultar el catálogo.');
         if (currentResult.data) {
-            if (brandCode && text(currentResult.data.codigo_marca) !== brandCode) {
-                const pending = Array.isArray(currentResult.data.campos_pendientes)
-                    ? currentResult.data.campos_pendientes.filter(field => field !== 'codigo_marca')
-                    : [];
-                const updateExisting = await client.from('materiales').update({
-                    codigo_marca: brandCode,
-                    campos_pendientes: pending,
-                    es_incompleto: pending.length > 0,
-                    updated_at: new Date().toISOString()
-                }).eq('codigo', code).select('*').maybeSingle();
-                assertNoError(updateExisting.error, 'No se pudo guardar el código de marca / modelo del material.');
+            const updates = {};
+            if (brandCode && text(currentResult.data.codigo_marca) !== brandCode) updates.codigo_marca = brandCode;
+            if (normalizeCurrencyCode(currentResult.data.moneda_costo) !== currency) updates.moneda_costo = currency;
+            if (Object.keys(updates).length) {
+                if (updates.codigo_marca) {
+                    const pending = Array.isArray(currentResult.data.campos_pendientes)
+                        ? currentResult.data.campos_pendientes.filter(field => field !== 'codigo_marca')
+                        : [];
+                    updates.campos_pendientes = pending;
+                    updates.es_incompleto = pending.length > 0;
+                }
+                updates.updated_at = new Date().toISOString();
+                const updateExisting = await client.from('materiales').update(updates).eq('codigo', code).select('*').maybeSingle();
+                assertNoError(updateExisting.error, 'No se pudieron actualizar los datos comerciales del material.');
                 if (updateExisting.data) return materialFromDb(updateExisting.data);
             }
             return materialFromDb(currentResult.data);
@@ -3362,6 +3386,7 @@
         const updateResult = await client.from('materiales').update({
             es_incompleto: true,
             origen_alta: origin,
+            moneda_costo: currency,
             campos_pendientes: [...new Set(pending)],
             activo: true,
             updated_at: new Date().toISOString()
@@ -3562,7 +3587,7 @@
             let material = catalogByCode.get(lower(code)) || sourceMaterial;
             if (!code) throw new Error('Uno de los materiales no tiene código o referencia.');
             if (!catalogByCode.has(lower(code))) {
-                material = await createIncompleteMaterial({ codigo: code, descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc) || code, categoria: text(line.categoria ?? sourceMaterial.categoria), unidad: text(line.unidad ?? sourceMaterial.unidad), precio: number(line.precioUnitario ?? sourceMaterial.precio), codigoMarca: text(line.codigoMarca ?? line.codigo_marca ?? sourceMaterial.codigoMarca ?? sourceMaterial.codigo_marca), origen: 'plan_proyecto' });
+                material = await createIncompleteMaterial({ codigo: code, descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc) || code, categoria: text(line.categoria ?? sourceMaterial.categoria), unidad: text(line.unidad ?? sourceMaterial.unidad), precio: number(line.precioUnitario ?? sourceMaterial.precio), monedaCosto: normalizeCurrencyCode(line.monedaCosto ?? line.moneda_costo ?? sourceMaterial.monedaCosto ?? sourceMaterial.moneda_costo), codigoMarca: text(line.codigoMarca ?? line.codigo_marca ?? sourceMaterial.codigoMarca ?? sourceMaterial.codigo_marca), origen: 'plan_proyecto' });
                 code = material.codigo;
                 catalogByCode.set(lower(code), material);
             }

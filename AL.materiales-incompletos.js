@@ -73,6 +73,7 @@
                     cantidadSobrante: 0,
                     unidad: material.unidad,
                     precioUnitario: Number(material.precio || 0),
+                    monedaCosto: material.monedaCosto || material.moneda_costo || 'MXN',
                     observaciones: '',
                     esNoListado: false,
                     material: { ...material, esIncompleto: true }
