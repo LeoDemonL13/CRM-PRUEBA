@@ -206,17 +206,21 @@
     let aiRetryAfter = 0;
     let queryBusy = false;
     let prewarmProfile = '';
+    let handsFreeEnabled = localStorage.getItem('skilled_sky_handsfree') === '1';
+    let handsFreeTimer = null;
+    let handsFreeResumeAt = 0;
     let conversationContext = { material:null, vehicle:null, project:null, supplier:null, area:'', lastIntent:'', lastEntity:'', lastQuery:'', updatedAt:0 };
     function saveConversationContext(){conversationContext.updatedAt=Date.now()}
     function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
     const ttl = 45000;
 
     function styles() {
-        if (document.getElementById('sky-style-v57')) return;
+        if (document.getElementById('sky-style-v58')) return;
         const style = document.createElement('style');
-        style.id = 'sky-style-v57';
+        style.id = 'sky-style-v58';
         style.textContent = `
             .sky-header-button{height:36px;padding:0 12px;border:1px solid rgba(96,165,250,.32);border-radius:10px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(15,23,42,.35));color:#93c5fd;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;transition:.18s}.sky-header-button:hover{border-color:rgba(96,165,250,.7);color:#fff;background:rgba(37,99,235,.2)}.sky-header-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.sky-shortcut-badge{margin-left:2px;border:1px solid rgba(148,163,184,.24);border-radius:5px;padding:2px 5px;background:rgba(2,6,23,.25);color:#7285a1;font:700 7px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0;text-transform:none}.sky-mic-help kbd{display:inline-flex;border:1px solid #2a3d5f;border-radius:5px;padding:2px 5px;background:#0c1528;color:#93c5fd;font:700 8px ui-monospace,SFMono-Regular,Consolas,monospace}.sky-pulse{width:7px;height:7px;border-radius:50%;background:#60a5fa;box-shadow:0 0 0 0 rgba(96,165,250,.35)}.sky-header-button.is-listening .sky-pulse{animation:skyPulse 1.25s infinite}.sky-overlay{position:fixed;inset:0;z-index:130;background:rgba(2,5,14,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px}.sky-overlay.is-open{display:flex}.sky-modal{position:relative;width:min(790px,100%);max-height:min(790px,92vh);overflow:auto;border:1px solid #263b5d;border-radius:12px;background:#080f1d;box-shadow:0 24px 70px rgba(0,0,0,.46)}.sky-head{padding:16px 18px;border-bottom:1px solid #1e2c49;display:flex;align-items:center;justify-content:space-between;gap:18px}.sky-orb{width:44px;height:44px;border-radius:9px;border:1px solid rgba(11,110,168,.55);background:linear-gradient(145deg,#0c3150,#071426);box-shadow:inset 3px 0 0 #EA0029}.sky-title{font-size:17px;font-weight:900;color:#f8fafc;letter-spacing:.02em}.sky-subtitle{margin-top:3px;font-size:10px;color:#71819b}.sky-close{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;font-size:20px}.sky-close:hover{color:#fff;border-color:#3b5a8c}.sky-body{padding:18px}.sky-state{display:flex;align-items:center;gap:8px;color:#8da0bc;font-size:10px}.sky-state-dot{width:7px;height:7px;border-radius:50%;background:#34d399}.sky-state.is-busy .sky-state-dot{background:#60a5fa;animation:skyPulse 1.2s infinite}.sky-state.is-error .sky-state-dot{background:#fb7185}.sky-heard{margin-top:8px;min-height:20px;display:flex;align-items:center;gap:7px;color:#71819b;font-size:9px}.sky-heard strong{color:#9db4d4;font-weight:800}.sky-heard.is-live strong{color:#93c5fd}.sky-heard.is-final strong{color:#86efac}.sky-interpreted{margin-top:4px;min-height:18px;display:none;align-items:center;gap:7px;color:#64748b;font-size:9px}.sky-interpreted.is-visible{display:flex}.sky-interpreted span{color:#64748b}.sky-interpreted strong{color:#c4b5fd;font-weight:800}.sky-listen-quality{margin-left:auto;color:#53657f;font-size:8px}.sky-mic-help{margin-top:6px;color:#5f718d;font-size:8px;line-height:1.45}.sky-voice-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}.sky-engine{display:inline-flex;align-items:center;gap:6px;color:#7285a1;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.sky-engine:before{content:'';width:6px;height:6px;border-radius:50%;background:#64748b}.sky-engine.is-cloud:before{background:#34d399}.sky-engine.is-browser:before{background:#60a5fa}.sky-engine.is-error:before{background:#fb7185}.sky-voice-meter{height:20px;display:flex;align-items:center;gap:3px;opacity:.55}.sky-voice-meter i{display:block;width:3px;height:5px;border-radius:999px;background:#4f6f9f;transition:height .08s,background .08s}.sky-voice-meter.is-active i{background:#60a5fa}.sky-voice-meter.is-active i:nth-child(2),.sky-voice-meter.is-active i:nth-child(6){height:9px}.sky-voice-meter.is-active i:nth-child(3),.sky-voice-meter.is-active i:nth-child(5){height:13px}.sky-voice-meter.is-active i:nth-child(4){height:18px}.sky-input-row{margin-top:14px;display:grid;grid-template-columns:1fr auto auto;gap:9px}.sky-input{width:100%;min-height:48px;border:1px solid #294064;border-radius:12px;background:#060c18;color:#eef5ff;padding:0 14px;font-size:12px;outline:none}.sky-input:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.09)}.sky-live-hints{display:none;margin-top:7px;border:1px solid #1e3154;border-radius:10px;background:#07101f;overflow:hidden}.sky-live-hints.is-visible{display:grid}.sky-live-hint{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border:0;border-bottom:1px solid #172641;background:transparent;color:#dbeafe;text-align:left}.sky-live-hint:last-child{border-bottom:0}.sky-live-hint:hover{background:#0d1a30}.sky-live-hint strong{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sky-live-hint span{font-size:8px;color:#71819b;white-space:nowrap}.sky-action{height:48px;min-width:48px;border:1px solid #294064;border-radius:12px;background:#101a30;color:#9db4d4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.sky-action:hover{color:#fff;border-color:#4d6f9f}.sky-action.primary{padding:0 17px;background:#2563eb;border-color:#3b82f6;color:#fff}.sky-action.is-listening{background:#7f1d1d;border-color:#fb7185;color:#fff}.sky-answer{margin-top:16px;border:1px solid #1e3154;border-radius:10px;background:#07101f;min-height:128px;padding:17px}.sky-answer-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.13em;color:#5f84bd}.sky-answer-main{margin-top:9px;color:#f8fafc;font-size:14px;font-weight:750;line-height:1.55}.sky-answer-detail{margin-top:10px;color:#8d9bb2;font-size:10px;line-height:1.65}.sky-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sky-result-card{border:1px solid #213454;border-radius:8px;background:#0b1425;padding:10px}.sky-result-card strong{display:block;color:#f8fafc;font-size:11px}.sky-result-card span{display:block;margin-top:3px;color:#7e8da5;font-size:9px}.sky-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.sky-card-action{display:inline-flex;border:1px solid #29476f;border-radius:7px;padding:5px 7px;color:#93c5fd;background:#0d1b30;font-size:8px;font-weight:800;text-decoration:none}.sky-card-action:hover{color:#fff;border-color:#60a5fa}.sky-link{display:inline-flex;margin-top:12px;border:1px solid rgba(59,130,246,.38);border-radius:9px;padding:8px 10px;color:#93c5fd;background:rgba(37,99,235,.1);font-size:9px;font-weight:800;text-decoration:none}.sky-link:hover{color:#fff;border-color:#60a5fa}.sky-recognition-choices{margin-top:12px;display:grid;gap:7px}.sky-recognition-choice{width:100%;text-align:left;border:1px solid #2a4166;border-radius:10px;background:#0b1629;color:#cbd5e1;padding:10px 12px;font-size:10px;font-weight:750}.sky-recognition-choice:hover{border-color:#60a5fa;color:#fff;background:#102142}.sky-examples{margin-top:17px;border-top:1px solid #172641;padding-top:14px}.sky-examples-title{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#657793}.sky-chip-wrap{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}.sky-chip{border:1px solid #223654;border-radius:7px;background:#0c1628;color:#91a2bc;padding:7px 10px;font-size:9px}.sky-chip:hover{border-color:#3d6095;color:#fff}.sky-mic-settings{margin-top:9px;border:1px solid #1d3152;border-radius:11px;background:rgba(7,14,29,.58);overflow:hidden}.sky-mic-settings summary{cursor:pointer;list-style:none;padding:9px 11px;color:#8396b4;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}.sky-mic-settings summary::-webkit-details-marker{display:none}.sky-mic-settings summary:after{content:'Configurar';color:#5f84bd;font-size:8px}.sky-mic-settings[open] summary:after{content:'Cerrar'}.sky-mic-panel{border-top:1px solid #172641;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.sky-mic-select{min-width:0;height:36px;border:1px solid #294064;border-radius:9px;background:#060c18;color:#cbd5e1;padding:0 10px;font-size:10px}.sky-mic-test{height:36px;border:1px solid #294064;border-radius:9px;background:#101a30;color:#93c5fd;padding:0 11px;font-size:9px;font-weight:800}.sky-mic-diagnostic{grid-column:1/-1;color:#64748b;font-size:8px;line-height:1.4}.sky-head-actions{display:flex;align-items:center;gap:6px}.sky-head-tool{width:34px;height:34px;border-radius:9px;border:1px solid #253858;background:#10192c;color:#8fa0bb;display:inline-flex;align-items:center;justify-content:center;font-size:13px}.sky-head-tool:hover{color:#fff;border-color:#3b5a8c}.sky-history{margin-top:10px}.sky-history-item{border-radius:8px}.sky-history-q{font-weight:700}.sky-history-a{color:#9eb0c9}.sky-answer-tools{display:flex;align-items:center;justify-content:flex-end;gap:6px}.sky-answer-tool{cursor:pointer}.sky-answer-tool svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2}.sky-empty-history{color:#586a85;font-size:9px;text-align:center;padding:6px}body.tema-claro .sky-header-button{background:#eef4ff;color:#2563eb;border-color:#bfd4fa}body.tema-claro .sky-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .sky-head{border-color:#d9e2ef}body.tema-claro .sky-title,body.tema-claro .sky-answer-main,body.tema-claro .sky-result-card strong{color:#111827}body.tema-claro .sky-subtitle,body.tema-claro .sky-state,body.tema-claro .sky-answer-detail,body.tema-claro .sky-result-card span{color:#64748b}body.tema-claro .sky-input{background:#f7f9fc;color:#111827;border-color:#cfd9e8}body.tema-claro .sky-live-hints{background:#fff;border-color:#d7e0ec}body.tema-claro .sky-live-hint{color:#1f2937;border-color:#e5e7eb}body.tema-claro .sky-live-hint:hover{background:#f3f6fb}body.tema-claro .sky-heard{color:#64748b}body.tema-claro .sky-heard strong{color:#334155}body.tema-claro .sky-action{background:#f2f5f9;color:#475569;border-color:#cfd9e8}body.tema-claro .sky-answer,body.tema-claro .sky-result-card,body.tema-claro .sky-chip{background:#f7f9fc;border-color:#d7e0ec;color:#536174}@media(max-width:760px){.sky-shortcut-badge{display:none}.sky-overlay{z-index:260;padding:0;align-items:stretch}.sky-modal{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border:0;display:flex;flex-direction:column;overflow:hidden}.sky-head{min-height:58px;padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));flex:0 0 auto;gap:8px;background:rgba(8,14,28,.96);backdrop-filter:blur(14px)}.sky-head>div:first-child{min-width:0}.sky-orb{width:36px;height:36px;border-radius:11px;flex:0 0 36px}.sky-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sky-subtitle{display:none}.sky-head-actions{display:flex;align-items:center;gap:5px}.sky-head-tool,.sky-close{width:36px;height:36px;border-radius:10px}.sky-body{padding:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}.sky-state{flex:0 0 auto;padding:7px 11px;border-bottom:1px solid #172641;background:#08101e;font-size:9px}.sky-history{flex:0 0 auto;max-height:26vh;overflow:auto;padding:8px 10px 0}.sky-history-item{margin-bottom:7px}.sky-history-q{margin-left:auto;max-width:88%;border-radius:14px 14px 4px 14px;background:rgba(37,99,235,.16);border:1px solid rgba(59,130,246,.3);padding:8px 10px;color:#dbeafe;font-size:11px;line-height:1.45}.sky-history-a{margin-top:5px;max-width:94%;border-radius:4px 14px 14px 14px;background:#0b1425;border:1px solid #203454;padding:8px 10px;color:#c8d4e6;font-size:10px;line-height:1.45}.sky-history-a .sky-grid,.sky-history-a .sky-answer-tools,.sky-history-a .sky-link{display:none}.sky-answer{margin:8px 10px 0;min-height:0;flex:1;overflow:auto;padding:13px;border-radius:15px}.sky-answer-main{font-size:13px;line-height:1.5}.sky-answer-detail{font-size:10px;line-height:1.55}.sky-grid{grid-template-columns:1fr}.sky-result-card{padding:9px}.sky-result-card strong{font-size:11px}.sky-result-card span{font-size:9px;line-height:1.45}.sky-examples{flex:0 0 auto;margin:7px 0 0;padding:7px 10px 0;border-top:1px solid #172641}.sky-examples-title{display:none}.sky-chip-wrap{margin:0;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:7px;scrollbar-width:none}.sky-chip-wrap::-webkit-scrollbar{display:none}.sky-chip{flex:0 0 auto;padding:7px 9px;font-size:9px}.sky-live-hints{order:19;flex:0 0 auto;margin:0 9px 7px;max-height:150px;overflow:auto}.sky-live-hint{grid-template-columns:1fr}.sky-live-hint span{white-space:normal}.sky-input-row{order:20;flex:0 0 auto;margin:0;padding:8px 9px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:minmax(0,1fr) 48px 48px;gap:7px;border-top:1px solid #1c2b47;background:rgba(7,13,26,.97);backdrop-filter:blur(16px)}.sky-input{height:48px;min-height:48px;font-size:16px!important;border-radius:14px;padding:0 12px}.sky-action{height:48px;min-width:48px;border-radius:14px}.sky-action.primary{width:48px;min-width:48px;padding:0;font-size:0}.sky-action.primary:after{content:'➤';font-size:18px}.sky-action.is-listening{box-shadow:0 0 0 4px rgba(251,113,133,.12)}.sky-heard,.sky-interpreted,.sky-mic-help,.sky-voice-row{display:none!important}.sky-mic-settings{position:absolute;left:9px;right:9px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:4;margin:0;max-height:55vh;overflow:auto;border-color:#31558a;box-shadow:0 18px 60px rgba(0,0,0,.58);display:none}.sky-mic-settings[open]{display:block}.sky-mic-settings summary{background:#0b1628}.sky-mic-panel{grid-template-columns:1fr}.sky-mic-test{width:100%}.sky-answer-tools{position:sticky;top:-13px;margin:-13px -13px 8px;padding:8px 0 6px;display:flex;justify-content:flex-end;gap:5px;background:linear-gradient(#080f1e 75%,transparent);z-index:2}.sky-answer-tool{height:30px;padding:0 9px;border:1px solid #284269;border-radius:9px;background:#0d182b;color:#8fa8ca;font-size:8px;font-weight:850}.sky-answer-tool:hover{color:#fff;border-color:#60a5fa}body.tema-claro .sky-head,body.tema-claro .sky-state,body.tema-claro .sky-input-row{background:rgba(255,255,255,.97);border-color:#d9e2ef}body.tema-claro .sky-history-q{background:#eef4ff;color:#1e3a8a;border-color:#bfd4fa}body.tema-claro .sky-history-a{background:#f7f9fc;color:#475569;border-color:#d7e0ec}body.tema-claro .sky-answer-tools{background:linear-gradient(#fff 75%,transparent)}}@media(max-width:390px){.sky-head{padding-left:8px;padding-right:8px}.sky-history{max-height:22vh}.sky-answer{margin-left:8px;margin-right:8px}.sky-input-row{padding-left:7px;padding-right:7px;grid-template-columns:minmax(0,1fr) 46px 46px}.sky-action{height:46px;min-width:46px}.sky-action.primary{width:46px;min-width:46px}}
+.sky-handsfree{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #203657;border-radius:10px;background:#091427;padding:9px 10px}.sky-handsfree strong{display:block;color:#dbeafe;font-size:9px}.sky-handsfree span{display:block;margin-top:2px;color:#6f84a3;font-size:8px}.sky-handsfree button{border:1px solid #31517e;border-radius:999px;padding:5px 9px;background:#0c1729;color:#8fb6ed;font-size:8px;font-weight:800}.sky-handsfree button.is-on{border-color:#34d399;background:rgba(16,185,129,.12);color:#6ee7b7}.sky-listening-followup{color:#6ee7b7!important}
 @keyframes skyPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.35)}70%{box-shadow:0 0 0 9px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
         `;
         document.head.appendChild(style);
@@ -267,7 +271,7 @@
                         <div id="sky-heard" class="sky-heard"><span>Micrófono:</span><strong>listo</strong></div>
                         <div id="sky-interpreted" class="sky-interpreted"><span>Interpreté:</span><strong>—</strong><em id="sky-listen-quality" class="sky-listen-quality"></em></div>
                         <div class="sky-mic-help">Habla como lo harías con un compañero: Sky entiende frases formales, abreviaciones y varios modismos comunes. Selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
-                        <details class="sky-mic-settings" id="sky-mic-settings"><summary>Micrófono y diagnóstico de voz</summary><div class="sky-mic-panel"><select id="sky-mic-device" class="sky-mic-select"><option value="">Micrófono predeterminado</option></select><button id="sky-mic-test" type="button" class="sky-mic-test">Probar micrófono</button><div id="sky-mic-diagnostic" class="sky-mic-diagnostic">Puedes elegir el micrófono correcto después de autorizar el acceso.</div></div></details>
+                        <details class="sky-mic-settings" id="sky-mic-settings"><summary>Micrófono y diagnóstico de voz</summary><div class="sky-mic-panel"><select id="sky-mic-device" class="sky-mic-select"><option value="">Micrófono predeterminado</option></select><button id="sky-mic-test" type="button" class="sky-mic-test">Probar micrófono</button><div id="sky-mic-diagnostic" class="sky-mic-diagnostic">Puedes elegir el micrófono correcto después de autorizar el acceso.</div><div class="sky-handsfree"><div><strong>Modo conversación</strong><span>Después de responder, Sky vuelve a escuchar para continuar sin pulsar el micrófono. También puedes decir “Sky, activa modo conversación”.</span></div><button id="sky-handsfree" type="button">Activar</button></div></div></details>
                         <div class="sky-voice-row"><span id="sky-engine" class="sky-engine">Voz · automático</span><span id="sky-voice-meter" class="sky-voice-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
                         <div id="sky-answer" class="sky-answer"><div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">Respuesta de Sky</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Sky puede conversar, explicar y orientar; cuando usa datos del CRM, consulta únicamente la información autorizada para tu sesión.</div></div>
                         <div class="sky-examples"><div class="sky-examples-title">Sugerencias · ${html(profileCodes[detectProfile()] || detectProfile().toUpperCase())}</div><div class="sky-chip-wrap">${examples.map(([label,example]) => `<button class="sky-chip" data-sky-example="${html(example)}">${html(label)}</button>`).join('')}</div></div>
@@ -285,6 +289,10 @@
             document.getElementById('sky-send').addEventListener('click', () => { if (voiceRawTranscript) rememberSpeechCorrection(voiceRawTranscript, transcriptInput.value); query(transcriptInput.value); });
             document.getElementById('sky-mic-device')?.addEventListener('change', event => { selectedMicId = String(event.target.value || ''); if (selectedMicId) localStorage.setItem('skilled_sky_mic_id', selectedMicId); else localStorage.removeItem('skilled_sky_mic_id'); micPermissionChecked = false; });
             document.getElementById('sky-mic-test')?.addEventListener('click', testMicrophone);
+            const handsFreeButton=document.getElementById('sky-handsfree');
+            const syncHandsFree=()=>{if(!handsFreeButton)return;handsFreeButton.classList.toggle('is-on',handsFreeEnabled);handsFreeButton.textContent=handsFreeEnabled?'Activo':'Activar';};
+            syncHandsFree();
+            handsFreeButton?.addEventListener('click',async()=>{handsFreeEnabled=!handsFreeEnabled;localStorage.setItem('skilled_sky_handsfree',handsFreeEnabled?'1':'0');syncHandsFree();if(handsFreeEnabled){setStatus('Modo conversación activo. Puedes hablarme y continuar con preguntas de seguimiento.');if(!listening&&!queryBusy)await startListening({preserveClearedInput:true});}else{clearTimeout(handsFreeTimer);setStatus('Modo conversación desactivado.');}});
             transcriptInput.addEventListener('input', () => {
                 clearTimeout(liveHintTimer);
                 liveHintTimer = setTimeout(() => renderLiveHints(transcriptInput.value), 90);
@@ -394,6 +402,7 @@
     }
 
     function close() {
+        clearTimeout(handsFreeTimer);
         stopListening();
         modal?.classList.remove('is-open');
         const settings=document.getElementById('sky-mic-settings');if(settings)settings.open=false;
@@ -562,8 +571,21 @@
         }
         return voices.find(item => /^es-MX$/i.test(item.lang)) || voices.find(item => /^es(?:-|_)/i.test(item.lang)) || voices[0] || null;
     }
+    function scheduleHandsFreeListening(delay=420){
+        clearTimeout(handsFreeTimer);
+        if(!handsFreeEnabled||!modal?.classList.contains('is-open')||queryBusy)return;
+        handsFreeResumeAt=Date.now()+delay;
+        handsFreeTimer=setTimeout(()=>{
+            if(!handsFreeEnabled||!modal?.classList.contains('is-open')||queryBusy||listening||recognitionStarting)return;
+            setStatus('Te escucho… continúa cuando quieras.');
+            statusNode?.classList.add('sky-listening-followup');
+            startListening({preserveClearedInput:false}).catch(()=>{});
+        },delay);
+    }
+
     function speak(value, options = {}) {
-        if (!('speechSynthesis' in window) || !value) return;
+        if (!value) return;
+        if (!('speechSynthesis' in window)) { scheduleHandsFreeListening(250); return; }
         try {
             lastSpokenText = text(value);
             speechSynthesis.cancel();
@@ -575,8 +597,10 @@
             utterance.rate = Number(preferences.rate) || .96;
             utterance.pitch = Number(preferences.pitch) || 1;
             utterance.volume = Number(preferences.volume) || 1;
+            utterance.onend=()=>scheduleHandsFreeListening(380);
+            utterance.onerror=()=>scheduleHandsFreeListening(250);
             speechSynthesis.speak(utterance);
-        } catch (_) {}
+        } catch (_) { scheduleHandsFreeListening(250); }
     }
     function previewVoice(preferences = {}) {
         const config = profileConfig();
@@ -1102,6 +1126,7 @@
         if (!blob || blob.size < 700) {
             setStatus('No detecté suficiente audio. Acércate al micrófono y vuelve a intentarlo.', 'error');
             setHeard('sin audio suficiente');
+            if(handsFreeEnabled)scheduleHandsFreeListening(900);
             return;
         }
         setStatus('Transcribiendo la consulta con Sky Voz…', 'busy');
@@ -1347,6 +1372,7 @@
         recognition.onnomatch = () => {
             setStatus('No entendí la frase completa. Intenta hablar un poco más cerca del micrófono.', 'error');
             setHeard('sin coincidencia clara');
+            if(handsFreeEnabled)scheduleHandsFreeListening(850);
         };
         recognition.onerror = event => {
             voiceHadError = true;
@@ -1385,6 +1411,7 @@
             }
             if (error !== 'aborted') setStatus(messages[error] || `No pude reconocer la voz (${error || 'error desconocido'}).`, 'error');
             stopListening(false, false);
+            if(handsFreeEnabled&&['no-speech','aborted'].includes(error))scheduleHandsFreeListening(950);
         };
         recognition.onend = () => {
             const rawRecognized = text(voiceRawTranscript || voiceBest || voiceFinal || voiceInterim || transcriptInput?.value);
@@ -1415,6 +1442,7 @@
                 }
             } else if (!voiceHadError) {
                 setStatus(interpreted ? 'Frase capturada. Puedes corregirla o pulsar Consultar.' : 'No detecté una frase completa. Intenta nuevamente.', interpreted ? '' : 'error');
+                if(!interpreted&&handsFreeEnabled)scheduleHandsFreeListening(950);
             }
         };
         micButton.addEventListener('click', () => listening || recognitionStarting ? finishListening() : startListening());
@@ -1422,6 +1450,8 @@
 
     async function startListening(options = {}) {
         if (listening || recognitionStarting || cloudRecorder) return;
+        statusNode?.classList.remove('sky-listening-followup');
+        clearTimeout(handsFreeTimer);
         if (!options.preserveClearedInput && transcriptInput) transcriptInput.value = '';
         voiceFinal = '';
         voiceInterim = '';
@@ -1508,6 +1538,7 @@
         micButton?.classList.remove('is-listening');
         document.getElementById('sky-open')?.classList.remove('is-listening');
         if (!listening) setVoiceMeter(false);
+        if (!listening) statusNode?.classList.remove('sky-listening-followup');
     }
 
     async function tableRows(table, select = '*', order = '') {
@@ -1521,7 +1552,7 @@
 
     async function loadData(key) {
         const dynamicKeys = new Set(['low','purchases','assignments','coSupplierRequests','coStore','coQuotations','rhIncidents','executiveAlerts']);
-        const keyTtl = dynamicKeys.has(key) ? 20000 : 180000;
+        const keyTtl = dynamicKeys.has(key) ? 15000 : 300000;
         if (cache[key] !== undefined && Date.now() - Number(cacheTimes[key] || 0) < keyTtl) return cache[key];
         if (dataPromises.has(key)) return dataPromises.get(key);
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
@@ -2516,7 +2547,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=57'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=58'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -2613,6 +2644,34 @@
         const norm = commandNormalize(raw);
         const date = localDateParts();
         captureAreaContext(raw);
+        if (/\b(activa|enciende|pon|ponte|inicia)\b.*\b(modo conversacion|modo conversación|escucha continua|manos libres|modo manos libres|modo alexa)\b/.test(norm) || /^(modo conversacion|modo conversación|escucha continua|manos libres)$/.test(norm)) {
+            handsFreeEnabled=true;
+            try{localStorage.setItem('skilled_sky_handsfree','1')}catch(_){}
+            const button=document.getElementById('sky-handsfree');if(button){button.classList.add('is-on');button.textContent='Activo'}
+            const message='Modo conversación activado. Después de cada respuesta volveré a escucharte para que puedas continuar sin pulsar el micrófono.';
+            setAnswer('Modo conversación activo',message,'Puedes decir “Sky, desactiva el modo conversación” cuando quieras detener la escucha continua.');
+            setTimeout(()=>{if(!listening&&!queryBusy)startListening({preserveClearedInput:true}).catch(()=>{})},350);
+            return {handled:true,voice:message};
+        }
+        if (/\b(desactiva|apaga|quita|deten|detén|para)\b.*\b(modo conversacion|modo conversación|escucha continua|manos libres|modo manos libres|modo alexa)\b/.test(norm) || /\b(deja de escuchar|ya no escuches|descansa sky|duerme sky)\b/.test(norm)) {
+            handsFreeEnabled=false;
+            try{localStorage.setItem('skilled_sky_handsfree','0')}catch(_){}
+            clearTimeout(handsFreeTimer);
+            const button=document.getElementById('sky-handsfree');if(button){button.classList.remove('is-on');button.textContent='Activar'}
+            stopListening(false);
+            const message='Modo conversación desactivado. Seguiré disponible cuando vuelvas a llamarme.';
+            setAnswer('Modo conversación desactivado',message);
+            return {handled:true,voice:message};
+        }
+        if (/\b(repite|repitelo|repítelo|dilo otra vez|vuelve a decirlo)\b/.test(norm) && lastSpokenText) {
+            setAnswer('Te lo repito',lastSpokenText);
+            return {handled:true,voice:lastSpokenText};
+        }
+        if (/\b(callate|cállate|silencio sky|para de hablar|deja de hablar)\b/.test(norm)) {
+            try{speechSynthesis.cancel()}catch(_){}
+            setAnswer('De acuerdo','Me quedo en silencio.');
+            return {handled:true,voice:''};
+        }
         const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
         const chatAction=await answerChatAction(raw);if(chatAction)return chatAction;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
@@ -2641,6 +2700,21 @@
             const message='Con gusto. Cuando necesites otra consulta, aquí estoy.';
             setAnswer('Sky', message);
             return { handled:true, voice:message };
+        }
+        if (/\b(buen trabajo|muy bien|excelente|eso es todo|perfecto sky|bien hecho|te rifaste|te la rifaste)\b/.test(norm)) {
+            const message='Gracias. Sigo aprendiendo con cada mejora, pero ya estoy lista para seguir ayudándote. ¿Qué hacemos ahora?';
+            setAnswer('Gracias',message,'Puedes continuar con otra pregunta sin repetir el contexto si estamos hablando del mismo material, proyecto, proveedor o persona.');
+            return {handled:true,voice:message};
+        }
+        if (/\b(estas ahi|estás ahí|sigues ahi|sigues ahí|me escuchas|me oyes|andas por ahi|andas por ahí)\b/.test(norm)) {
+            const message='Aquí estoy y te escucho. Dime qué necesitas.';
+            setAnswer('Aquí estoy',message);
+            return {handled:true,voice:message};
+        }
+        if (/\b(buen dia|buen día|feliz dia|feliz día|bonita tarde|bonita noche)\b/.test(norm) && !/que buen dia|hace buen dia/.test(norm)) {
+            const message='Igualmente. Que tengas un buen día. Yo estoy lista para ayudarte cuando quieras.';
+            setAnswer('Buen día',message);
+            return {handled:true,voice:message};
         }
         if (/\b(que hora es|dime la hora|hora actual|que horas son)\b/.test(norm)) {
             const message=`Son las ${date.time}.`;
@@ -3307,9 +3381,9 @@
         if (/\b(que puedes hacer|que sabes hacer|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
-            const chatText=profile==='sky_demo'?'La demo es de solo lectura, así que puedo preparar un mensaje, pero no enviarlo.':'También puedo enviar mensajes por el Chat interno cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material”.';
-            setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}.`,`No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área. ${chatText}`,examples);
-            return `Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. ${chatText}`;
+            const chatText=profile==='sky_demo'?'La demo es de solo lectura, así que puedo preparar un mensaje, pero no enviarlo.':'También puedo enviar mensajes por el Chat interno cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
+            setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}.`,`No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área. ${chatText} ${voiceText}`,examples);
+            return `Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. ${chatText} ${voiceText}`;
         }
         if (/\b(vehiculo|vehiculos|camioneta|pickup|placa|placas|flotilla|montacargas|generador)\b/.test(norm)) {
             if (executive || profile==='rh' || profile==='almacen') return answerVehicles(raw);

@@ -4572,8 +4572,7 @@
         };
         if (!body.proveedorId && !body.solicitudId) throw new Error('Selecciona un proveedor o una solicitud.');
         if (!['email','whatsapp'].includes(body.canal)) throw new Error('Selecciona correo o WhatsApp.');
-        const { data, error } = await client.functions.invoke('contactar-proveedor', { body });
-        if (error) throw await edgeFunctionFailure(error, 'No se pudo contactar al proveedor.');
+        const data = await invokeEdgeFunction('contactar-proveedor', body, { timeoutMs: 22000 });
         if (data?.error) throw new Error(text(data.error));
         return data;
     }
@@ -4585,9 +4584,7 @@
     }
 
     async function supplierCommunicationStatus() {
-        const { data, error } = await client.functions.invoke('contactar-proveedor', { body: { ping: true } });
-        if (error) throw await edgeFunctionFailure(error, 'No se pudo consultar la configuración de contacto a proveedores.');
-        return data || {};
+        return await invokeEdgeFunction('contactar-proveedor', { ping: true }, { timeoutMs: 9000 }) || {};
     }
 
     async function listSupplierCommunications(options = {}) {
@@ -4614,6 +4611,54 @@
             enviadoAt: text(row.enviado_at),
             createdAt: text(row.created_at)
         }));
+    }
+
+    async function invokeEdgeFunction(name, body = {}, options = {}) {
+        const timeoutMs = Math.max(3000, Number(options.timeoutMs || 18000));
+        let firstError = null;
+        try {
+            const invocation = client.functions.invoke(name, { body });
+            const result = await Promise.race([
+                invocation,
+                new Promise((_, reject) => setTimeout(() => reject(new Error(`Tiempo de espera agotado al conectar con ${name}.`)), timeoutMs))
+            ]);
+            if (!result?.error) return result?.data;
+            firstError = result.error;
+        } catch (error) {
+            firstError = error;
+        }
+        try {
+            const { data: sessionData } = await client.auth.getSession();
+            const token = text(sessionData?.session?.access_token);
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/${encodeURIComponent(name)}`, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: {
+                    apikey: SUPABASE_PUBLISHABLE_KEY,
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body ?? {})
+            }).finally(() => clearTimeout(timer));
+            let payload = null;
+            try { payload = await response.json(); } catch (_) { payload = { error: await response.text().catch(() => '') }; }
+            if (!response.ok) {
+                const error = new Error(text(payload?.error || payload?.message) || `La función ${name} respondió HTTP ${response.status}.`);
+                error.status = response.status;
+                throw error;
+            }
+            return payload;
+        } catch (fallbackError) {
+            const first = text(firstError?.message || firstError);
+            const second = text(fallbackError?.message || fallbackError);
+            const error = new Error(second || first || `No se pudo conectar con ${name}.`);
+            error.code = /failed to fetch|failed to send|network|fetch|abort|tiempo de espera/i.test(`${first} ${second}`) ? 'edge_unreachable' : 'edge_error';
+            error.primary = firstError;
+            error.fallback = fallbackError;
+            throw error;
+        }
     }
 
     async function edgeFunctionErrorDetail(error, fallback = 'Servicio no disponible.') {
@@ -5881,6 +5926,7 @@
         contactSupplier,
         supplierCommunicationStatus,
         listSupplierCommunications,
+        invokeEdgeFunction,
         skyTranscriptionStatus,
         transcribeSkyAudio,
         interpretSkyQuery,

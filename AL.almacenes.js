@@ -769,8 +769,11 @@
     async function printQrBatch(items){
         const valid=(items||[]).filter(Boolean);if(!valid.length)return showToast('Selecciona al menos una posición para imprimir.',true);
         const root=$('rack-print-root');root.innerHTML='';
-        valid.forEach((data,index)=>{const label=buildRackPrintLabel(data,index);root.appendChild(label);const q=label.querySelector('.rack-print-qr');new QRCode(q,{text:data.value,width:220,height:220,colorDark:'#00416B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});});
-        await new Promise(resolve=>setTimeout(resolve,180));window.print();
+        for(let i=0;i<valid.length;i+=5){
+            const sheet=document.createElement('section');sheet.className='rack-print-sheet';root.appendChild(sheet);
+            valid.slice(i,i+5).forEach((data,offset)=>{const label=buildRackPrintLabel(data,i+offset);sheet.appendChild(label);const q=label.querySelector('.rack-print-qr');new QRCode(q,{text:data.value,width:220,height:220,colorDark:'#00416B',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});});
+        }
+        await new Promise(resolve=>setTimeout(resolve,220));window.print();
     }
 
     function printSelectedQr(){
