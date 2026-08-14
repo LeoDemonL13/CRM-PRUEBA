@@ -386,3 +386,25 @@ body:not(.login-dark) .skilled-header-button{border-radius:8px!important}
 }
 
 .profile-empty.hidden,.profile-notice.hidden,.crm-secondary.hidden{display:none!important}
+
+
+/* V77 - navegación y ventanas robustas */
+.crm-v77-compact-modal,
+.profile-modal,
+[role="dialog"]{
+  max-height:min(86dvh, calc(100dvh - 32px));
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.profile-modal-header,.profile-modal-footer{flex:0 0 auto;position:sticky;z-index:2;background:linear-gradient(180deg,rgba(8,14,27,.98),rgba(8,14,27,.94));}
+.profile-modal-header{top:0}.profile-modal-footer{bottom:0;border-top:1px solid var(--crm-user-border,#1e2b44)}
+.profile-modal > .p-5,
+.profile-modal > .profile-modal-body,
+.profile-modal > form,
+.profile-modal > .crm-modal-body{min-height:0;overflow:auto;overscroll-behavior:contain;}
+.crm-v77-kiosk .profile-shell{max-width:1120px;margin:0 auto;padding-top:18px}.crm-v77-status-chip{border:1px solid rgba(96,165,250,.32);background:rgba(14,42,84,.25);border-radius:999px;padding:6px 10px;font-size:10px;font-weight:800;color:#bfdbfe}
+.crm-v77-offline{border-color:rgba(245,158,11,.35)!important;background:rgba(245,158,11,.10)!important;color:#fef3c7!important}.crm-v77-online{border-color:rgba(16,185,129,.35)!important;background:rgba(16,185,129,.10)!important;color:#d1fae5!important}
+.crm-v77-theme-light{background:#f4f7fb!important;color:#102038!important}.crm-v77-theme-light .profile-card,.crm-v77-theme-light .panel,.crm-v77-theme-light .profile-metric{background:#fff!important;color:#102038!important;border-color:#cbd5e1!important}.crm-v77-theme-light .field{background:#fff!important;color:#102038!important;border-color:#cbd5e1!important}.crm-v77-theme-light .text-white{color:#102038!important}.crm-v77-theme-light .text-gray-500,.crm-v77-theme-light .text-gray-400{color:#475569!important}
+@media(max-height:760px){.profile-modal{max-height:94dvh}.profile-modal-header{padding-top:12px!important;padding-bottom:10px!important}.profile-modal-footer{padding-top:10px!important;padding-bottom:10px!important}}
+@media(max-width:720px){.profile-actions{width:100%;display:grid!important;grid-template-columns:1fr 1fr;gap:8px}.profile-actions>*{width:100%;justify-content:center}.profile-modal{width:calc(100vw - 18px)!important;max-height:96dvh}.profile-shell{padding-left:12px!important;padding-right:12px!important}}

@@ -9307,3 +9307,12 @@ select 'OK' as estado,
        case when to_regclass('public.tsi_solicitudes_epp') is not null then 'OK' else 'FALTA' end as solicitudes_tsi,
        case when to_regprocedure('public.rh_resumen_carga_personal_v76(bigint[])') is not null then 'OK' else 'FALTA' end as rh_multiproyecto;
 
+
+
+-- V77: ajustes de frontend, checador web local-first y comunicaciones.
+-- No requiere migración adicional si V76 fue ejecutado correctamente.
+insert into public.crm_migraciones(version, aplicada_at)
+values('CRM-V77-CHECADOR-COMUNICACIONES-INTERFAZ-2026-08-14', now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+notify pgrst, 'reload schema';
+select 'OK' as estado, 'CRM-V77-CHECADOR-COMUNICACIONES-INTERFAZ-2026-08-14' as revision;
