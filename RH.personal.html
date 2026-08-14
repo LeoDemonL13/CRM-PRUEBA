@@ -6,27 +6,27 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=72" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=72">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=72">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=72">
-<link rel="manifest" href="/site.webmanifest?v=72">
+<link rel="icon" href="/favicon.ico?v=73" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=73">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=73">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=73">
+<link rel="manifest" href="/site.webmanifest?v=73">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Personal RH</title>
-<link rel="stylesheet" href="interfaz.css?v=72"><script src="skilled-theme.js?v=72"></script>
-<link rel="stylesheet" href="importaciones.css?v=72">
-<script src="navegacion-suave.js?v=72"></script>
+<link rel="stylesheet" href="interfaz.css?v=73"><script src="skilled-theme.js?v=73"></script>
+<link rel="stylesheet" href="importaciones.css?v=73">
+<script src="navegacion-suave.js?v=73"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=72"></script>
-<script src="auth-guard.js?v=72"></script><script src="RH.core.js?v=72"></script>
-<link rel="stylesheet" href="tailwind-local.css?v=72">
+<script src="skilled-supabase.js?v=73"></script>
+<script src="auth-guard.js?v=73"></script><script src="RH.core.js?v=73"></script>
+<link rel="stylesheet" href="tailwind-local.css?v=73">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <style>
 .rh-tab{border:1px solid #243257;background:#0b1325;color:#8794aa;border-radius:9px;padding:8px 12px;font-size:10px;font-weight:700}.rh-tab.is-active{border-color:rgba(11,110,168,.45);background:rgba(11,110,168,.13);color:#ddd6fe}.rh-section{display:none}.rh-section.is-active{display:grid}.rh-avatar{width:38px;height:38px;border-radius:11px;border:1px solid #2b3b5c;background:#101a30;display:flex;align-items:center;justify-content:center;font-weight:800;color:#a5b4fc;overflow:hidden}.rh-avatar img{width:100%;height:100%;object-fit:cover}
 </style>
-<script src="skilled-search.js?v=72"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='72',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<script src="skilled-search.js?v=73"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='73',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
 </head>
 <body class="area-rh profile-page min-h-screen flex overflow-x-hidden">
 <aside></aside>
@@ -90,10 +90,13 @@
             <section class="rh-section grid-cols-1 md:grid-cols-2 gap-4" data-section="financiero">
                 <label class="text-xs font-semibold text-gray-300">Esquema de pago<select id="pay-scheme" class="field mt-2"><option value="hora">Por hora</option><option value="semana">Por semana</option><option value="confianza">Personal de confianza</option></select></label>
                 <label class="text-xs font-semibold text-gray-300"><span id="pay-rate-label">Tarifa por hora</span><input id="pay-rate" type="number" min="0" step="0.01" class="field mt-2"></label>
-                <label id="daily-hours-wrap" class="text-xs font-semibold text-gray-300">Horas de jornada por día<input id="daily-hours" type="number" min="0" max="24" step="0.25" value="8" class="field mt-2"></label>
-                <label id="work-days-wrap" class="text-xs font-semibold text-gray-300">Días laborados por semana<input id="work-days" type="number" min="1" max="7" step="1" value="6" class="field mt-2"></label>
-                <label id="meal-hours-wrap" class="text-xs font-semibold text-gray-300">Horas de comida no pagadas por día<input id="meal-hours" type="number" min="0" max="8" step="0.25" value="1" class="field mt-2"><span class="mt-1 block text-[9px] font-normal text-gray-500">Solo aplica al personal pagado por hora.</span></label>
-                <div class="rounded-xl border border-blue-500/25 bg-blue-950/10 p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500">Sueldo semanal estimado</p><p id="weekly-pay-preview" class="mt-2 text-xl font-bold text-blue-300">$0.00</p><p id="weekly-pay-detail" class="mt-1 text-[9px] text-gray-500">Se calcula con el esquema seleccionado.</p></div>
+                <label id="daily-hours-wrap" class="text-xs font-semibold text-gray-300">Horas de jornada estimadas por día<input id="daily-hours" type="number" min="0" max="24" step="0.25" value="8" class="field mt-2"><span class="mt-1 block text-[9px] font-normal text-gray-500">Solo se usa para la estimación. La nómina real toma las horas del checador.</span></label>
+                <label id="work-days-wrap" class="text-xs font-semibold text-gray-300">Días estimados por semana<input id="work-days" type="number" min="1" max="7" step="1" value="6" class="field mt-2"></label>
+                <label id="meal-hours-wrap" class="text-xs font-semibold text-gray-300">Comida no pagada por día<input id="meal-hours" type="number" min="1" max="1" step="1" value="1" readonly class="field mt-2"><span class="mt-1 block text-[9px] font-normal text-gray-500">Regla por hora: se descuenta 1 hora por cada día con asistencia registrada.</span></label>
+                <label id="weekly-min-hours-wrap" class="text-xs font-semibold text-gray-300 hidden">Horas mínimas por semana<input id="weekly-min-hours" type="number" min="1" max="168" step="0.25" value="50" class="field mt-2"><span class="mt-1 block text-[9px] font-normal text-gray-500">Por semana: hasta este umbral corresponde al sueldo semanal; lo excedente se registra como hora extra.</span></label>
+                <label id="overtime-factor-wrap" class="text-xs font-semibold text-gray-300 hidden">Factor de hora extra<input id="overtime-factor" type="number" min="0" max="5" step="0.25" value="1" class="field mt-2"><span class="mt-1 block text-[9px] font-normal text-gray-500">Se deja configurable porque no se indicó un multiplicador distinto. Valor inicial: 1.00×.</span></label>
+                <label id="confidence-days-wrap" class="text-xs font-semibold text-gray-300 hidden">Días requeridos para sueldo completo<input id="confidence-days" type="number" min="1" max="7" step="1" value="5" class="field mt-2"><span class="mt-1 block text-[9px] font-normal text-gray-500">Confianza: al completar 5 días se paga el sueldo establecido; días u horas adicionales no generan pago extra.</span></label>
+                <div class="rounded-xl border border-blue-500/25 bg-blue-950/10 p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500">Referencia semanal</p><p id="weekly-pay-preview" class="mt-2 text-xl font-bold text-blue-300">$0.00</p><p id="weekly-pay-detail" class="mt-1 text-[9px] leading-5 text-gray-500">La nómina definitiva se calcula con las checadas del periodo.</p></div>
                 <label class="text-xs font-semibold text-gray-300">Banco<input id="bank" class="field mt-2"></label>
                 <label class="text-xs font-semibold text-gray-300">CLABE<input id="clabe" class="field mt-2"></label>
                 <label class="text-xs font-semibold text-gray-300 md:col-span-2">Observaciones<textarea id="notes" rows="4" class="field mt-2"></textarea></label>
@@ -117,9 +120,9 @@
 </section>
 </div>
 
-<script src="RH.personal.js?v=72"></script>
-<script src="skilled-sidebar.js?v=72"></script>
+<script src="RH.personal.js?v=73"></script>
+<script src="skilled-sidebar.js?v=73"></script>
 <script>{const p=new URLSearchParams(location.search);if(p.get('nuevo')==='1')setTimeout(()=>document.getElementById('new-person')?.click(),450);if(p.get('importar')==='1')setTimeout(()=>document.getElementById('import-people')?.click(),500);}</script>
-<script src="skilled-performance.js?v=72" defer></script>
+<script src="skilled-performance.js?v=73" defer></script>
 </body>
 </html>

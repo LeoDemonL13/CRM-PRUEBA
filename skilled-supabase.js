@@ -2548,6 +2548,12 @@
             precioCotizado: number(row.precio_cotizado),
             precio_cotizado: number(row.precio_cotizado),
             moneda: text(row.moneda) || 'MXN',
+            origenSolicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            origen_solicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            justificacionExcepcion: text(row.justificacion_excepcion),
+            justificacion_excepcion: text(row.justificacion_excepcion),
+            proyectoNumero: text(row.proyecto_numero),
+            proyecto_numero: text(row.proyecto_numero),
             plazoEntregaDias: number(row.plazo_entrega_dias),
             plazo_entrega_dias: number(row.plazo_entrega_dias),
             motivoNoViable: text(row.motivo_no_viable),
@@ -4927,6 +4933,12 @@
             proveedorTemporalTelefono: text(row.proveedor_temporal_telefono),
             precioUnitario: number(row.precio_unitario),
             moneda: text(row.moneda) || 'MXN',
+            origenSolicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            origen_solicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            justificacionExcepcion: text(row.justificacion_excepcion),
+            justificacion_excepcion: text(row.justificacion_excepcion),
+            proyectoNumero: text(row.proyecto_numero),
+            proyecto_numero: text(row.proyecto_numero),
             plazoEntregaDias: number(row.plazo_entrega_dias),
             vigenciaHasta: text(row.vigencia_hasta),
             cantidadMinima: number(row.cantidad_minima) || 1,
@@ -5131,6 +5143,12 @@
             unidad: text(material.unidad),
             precioUnitario: number(row.precio_unitario),
             moneda: text(row.moneda) || 'MXN',
+            origenSolicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            origen_solicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            justificacionExcepcion: text(row.justificacion_excepcion),
+            justificacion_excepcion: text(row.justificacion_excepcion),
+            proyectoNumero: text(row.proyecto_numero),
+            proyecto_numero: text(row.proyecto_numero),
             plazoEntregaDias: number(row.plazo_entrega_dias),
             cantidadMinima: number(row.cantidad_minima) || 1,
             vigenciaHasta: text(row.vigencia_hasta),
@@ -6026,6 +6044,70 @@
         return Number(data) || 0;
     }
 
+    async function createManualPurchaseOrderV73(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) throw new Error('Agrega al menos una partida a la orden extraordinaria.');
+        const rows = items.map(item => ({
+            material_codigo: text(item.materialCodigo ?? item.codigo),
+            descripcion: text(item.descripcion ?? item.desc),
+            categoria: text(item.categoria) || null,
+            unidad: text(item.unidad) || null,
+            cantidad: number(item.cantidad),
+            precio_unitario: number(item.precioUnitario ?? item.precio),
+            moneda: normalizeCurrencyCode(item.moneda ?? item.monedaCosto ?? item.moneda_costo)
+        }));
+        if (rows.some(row => !row.material_codigo || !row.descripcion || row.cantidad <= 0)) throw new Error('Hay partidas incompletas o con cantidad inválida.');
+        const { data, error } = await client.rpc('co_crear_orden_manual_v73', {
+            p_orden: text(payload.ordenCompra ?? payload.orden) || null,
+            p_proveedor_id: Number(payload.proveedorId || 0) || null,
+            p_almacen_id: Number(payload.almacenId || 0) || null,
+            p_proyecto: text(payload.proyecto) || null,
+            p_prioridad: text(payload.prioridad) || 'normal',
+            p_fecha_requerida: text(payload.fechaRequerida) || null,
+            p_referencia: text(payload.referencia) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_justificacion: text(payload.justificacion) || null,
+            p_items: rows
+        });
+        assertNoError(error, 'No se pudo crear la orden extraordinaria. Ejecuta SQL_MAESTRO_CRM.sql V73.');
+        return data || {};
+    }
+
+    async function listTimeClockPunches(options = {}) {
+        let query = client.from('rh_checadas').select('*,rh_personal(id,numero_empleado,nombre,apellidos,puesto,departamento)').order('fecha_hora', { ascending: false });
+        const day = text(options.fecha ?? options.date);
+        const personalId = Number(options.personalId || 0);
+        if (day) query = query.eq('fecha_local', day);
+        if (personalId) query = query.eq('personal_id', personalId);
+        if (Number(options.limit || 0) > 0) query = query.limit(Number(options.limit));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las checadas. Ejecuta SQL_MAESTRO_CRM.sql V73.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function registerTimeClockPunch(payload = {}) {
+        const { data, error } = await client.rpc('rh_registrar_checada_v73', {
+            p_numero_empleado: text(payload.numeroEmpleado ?? payload.numero_empleado),
+            p_tipo: text(payload.tipo) || 'auto',
+            p_dispositivo: text(payload.dispositivo) || null,
+            p_notas: text(payload.notas) || null
+        });
+        assertNoError(error, 'No se pudo registrar la checada. Ejecuta SQL_MAESTRO_CRM.sql V73.');
+        return data || {};
+    }
+
+    async function getAttendanceSummaryV73(start, end) {
+        const { data, error } = await client.rpc('rh_resumen_asistencia_periodo_v73', { p_inicio: text(start), p_fin: text(end) });
+        assertNoError(error, 'No se pudo calcular el resumen de asistencia.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function recalculatePayrollV73(periodId) {
+        const { data, error } = await client.rpc('rh_recalcular_nomina_v73', { p_periodo_id: Number(periodId || 0) });
+        assertNoError(error, 'No se pudo recalcular la nómina desde el checador.');
+        return data || {};
+    }
+
     async function healthCheck() {
         const { error } = await client.from('materiales').select('codigo').limit(1);
         assertNoError(error, 'No se pudo conectar con Supabase.');
@@ -6069,6 +6151,11 @@
         updateMaterialPackageRequest,
         fulfillMaterialPackageRequest,
         countMaterialPackageRequests,
+        createManualPurchaseOrderV73,
+        listTimeClockPunches,
+        registerTimeClockPunch,
+        getAttendanceSummaryV73,
+        recalculatePayrollV73,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
         assignWarehouseMaterialLocation,

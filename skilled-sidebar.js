@@ -113,7 +113,7 @@
     ];
     const profileSections={
         compras:[
-            {title:'Operación de compras',items:[['CO.inicio.html','Inicio','home'],['CO.cotizaciones.html','Cotizaciones solicitadas','request'],['CO.requisiciones.html','Requisiciones','clipboard'],['CO.ordenes-compra.html','Órdenes de compra','cart'],['CO.hacer-compra.html','Hacer compra','cart'],['CO.recepciones.html','Recepciones','delivery']]},
+            {title:'Operación de compras',items:[['CO.inicio.html','Inicio','home'],['CO.cotizaciones.html','Cotizaciones','request'],['CO.requisiciones.html','Requisiciones','clipboard'],['CO.ordenes-compra.html','Órdenes de compra','cart'],['CO.hacer-compra.html','Hacer compra','cart'],['CO.recepciones.html','Recepciones','delivery']]},
             {title:'Red de suministro',items:[['CO.proveedores.html','Proveedores y materiales','folder'],['CO.entregas.html','Información de entrega','delivery'],['AL.catalogo.html?perfil=compras','Consulta de catálogo','box']]},
             {title:'Proyectos',items:[['AL.proyectos.html?perfil=compras','Proyectos','folder']]},
             {title:'Compras generales',items:[['PAQ.paquetes-materiales.html?perfil=compras','Paquetes de materiales','box'],['CO.tienda.html','Tienda','box'],['CO.servicios.html','Servicios','clipboard']]},
@@ -121,7 +121,7 @@
             {title:'Cuenta',items:[['perfil.html?perfil=compras','Mi perfil','user']]}
         ],
         rh:[
-            {title:'Operación de personal',items:[['RH.inicio.html','Inicio','home'],['RH.personal.html','Personal','user'],['RH.equipos.html','Equipos y resguardos','layers'],['RH.proyectos.html','Proyectos y asignaciones','folder'],['PROY.importar.html?perfil=rh','Importar proyectos','delivery'],['RH.nomina.html','Nómina','clipboard'],['RH.asistencias.html','Asistencias e incidencias','history']]},
+            {title:'Operación de personal',items:[['RH.inicio.html','Inicio','home'],['RH.personal.html','Personal','user'],['RH.equipos.html','Equipos y resguardos','layers'],['RH.proyectos.html','Proyectos y asignaciones','folder'],['PROY.importar.html?perfil=rh','Importar proyectos','delivery'],['RH.nomina.html','Nómina','clipboard'],['RH.checador.html','Checador Wi-Fi','history'],['RH.asistencias.html','Asistencias e incidencias','history']]},
             {title:'Desarrollo y cumplimiento',items:[['RH.documentos.html','Documentos','folder'],['RH.capacitacion.html','Capacitación','report']]},
             {title:'Operación compartida',items:[['PAQ.paquetes-materiales.html?perfil=rh','Paquetes de materiales','box'],['AL.vehiculos.html?perfil=rh','Control vehicular','vehicle']]},
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
@@ -392,7 +392,7 @@
         jefe_almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
         almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
         compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','paq.paquetes-materiales.html'],
-        rh:['rh.inicio.html','rh.personal.html','rh.proyectos.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
+        rh:['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         finanzas:['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html','paq.paquetes-materiales.html'],
         gerente_general:['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         subgerente:['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
@@ -1215,7 +1215,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=72');
+                await loadOptionalScript('skilled-sky.js?v=73');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1240,7 +1240,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=72');
+                await loadOptionalScript('skilled-chat.js?v=73');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1261,7 +1261,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=72').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=73').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1275,7 +1275,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=72'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=73'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

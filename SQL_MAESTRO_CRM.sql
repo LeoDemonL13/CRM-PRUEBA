@@ -8440,3 +8440,441 @@ select
   (select count(*) from public.rh_proyecto_asignaciones where estado='activo') as asignaciones_activas,
   case when to_regprocedure('public.rh_asignar_personal_proyecto_v72(text,bigint[],text,date,date,numeric,text,text,numeric,text)') is not null then 'OK' else 'FALTA' end as asignacion_rpc,
   case when to_regprocedure('public.rh_diagnostico_v72()') is not null then 'OK' else 'FALTA' end as diagnostico_rpc;
+
+begin;
+
+alter table public.solicitudes_compra add column if not exists origen_solicitud text not null default 'bajo_minimo';
+alter table public.solicitudes_compra add column if not exists justificacion_excepcion text;
+alter table public.solicitudes_compra add column if not exists proyecto_numero text references public.proyectos(numero_proyecto) on update cascade on delete set null;
+create index if not exists solicitudes_compra_origen_idx on public.solicitudes_compra(origen_solicitud);
+create index if not exists solicitudes_compra_proyecto_idx on public.solicitudes_compra(proyecto_numero);
+
+create or replace function public.co_crear_orden_manual_v73(
+    p_orden text,
+    p_proveedor_id bigint,
+    p_almacen_id bigint,
+    p_proyecto text,
+    p_prioridad text,
+    p_fecha_requerida date,
+    p_referencia text,
+    p_solicitado_por text,
+    p_justificacion text,
+    p_items jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_order text:=upper(btrim(coalesce(p_orden,'')));
+    v_provider_name text;
+    v_provider_contact text;
+    v_warehouse_name text;
+    v_project text:=nullif(btrim(coalesce(p_proyecto,'')),'');
+    v_priority text;
+    v_count integer:=0;
+    v_group text;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','compras']) then
+        raise exception using errcode='42501',message='Solo Compras o Administrador puede crear órdenes extraordinarias.';
+    end if;
+    if coalesce(p_almacen_id,0)<=0 or not exists(select 1 from public.almacenes where id=p_almacen_id) then
+        raise exception 'Selecciona el almacén destino.';
+    end if;
+    if v_project is not null and not exists(select 1 from public.proyectos where numero_proyecto=v_project) then
+        raise exception 'El proyecto seleccionado ya no existe.';
+    end if;
+    if btrim(coalesce(p_justificacion,''))='' then
+        raise exception 'La justificación de la compra extraordinaria es obligatoria.';
+    end if;
+    if p_items is null or jsonb_typeof(p_items)<>'array' or jsonb_array_length(p_items)=0 then
+        raise exception 'Agrega al menos una partida a la orden.';
+    end if;
+    select nombre into v_warehouse_name from public.almacenes where id=p_almacen_id;
+    if p_proveedor_id is not null then
+        select coalesce(nullif(nombre_comercial,''),razon_social),contacto
+        into v_provider_name,v_provider_contact
+        from public.co_proveedores where id=p_proveedor_id and estado<>'inactivo';
+        if v_provider_name is null then raise exception 'El proveedor seleccionado ya no está disponible.'; end if;
+    end if;
+    if v_order='' then
+        v_order:='OC-EXT-'||to_char(clock_timestamp(),'YYYYMMDD-HH24MISS')||'-'||upper(substr(md5(random()::text),1,3));
+    end if;
+    v_group:=v_order;
+    v_priority:=case when lower(coalesce(p_prioridad,'normal')) in('critica','urgente','alta') then 'urgente' else 'normal' end;
+
+    insert into public.solicitudes_compra(
+        folio,material_codigo,descripcion,categoria,unidad,almacen_id,almacen_nombre,
+        existencia_actual,stock_minimo,stock_medio,stock_maximo,cantidad_solicitada,cantidad_recibida,
+        prioridad,estado,proveedor,contacto_proveedor,orden_compra,grupo_orden,motivo,solicitado_por,
+        fecha_requerida,fecha_orden_compra,referencia,estado_compras,proveedor_id,precio_cotizado,moneda,
+        origen_solicitud,justificacion_excepcion,proyecto_numero,created_at,updated_at
+    )
+    select
+        'SC-EXT-'||to_char(clock_timestamp(),'YYYYMMDDHH24MISSMS')||'-'||lpad(row_number() over()::text,3,'0'),
+        btrim(x.material_codigo),
+        coalesce(nullif(btrim(x.descripcion),''),m.descripcion,btrim(x.material_codigo)),
+        coalesce(nullif(btrim(x.categoria),''),m.categoria),
+        coalesce(nullif(btrim(x.unidad),''),m.unidad),
+        p_almacen_id,v_warehouse_name,
+        coalesce(e.stock,0),coalesce(e.stock_minimo,0),coalesce(e.stock_medio,0),coalesce(e.stock_maximo,0),
+        greatest(coalesce(x.cantidad,0),0),0,
+        v_priority,'pendiente',v_provider_name,v_provider_contact,v_order,v_group,
+        'Compra extraordinaria: '||btrim(p_justificacion),nullif(btrim(coalesce(p_solicitado_por,'')),''),
+        p_fecha_requerida,current_date,nullif(btrim(coalesce(p_referencia,'')),''),'en_revision',p_proveedor_id,
+        greatest(coalesce(x.precio_unitario,0),0),case upper(coalesce(x.moneda,'MXN')) when 'USD' then 'USD' when 'EUR' then 'EUR' else 'MXN' end,
+        'manual_excepcion',btrim(p_justificacion),v_project,now(),now()
+    from jsonb_to_recordset(p_items) as x(
+        material_codigo text,
+        descripcion text,
+        categoria text,
+        unidad text,
+        cantidad numeric,
+        precio_unitario numeric,
+        moneda text
+    )
+    left join public.materiales m on lower(m.codigo)=lower(btrim(x.material_codigo))
+    left join public.existencias_almacen e on e.material_codigo=m.codigo and e.almacen_id=p_almacen_id
+    where nullif(btrim(x.material_codigo),'') is not null and coalesce(x.cantidad,0)>0;
+    get diagnostics v_count=row_count;
+    if v_count=0 then raise exception 'No hay partidas válidas para crear la orden.'; end if;
+    return jsonb_build_object('ok',true,'orden',v_order,'materiales',v_count,'origen','manual_excepcion');
+end;
+$$;
+revoke all on function public.co_crear_orden_manual_v73(text,bigint,bigint,text,text,date,text,text,text,jsonb) from public,anon;
+grant execute on function public.co_crear_orden_manual_v73(text,bigint,bigint,text,text,date,text,text,text,jsonb) to authenticated;
+
+alter table public.rh_personal add column if not exists horas_minimas_semana numeric(6,2) not null default 50;
+alter table public.rh_personal add column if not exists dias_confianza_requeridos numeric(6,2) not null default 5;
+alter table public.rh_personal add column if not exists factor_hora_extra numeric(6,2) not null default 1;
+alter table public.rh_personal drop constraint if exists rh_personal_horas_minimas_v73_check;
+alter table public.rh_personal add constraint rh_personal_horas_minimas_v73_check check(horas_minimas_semana>0 and horas_minimas_semana<=168);
+alter table public.rh_personal drop constraint if exists rh_personal_dias_confianza_v73_check;
+alter table public.rh_personal add constraint rh_personal_dias_confianza_v73_check check(dias_confianza_requeridos>0 and dias_confianza_requeridos<=7);
+alter table public.rh_personal drop constraint if exists rh_personal_factor_extra_v73_check;
+alter table public.rh_personal add constraint rh_personal_factor_extra_v73_check check(factor_hora_extra>=0 and factor_hora_extra<=10);
+
+create table if not exists public.rh_checadas(
+    id bigint generated by default as identity primary key,
+    personal_id bigint not null references public.rh_personal(id) on update cascade on delete cascade,
+    tipo text not null check(tipo in('entrada','salida')),
+    fecha_hora timestamptz not null default now(),
+    fecha_local date not null default ((now() at time zone 'America/Mexico_City')::date),
+    dispositivo text,
+    origen text not null default 'wifi_kiosco' check(origen in('wifi_kiosco','manual','importacion')),
+    notas text,
+    registrado_por uuid references auth.users(id) on delete set null default auth.uid(),
+    created_at timestamptz not null default now()
+);
+create index if not exists rh_checadas_personal_fecha_idx on public.rh_checadas(personal_id,fecha_local,fecha_hora);
+create index if not exists rh_checadas_fecha_idx on public.rh_checadas(fecha_local,fecha_hora);
+alter table public.rh_checadas enable row level security;
+drop policy if exists "RH V73 consulta checadas" on public.rh_checadas;
+create policy "RH V73 consulta checadas" on public.rh_checadas for select to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh']));
+drop policy if exists "RH V73 administra checadas" on public.rh_checadas;
+create policy "RH V73 administra checadas" on public.rh_checadas for all to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh'])) with check(public.crm_usuario_tiene_rol(array['administrador','rh']));
+grant select,insert,update,delete on public.rh_checadas to authenticated;
+grant usage,select on sequence public.rh_checadas_id_seq to authenticated;
+
+create or replace function public.rh_registrar_checada_v73(
+    p_numero_empleado text,
+    p_tipo text default 'auto',
+    p_dispositivo text default null,
+    p_notas text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_personal public.rh_personal%rowtype;
+    v_last public.rh_checadas%rowtype;
+    v_tipo text:=lower(btrim(coalesce(p_tipo,'auto')));
+    v_now timestamptz:=now();
+    v_day date:=(now() at time zone 'America/Mexico_City')::date;
+    v_id bigint;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then
+        raise exception using errcode='42501',message='El checador requiere una sesión autorizada de RH.';
+    end if;
+    select * into v_personal from public.rh_personal where lower(numero_empleado)=lower(btrim(coalesce(p_numero_empleado,''))) and estado='activo' limit 1;
+    if not found then raise exception 'No se encontró un colaborador activo con ese número.'; end if;
+    select * into v_last from public.rh_checadas where personal_id=v_personal.id and fecha_local=v_day order by fecha_hora desc,id desc limit 1;
+    if v_tipo='auto' then v_tipo:=case when v_last.id is null or v_last.tipo='salida' then 'entrada' else 'salida' end; end if;
+    if v_tipo not in('entrada','salida') then raise exception 'Tipo de checada no válido.'; end if;
+    if v_tipo='entrada' and exists(select 1 from public.rh_checadas where personal_id=v_personal.id and fecha_local=v_day and tipo='entrada') then
+        raise exception 'La entrada de hoy ya fue registrada.';
+    end if;
+    if v_tipo='salida' and exists(select 1 from public.rh_checadas where personal_id=v_personal.id and fecha_local=v_day and tipo='salida') then
+        raise exception 'La salida de hoy ya fue registrada.';
+    end if;
+    if v_last.id is not null and v_last.tipo=v_tipo then
+        raise exception 'La última checada de hoy ya es una %.',v_tipo;
+    end if;
+    if v_tipo='salida' and (v_last.id is null or v_last.tipo<>'entrada') then
+        raise exception 'Primero debe registrarse una entrada.';
+    end if;
+    insert into public.rh_checadas(personal_id,tipo,fecha_hora,fecha_local,dispositivo,origen,notas,registrado_por)
+    values(v_personal.id,v_tipo,v_now,v_day,nullif(btrim(coalesce(p_dispositivo,'')),''),'wifi_kiosco',nullif(btrim(coalesce(p_notas,'')),''),auth.uid())
+    returning id into v_id;
+    return jsonb_build_object(
+        'ok',true,'id',v_id,'personal_id',v_personal.id,'numero_empleado',v_personal.numero_empleado,
+        'nombre',concat_ws(' ',v_personal.nombre,v_personal.apellidos),'tipo',v_tipo,'fecha_hora',v_now,'fecha_local',v_day
+    );
+end;
+$$;
+revoke all on function public.rh_registrar_checada_v73(text,text,text,text) from public,anon;
+grant execute on function public.rh_registrar_checada_v73(text,text,text,text) to authenticated;
+
+create or replace function public.rh_resumen_asistencia_periodo_v73(p_inicio date,p_fin date)
+returns table(
+    personal_id bigint,
+    dias_trabajados integer,
+    horas_brutas numeric,
+    horas_pagables_hora numeric,
+    checadas_incompletas integer,
+    fuente text
+)
+language sql
+security definer
+set search_path=public
+as $$
+with punch_days as(
+    select c.personal_id,c.fecha_local dia,
+           min(c.fecha_hora) filter(where c.tipo='entrada') entrada,
+           max(c.fecha_hora) filter(where c.tipo='salida') salida,
+           count(*) filter(where c.tipo='entrada') entradas,
+           count(*) filter(where c.tipo='salida') salidas
+    from public.rh_checadas c
+    where c.fecha_local between p_inicio and p_fin
+    group by c.personal_id,c.fecha_local
+),
+punch_calc as(
+    select personal_id,dia,
+           case when entrada is not null and salida is not null and salida>entrada then extract(epoch from(salida-entrada))/3600.0 else 0 end horas,
+           case when entrada is null or salida is null then 1 else 0 end incompleta,
+           'checador'::text origen
+    from punch_days
+),
+incident_days as(
+    select i.personal_id,g.dia::date dia,
+           case when i.hora_entrada is not null and i.hora_salida is not null and i.hora_salida>i.hora_entrada
+                then extract(epoch from((g.dia::date+i.hora_salida)-(g.dia::date+i.hora_entrada)))/3600.0 else 0 end horas,
+           case when i.hora_entrada is null or i.hora_salida is null then 1 else 0 end incompleta,
+           'incidencia'::text origen
+    from public.rh_incidencias i
+    cross join lateral generate_series(i.fecha_inicio,i.fecha_fin,interval '1 day') g(dia)
+    where i.fecha_inicio<=p_fin and i.fecha_fin>=p_inicio
+      and g.dia::date between p_inicio and p_fin
+      and i.tipo in('asistencia','retardo') and i.estado not in('cancelado','rechazado')
+),
+daily as(
+    select * from punch_calc
+    union all
+    select i.* from incident_days i
+    where not exists(select 1 from punch_calc p where p.personal_id=i.personal_id and p.dia=i.dia)
+),
+agg as(
+    select d.personal_id,
+           count(*) filter(where d.horas>0)::integer dias,
+           round(coalesce(sum(d.horas),0)::numeric,2) bruto,
+           round(coalesce(sum(greatest(d.horas-1,0)),0)::numeric,2) pagable_hora,
+           coalesce(sum(d.incompleta),0)::integer incompletas,
+           case when bool_or(d.origen='checador') and bool_or(d.origen='incidencia') then 'checador+incidencias'
+                when bool_or(d.origen='checador') then 'checador'
+                when bool_or(d.origen='incidencia') then 'incidencias'
+                else 'sin_registros' end fuente
+    from daily d group by d.personal_id
+)
+select p.id,coalesce(a.dias,0),coalesce(a.bruto,0),coalesce(a.pagable_hora,0),coalesce(a.incompletas,0),coalesce(a.fuente,'sin_registros')
+from public.rh_personal p left join agg a on a.personal_id=p.id;
+$$;
+revoke all on function public.rh_resumen_asistencia_periodo_v73(date,date) from public,anon;
+grant execute on function public.rh_resumen_asistencia_periodo_v73(date,date) to authenticated;
+
+alter table public.rh_nomina_detalles add column if not exists dias_trabajados numeric(8,2) not null default 0;
+alter table public.rh_nomina_detalles add column if not exists horas_brutas numeric(8,2) not null default 0;
+alter table public.rh_nomina_detalles add column if not exists horas_pagables numeric(8,2) not null default 0;
+alter table public.rh_nomina_detalles add column if not exists regla_pago text;
+alter table public.rh_nomina_detalles add column if not exists requiere_revision boolean not null default false;
+alter table public.rh_nomina_detalles add column if not exists motivo_revision text;
+alter table public.rh_nomina_detalles add column if not exists fuente_asistencia text;
+
+create or replace function public.crm_generar_nomina(p_inicio date,p_fin date,p_nombre text default null)
+returns bigint
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_periodo bigint;
+    v_semanas numeric;
+    v_pago date;
+    v_semana integer;
+    v_viatico_inicio date;
+    v_viatico_fin date;
+begin
+    if coalesce(current_setting('request.jwt.claim.role',true),'')<>'service_role' and not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception 'Tu perfil no puede generar nómina.'; end if;
+    if p_inicio is null or p_fin is null or p_fin<p_inicio then raise exception 'El periodo de nómina no es válido.'; end if;
+    select id into v_periodo from public.rh_nomina_periodos where fecha_inicio=p_inicio and fecha_fin=p_fin and estado<>'cancelada' order by id desc limit 1;
+    if v_periodo is not null then return v_periodo; end if;
+    v_semanas:=greatest((p_fin-p_inicio+1)::numeric/7.0,1.0/7.0);
+    v_pago:=p_fin+(((4-extract(isodow from p_fin)::int)+7)%7);
+    if v_pago=p_fin then v_pago:=v_pago+7; end if;
+    v_semana:=extract(week from p_inicio)::int;
+    v_viatico_inicio:=v_pago+1;
+    v_viatico_fin:=v_pago+7;
+    insert into public.rh_nomina_periodos(nombre,fecha_inicio,fecha_fin,fecha_pago,semana_pago)
+    values(coalesce(nullif(btrim(p_nombre),''),'Nómina Sem '||v_semana||' · '||to_char(p_inicio,'DD/MM/YYYY')||' - '||to_char(p_fin,'DD/MM/YYYY')),p_inicio,p_fin,v_pago,v_semana)
+    returning id into v_periodo;
+
+    insert into public.rh_nomina_detalles(
+        periodo_id,personal_id,salario_base,horas_trabajadas,horas_extra,importe_horas_extra,
+        dias_trabajados,horas_brutas,horas_pagables,regla_pago,requiere_revision,motivo_revision,fuente_asistencia,
+        viaticos,viaticos_inicio,viaticos_fin,viaticos_proyecto,total_neto
+    )
+    select v_periodo,rp.id,
+           round(greatest(0,case
+               when rp.esquema_pago='hora' then coalesce(rp.tarifa_pago,0)*coalesce(att.horas_pagables_hora,0)
+               when rp.esquema_pago='semana' then coalesce(nullif(rp.salario_semanal_calculado,0),nullif(rp.tarifa_pago,0),rp.salario,0)*v_semanas*
+                    least(coalesce(att.horas_brutas,0)/greatest(coalesce(rp.horas_minimas_semana,50)*v_semanas,0.01),1)
+               when rp.esquema_pago='confianza' then coalesce(nullif(rp.salario_semanal_calculado,0),nullif(rp.tarifa_pago,0),rp.salario,0)*v_semanas*
+                    least(coalesce(att.dias_trabajados,0)/greatest(coalesce(rp.dias_confianza_requeridos,5)*v_semanas,0.01),1)
+               else 0 end),2),
+           round(case when rp.esquema_pago='hora' then coalesce(att.horas_pagables_hora,0) else coalesce(att.horas_brutas,0) end,2),
+           round(case when rp.esquema_pago='semana' then greatest(coalesce(att.horas_brutas,0)-coalesce(rp.horas_minimas_semana,50)*v_semanas,0) else 0 end,2),
+           round(case when rp.esquema_pago='semana' then greatest(coalesce(att.horas_brutas,0)-coalesce(rp.horas_minimas_semana,50)*v_semanas,0)*
+               (coalesce(nullif(rp.salario_semanal_calculado,0),nullif(rp.tarifa_pago,0),rp.salario,0)/greatest(coalesce(rp.horas_minimas_semana,50),0.01))*coalesce(rp.factor_hora_extra,1) else 0 end,2),
+           coalesce(att.dias_trabajados,0),coalesce(att.horas_brutas,0),
+           case when rp.esquema_pago='hora' then coalesce(att.horas_pagables_hora,0) when rp.esquema_pago='semana' then least(coalesce(att.horas_brutas,0),coalesce(rp.horas_minimas_semana,50)*v_semanas) else coalesce(att.horas_brutas,0) end,
+           case rp.esquema_pago when 'hora' then 'Por hora · horas reales menos 1 h de comida por día' when 'semana' then 'Semanal · mínimo 50 h; excedente como extra' when 'confianza' then 'Confianza · sueldo por 5 días; extras no pagadas' else rp.esquema_pago end,
+           coalesce(att.checadas_incompletas,0)>0
+             or (rp.esquema_pago='semana' and coalesce(att.horas_brutas,0)<coalesce(rp.horas_minimas_semana,50)*v_semanas)
+             or (rp.esquema_pago='confianza' and coalesce(att.dias_trabajados,0)<coalesce(rp.dias_confianza_requeridos,5)*v_semanas),
+           concat_ws(' · ',
+             case when coalesce(att.checadas_incompletas,0)>0 then att.checadas_incompletas::text||' jornada(s) con checada incompleta' end,
+             case when rp.esquema_pago='semana' and coalesce(att.horas_brutas,0)<coalesce(rp.horas_minimas_semana,50)*v_semanas then 'No alcanzó el mínimo de horas del periodo' end,
+             case when rp.esquema_pago='confianza' and coalesce(att.dias_trabajados,0)<coalesce(rp.dias_confianza_requeridos,5)*v_semanas then 'No alcanzó los días requeridos del periodo' end
+           ),
+           coalesce(att.fuente,'sin_registros'),
+           coalesce(vt.importe,0),
+           case when coalesce(vt.importe,0)>0 then v_viatico_inicio else null end,
+           case when coalesce(vt.importe,0)>0 then v_viatico_fin else null end,
+           vt.proyectos,0
+    from public.rh_personal rp
+    left join public.rh_resumen_asistencia_periodo_v73(p_inicio,p_fin) att on att.personal_id=rp.id
+    left join lateral(
+        select round(coalesce(sum(
+            case coalesce(a.viatico_tipo,pr.viatico_tipo)
+                when 'diario' then coalesce(a.viatico_importe,pr.viatico_importe,0)*greatest(0,(least(coalesce(a.fecha_fin,v_viatico_fin),v_viatico_fin)-greatest(a.fecha_inicio,v_viatico_inicio)+1))
+                when 'fijo' then coalesce(a.viatico_importe,pr.viatico_importe,0)
+                else coalesce(a.viatico_importe,pr.viatico_importe,0)*greatest(1,ceil(greatest(0,(least(coalesce(a.fecha_fin,v_viatico_fin),v_viatico_fin)-greatest(a.fecha_inicio,v_viatico_inicio)+1))::numeric/7.0))
+            end
+        ),0),2) importe,
+        string_agg(distinct pr.numero_proyecto,', ' order by pr.numero_proyecto) proyectos
+        from public.rh_proyecto_asignaciones a
+        join public.proyectos pr on pr.numero_proyecto=a.proyecto_numero
+        where a.personal_id=rp.id and a.estado='activo' and a.fecha_inicio<=v_viatico_fin and coalesce(a.fecha_fin,v_viatico_fin)>=v_viatico_inicio
+          and pr.es_externo=true and coalesce(a.viatico_habilitado,pr.viaticos_habilitados)=true and coalesce(a.viatico_importe,pr.viatico_importe,0)>0
+    ) vt on true
+    where rp.estado='activo';
+    return v_periodo;
+end;
+$$;
+revoke all on function public.crm_generar_nomina(date,date,text) from public,anon;
+grant execute on function public.crm_generar_nomina(date,date,text) to authenticated,service_role;
+
+create or replace function public.rh_recalcular_nomina_v73(p_periodo_id bigint)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_periodo public.rh_nomina_periodos%rowtype;
+    v_semanas numeric;
+    r record;
+    v_count integer:=0;
+    v_base numeric;
+    v_extra_h numeric;
+    v_extra_importe numeric;
+    v_revision boolean;
+    v_motivo text;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception using errcode='42501',message='Tu perfil no puede recalcular nómina.'; end if;
+    select * into v_periodo from public.rh_nomina_periodos where id=p_periodo_id;
+    if not found then raise exception 'El periodo no existe.'; end if;
+    if v_periodo.estado in('cerrada','cancelada') then raise exception 'No se puede recalcular un periodo cerrado o cancelado.'; end if;
+    v_semanas:=greatest((v_periodo.fecha_fin-v_periodo.fecha_inicio+1)::numeric/7.0,1.0/7.0);
+    for r in
+        select rp.*,att.dias_trabajados att_dias,att.horas_brutas att_horas,att.horas_pagables_hora att_pagables,att.checadas_incompletas att_incompletas,att.fuente att_fuente
+        from public.rh_personal rp
+        left join public.rh_resumen_asistencia_periodo_v73(v_periodo.fecha_inicio,v_periodo.fecha_fin) att on att.personal_id=rp.id
+        where rp.estado='activo'
+    loop
+        v_base:=case
+            when r.esquema_pago='hora' then coalesce(r.tarifa_pago,0)*coalesce(r.att_pagables,0)
+            when r.esquema_pago='semana' then coalesce(nullif(r.salario_semanal_calculado,0),nullif(r.tarifa_pago,0),r.salario,0)*v_semanas*least(coalesce(r.att_horas,0)/greatest(coalesce(r.horas_minimas_semana,50)*v_semanas,0.01),1)
+            when r.esquema_pago='confianza' then coalesce(nullif(r.salario_semanal_calculado,0),nullif(r.tarifa_pago,0),r.salario,0)*v_semanas*least(coalesce(r.att_dias,0)/greatest(coalesce(r.dias_confianza_requeridos,5)*v_semanas,0.01),1)
+            else 0 end;
+        v_extra_h:=case when r.esquema_pago='semana' then greatest(coalesce(r.att_horas,0)-coalesce(r.horas_minimas_semana,50)*v_semanas,0) else 0 end;
+        v_extra_importe:=case when r.esquema_pago='semana' then v_extra_h*(coalesce(nullif(r.salario_semanal_calculado,0),nullif(r.tarifa_pago,0),r.salario,0)/greatest(coalesce(r.horas_minimas_semana,50),0.01))*coalesce(r.factor_hora_extra,1) else 0 end;
+        v_revision:=coalesce(r.att_incompletas,0)>0 or (r.esquema_pago='semana' and coalesce(r.att_horas,0)<coalesce(r.horas_minimas_semana,50)*v_semanas) or (r.esquema_pago='confianza' and coalesce(r.att_dias,0)<coalesce(r.dias_confianza_requeridos,5)*v_semanas);
+        v_motivo:=concat_ws(' · ',case when coalesce(r.att_incompletas,0)>0 then r.att_incompletas::text||' jornada(s) con checada incompleta' end,case when r.esquema_pago='semana' and coalesce(r.att_horas,0)<coalesce(r.horas_minimas_semana,50)*v_semanas then 'No alcanzó el mínimo de horas del periodo' end,case when r.esquema_pago='confianza' and coalesce(r.att_dias,0)<coalesce(r.dias_confianza_requeridos,5)*v_semanas then 'No alcanzó los días requeridos del periodo' end);
+        insert into public.rh_nomina_detalles(periodo_id,personal_id,salario_base,horas_trabajadas,horas_extra,importe_horas_extra,dias_trabajados,horas_brutas,horas_pagables,regla_pago,requiere_revision,motivo_revision,fuente_asistencia,total_neto)
+        values(v_periodo.id,r.id,round(greatest(v_base,0),2),round(case when r.esquema_pago='hora' then coalesce(r.att_pagables,0) else coalesce(r.att_horas,0) end,2),round(v_extra_h,2),round(v_extra_importe,2),coalesce(r.att_dias,0),coalesce(r.att_horas,0),case when r.esquema_pago='hora' then coalesce(r.att_pagables,0) when r.esquema_pago='semana' then least(coalesce(r.att_horas,0),coalesce(r.horas_minimas_semana,50)*v_semanas) else coalesce(r.att_horas,0) end,case r.esquema_pago when 'hora' then 'Por hora · horas reales menos 1 h de comida por día' when 'semana' then 'Semanal · mínimo 50 h; excedente como extra' when 'confianza' then 'Confianza · sueldo por 5 días; extras no pagadas' else r.esquema_pago end,v_revision,v_motivo,coalesce(r.att_fuente,'sin_registros'),0)
+        on conflict(periodo_id,personal_id) do update set salario_base=excluded.salario_base,horas_trabajadas=excluded.horas_trabajadas,horas_extra=excluded.horas_extra,importe_horas_extra=excluded.importe_horas_extra,dias_trabajados=excluded.dias_trabajados,horas_brutas=excluded.horas_brutas,horas_pagables=excluded.horas_pagables,regla_pago=excluded.regla_pago,requiere_revision=excluded.requiere_revision,motivo_revision=excluded.motivo_revision,fuente_asistencia=excluded.fuente_asistencia,updated_at=now();
+        v_count:=v_count+1;
+    end loop;
+    return jsonb_build_object('ok',true,'periodo_id',v_periodo.id,'personas',v_count);
+end;
+$$;
+revoke all on function public.rh_recalcular_nomina_v73(bigint) from public,anon;
+grant execute on function public.rh_recalcular_nomina_v73(bigint) to authenticated;
+
+create or replace function public.rh_diagnostico_v72()
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_role text;
+    v_result jsonb;
+begin
+    select rol into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
+    if coalesce(v_role,'') not in('administrador','rh') then raise exception using errcode='42501',message='El diagnóstico de RH requiere perfil RH o Administrador.'; end if;
+    v_result:=jsonb_build_object(
+      'ok',true,'rol',v_role,
+      'personal',case when to_regclass('public.rh_personal') is null then -1 else (select count(*) from public.rh_personal) end,
+      'proyectos',case when to_regclass('public.proyectos') is null then -1 else (select count(*) from public.proyectos) end,
+      'asignaciones',case when to_regclass('public.rh_proyecto_asignaciones') is null then -1 else (select count(*) from public.rh_proyecto_asignaciones) end,
+      'incidencias',case when to_regclass('public.rh_incidencias') is null then -1 else (select count(*) from public.rh_incidencias) end,
+      'checadas',case when to_regclass('public.rh_checadas') is null then -1 else (select count(*) from public.rh_checadas) end,
+      'documentos',case when to_regclass('public.rh_documentos') is null then -1 else (select count(*) from public.rh_documentos) end,
+      'capacitaciones',case when to_regclass('public.rh_capacitaciones') is null then -1 else (select count(*) from public.rh_capacitaciones) end,
+      'periodos_nomina',case when to_regclass('public.rh_nomina_periodos') is null then -1 else (select count(*) from public.rh_nomina_periodos) end,
+      'activos',case when to_regclass('public.rh_activos_oficina') is null then -1 else (select count(*) from public.rh_activos_oficina) end
+    );
+    return v_result;
+end;
+$$;
+revoke all on function public.rh_diagnostico_v72() from public,anon;
+grant execute on function public.rh_diagnostico_v72() to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V73-COMPRAS-NOMINA-CHECADOR-2026-08-14',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+  'OK' as estado,
+  'CRM-V73-COMPRAS-NOMINA-CHECADOR-2026-08-14' as revision,
+  case when to_regprocedure('public.co_crear_orden_manual_v73(text,bigint,bigint,text,text,date,text,text,text,jsonb)') is not null then 'OK' else 'FALTA' end as orden_extraordinaria,
+  case when to_regclass('public.rh_checadas') is not null then 'OK' else 'FALTA' end as checador,
+  case when to_regprocedure('public.rh_registrar_checada_v73(text,text,text,text)') is not null then 'OK' else 'FALTA' end as checador_rpc,
+  case when to_regprocedure('public.rh_recalcular_nomina_v73(bigint)') is not null then 'OK' else 'FALTA' end as nomina_automatica;
