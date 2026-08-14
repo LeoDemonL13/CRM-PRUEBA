@@ -4,22 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
-<link rel="icon" href="/favicon.ico?v=75" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=75">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=75">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=75">
-<link rel="manifest" href="/site.webmanifest?v=75">
+<link rel="icon" href="/favicon.ico?v=76" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=76">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=76">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=76">
+<link rel="manifest" href="/site.webmanifest?v=76">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Paquetes de materiales predeterminados</title>
-<link rel="stylesheet" href="tailwind-local.css?v=75">
-<link rel="stylesheet" href="interfaz.css?v=75">
-<script src="skilled-theme.js?v=75"></script>
-<script src="navegacion-suave.js?v=75"></script>
+<link rel="stylesheet" href="tailwind-local.css?v=76">
+<link rel="stylesheet" href="interfaz.css?v=76">
+<script src="skilled-theme.js?v=76"></script>
+<script src="navegacion-suave.js?v=76"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=75"></script>
-<script src="auth-guard.js?v=75"></script>
-<script src="skilled-search.js?v=75"></script>
+<script src="skilled-supabase.js?v=76"></script>
+<script src="auth-guard.js?v=76"></script>
+<script src="skilled-search.js?v=76"></script>
 <style>
 body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#060814}.paq-card{position:relative;overflow:hidden;border:1px solid #1d2949;border-radius:14px;background:linear-gradient(145deg,#0b1120,#090d1a);min-width:0}.paq-card:before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-75px;top:-85px;border:1px solid rgba(59,130,246,.14);box-shadow:0 0 0 34px rgba(59,130,246,.025)}.paq-icon{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;border:1px solid #24416b;background:linear-gradient(145deg,#0c2341,#091325);color:#7db7ff}.paq-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.paq-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #17223b}.paq-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid #263757;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:700}.paq-tab{min-height:38px;padding:8px 13px;border-radius:8px;border:1px solid #243257;background:#0b1120;color:#8896ad;font-size:11px;font-weight:700}.paq-tab.active{border-color:#315ea3;background:#102650;color:#dbeafe}.paq-status-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.paq-request{border:1px solid #1c2945;border-radius:12px;background:#090d1a;padding:16px}.paq-modal-backdrop{position:fixed;inset:0;z-index:360;background:rgba(2,6,18,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}.paq-modal-backdrop.hidden{display:none}.paq-modal{width:min(820px,100%);max-height:min(88dvh,860px);display:flex;flex-direction:column;border:1px solid #263757;border-radius:15px;background:#090d1a;box-shadow:0 28px 90px rgba(0,0,0,.55);overflow:hidden}.paq-modal-head,.paq-modal-foot{flex:0 0 auto;padding:15px 18px;border-color:#1b2844;background:#0b1120}.paq-modal-head{border-bottom-width:1px}.paq-modal-foot{border-top-width:1px}.paq-modal-body{min-height:0;overflow:auto;padding:18px}.paq-material-result{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border-bottom:1px solid #16213a;text-align:left}.paq-material-result:hover{background:#101a30}.paq-material-result:last-child{border-bottom:0}.paq-availability{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:7px 0;border-bottom:1px solid #16213a}.paq-availability:last-child{border-bottom:0}body.tema-claro .paq-card,body.tema-claro .paq-request,body.tema-claro .paq-modal{background:#fff;border-color:#dce4ef}body.tema-claro .paq-card:before{border-color:rgba(37,99,235,.12)}body.tema-claro .paq-item,body.tema-claro .paq-availability{border-color:#e5eaf2}body.tema-claro .paq-modal-head,body.tema-claro .paq-modal-foot{background:#f8fafc;border-color:#e2e8f0}body.tema-claro .paq-tab{background:#fff;border-color:#d6dfeb;color:#64748b}body.tema-claro .paq-tab.active{background:#eaf2ff;border-color:#9bbce9;color:#1d4ed8}@media(max-width:720px){.paq-modal-backdrop{padding:0}.paq-modal{width:100%;max-height:100dvh;height:100dvh;border-radius:0}.paq-modal-body{padding:14px}.paq-card{border-radius:11px}}
 </style>
@@ -68,8 +68,8 @@ body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',san
 <div class="paq-modal"><div class="paq-modal-head flex items-start justify-between gap-3"><div><p class="text-[9px] uppercase tracking-widest text-emerald-400 font-bold">Surtido desde Almacén</p><h2 id="paq-fulfill-title" class="mt-1 text-lg font-bold text-white">Entregar paquete</h2></div><button type="button" class="crm-icon-button" data-close-modal="paq-fulfill-modal">×</button></div><div class="paq-modal-body"><div id="paq-fulfill-summary" class="mb-4 rounded-xl border border-[#243257] bg-[#060a14] p-4"></div><label class="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Almacén que surtirá el paquete<select id="paq-fulfill-warehouse" class="field mt-2"><option value="">Selecciona un almacén...</option></select></label><div id="paq-fulfill-availability" class="mt-4 rounded-xl border border-[#243257] px-4 py-2"></div><label class="block mt-4 text-[10px] uppercase tracking-wider text-gray-500 font-bold">Nota de entrega<textarea id="paq-fulfill-notes" class="field mt-2 min-h-[72px] resize-y" placeholder="Observaciones de surtido o entrega..."></textarea></label><div class="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-950/10 px-3 py-2 text-[10px] leading-relaxed text-emerald-200">La entrega es atómica: si falta un solo material en el almacén seleccionado, no se descuenta ninguno. Al confirmar, se generan los movimientos de salida y queda la trazabilidad del paquete en el historial.</div></div><div class="paq-modal-foot flex justify-end gap-2"><button type="button" class="crm-secondary" data-close-modal="paq-fulfill-modal">Cancelar</button><button id="paq-fulfill-submit" type="button" class="crm-primary bg-emerald-600">Entregar paquete completo</button></div></div>
 </div>
 
-<script src="skilled-sidebar.js?v=75" defer></script>
-<script src="PAQ.paquetes-materiales.js?v=75" defer></script>
-<script src="skilled-performance.js?v=75" defer></script>
+<script src="skilled-sidebar.js?v=76" defer></script>
+<script src="PAQ.paquetes-materiales.js?v=76" defer></script>
+<script src="skilled-performance.js?v=76" defer></script>
 </body>
 </html>

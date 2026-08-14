@@ -105,7 +105,7 @@
         {title:'Materiales',items:[['AL.catalogo.html','Catálogo','box'],['AL.bajo-minimo.html','Bajo mínimo','alert'],['AL.almacenes.html','Almacenes','warehouse'],['AL.etiquetas.html','Etiquetas','tag']]},
         {title:'Automatización',items:[['AL.automatizaciones.html','Centro inteligente','automation']]},
         {title:'Movimientos',items:[['AL.movimientos.html','Registrar movimiento','plus'],['AL.historial-movimientos.html','Historial movimientos','history'],['AL.tomas-fisicas.html','Tomas físicas','clipboard']]},
-        {title:'Compras y solicitudes',items:[['AL.entrega-directa.html','Entrega directa','delivery'],['PAQ.paquetes-materiales.html','Paquetes predeterminados','box'],['AL.solicitudes-material.html','Solicitudes de material','request'],['AL.ordenes-compra.html','Órdenes de compra','cart']]},
+        {title:'Compras y solicitudes',items:[['AL.entrega-directa.html','Entrega directa','delivery'],['PAQ.paquetes-materiales.html','Paquetes predeterminados','box'],['AL.solicitudes-material.html','Solicitudes de material','request'],['AL.solicitudes-epp-tsi.html','Solicitudes EPP TSI','request'],['AL.ordenes-compra.html','Órdenes de compra','cart']]},
         {title:'Proyectos y reportes',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=almacen','Importar proyectos','delivery'],['AL.reportes.html','Reportes','report']]},
         {title:'Herramientas',items:[['AL.herramientas.html','Herramientas','tool'],['AL.unidades-herramientas.html','Unidades','layers'],['AL.asignaciones-herramientas.html','Asignaciones','assignment'],['AL.estado-herramientas.html','Estado actual','layers'],['AL.historial-herramientas.html','Historial','history']]},
         {title:'Vehículos',items:[['AL.vehiculos.html','Control vehicular','vehicle']]},
@@ -130,7 +130,7 @@
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Inicio ejecutivo','home'],['GG.proyectos.html','Proyectos y costos','report'],['GG.vehiculos.html','Vehículos','vehicle'],['PAQ.paquetes-materiales.html?perfil=gerente_general','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Inicio ejecutivo','home'],['SG.proyectos.html','Proyectos y costos','report'],['SG.vehiculos.html','Vehículos','vehicle'],['PAQ.paquetes-materiales.html?perfil=subgerente','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         sky_demo:[{title:'Sky',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
-        tsi:[{title:'TSI',items:[['TSI.inicio.html','Inicio','home'],['PAQ.paquetes-materiales.html?perfil=tsi','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=tsi','Mi perfil','user']]}],
+        tsi:[{title:'TSI',items:[['TSI.inicio.html','Inicio','home'],['TSI.solicitudes-epp.html','Solicitar EPP','request'],['PAQ.paquetes-materiales.html?perfil=tsi','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=tsi','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['PAQ.paquetes-materiales.html?perfil=proyectos','Paquetes de materiales','box'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['PAQ.paquetes-materiales.html','Paquetes de materiales','box'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
     };
@@ -397,7 +397,7 @@
         gerente_general:['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         subgerente:['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         sky_demo:['sky.inicio.html','perfil.html'],
-        tsi:['tsi.inicio.html','perfil.html','paq.paquetes-materiales.html'],
+        tsi:['tsi.inicio.html','tsi.solicitudes-epp.html','perfil.html','paq.paquetes-materiales.html'],
         proyectos:['al.proyectos.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','perfil.html','paq.paquetes-materiales.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html','paq.paquetes-materiales.html']
     };
@@ -1215,7 +1215,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=75');
+                await loadOptionalScript('skilled-sky.js?v=76');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1240,7 +1240,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=75');
+                await loadOptionalScript('skilled-chat.js?v=76');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1261,7 +1261,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=75').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=76').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1275,7 +1275,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=75'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=76'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
