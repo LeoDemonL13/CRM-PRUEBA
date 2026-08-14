@@ -8803,7 +8803,7 @@ declare
     v_revision boolean;
     v_motivo text;
 begin
-    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception using errcode='42501',message='Tu perfil no puede recalcular nómina.'; end if;
+    if coalesce(current_setting('request.jwt.claim.role',true),'')<>'service_role' and not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception using errcode='42501',message='Tu perfil no puede recalcular nómina.'; end if;
     select * into v_periodo from public.rh_nomina_periodos where id=p_periodo_id;
     if not found then raise exception 'El periodo no existe.'; end if;
     if v_periodo.estado in('cerrada','cancelada') then raise exception 'No se puede recalcular un periodo cerrado o cancelado.'; end if;
@@ -8878,3 +8878,200 @@ select
   case when to_regclass('public.rh_checadas') is not null then 'OK' else 'FALTA' end as checador,
   case when to_regprocedure('public.rh_registrar_checada_v73(text,text,text,text)') is not null then 'OK' else 'FALTA' end as checador_rpc,
   case when to_regprocedure('public.rh_recalcular_nomina_v73(bigint)') is not null then 'OK' else 'FALTA' end as nomina_automatica;
+
+begin;
+
+alter table public.rh_nomina_configuracion
+    add column if not exists email_modo text not null default 'manual',
+    add column if not exists email_remitente text,
+    add column if not exists email_nombre text not null default 'Recursos Humanos',
+    add column if not exists email_reply_to text,
+    add column if not exists whatsapp_phone_number_id text,
+    add column if not exists whatsapp_business_account_id text,
+    add column if not exists enviar_whatsapp boolean not null default true,
+    add column if not exists enviar_email boolean not null default false;
+alter table public.rh_nomina_configuracion drop constraint if exists rh_nomina_config_email_modo_v75_check;
+alter table public.rh_nomina_configuracion add constraint rh_nomina_config_email_modo_v75_check check(email_modo in ('manual','resend'));
+alter table public.rh_nomina_configuracion alter column hora_envio set default '21:00';
+update public.rh_nomina_configuracion set hora_envio='21:00' where id=1 and hora_envio='09:00';
+
+alter table public.rh_personal add column if not exists correo_nomina boolean not null default false;
+
+alter table public.co_configuracion_comunicacion
+    add column if not exists correo_modo text not null default 'manual',
+    add column if not exists correo_remitente text,
+    add column if not exists correo_nombre text not null default 'Compras',
+    add column if not exists correo_reply_to text,
+    add column if not exists whatsapp_phone_number_id text,
+    add column if not exists whatsapp_business_account_id text,
+    add column if not exists whatsapp_template_name text,
+    add column if not exists whatsapp_template_language text not null default 'es_MX';
+alter table public.co_configuracion_comunicacion drop constraint if exists co_config_com_correo_modo_v75_check;
+alter table public.co_configuracion_comunicacion add constraint co_config_com_correo_modo_v75_check check(correo_modo in ('manual','resend'));
+
+alter table public.rh_checadas
+    add column if not exists evento_uuid uuid,
+    add column if not exists dispositivo_id uuid,
+    add column if not exists metodo_identificacion text,
+    add column if not exists biometrico_ref text,
+    add column if not exists confianza numeric(7,4),
+    add column if not exists sincronizado_at timestamptz;
+create unique index if not exists rh_checadas_evento_uuid_uidx on public.rh_checadas(evento_uuid) where evento_uuid is not null;
+alter table public.rh_checadas drop constraint if exists rh_checadas_metodo_v75_check;
+alter table public.rh_checadas add constraint rh_checadas_metodo_v75_check check(metodo_identificacion is null or metodo_identificacion in ('numero_empleado','qr','rfid','huella','rostro','manual'));
+
+create table if not exists public.rh_checador_dispositivos(
+    id uuid primary key default gen_random_uuid(),
+    codigo text not null unique,
+    nombre text not null,
+    ubicacion text,
+    tipo text not null default 'raspberry' check(tipo in ('raspberry','esp32','otro')),
+    token_hash text not null,
+    activo boolean not null default true,
+    capacidades jsonb not null default '{}'::jsonb,
+    configuracion jsonb not null default '{}'::jsonb,
+    version_firmware text,
+    ultima_sincronizacion_at timestamptz,
+    ultimo_cierre_at timestamptz,
+    ultimo_ip text,
+    ultimo_error text,
+    pendientes_locales integer not null default 0,
+    ultimo_estado jsonb not null default '{}'::jsonb,
+    created_by uuid references auth.users(id) on delete set null default auth.uid(),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+alter table public.rh_checador_dispositivos
+    add column if not exists pendientes_locales integer not null default 0,
+    add column if not exists ultimo_estado jsonb not null default '{}'::jsonb;
+
+create table if not exists public.rh_checador_biometria(
+    id bigint generated by default as identity primary key,
+    dispositivo_id uuid not null references public.rh_checador_dispositivos(id) on delete cascade,
+    personal_id bigint not null references public.rh_personal(id) on delete cascade,
+    metodo text not null check(metodo in ('huella','rostro','rfid','qr')),
+    referencia_local text not null,
+    metadata jsonb not null default '{}'::jsonb,
+    activo boolean not null default true,
+    enrolled_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    unique(dispositivo_id,metodo,referencia_local)
+);
+
+create table if not exists public.rh_checador_sincronizaciones(
+    id bigint generated by default as identity primary key,
+    dispositivo_id uuid not null references public.rh_checador_dispositivos(id) on delete cascade,
+    lote_uuid uuid not null unique,
+    tipo text not null default 'incremental' check(tipo in ('incremental','cierre_semanal','manual')),
+    recibidos integer not null default 0,
+    insertados integer not null default 0,
+    duplicados integer not null default 0,
+    rechazados integer not null default 0,
+    periodo_id bigint references public.rh_nomina_periodos(id) on delete set null,
+    detalle jsonb not null default '{}'::jsonb,
+    created_at timestamptz not null default now()
+);
+
+alter table public.rh_checadas drop constraint if exists rh_checadas_dispositivo_v75_fk;
+alter table public.rh_checadas add constraint rh_checadas_dispositivo_v75_fk foreign key(dispositivo_id) references public.rh_checador_dispositivos(id) on delete set null;
+
+alter table public.rh_checador_dispositivos enable row level security;
+alter table public.rh_checador_biometria enable row level security;
+alter table public.rh_checador_sincronizaciones enable row level security;
+
+drop policy if exists "RH V75 consulta dispositivos checador" on public.rh_checador_dispositivos;
+create policy "RH V75 consulta dispositivos checador" on public.rh_checador_dispositivos for select to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh']));
+drop policy if exists "RH V75 administra dispositivos checador" on public.rh_checador_dispositivos;
+create policy "RH V75 administra dispositivos checador" on public.rh_checador_dispositivos for all to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh'])) with check(public.crm_usuario_tiene_rol(array['administrador','rh']));
+
+drop policy if exists "RH V75 consulta biometria checador" on public.rh_checador_biometria;
+create policy "RH V75 consulta biometria checador" on public.rh_checador_biometria for select to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh']));
+drop policy if exists "RH V75 administra biometria checador" on public.rh_checador_biometria;
+create policy "RH V75 administra biometria checador" on public.rh_checador_biometria for all to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh'])) with check(public.crm_usuario_tiene_rol(array['administrador','rh']));
+
+drop policy if exists "RH V75 consulta sincronizaciones checador" on public.rh_checador_sincronizaciones;
+create policy "RH V75 consulta sincronizaciones checador" on public.rh_checador_sincronizaciones for select to authenticated using(public.crm_usuario_tiene_rol(array['administrador','rh']));
+
+grant select,insert,update,delete on public.rh_checador_dispositivos,public.rh_checador_biometria to authenticated;
+grant select on public.rh_checador_sincronizaciones to authenticated;
+grant usage,select on sequence public.rh_checador_biometria_id_seq,public.rh_checador_sincronizaciones_id_seq to authenticated;
+
+create or replace function public.rh_crear_dispositivo_checador_v75(
+    p_nombre text,
+    p_ubicacion text default null,
+    p_tipo text default 'raspberry',
+    p_capacidades jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_token text;
+    v_code text;
+    v_id uuid;
+    v_type text:=lower(btrim(coalesce(p_tipo,'raspberry')));
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception using errcode='42501',message='Solo RH puede registrar terminales de checado.'; end if;
+    if nullif(btrim(coalesce(p_nombre,'')),'') is null then raise exception 'Escribe un nombre para la terminal.'; end if;
+    if v_type not in ('raspberry','esp32','otro') then raise exception 'Tipo de terminal no válido.'; end if;
+    v_token:='chk_'||replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-','');
+    v_code:='CHK-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,10));
+    insert into public.rh_checador_dispositivos(codigo,nombre,ubicacion,tipo,token_hash,capacidades,created_by)
+    values(v_code,btrim(p_nombre),nullif(btrim(coalesce(p_ubicacion,'')),''),v_type,encode(digest(v_token,'sha256'),'hex'),coalesce(p_capacidades,'{}'::jsonb),auth.uid())
+    returning id into v_id;
+    return jsonb_build_object('ok',true,'id',v_id,'codigo',v_code,'token',v_token);
+end;
+$$;
+revoke all on function public.rh_crear_dispositivo_checador_v75(text,text,text,jsonb) from public,anon;
+grant execute on function public.rh_crear_dispositivo_checador_v75(text,text,text,jsonb) to authenticated;
+
+create or replace function public.rh_rotar_token_checador_v75(p_dispositivo_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_token text; v_code text;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception using errcode='42501',message='Solo RH puede rotar credenciales de terminal.'; end if;
+    v_token:='chk_'||replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-','');
+    update public.rh_checador_dispositivos set token_hash=encode(digest(v_token,'sha256'),'hex'),updated_at=now() where id=p_dispositivo_id returning codigo into v_code;
+    if v_code is null then raise exception 'No se encontró la terminal.'; end if;
+    return jsonb_build_object('ok',true,'codigo',v_code,'token',v_token);
+end;
+$$;
+revoke all on function public.rh_rotar_token_checador_v75(uuid) from public,anon;
+grant execute on function public.rh_rotar_token_checador_v75(uuid) to authenticated;
+
+create or replace function public.rh_preparar_nomina_desde_checador_v75(p_fecha_referencia date default current_date)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_periodo bigint; v_result jsonb;
+begin
+    if coalesce(current_setting('request.jwt.claim.role',true),'')<>'service_role' and not public.crm_usuario_tiene_rol(array['administrador','rh']) then raise exception using errcode='42501',message='Tu perfil no puede preparar la nómina.'; end if;
+    v_periodo:=public.crm_generar_nomina_semana_caida(p_fecha_referencia);
+    select public.rh_recalcular_nomina_v73(v_periodo) into v_result;
+    return jsonb_build_object('ok',true,'periodo_id',v_periodo,'recalculo',coalesce(v_result,'{}'::jsonb));
+end;
+$$;
+revoke all on function public.rh_preparar_nomina_desde_checador_v75(date) from public,anon;
+grant execute on function public.rh_preparar_nomina_desde_checador_v75(date) to authenticated,service_role;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V75-CHECADOR-FISICO-COMUNICACIONES-2026-08-14',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V75-CHECADOR-FISICO-COMUNICACIONES-2026-08-14' as revision,
+       case when to_regclass('public.rh_checador_dispositivos') is not null then 'OK' else 'FALTA' end as dispositivos,
+       case when to_regprocedure('public.rh_preparar_nomina_desde_checador_v75(date)') is not null then 'OK' else 'FALTA' end as cierre_nomina,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='rh_nomina_configuracion' and column_name='email_remitente') then 'OK' else 'FALTA' end as correo_rh,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='co_configuracion_comunicacion' and column_name='correo_remitente') then 'OK' else 'FALTA' end as correo_compras;
