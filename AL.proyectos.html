@@ -7,21 +7,21 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=73" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=73">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=73">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=73">
-<link rel="manifest" href="/site.webmanifest?v=73">
+<link rel="icon" href="/favicon.ico?v=74" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=74">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=74">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=74">
+<link rel="manifest" href="/site.webmanifest?v=74">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=73"><script src="skilled-theme.js?v=73"></script>
-<script src="navegacion-suave.js?v=73"></script>
+<link rel="stylesheet" href="interfaz.css?v=74"><script src="skilled-theme.js?v=74"></script>
+<script src="navegacion-suave.js?v=74"></script>
 <title>Skilled - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=73"></script>
-<script src="auth-guard.js?v=73"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=73">
+    <script src="skilled-supabase.js?v=74"></script>
+<script src="auth-guard.js?v=74"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=74">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js" defer></script>
@@ -105,10 +105,10 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=73" defer></script>
-<script src="skilled-search.js?v=73"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='73',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
-<link rel="stylesheet" href="crm-v69-responsive.css?v=73">
+    <script src="skilled-sidebar.js?v=74" defer></script>
+<script src="skilled-search.js?v=74"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='74',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v69-responsive.css?v=74">
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -1123,7 +1123,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=73');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=74');
             }
             return cliente;
         }
@@ -1189,6 +1189,10 @@
                     cantidadSobrante: Number(fila.cantidad_sobrante || 0),
                     unidad: textoSeguro(fila.unidad),
                     precioUnitario: Number(fila.precio_unitario || 0),
+                    monedaCosto: codigoMonedaMaterial(fila, material),
+                    moneda_costo: codigoMonedaMaterial(fila, material),
+                    codigoMarca: textoSeguro(fila.codigo_marca),
+                    codigo_marca: textoSeguro(fila.codigo_marca),
                     observaciones: textoSeguro(fila.observaciones),
                     estadoSolicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
                     estado_solicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
@@ -1246,6 +1250,8 @@
                         codigo_manual: codigo,
                         descripcion,
                         categoria: textoSeguro(linea.categoria ?? material.categoria) || null,
+                        codigo_marca: textoSeguro(linea.codigoMarca ?? linea.codigo_marca ?? material.codigoMarca ?? material.codigo_marca) || null,
+                        moneda_costo: codigoMonedaMaterial(linea, material),
                         cantidad_planeada: cantidad,
                         cantidad_entregada: Number(linea.cantidadEntregada ?? linea.cantidad_entregada ?? 0) || 0,
                         cantidad_sobrante: Number(linea.cantidadSobrante ?? linea.cantidad_sobrante ?? 0) || 0,
@@ -1321,6 +1327,11 @@
                 cantidadSobrante: Number(linea.cantidadSobrante ?? 0) || 0,
                 unidad: textoSeguro(linea.unidad ?? linea.material?.unidad),
                 precioUnitario: Number(linea.precioUnitario ?? linea.material?.precio ?? 0) || 0,
+                monedaCosto: codigoMonedaMaterial(linea, linea.material || {}),
+                moneda_costo: codigoMonedaMaterial(linea, linea.material || {}),
+                codigoMarca: textoSeguro(linea.codigoMarca ?? linea.codigo_marca ?? linea.material?.codigoMarca ?? linea.material?.codigo_marca),
+                codigo_marca: textoSeguro(linea.codigoMarca ?? linea.codigo_marca ?? linea.material?.codigoMarca ?? linea.material?.codigo_marca),
+                descripcion: textoSeguro(linea.descripcion ?? linea.material?.descripcion ?? linea.material?.desc),
                 observaciones: textoSeguro(linea.observaciones),
                 estadoSolicitud: textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud) || 'pendiente',
                 estado_solicitud: textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud) || 'pendiente',
@@ -1424,6 +1435,7 @@
             tbody.innerHTML = planProyectoActual.map(linea => {
                 const material = linea.material || {};
                 const precio = Number(linea.precioUnitario || material.precio || 0);
+                const monedaCosto = codigoMonedaMaterial(linea, material);
                 const costo = Number(linea.cantidadPlaneada || 0) * precio;
                 const estado = estadoVisualPlan(linea);
                 const entregado = Math.max(0, Number(linea.cantidadEntregada || 0));
@@ -1508,14 +1520,17 @@
         function agregarMaterialPlan(codigo) {
             const material = catalogoMateriales.find(item => item.codigo === codigo);
             if (!material || planBorrador.some(item => claveProyecto(item.codigo) === claveProyecto(codigo))) return;
+            const monedaCosto = codigoMonedaMaterial({}, material);
             planBorrador.push({
                 id: null,
                 codigo: material.codigo,
-                cantidadPlaneada: cantidad,
+                cantidadPlaneada: 1,
                 cantidadEntregada: 0,
                 cantidadSobrante: 0,
                 unidad: material.unidad || '',
                 precioUnitario: Number(material.precio || 0),
+                monedaCosto,
+                moneda_costo: monedaCosto,
                 observaciones: '',
                 material
             });
@@ -1565,7 +1580,7 @@
             planBorrador.push({
                 id: null,
                 codigo,
-                cantidadPlaneada: 1,
+                cantidadPlaneada: cantidad,
                 cantidadEntregada: 0,
                 cantidadSobrante: 0,
                 unidad,
@@ -1617,9 +1632,9 @@
                     return `<tr class="hover:bg-[#0d1425] transition">
                         <td class="px-4 py-3 text-[10px] font-mono text-blue-300">${escapeHTML(linea.codigo)}</td>
                         <td class="px-4 py-3"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}</div></div></div></td>
-                        <td class="px-4 py-3 text-right text-[10px] font-mono text-gray-400">${formatoMoneda.format(precio)}</td>
+                        <td class="px-4 py-3 text-right text-[10px] font-mono text-gray-400">${escapeHTML(formatoCostoPorMoneda(precio, monedaCosto))}</td>
                         <td class="px-4 py-3"><div class="flex items-center justify-center gap-2"><input type="number" min="0.01" step="0.01" value="${Number(linea.cantidadPlaneada || 0)}" oninput="cambiarCantidadPlan(${indice}, this.value)" class="w-20 bg-[#060a14] border border-[#243257] rounded-lg px-2 py-2 text-center text-xs text-gray-200 focus:outline-none focus:border-blue-500"><span class="text-[9px] text-gray-500 uppercase">${escapeHTML(linea.unidad || material.unidad || '')}</span></div></td>
-                        <td id="costo-linea-${indice}" class="px-4 py-3 text-right text-[10px] font-mono text-gray-300">${formatoMoneda.format(costo)}</td>
+                        <td id="costo-linea-${indice}" class="px-4 py-3 text-right text-[10px] font-mono text-gray-300">${escapeHTML(formatoCostoPorMoneda(costo, monedaCosto))}</td>
                         <td class="px-4 py-3"><input value="${escapeHTML(linea.observaciones || '')}" oninput="cambiarNotaPlan(${indice}, this.value)" placeholder="Opcional" class="w-full min-w-44 bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></td>
                         <td class="px-4 py-3 text-right"><button type="button" onclick="eliminarMaterialPlan(${indice})" class="text-rose-500 hover:text-rose-400" title="Quitar material"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0l1 14h8l1-14M10 11v5m4-5v5"/></svg></button></td>
                     </tr>`;
@@ -1650,8 +1665,10 @@
             boton.disabled = true;
             boton.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Guardando...';
 
+            let planGuardado = false;
             try {
                 planProyectoActual = (await guardarPlanProyectoSeguro(proyectoActual.proyecto, planBorrador)).map(copiarLineaPlan);
+                planGuardado = true;
                 editandoPlan = false;
                 document.getElementById('plan-editor').classList.add('hidden');
                 document.getElementById('plan-vista').classList.remove('hidden');
@@ -1663,7 +1680,12 @@
                 sincronizarSeleccionReporte();
                 renderReporteAlcance();
             } catch (error) {
-                alert(`No se pudo guardar el plan: ${error.message}`);
+                if (planGuardado) {
+                    alert(`El plan se guardó correctamente, pero la vista no pudo actualizarse: ${error.message}`);
+                    try { renderPlanVista(); } catch (_) {}
+                } else {
+                    alert(`No se pudo guardar el plan: ${error.message}`);
+                }
             } finally {
                 boton.disabled = false;
                 boton.innerHTML = contenido;
@@ -2499,9 +2521,9 @@ ${proyecto}`);
 
         cargarProyectos();
     </script>
-<script src="AL.proyectos.js?v=73"></script>
+<script src="AL.proyectos.js?v=74"></script>
 
 
-<script src="skilled-performance.js?v=73" defer></script>
+<script src="skilled-performance.js?v=74" defer></script>
 </body>
 </html>
