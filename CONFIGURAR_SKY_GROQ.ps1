@@ -31,7 +31,7 @@ if ([string]::IsNullOrWhiteSpace($key) -or -not $key.StartsWith("gsk_")) {
     exit 1
 }
 Invoke-Supabase @("secrets", "set", "GROQ_API_KEY=$key", "--project-ref", $projectRef)
-Invoke-Supabase @("secrets", "set", "SKY_GROQ_INTENT_MODEL=llama-3.1-8b-instant", "SKY_GROQ_CHAT_FAST_MODEL=openai/gpt-oss-20b","SKY_GROQ_CHAT_MODEL=openai/gpt-oss-120b", "--project-ref", $projectRef)
+Invoke-Supabase @("secrets", "set", "SKY_GROQ_INTENT_MODEL=openai/gpt-oss-20b", "SKY_GROQ_CHAT_FAST_MODEL=openai/gpt-oss-20b","SKY_GROQ_CHAT_MODEL=openai/gpt-oss-120b", "--project-ref", $projectRef)
 $key = $null
 [GC]::Collect()
 Invoke-Supabase @("functions", "deploy", "sky-transcribir", "--project-ref", $projectRef, "--use-api")

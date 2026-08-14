@@ -8240,3 +8240,203 @@ select
     (select count(*) from public.crm_solicitudes_paquetes where estado in('pendiente','preparacion')) as solicitudes_pendientes,
     case when to_regprocedure('public.crm_solicitar_paquete_materiales(bigint,integer,text,text,text,text)') is not null then 'OK' else 'FALTA' end as solicitud_rpc,
     case when to_regprocedure('public.crm_entregar_solicitud_paquete(bigint,bigint,text)') is not null then 'OK' else 'FALTA' end as entrega_rpc;
+
+begin;
+
+update public.perfiles_usuario
+set rol='rh'
+where lower(btrim(coalesce(rol,''))) in ('rrhh','recursos humanos','recursos_humanos','capital humano','capital_humano','human resources');
+
+alter table if exists public.rh_personal add column if not exists usuario_id uuid references auth.users(id) on delete set null;
+alter table if exists public.rh_personal add column if not exists telefono_whatsapp text;
+alter table if exists public.rh_personal add column if not exists whatsapp_nomina boolean not null default false;
+alter table if exists public.rh_personal add column if not exists esquema_pago text not null default 'hora';
+alter table if exists public.rh_personal add column if not exists tarifa_pago numeric(14,2) not null default 0;
+alter table if exists public.rh_personal add column if not exists horas_jornada_diaria numeric(5,2) not null default 8;
+alter table if exists public.rh_personal add column if not exists dias_laborales_semana integer not null default 6;
+alter table if exists public.rh_personal add column if not exists horas_comida_diaria numeric(5,2) not null default 1;
+alter table if exists public.rh_personal add column if not exists salario_semanal_calculado numeric(14,2) not null default 0;
+
+alter table if exists public.rh_proyecto_asignaciones add column if not exists porcentaje_dedicacion numeric(5,2) not null default 100;
+alter table if exists public.rh_proyecto_asignaciones add column if not exists viatico_habilitado boolean;
+alter table if exists public.rh_proyecto_asignaciones add column if not exists viatico_tipo text;
+alter table if exists public.rh_proyecto_asignaciones add column if not exists viatico_importe numeric(14,2);
+
+alter table if exists public.rh_personal enable row level security;
+alter table if exists public.rh_proyecto_asignaciones enable row level security;
+alter table if exists public.rh_incidencias enable row level security;
+alter table if exists public.rh_documentos enable row level security;
+alter table if exists public.rh_capacitaciones enable row level security;
+alter table if exists public.rh_capacitacion_participantes enable row level security;
+alter table if exists public.rh_nomina_periodos enable row level security;
+alter table if exists public.rh_nomina_detalles enable row level security;
+alter table if exists public.rh_nomina_envios enable row level security;
+alter table if exists public.rh_nomina_configuracion enable row level security;
+alter table if exists public.rh_activos_oficina enable row level security;
+alter table if exists public.rh_activos_asignaciones enable row level security;
+
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['rh_personal','rh_proyecto_asignaciones','rh_incidencias','rh_documentos','rh_capacitaciones','rh_capacitacion_participantes','rh_nomina_periodos','rh_nomina_detalles','rh_nomina_envios','rh_nomina_configuracion','rh_activos_oficina','rh_activos_asignaciones'] LOOP
+    IF to_regclass('public.'||t) IS NOT NULL THEN
+      EXECUTE format('drop policy if exists %I on public.%I','RH V72 consulta',t);
+      EXECUTE format('drop policy if exists %I on public.%I','RH V72 administra',t);
+      EXECUTE format('create policy %I on public.%I for select to authenticated using (public.crm_usuario_tiene_rol(array[''administrador'',''rh'']))','RH V72 consulta',t);
+      EXECUTE format('create policy %I on public.%I for all to authenticated using (public.crm_usuario_tiene_rol(array[''administrador'',''rh''])) with check (public.crm_usuario_tiene_rol(array[''administrador'',''rh'']))','RH V72 administra',t);
+      EXECUTE format('grant select,insert,update,delete on public.%I to authenticated',t);
+    END IF;
+  END LOOP;
+END $$;
+
+drop policy if exists "RH V72 consulta proyectos" on public.proyectos;
+create policy "RH V72 consulta proyectos" on public.proyectos for select to authenticated
+using (public.crm_usuario_tiene_rol(array['administrador','rh']));
+
+drop policy if exists "RH V72 administra proyectos" on public.proyectos;
+create policy "RH V72 administra proyectos" on public.proyectos for all to authenticated
+using (public.crm_usuario_tiene_rol(array['administrador','rh']))
+with check (public.crm_usuario_tiene_rol(array['administrador','rh']));
+
+grant select,insert,update,delete on public.proyectos to authenticated;
+
+create or replace function public.rh_asignar_personal_proyecto_v72(
+    p_proyecto text,
+    p_personal_ids bigint[],
+    p_rol text,
+    p_fecha_inicio date,
+    p_fecha_fin date default null,
+    p_dedicacion numeric default 100,
+    p_viatico_modo text default 'inherit',
+    p_viatico_tipo text default null,
+    p_viatico_importe numeric default null,
+    p_observaciones text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_project text:=btrim(coalesce(p_proyecto,''));
+    v_role text:=btrim(coalesce(p_rol,''));
+    v_ids bigint[]:=coalesce(p_personal_ids,array[]::bigint[]);
+    v_expected integer;
+    v_active integer;
+    v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then
+        raise exception using errcode='42501',message='El perfil actual no tiene permiso para asignar personal.';
+    end if;
+    if v_project='' or not exists(select 1 from public.proyectos where numero_proyecto=v_project) then
+        raise exception 'El proyecto seleccionado no existe.';
+    end if;
+    if cardinality(v_ids)=0 then raise exception 'Selecciona al menos un colaborador.'; end if;
+    if v_role='' then raise exception 'La función del personal en el proyecto es obligatoria.'; end if;
+    if p_fecha_inicio is null then raise exception 'La fecha inicial es obligatoria.'; end if;
+    if p_fecha_fin is not null and p_fecha_fin<p_fecha_inicio then raise exception 'La fecha final no puede ser anterior a la inicial.'; end if;
+    if coalesce(p_dedicacion,0)<=0 or p_dedicacion>100 then raise exception 'La dedicación debe estar entre 1 y 100.'; end if;
+    if coalesce(p_viatico_modo,'inherit') not in('inherit','custom','none') then raise exception 'Modo de viático no válido.'; end if;
+    select count(distinct item) into v_expected from unnest(v_ids) as u(item);
+    select count(*) into v_active from public.rh_personal where id=any(v_ids) and lower(coalesce(estado,''))='activo';
+    if v_active<>v_expected then raise exception 'Uno o más colaboradores ya no están activos o no existen.'; end if;
+
+    insert into public.rh_proyecto_asignaciones(
+        proyecto_numero,personal_id,rol_proyecto,fecha_inicio,fecha_fin,porcentaje_dedicacion,
+        viatico_habilitado,viatico_tipo,viatico_importe,estado,observaciones,creado_por,updated_at
+    )
+    select
+        v_project,p.id,v_role,p_fecha_inicio,p_fecha_fin,p_dedicacion,
+        case when p_viatico_modo='inherit' then null when p_viatico_modo='custom' then true else false end,
+        case when p_viatico_modo='custom' then nullif(btrim(coalesce(p_viatico_tipo,'')),'') else null end,
+        case when p_viatico_modo='custom' then greatest(coalesce(p_viatico_importe,0),0) else null end,
+        'activo',nullif(btrim(coalesce(p_observaciones,'')),''),auth.uid(),now()
+    from public.rh_personal p
+    where p.id=any(v_ids) and lower(coalesce(p.estado,''))='activo'
+    on conflict(proyecto_numero,personal_id) do update set
+        rol_proyecto=excluded.rol_proyecto,
+        fecha_inicio=excluded.fecha_inicio,
+        fecha_fin=excluded.fecha_fin,
+        porcentaje_dedicacion=excluded.porcentaje_dedicacion,
+        viatico_habilitado=excluded.viatico_habilitado,
+        viatico_tipo=excluded.viatico_tipo,
+        viatico_importe=excluded.viatico_importe,
+        estado='activo',
+        observaciones=excluded.observaciones,
+        updated_at=now();
+    get diagnostics v_count=row_count;
+    return jsonb_build_object('ok',true,'proyecto',v_project,'asignados',v_count);
+end;
+$$;
+revoke all on function public.rh_asignar_personal_proyecto_v72(text,bigint[],text,date,date,numeric,text,text,numeric,text) from public,anon;
+grant execute on function public.rh_asignar_personal_proyecto_v72(text,bigint[],text,date,date,numeric,text,text,numeric,text) to authenticated;
+
+create or replace function public.rh_quitar_asignacion_proyecto_v72(p_asignacion_id bigint)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_count integer:=0;
+begin
+    if not public.crm_usuario_tiene_rol(array['administrador','rh']) then
+        raise exception using errcode='42501',message='El perfil actual no tiene permiso para modificar asignaciones.';
+    end if;
+    update public.rh_proyecto_asignaciones
+    set estado='finalizado',fecha_fin=coalesce(fecha_fin,current_date),updated_at=now()
+    where id=p_asignacion_id;
+    get diagnostics v_count=row_count;
+    if v_count=0 then raise exception 'La asignación ya no existe.'; end if;
+    return jsonb_build_object('ok',true,'actualizados',v_count);
+end;
+$$;
+revoke all on function public.rh_quitar_asignacion_proyecto_v72(bigint) from public,anon;
+grant execute on function public.rh_quitar_asignacion_proyecto_v72(bigint) to authenticated;
+
+create or replace function public.rh_diagnostico_v72()
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_role text;
+    v_result jsonb;
+begin
+    select rol into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
+    if coalesce(v_role,'') not in('administrador','rh') then
+        raise exception using errcode='42501',message='El diagnóstico de RH requiere perfil RH o Administrador.';
+    end if;
+    v_result:=jsonb_build_object(
+      'ok',true,
+      'rol',v_role,
+      'personal',case when to_regclass('public.rh_personal') is null then -1 else (select count(*) from public.rh_personal) end,
+      'proyectos',case when to_regclass('public.proyectos') is null then -1 else (select count(*) from public.proyectos) end,
+      'asignaciones',case when to_regclass('public.rh_proyecto_asignaciones') is null then -1 else (select count(*) from public.rh_proyecto_asignaciones) end,
+      'incidencias',case when to_regclass('public.rh_incidencias') is null then -1 else (select count(*) from public.rh_incidencias) end,
+      'documentos',case when to_regclass('public.rh_documentos') is null then -1 else (select count(*) from public.rh_documentos) end,
+      'capacitaciones',case when to_regclass('public.rh_capacitaciones') is null then -1 else (select count(*) from public.rh_capacitaciones) end,
+      'periodos_nomina',case when to_regclass('public.rh_nomina_periodos') is null then -1 else (select count(*) from public.rh_nomina_periodos) end,
+      'activos',case when to_regclass('public.rh_activos_oficina') is null then -1 else (select count(*) from public.rh_activos_oficina) end
+    );
+    return v_result;
+end;
+$$;
+revoke all on function public.rh_diagnostico_v72() from public,anon;
+grant execute on function public.rh_diagnostico_v72() to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V72-ESTABILIDAD-RH-SKY-2026-08-14',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+  'OK' as estado,
+  'CRM-V72-ESTABILIDAD-RH-SKY-2026-08-14' as revision,
+  (select count(*) from public.rh_personal) as personal,
+  (select count(*) from public.proyectos) as proyectos,
+  (select count(*) from public.rh_proyecto_asignaciones where estado='activo') as asignaciones_activas,
+  case when to_regprocedure('public.rh_asignar_personal_proyecto_v72(text,bigint[],text,date,date,numeric,text,text,numeric,text)') is not null then 'OK' else 'FALTA' end as asignacion_rpc,
+  case when to_regprocedure('public.rh_diagnostico_v72()') is not null then 'OK' else 'FALTA' end as diagnostico_rpc;

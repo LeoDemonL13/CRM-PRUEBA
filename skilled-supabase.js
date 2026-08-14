@@ -4850,7 +4850,7 @@
             lastEntity: text(options.context.lastEntity).slice(0, 240),
             lastQuery: text(options.context.lastQuery).slice(0, 500),
             area: text(options.context.area).slice(0, 120),
-            turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-6).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : []
+            turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-8).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : []
         } : {};
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta', context }
@@ -4879,7 +4879,7 @@
             lastEntity: text(options.context.lastEntity).slice(0, 240),
             lastQuery: text(options.context.lastQuery).slice(0, 500),
             area: text(options.context.area).slice(0, 120),
-            turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-6).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : [],
+            turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-8).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : [],
             page: text(options.context.page).slice(0, 120),
             crmContext: text(options.context.crmContext).slice(0, 5000)
         } : {};
