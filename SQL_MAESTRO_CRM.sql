@@ -9309,10 +9309,74 @@ select 'OK' as estado,
 
 
 
--- V77: ajustes de frontend, checador web local-first y comunicaciones.
+-- V78: ajustes de frontend, checador web local-first y comunicaciones.
 -- No requiere migración adicional si V76 fue ejecutado correctamente.
 insert into public.crm_migraciones(version, aplicada_at)
-values('CRM-V77-CHECADOR-COMUNICACIONES-INTERFAZ-2026-08-14', now())
+values('CRM-V78-CHECADOR-COMUNICACIONES-INTERFAZ-2026-08-14', now())
 on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 notify pgrst, 'reload schema';
-select 'OK' as estado, 'CRM-V77-CHECADOR-COMUNICACIONES-INTERFAZ-2026-08-14' as revision;
+select 'OK' as estado, 'CRM-V78-CHECADOR-COMUNICACIONES-INTERFAZ-2026-08-14' as revision;
+
+
+-- V78 - permisos de materiales incompletos y Sky transversal
+begin;
+
+grant usage on schema public to authenticated, service_role;
+
+create or replace function public.crm_crear_material_incompleto_v78(
+    p_codigo text,
+    p_descripcion text,
+    p_categoria text default 'Sin clasificar',
+    p_unidad text default 'pieza',
+    p_precio numeric default 0,
+    p_codigo_marca text default null,
+    p_moneda_costo text default 'MXN',
+    p_origen text default 'alta_manual'
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    v_profile text;
+    v_codigo text := upper(trim(coalesce(p_codigo,'')));
+    v_descripcion text := nullif(trim(coalesce(p_descripcion,'')),'');
+    v_moneda text := upper(trim(coalesce(p_moneda_costo,'MXN')));
+begin
+    v_profile := lower(coalesce(auth.jwt() ->> 'perfil', auth.jwt() -> 'user_metadata' ->> 'perfil', auth.jwt() -> 'user_metadata' ->> 'rol', ''));
+    if v_profile = '' then
+        raise exception 'Perfil no definido para crear material incompleto.' using errcode = '42501';
+    end if;
+    if v_codigo = '' or v_descripcion is null then
+        raise exception 'Código y descripción son obligatorios.';
+    end if;
+    if v_moneda not in ('MXN','USD','EUR') then
+        v_moneda := 'MXN';
+    end if;
+
+    insert into public.materiales(codigo, descripcion, categoria, unidad, precio, codigo_marca, moneda_costo, es_incompleto, origen_alta, activo, updated_at)
+    values(v_codigo, v_descripcion, coalesce(nullif(trim(p_categoria),''),'Sin clasificar'), coalesce(nullif(trim(p_unidad),''),'pieza'), coalesce(p_precio,0), nullif(trim(coalesce(p_codigo_marca,'')),''), v_moneda, true, coalesce(nullif(trim(p_origen),''),'alta_manual'), true, now())
+    on conflict (codigo) do update set
+        descripcion = coalesce(nullif(excluded.descripcion,''), public.materiales.descripcion),
+        categoria = coalesce(nullif(excluded.categoria,''), public.materiales.categoria),
+        unidad = coalesce(nullif(excluded.unidad,''), public.materiales.unidad),
+        precio = coalesce(excluded.precio, public.materiales.precio),
+        codigo_marca = coalesce(excluded.codigo_marca, public.materiales.codigo_marca),
+        moneda_costo = coalesce(excluded.moneda_costo, public.materiales.moneda_costo),
+        es_incompleto = coalesce(public.materiales.es_incompleto, true),
+        origen_alta = coalesce(excluded.origen_alta, public.materiales.origen_alta),
+        activo = true,
+        updated_at = now();
+
+    return jsonb_build_object('codigo', v_codigo, 'ok', true);
+end;
+$$;
+
+grant execute on function public.crm_crear_material_incompleto_v78(text,text,text,text,numeric,text,text,text) to authenticated, service_role;
+grant execute on function public.crm_crear_material_incompleto_v76(text,text,text,text,numeric,text,text,text) to authenticated, service_role;
+grant execute on function public.crear_material_incompleto(text,text,text,text,numeric,text,text) to authenticated, service_role;
+
+select pg_notify('pgrst', 'reload schema');
+commit;
+
+select 'SQL V78 aplicado: materiales incompletos, permisos y recarga de schema reparados.' as resultado;

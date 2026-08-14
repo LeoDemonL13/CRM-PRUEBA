@@ -33,7 +33,7 @@
         return skyProfiles.has(detectProfile());
     }
     function isExecutiveReadProfile(profile = detectProfile()) {
-        return ['gerente_general','subgerente','sky_demo'].includes(profile);
+        return ['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(profile);
     }
     function profileConfig(profile = detectProfile()) {
         const base = {
@@ -337,7 +337,7 @@
         if(/rh\.equipos|equipos/.test(page))extra.push(['Resguardo','¿Qué equipo tiene asignado Leobardo?'],['Disponibles','¿Qué computadoras están disponibles?']);
         if(/proyecto/.test(page))extra.push(['Resumen proyecto','Dame un resumen del proyecto 26001'],['Personal','¿Cuántas personas tiene el proyecto 26001?']);
         if(/vehiculo/.test(page))extra.push(['Flotilla','¿Qué vehículos están disponibles?'],['Estado','¿Qué vehículos requieren atención?']);
-        if(isExecutiveReadProfile(profile))extra.push(['Resumen ejecutivo','Dame un resumen ejecutivo'],['Atención','¿Qué requiere atención hoy?']);
+        if(isExecutiveReadProfile(profile))extra.push(['Resumen ejecutivo','Dame un resumen ejecutivo'],['Atención','¿Qué requiere atención hoy?'],['Compras','Compara las cotizaciones abiertas por precio y entrega'],['Almacén','Muéstrame materiales bajo mínimo y sin ubicación'],['RH','Revisa pendientes de nómina y checador']);
         if(profile!=='sky_demo')extra.push(['Mensaje interno','Dile a Compras que ya llegó el material']);
         const base=[...extra,...config.examples,['Creador','¿Quién te creó?'],['Aquí','¿Qué puedes hacer aquí?'],['Ir a','¿A qué apartados me puedes llevar?'],['Preséntate','Preséntate'],['Ayuda','¿Qué puedes hacer?']];
         const seen=new Set();return base.filter(([label,example])=>{const key=commandNormalize(example);if(seen.has(key))return false;seen.add(key);return true}).slice(0,12);
@@ -374,7 +374,7 @@
         const href=map[key];setAnswer('Abrir apartado',`Voy a abrir ${key}.`,'La navegación respeta los permisos del perfil activo.',[],{href,label:`Abrir ${key}`});setTimeout(()=>{location.href=href},280);return {handled:true,voice:`Abriendo ${key}.`};
     }
     function pageHelp(){
-        const page=currentPageKey().replace(/^[a-z]{2}\./,'').replace(/[._-]+/g,' '), config=profileConfig();const examples=pageAwareExamples(config).slice(0,7).map(([label,example])=>({title:label,detail:example}));const message=`En ${page||'esta pantalla'} puedo ayudarte con consultas relacionadas con ${profileNames[detectProfile()]||detectProfile()} y mantener el contexto de lo que vayamos preguntando.`;setAnswer('Sky en esta pantalla',message,'También puedo llevarte a apartados autorizados, recordar la entidad de la consulta anterior y continuar con preguntas como “¿y dónde está?” o “¿y cuánto queda?”.',examples);return message;
+        const page=currentPageKey().replace(/^[a-z]{2}\./,'').replace(/[._-]+/g,' '), config=profileConfig();const examples=pageAwareExamples(config).slice(0,7).map(([label,example])=>({title:label,detail:example}));const message=`En ${page||'esta pantalla'} puedo ayudarte con consultas relacionadas con ${profileNames[detectProfile()]||detectProfile()} y también con información autorizada de Almacén, RH, Compras, proyectos y vehículos, manteniendo el contexto de lo que vayamos preguntando.`;setAnswer('Sky en esta pantalla',message,'También puedo llevarte a apartados autorizados, recordar la entidad de la consulta anterior y continuar con preguntas como “¿y dónde está?” o “¿y cuánto queda?”.',examples);return message;
     }
     function open() {
         createUi();
@@ -1560,7 +1560,8 @@
     }
 
     function skyBridgeProfile(profile = detectProfile()) {
-        return ['proyectos','planeacion','coordinacion','logistica','recepcion','finanzas','tsi','consulta'].includes(profile);
+        if (['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(profile)) return profile;
+        return '';
     }
 
     function skyBridge(source, filter = '') {
@@ -2667,7 +2668,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=77'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=79'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;

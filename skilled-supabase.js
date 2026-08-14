@@ -3354,72 +3354,84 @@
         const currency = normalizeCurrencyCode(payload.monedaCosto ?? payload.moneda_costo ?? payload.moneda);
         const brandCode = text(payload.codigoMarca ?? payload.codigo_marca ?? payload.modelo);
         const origin = text(payload.origen ?? payload.origenAlta) || 'alta_manual';
-        if (!code || !description) {
-            throw new Error('Código y descripción son obligatorios.');
+        if (!code || !description) throw new Error('Código y descripción son obligatorios.');
+
+        async function readMaterial(codigo) {
+            const result = await client.from('materiales').select('*').eq('codigo', codigo).maybeSingle();
+            assertNoError(result.error, 'No se pudo consultar el catálogo.');
+            return result.data ? materialFromDb(result.data) : null;
         }
+
+        async function saveDirect(existing = null) {
+            const payloadDb = {
+                codigo: code,
+                descripcion: description || text(existing?.descripcion) || code,
+                categoria: category || text(existing?.categoria) || 'Sin clasificar',
+                unidad: unit || text(existing?.unidad) || 'pieza',
+                precio: price || number(existing?.precio),
+                codigo_marca: brandCode || text(existing?.codigo_marca) || null,
+                moneda_costo: currency || normalizeCurrencyCode(existing?.moneda_costo) || 'MXN',
+                es_incompleto: true,
+                origen_alta: origin,
+                activo: true,
+                updated_at: new Date().toISOString()
+            };
+            let result;
+            if (existing) result = await client.from('materiales').update(payloadDb).eq('codigo', code).select('*').maybeSingle();
+            else result = await client.from('materiales').insert(payloadDb).select('*').maybeSingle();
+            assertNoError(result.error, existing ? 'No se pudo actualizar el material incompleto.' : 'No se pudo crear el material incompleto.');
+            invalidateMaterialSnapshot();
+            return materialFromDb(result.data);
+        }
+
         const currentResult = await client.from('materiales').select('*').eq('codigo', code).maybeSingle();
         assertNoError(currentResult.error, 'No se pudo consultar el catálogo.');
-        if (currentResult.data) {
-            const needsBrand = brandCode && text(currentResult.data.codigo_marca) !== brandCode;
-            const needsCurrency = normalizeCurrencyCode(currentResult.data.moneda_costo) !== currency;
-            if (!needsBrand && !needsCurrency) return materialFromDb(currentResult.data);
-            const existingRpc = await client.rpc('crm_crear_material_incompleto_v76', {
-                p_codigo: code,
-                p_descripcion: description || text(currentResult.data.descripcion) || code,
-                p_categoria: category || text(currentResult.data.categoria) || 'Sin clasificar',
-                p_unidad: unit || text(currentResult.data.unidad) || 'pieza',
-                p_precio: price || number(currentResult.data.precio),
-                p_codigo_marca: brandCode || text(currentResult.data.codigo_marca) || null,
-                p_moneda_costo: currency || normalizeCurrencyCode(currentResult.data.moneda_costo),
-                p_origen: origin
-            });
-            if (existingRpc.error && !['PGRST202','42883'].includes(text(existingRpc.error.code))) {
-                const codeValue = text(existingRpc.error.code);
-                const message = lower(existingRpc.error.message || '');
-                if (codeValue === '42501' || message.includes('permission denied for function')) throw new Error('Supabase no autorizó la actualización del material incompleto. Ejecuta el SQL_MAESTRO_CRM.sql V76 para reparar los permisos del plan de materiales.');
-                assertNoError(existingRpc.error, 'No se pudieron actualizar los datos comerciales del material.');
-            }
-            if (!existingRpc.error) {
-                const refreshed = await client.from('materiales').select('*').eq('codigo', code).maybeSingle();
-                assertNoError(refreshed.error, 'El material se actualizó, pero no pudo recuperarse del catálogo.');
-                if (refreshed.data) { invalidateMaterialSnapshot(); return materialFromDb(refreshed.data); }
-            }
-            return materialFromDb(currentResult.data);
+        const existing = currentResult.data || null;
+        if (existing) {
+            const needsBrand = brandCode && text(existing.codigo_marca) !== brandCode;
+            const needsCurrency = currency && normalizeCurrencyCode(existing.moneda_costo) !== currency;
+            const needsOrigin = origin && text(existing.origen_alta) !== origin;
+            if (!needsBrand && !needsCurrency && !needsOrigin) return materialFromDb(existing);
         }
-        let rpcResult = await client.rpc('crm_crear_material_incompleto_v76', {
+
+        const rpcArgs = {
             p_codigo: code,
-            p_descripcion: description,
-            p_categoria: category,
-            p_unidad: unit,
-            p_precio: price,
-            p_codigo_marca: brandCode || null,
-            p_moneda_costo: currency,
+            p_descripcion: description || text(existing?.descripcion) || code,
+            p_categoria: category || text(existing?.categoria) || 'Sin clasificar',
+            p_unidad: unit || text(existing?.unidad) || 'pieza',
+            p_precio: price || number(existing?.precio),
+            p_codigo_marca: brandCode || text(existing?.codigo_marca) || null,
+            p_moneda_costo: currency || normalizeCurrencyCode(existing?.moneda_costo) || 'MXN',
             p_origen: origin
-        });
-        if (rpcResult.error && ['PGRST202','42883'].includes(text(rpcResult.error.code))) {
-            rpcResult = await client.rpc('crear_material_incompleto', {
-                p_codigo: code,
-                p_descripcion: description,
-                p_categoria: category,
-                p_unidad: unit,
-                p_precio: price,
-                p_codigo_marca: brandCode || null,
-                p_origen: origin
-            });
-        }
-        if (rpcResult.error) {
+        };
+        const rpcNames = ['crm_crear_material_incompleto_v78','crm_crear_material_incompleto_v76','crear_material_incompleto'];
+        let lastError = null;
+        for (const name of rpcNames) {
+            const args = name === 'crear_material_incompleto'
+                ? { p_codigo: rpcArgs.p_codigo, p_descripcion: rpcArgs.p_descripcion, p_categoria: rpcArgs.p_categoria, p_unidad: rpcArgs.p_unidad, p_precio: rpcArgs.p_precio, p_codigo_marca: rpcArgs.p_codigo_marca, p_origen: rpcArgs.p_origen }
+                : rpcArgs;
+            const rpcResult = await client.rpc(name, args);
+            if (!rpcResult.error) {
+                const finalCode = text(rpcResult.data?.codigo || rpcResult.data || code);
+                const saved = await readMaterial(finalCode);
+                if (!saved) throw new Error('El material se guardó, pero no pudo recuperarse del catálogo.');
+                invalidateMaterialSnapshot();
+                return saved;
+            }
+            lastError = rpcResult.error;
             const codeValue = text(rpcResult.error.code);
             const message = lower(rpcResult.error.message || '');
-            if (codeValue === '42501' || message.includes('permission denied for function')) throw new Error('Supabase no autorizó la creación del material incompleto. Ejecuta el SQL_MAESTRO_CRM.sql V76 para reparar los permisos del plan de materiales.');
-            if (['PGRST202','42883','PGRST204','42703'].includes(codeValue)) throw new Error('Falta aplicar la actualización SQL V76 para registrar materiales incompletos.');
-            assertNoError(rpcResult.error, 'No se pudo crear el material incompleto.');
+            if (!['PGRST202','42883','42501'].includes(codeValue) && !message.includes('permission denied for function')) break;
         }
-        const finalCode = text(rpcResult.data?.codigo || rpcResult.data || code);
-        const createdResult = await client.from('materiales').select('*').eq('codigo', finalCode).maybeSingle();
-        assertNoError(createdResult.error, 'El material se creó, pero no pudo recuperarse del catálogo.');
-        if (!createdResult.data) throw new Error('El material se creó, pero no pudo recuperarse del catálogo.');
-        invalidateMaterialSnapshot();
-        return materialFromDb(createdResult.data);
+
+        const lastCode = text(lastError?.code);
+        const lastMessage = lower(lastError?.message || '');
+        if (lastCode === '42501' || lastMessage.includes('permission denied for function')) {
+            try { return await saveDirect(existing); }
+            catch (_) { throw new Error('Supabase no autorizó el material incompleto. Ejecuta SQL_MAESTRO_CRM.sql V78 para reparar permisos de plan de materiales.'); }
+        }
+        if (['PGRST202','42883','PGRST204','42703'].includes(lastCode)) throw new Error('Falta aplicar la actualización SQL V78 para registrar materiales incompletos.');
+        assertNoError(lastError, 'No se pudo crear el material incompleto.');
     }
     async function syncProjectUnlistedMaterials(projectNumber = '') {
         let query = client.from('proyecto_materiales_no_listados').select('*').order('id', { ascending: true });
@@ -4933,6 +4945,9 @@
             proveedorContacto: text(provider?.contacto || row.proveedor_temporal_contacto),
             proveedorEmail: text(provider?.email || row.proveedor_temporal_email),
             proveedorTelefono: text(provider?.telefono || row.proveedor_temporal_telefono),
+            proveedorEvaluacion: number(provider?.evaluacion),
+            proveedorTiempoEntregaDias: number(provider?.tiempo_entrega_dias),
+            proveedorDiasCredito: number(provider?.dias_credito),
             proveedorTemporalNombre: text(row.proveedor_temporal_nombre),
             proveedorTemporalContacto: text(row.proveedor_temporal_contacto),
             proveedorTemporalEmail: text(row.proveedor_temporal_email),

@@ -1,4 +1,4 @@
-# Manual de armado - Checador Skilled V77
+# Manual de armado - Checador Skilled V78
 
 Este manual resume el armado recomendado para una Raspberry Pi con lector de huella, pantalla y sincronización local-first.
 
