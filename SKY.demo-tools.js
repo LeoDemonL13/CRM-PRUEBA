@@ -1,17 +1,21 @@
 (function(){
 'use strict';
-const key='skilled_sky_demo_tools_v81';
+const key='skilled_sky_demo_tools_v82',legacyKey='skilled_sky_demo_tools_v81';
 const defaults=[
-{name:'Java',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg',description:'Base para lógica estructurada, servicios y crecimiento del sistema cuando se requieran procesos más robustos.'},
-{name:'JavaScript',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',description:'Motor principal de la interfaz del CRM, búsquedas dinámicas, Sky, validaciones y comunicación con Supabase.'},
-{name:'SQL',category:'Base de datos',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg',description:'Consultas, funciones, vistas y reglas de datos para inventario, compras, RH, proyectos, nómina y reportes.'},
-{name:'HTML',category:'Estructura',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg',description:'Construcción de las pantallas del CRM por perfil, formularios, tarjetas, paneles y apartados operativos.'},
-{name:'CSS',category:'Diseño',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg',description:'Estilo visual corporativo, modo claro/oscuro, responsive móvil y presentación profesional de cada módulo.'},
-{name:'PowerShell .ps1',category:'Automatización',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/powershell/powershell-original.svg',description:'Scripts de Windows para configuración, publicación, impresión directa y preparación de entornos.'},
-{name:'Supabase',category:'Nube y datos',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/supabase/supabase-original.svg',description:'Base de datos, autenticación, permisos, funciones RPC y almacenamiento centralizado del CRM.'},
+{name:'Java',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg',description:'Lógica estructurada y crecimiento de servicios cuando se requieran procesos adicionales.'},
+{name:'JavaScript',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',description:'Interfaz, validaciones, buscadores, Sky y conexión del frontend con Supabase.'},
+{name:'TypeScript',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg',description:'Funciones de servidor y procesos controlados en Supabase Edge Functions.'},
+{name:'SQL / PostgreSQL',category:'Base de datos',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg',description:'Consultas, vistas, funciones RPC, permisos y reglas de trazabilidad del CRM.'},
+{name:'HTML5',category:'Estructura',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg',description:'Pantallas, formularios, tarjetas y navegación por perfil.'},
+{name:'CSS3',category:'Diseño',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg',description:'Diseño corporativo, temas, responsividad y experiencia visual.'},
+{name:'PowerShell .ps1',category:'Automatización',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/powershell/powershell-original.svg',description:'Configuración y tareas de Windows para publicación, impresión y preparación del entorno.'},
+{name:'Python',category:'Checador',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg',description:'Aplicación local del checador, almacenamiento, huella y sincronización en Raspberry Pi.'},
+{name:'C++ / PlatformIO',category:'Checador',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg',description:'Firmware de apoyo para ESP32 y periféricos del checador físico.'},
+{name:'OpenSCAD',category:'Diseño 3D',image:'',description:'Diseño paramétrico de la carcasa del checador.'},
+{name:'Supabase',category:'Nube y datos',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/supabase/supabase-original.svg',description:'Autenticación, PostgreSQL, funciones, permisos y sincronización centralizada.'},
 {name:'Visual Studio',category:'Desarrollo',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/visualstudio/visualstudio-plain.svg',description:'Entorno de trabajo para organizar, revisar y mejorar el código del CRM.'}
 ];
-function read(){try{const rows=JSON.parse(localStorage.getItem(key)||'null');return Array.isArray(rows)&&rows.length?rows:defaults.slice()}catch(_){return defaults.slice()}}
+function read(){try{const raw=localStorage.getItem(key)||localStorage.getItem(legacyKey)||'null',rows=JSON.parse(raw);if(Array.isArray(rows)&&rows.length){if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(rows));return rows}return defaults.slice()}catch(_){return defaults.slice()}}
 function save(rows){try{localStorage.setItem(key,JSON.stringify(rows));window.dispatchEvent(new CustomEvent('skilled:skytools',{detail:{rows}}))}catch(_){}}
 function html(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function render(){const grid=document.getElementById('sky-tools-grid'),empty=document.getElementById('sky-tools-empty');if(!grid)return;const rows=read();grid.innerHTML=rows.map((item,index)=>`<article class="sky-tool-card"><button type="button" data-remove-tool="${index}">Borrar</button>${item.image?`<img src="${html(item.image)}" alt="${html(item.name)}" loading="lazy" onerror="this.style.display='none'">`:''}<span>${html(item.category||'Herramienta')}</span><strong>${html(item.name||'Sin nombre')}</strong><p>${html(item.description||'Sin descripción')}</p></article>`).join('');if(empty)empty.style.display=rows.length?'none':'block';grid.querySelectorAll('[data-remove-tool]').forEach(button=>button.addEventListener('click',()=>{const next=read();next.splice(Number(button.dataset.removeTool),1);save(next);render()}));}
