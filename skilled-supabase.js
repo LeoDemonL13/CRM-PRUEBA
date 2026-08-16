@@ -6123,6 +6123,12 @@
         return Array.isArray(data) ? data : [];
     }
 
+    async function getSkyAttendanceV80(filter = '') {
+        const { data, error } = await client.rpc('crm_sky_asistencia_v80', { p_filtro: text(filter) || null });
+        assertNoError(error, 'Sky no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql V80.');
+        return Array.isArray(data) ? data : [];
+    }
+
     async function recalculatePayrollV73(periodId) {
         const { data, error } = await client.rpc('rh_recalcular_nomina_v73', { p_periodo_id: Number(periodId || 0) });
         assertNoError(error, 'No se pudo recalcular la nómina desde el checador.');
@@ -6176,6 +6182,7 @@
         listTimeClockPunches,
         registerTimeClockPunch,
         getAttendanceSummaryV73,
+        getSkyAttendanceV80,
         recalculatePayrollV73,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,

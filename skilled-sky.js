@@ -46,10 +46,10 @@
             coordinacion: { title:'Sky · Asistente de Coordinación', subtitle:'Punto de consulta entre proyectos, personal, materiales, compras, proveedores, logística y comunicación interna.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Material','¿Hay tubo conduit disponible?'],['Proveedor','Busca el proveedor ABB'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
             logistica: { title:'Sky · Asistente de Logística', subtitle:'Flotilla, proyectos, personal, materiales, responsables y coordinación mediante chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
             recepcion: { title:'Sky · Asistente de Recepción', subtitle:'Orientación de visitantes, responsables, proyectos, proveedores, vehículos, avisos internos y reuniones con lenguaje natural.', placeholder:'Ej. Llegó ABB, avisa a Compras', examples:[['Ayuda','Soy de Recepción, ¿en qué me puedes ayudar?'],['Avisar llegada','Dile a Compras que llegó el proveedor ABB'],['Responsable','Busca al responsable del proyecto 26001'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Persona','Busca a Eduardo'],['Vehículos','¿Qué vehículos están disponibles?']] },
-            rh: { title:'Sky · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántos trabajadores activos tenemos?', examples:[['Personal','¿Cuántos trabajadores activos tenemos?'],['Colaborador','Busca a Eduardo'],['Equipo','¿Qué equipo tiene asignado Leobardo?'],['Ausencias','¿Quién está ausente hoy?'],['Documentos','¿Qué documentos vencen pronto?'],['Mensaje','Dile a Coordinación que RH ya actualizó el personal']] },
+            rh: { title:'Sky · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, checador, horas trabajadas, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántas horas lleva cada trabajador esta semana?', examples:[['Horas del checador','¿Cuántas horas lleva cada trabajador esta semana?'],['Salida pendiente','¿Quién sigue dentro y no ha checado salida hoy?'],['Sin checada','¿Quién no ha checado hoy?'],['Colaborador','Muéstrame los días y horas de Leobardo esta semana'],['Meta semanal','¿A quién le faltan horas para llegar a 50 esta semana?'],['Nómina','¿Cuál es el último periodo de nómina?']] },
             finanzas: { title:'Sky · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras y proveedores autorizados, con comunicación interna y reuniones.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Proveedor','Busca el proveedor ABB'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
-            gerente_general: { title:'Sky · Asistente de Gerencia General', subtitle:'Consulta ejecutiva transversal de Almacén, RH, Compras, proveedores, proyectos, finanzas y vehículos, además de chat y reuniones.', placeholder:'Ej. Dame un resumen ejecutivo del proyecto 26001', examples:[['Resumen ejecutivo','Dame un resumen ejecutivo del proyecto 26001'],['Personal','¿Cuántas personas tengo en el proyecto 26001?'],['Material','¿Cuántos tipos de tubos tengo?'],['Proveedor','¿Quién vende tubo conduit?'],['Compras','¿Cuántas compras están pendientes?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
-            subgerente: { title:'Sky · Asistente de Subgerencia', subtitle:'Consulta ejecutiva transversal de operación, proyectos, personal, compras, proveedores, finanzas y vehículos, con chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención hoy?', examples:[['Atención','¿Qué requiere atención hoy?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Proveedor','¿Quién vende tubo conduit?'],['Mensaje','Dile a Coordinación que necesito el avance'],['Reunión','Convoca una reunión general mañana a las 9']] },
+            gerente_general: { title:'Sky · Asistente de Gerencia General', subtitle:'Consulta ejecutiva transversal de Almacén, RH, Compras, proveedores, proyectos, finanzas, checador y vehículos, además de chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención hoy?', examples:[['Resumen ejecutivo','Dame un resumen ejecutivo del proyecto 26001'],['Horas RH','¿Cuántas horas se han registrado esta semana en el checador?'],['Personal','¿Cuántas personas tengo en el proyecto 26001?'],['Material','¿Cuántos tipos de tubos tengo?'],['Compras','¿Cuántas compras están pendientes?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            subgerente: { title:'Sky · Asistente de Subgerencia', subtitle:'Consulta ejecutiva transversal de operación, proyectos, personal, compras, proveedores, finanzas, checador y vehículos, con chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención hoy?', examples:[['Atención','¿Qué requiere atención hoy?'],['Horas RH','¿Quién tiene checada incompleta hoy?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Compras','¿Qué compras están pendientes?'],['Reunión','Convoca una reunión general mañana a las 9']] },
             tsi: { title:'Sky · Asistente de TSI', subtitle:'Orientación del CRM, consulta de EPP y proyectos autorizados, explicación de procesos, chat interno y apoyo para coordinar incidencias.', placeholder:'Ej. Explícame cómo se relacionan Compras y Almacén', examples:[['CRM','Explícame cómo se relacionan Compras y Almacén'],['EPP','Busca chaleco gabardina azul'],['Proyecto','¿Cómo va el proyecto 26001?'],['Incidencia','Ayúdame a describir una falla del CRM'],['Mensaje','Dile a Administración que revisaré la incidencia'],['Reunión','Genera una reunión con Administración a las 4 para revisar el sistema']] },
             sky_demo: { title:'Sky · Modo presentación', subtitle:'Demostración transversal de conversación, consultas seguras, mensajes internos y reuniones sin modificar registros operativos.', placeholder:'Ej. Soy gerente, ¿en qué me puedes ayudar?', examples:[['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Recepción','Soy de Recepción, ¿en qué me puedes ayudar?'],['Mensaje','Dile a Compras que llegó el proveedor ABB'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Proyecto','Dame un resumen del proyecto 26001'],['Quién te creó','¿Quién te desarrolló?']] },
             consulta: { title:'Sky · Asistente de Consulta', subtitle:'Búsquedas de lectura en los datos autorizados, con conversación contextual y comunicación interna cuando corresponde.', placeholder:'Ej. Busca el proyecto 26001', examples:[['Proyecto','Busca el proyecto 26001'],['Continuación','¿Y quién es el responsable?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
@@ -1570,7 +1570,7 @@
     }
 
     async function loadData(key) {
-        const dynamicKeys = new Set(['low','purchases','assignments','coSupplierRequests','coStore','coQuotations','rhIncidents','executiveAlerts']);
+        const dynamicKeys = new Set(['low','purchases','assignments','coSupplierRequests','coStore','coQuotations','rhIncidents','rhAttendance','executiveAlerts']);
         const keyTtl = dynamicKeys.has(key) ? 15000 : 300000;
         if (cache[key] !== undefined && Date.now() - Number(cacheTimes[key] || 0) < keyTtl) return cache[key];
         if (dataPromises.has(key)) return dataPromises.get(key);
@@ -1595,6 +1595,7 @@
             rhPeople: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('personal') : tableRows('rh_personal'),
             rhAssignments: () => tableRows('rh_proyecto_asignaciones'),
             rhIncidents: () => tableRows('rh_incidencias'),
+            rhAttendance: () => typeof SkilledDB.getSkyAttendanceV80 === 'function' ? SkilledDB.getSkyAttendanceV80() : [],
             rhDocuments: () => tableRows('rh_documentos', '*,personal:rh_personal(id,numero_empleado,nombre,apellidos,puesto)'),
             rhTrainings: () => tableRows('rh_capacitaciones'),
             rhParticipants: () => tableRows('rh_capacitacion_participantes', '*,personal:rh_personal(id,nombre,apellidos)'),
@@ -2074,10 +2075,101 @@
         setAnswer('Equipos y resguardos',msg,executive?'Consulta de solo lectura de RH.':'Puedes preguntarme qué tiene asignado una persona, quién tiene un equipo o qué está disponible.',officeAssetCards(matchesAssets.length?matchesAssets:matchesAssignments),executive?null:{href:'RH.equipos.html',label:'Abrir equipos y resguardos'});return msg;
     }
 
+    function attendanceIntent(raw) {
+        const norm=commandNormalize(raw);
+        return /checador|checada|checadas|checad[oa]|chec[oó]|hora.*trabaj|horas.*trabaj|horas.*semana|horas.*acumul|50\s*horas|cincuenta\s*horas|entrada.*salida|salida.*entrada|falta.*salida|sin.*salida|falta.*entrada|sin.*entrada|registro.*hora|dias.*trabaj|días.*trabaj|no.*ha.*checad|faltan.*checar|sin.*checar|sigue.*dentro|siguen.*dentro|est[aá].*dentro/.test(norm);
+    }
+
+    function skyMxToday() {
+        const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),get=t=>parts.find(x=>x.type===t)?.value||'';
+        return `${get('year')}-${get('month')}-${get('day')}`;
+    }
+
+    function skyShiftDate(value,days) {
+        const [y,m,d]=String(value).slice(0,10).split('-').map(Number),date=new Date(Date.UTC(y,m-1,d+days));
+        return date.toISOString().slice(0,10);
+    }
+
+    function skyPayrollRange(offsetWeeks=0) {
+        const today=skyMxToday(),date=new Date(`${today}T12:00:00Z`),delta=(date.getUTCDay()-2+7)%7,start=skyShiftDate(today,-delta+offsetWeeks*7);
+        return {start,end:skyShiftDate(start,6)};
+    }
+
+    function skyAttendanceWindow(raw) {
+        const norm=commandNormalize(raw),today=skyMxToday();
+        if(/\bayer\b/.test(norm)){const day=skyShiftDate(today,-1);return{start:day,end:day,label:'ayer'}}
+        if(/semana pasada|semana anterior/.test(norm)){const range=skyPayrollRange(-1);return{...range,label:'la semana pasada'}}
+        if(/ultimos 7 dias|últimos 7 días|ultimos siete dias|últimos siete días/.test(norm))return{start:skyShiftDate(today,-6),end:today,label:'los últimos 7 días'};
+        if(/\bhoy\b/.test(norm))return{start:today,end:today,label:'hoy'};
+        const range=skyPayrollRange(0);return{...range,label:'esta semana'};
+    }
+
+    function skyAttendanceTime(value) {
+        if(!value)return'—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':d.toLocaleTimeString('es-MX',{timeZone:'America/Mexico_City',hour:'2-digit',minute:'2-digit',hour12:false});
+    }
+
+    function skyAttendanceHours(value) {
+        const mins=Math.max(0,Math.round(number(value)*60)),hours=Math.floor(mins/60),rest=mins%60;
+        return `${hours} h${rest?` ${rest} min`:''}`;
+    }
+
+    async function answerAttendance(raw,executive=false) {
+        const norm=commandNormalize(raw),rows=await loadData('rhAttendance'),windowRange=skyAttendanceWindow(raw),inWindow=(rows||[]).filter(item=>text(item.fecha)>=windowRange.start&&text(item.fecha)<=windowRange.end);
+        const ignore=['checador','checada','checadas','checo','checó','hora','horas','trabajada','trabajadas','trabajado','trabajados','trabajo','semana','pasada','anterior','esta','este','hoy','ayer','dia','dias','día','días','entrada','salida','registro','registros','falta','sin','quien','quién','cuanto','cuántas','cuantas','cuantos','cuántos','lleva','llevan','muestra','muéstrame','dime','ver','de','del','la','el','en','cada','trabajador','trabajadores','personal','empleado','empleados','colaborador','colaboradores'];
+        const tokens=searchTokens(raw,ignore),peopleMap=new Map();
+        inWindow.forEach(item=>{if(!peopleMap.has(Number(item.personal_id)))peopleMap.set(Number(item.personal_id),item)});
+        let people=[...peopleMap.values()];
+        if(tokens.length)people=people.filter(item=>matchesTokens([item.numero_empleado,item.nombre,item.apellidos,item.nombre_completo,item.puesto,item.departamento,item.turno],tokens));
+        const selectedIds=new Set(people.map(item=>Number(item.personal_id))),selectedRows=tokens.length?inWindow.filter(item=>selectedIds.has(Number(item.personal_id))):inWindow;
+        const action=executive?null:{href:'RH.nomina.html#attendance-week',label:'Ver días y horas'};
+        if(/no.*ha.*checad|no.*han.*checad|faltan.*por.*checar|faltan.*checar|sin.*checar|sin.*checada/.test(norm)&&!/entrada|salida/.test(norm)){
+            const allPeople=await loadData('rhPeople'),activePeople=(allPeople||[]).filter(item=>!['baja','inactivo','inactiva'].includes(normalize(item.estado))),punchedIds=new Set(inWindow.map(item=>Number(item.personal_id))),missing=activePeople.filter(item=>!punchedIds.has(Number(item.id)));
+            const cards=missing.slice(0,12).map(item=>({title:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',detail:`${item.numero_empleado||'Sin número'} · ${item.turno||'Sin turno'} · sin checadas en ${windowRange.label}`}));
+            const msg=missing.length?`${missing.length} trabajador${missing.length===1?'':'es'} no tiene${missing.length===1?'':'n'} checadas registradas en ${windowRange.label}.`:`Todo el personal activo tiene al menos una checada registrada en ${windowRange.label}.`;
+            setAnswer('Personal sin checada',msg,`Periodo: ${dateOnly(windowRange.start)} a ${dateOnly(windowRange.end)}.`,cards,action);return msg;
+        }
+        if(/sigue.*dentro|siguen.*dentro|est[aá].*dentro|est[aá]n.*dentro|no.*ha.*salido|no.*han.*salido/.test(norm)){
+            const inside=selectedRows.filter(item=>item.entrada&&!item.salida),cards=inside.slice(0,12).map(item=>({title:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',detail:`${dateOnly(item.fecha)} · entrada ${skyAttendanceTime(item.entrada)} · salida pendiente`}));
+            const msg=inside.length?`${inside.length} trabajador${inside.length===1?'':'es'} aparece${inside.length===1?'':'n'} con entrada y sin salida en ${windowRange.label}.`:`No hay trabajadores con entrada y salida pendiente en ${windowRange.label}.`;
+            setAnswer('Personal con salida pendiente',msg,'Sky usa únicamente las checadas sincronizadas; una salida todavía guardada offline aparecerá cuando el checador la sincronice.',cards,action);return msg;
+        }
+        if(!selectedRows.length){
+            const msg=tokens.length?'No encontré checadas de ese trabajador en el periodo solicitado.':'No hay checadas sincronizadas en el periodo solicitado.';
+            setAnswer('Checador RH',msg,`Periodo consultado: ${dateOnly(windowRange.start)} a ${dateOnly(windowRange.end)}.`,[],action);return msg;
+        }
+        if(/incomplet|falta.*salida|sin.*salida|no.*checad.*salida|no.*chec[oó].*salida|falta.*entrada|sin.*entrada/.test(norm)){
+            const wantsExit=/salida/.test(norm),wantsEntry=/entrada/.test(norm),incomplete=selectedRows.filter(item=>{const bad=item.incompleta===true||String(item.incompleta)==='true';if(!bad)return false;if(wantsExit&&!wantsEntry)return Boolean(item.entrada&&!item.salida)||text(item.faltante)==='salida';if(wantsEntry&&!wantsExit)return Boolean(item.salida&&!item.entrada)||text(item.faltante)==='entrada';return true});
+            const cards=incomplete.slice(0,10).map(item=>({title:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',detail:`${dateOnly(item.fecha)} · ${item.entrada?`entrada ${skyAttendanceTime(item.entrada)}`:'sin entrada'} · ${item.salida?`salida ${skyAttendanceTime(item.salida)}`:'sin salida'}`}));
+            const msg=incomplete.length?`${incomplete.length} registro${incomplete.length===1?'':'s'} incompleto${incomplete.length===1?'':'s'} en ${windowRange.label}.`:`No hay checadas incompletas en ${windowRange.label}.`;
+            setAnswer('Checadas incompletas',msg,'Sky marca como incompleto un día que tiene entrada sin salida o salida sin entrada.',cards,action);return msg;
+        }
+        if(/50\s*horas|cincuenta\s*horas|complet.*50|falt.*50/.test(norm)){
+            const grouped50=new Map();selectedRows.forEach(item=>{const id=Number(item.personal_id),g=grouped50.get(id)||{name:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',scheme:normalize(item.esquema_pago),hours:0};g.hours+=number(item.horas);grouped50.set(id,g)});
+            let summary50=[...grouped50.values()];if(/complet|super|alcanz|ya.*50/.test(norm))summary50=summary50.filter(item=>item.hours>=50);else if(/falta|resta|pendiente/.test(norm))summary50=summary50.filter(item=>item.hours<50);
+            summary50.sort((a,b)=>b.hours-a.hours||a.name.localeCompare(b.name,'es'));
+            const cards=summary50.slice(0,12).map(item=>({title:item.name,detail:item.hours>=50?`${skyAttendanceHours(item.hours)} · meta de 50 h alcanzada`:`${skyAttendanceHours(item.hours)} · faltan ${skyAttendanceHours(50-item.hours)} para 50 h`}));
+            const msg=summary50.length?`Encontré ${summary50.length} trabajador${summary50.length===1?'':'es'} para la comparación de 50 horas en ${windowRange.label}.`:'No encontré trabajadores que coincidan con esa condición de 50 horas en el periodo consultado.';
+            setAnswer('Seguimiento de 50 horas',msg,'Es una referencia de horas brutas del checador. La nómina final conserva las reglas del esquema de pago y sus validaciones.',cards,action);return msg;
+        }
+        if(people.length===1){
+            const person=people[0],personRows=selectedRows.filter(item=>Number(item.personal_id)===Number(person.personal_id)).sort((a,b)=>text(a.fecha).localeCompare(text(b.fecha))),hours=personRows.reduce((sum,item)=>sum+number(item.horas),0),complete=personRows.filter(item=>!(item.incompleta===true||String(item.incompleta)==='true')).length,incomplete=personRows.length-complete;
+            const cards=personRows.map(item=>({title:`${dateOnly(item.fecha)} · ${skyAttendanceHours(item.horas)}`,detail:`Entrada ${skyAttendanceTime(item.entrada)} · Salida ${skyAttendanceTime(item.salida)}${item.incompleta?` · falta ${item.faltante||'checada'}`:''}`}));
+            const name=`${person.nombre||''} ${person.apellidos||''}`.trim()||person.numero_empleado||'El colaborador',msg=`${name} acumula ${skyAttendanceHours(hours)} en ${windowRange.label}, con ${complete} día${complete===1?'':'s'} completo${complete===1?'':'s'}${incomplete?` y ${incomplete} incompleto${incomplete===1?'':'s'}`:''}.`;
+            setAnswer('Horas del checador',msg,`Periodo: ${dateOnly(windowRange.start)} a ${dateOnly(windowRange.end)}. Estas son horas brutas entre entrada y salida; Nómina aplica después las reglas del esquema de pago.`,cards,action);return msg;
+        }
+        const grouped=new Map();selectedRows.forEach(item=>{const id=Number(item.personal_id),g=grouped.get(id)||{name:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',number:item.numero_empleado||'',hours:0,days:0,incomplete:0};g.hours+=number(item.horas);if(item.incompleta===true||String(item.incompleta)==='true')g.incomplete++;else g.days++;grouped.set(id,g)});
+        const summary=[...grouped.values()].sort((a,b)=>b.hours-a.hours||a.name.localeCompare(b.name,'es'));
+        const totalHours=summary.reduce((sum,item)=>sum+item.hours,0),totalIncomplete=summary.reduce((sum,item)=>sum+item.incomplete,0);
+        const cards=summary.slice(0,10).map(item=>({title:item.name,detail:`${skyAttendanceHours(item.hours)} · ${item.days} día${item.days===1?'':'s'} completo${item.days===1?'':'s'}${item.incomplete?` · ${item.incomplete} incompleto${item.incomplete===1?'':'s'}`:''}`}));
+        const msg=`${summary.length} trabajador${summary.length===1?'':'es'} tienen checadas en ${windowRange.label}; acumulan ${skyAttendanceHours(totalHours)}${totalIncomplete?` y hay ${totalIncomplete} registro${totalIncomplete===1?'':'s'} incompleto${totalIncomplete===1?'':'s'}`:''}.`;
+        setAnswer('Resumen del checador',msg,`Periodo: ${dateOnly(windowRange.start)} a ${dateOnly(windowRange.end)}. Puedes preguntarme por una persona, por hoy, ayer, esta semana o por checadas sin salida.`,cards,action);return msg;
+    }
+
     async function answerRH(raw) {
         const norm = commandNormalize(raw);
         if (/vehiculo|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas/.test(norm) || hasFuzzy(norm,['vehiculo','vehiculos'])) return answerVehicles(raw);
         if (officeAssetIntent(raw)) return answerRHOfficeAssets(raw,false);
+        if (attendanceIntent(raw)) return answerAttendance(raw,false);
         if (/nomina|nómina|recibo de pago|comprobante de pago|pago semanal|whatsapp.*nomina|nomina.*whatsapp/.test(norm)) {
             const { data: periods, error } = await db.client.from('rh_nomina_periodos').select('id,nombre,fecha_inicio,fecha_fin,estado').order('fecha_inicio',{ascending:false}).limit(6);
             if (error) { setAnswer('Nómina', 'El módulo de nómina todavía no está disponible en la base de datos.', 'Ejecuta SQL_MAESTRO_CRM.sql V24 para activarlo.', [], {href:'RH.nomina.html',label:'Abrir nómina'}); return 'El módulo de nómina necesita la actualización V24.'; }
@@ -2668,7 +2760,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=79'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=80'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3487,6 +3579,7 @@
         const prefix=detectProfile()==='gerente_general'?'GG':'SG';
         if (/vehiculo|vehículos|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas|flotilla/.test(norm)) return answerVehicles(raw);
         if (officeAssetIntent(raw) || /resguardo|resguardos|activo.*oficina|material.*oficina|que tiene asignado|qué tiene asignado/.test(norm)) return answerRHOfficeAssets(raw,true);
+        if (attendanceIntent(raw)) return answerAttendance(raw,true);
         if (/\b(cuanto|cuantos|cuanta|cuantas)\b.*\b(material|materiales)\b/.test(norm) && !/tubo|cable|tornillo|tuerca|rondana|arandela|metro|pieza|stock|existencia/.test(norm)) return answerExecutiveInventorySummary();
         if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso)\b/.test(norm) && /material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg|codigo|código/.test(norm)) return answerMaterial(raw, true);
@@ -3750,9 +3843,9 @@
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
         if ((profile === 'compras' || profile === 'recepcion') && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
-        if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
+        if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|checador|checada|hora.*trabaj|entrada|salida|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
-        if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
+        if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|checador|checada|hora.*trabaj|entrada|salida|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
         if (['proyectos','planeacion','coordinacion','logistica','administrador'].includes(profile) && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable|vehiculo|vehículo|personal|proveedor|compra|cotiz|ubicacion|ubicación|stock|existencia|pendiente|alerta/.test(norm)) return true;
         if (profile === 'tsi' && /epp|casco|lente|guante|chaleco|botas|proteccion|protección|solicitud|proyecto|destinatario/.test(norm)) return true;
         return false;

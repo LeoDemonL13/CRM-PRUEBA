@@ -9380,3 +9380,86 @@ select pg_notify('pgrst', 'reload schema');
 commit;
 
 select 'SQL V78 aplicado: materiales incompletos, permisos y recarga de schema reparados.' as resultado;
+
+begin;
+
+create or replace function public.crm_sky_asistencia_v80(p_filtro text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_role text;
+    v_result jsonb;
+begin
+    select lower(btrim(rol)) into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
+    if v_role is null then
+        raise exception using errcode='42501',message='Tu perfil no está activo para Sky.';
+    end if;
+    if v_role not in ('administrador','rh','gerente_general','subgerente','sky_demo') then
+        raise exception using errcode='42501',message='Tu perfil no puede consultar horas del checador mediante Sky.';
+    end if;
+
+    with punch_days as(
+        select
+            rp.id personal_id,
+            rp.numero_empleado,
+            rp.nombre,
+            rp.apellidos,
+            rp.puesto,
+            rp.departamento,
+            rp.turno,
+            rp.esquema_pago,
+            c.fecha_local fecha,
+            min(c.fecha_hora) filter(where c.tipo='entrada') entrada,
+            max(c.fecha_hora) filter(where c.tipo='salida') salida,
+            count(*) filter(where c.tipo='entrada') entradas,
+            count(*) filter(where c.tipo='salida') salidas
+        from public.rh_checadas c
+        join public.rh_personal rp on rp.id=c.personal_id
+        where c.fecha_local between ((now() at time zone 'America/Mexico_City')::date-35) and ((now() at time zone 'America/Mexico_City')::date+7)
+          and lower(coalesce(rp.estado,''))<>'baja'
+          and (
+              p_filtro is null
+              or lower(concat_ws(' ',rp.numero_empleado,rp.nombre,rp.apellidos,rp.puesto,rp.departamento,rp.turno)) like '%'||lower(btrim(p_filtro))||'%'
+          )
+        group by rp.id,rp.numero_empleado,rp.nombre,rp.apellidos,rp.puesto,rp.departamento,rp.turno,rp.esquema_pago,c.fecha_local
+    )
+    select coalesce(jsonb_agg(jsonb_build_object(
+        'personal_id',x.personal_id,
+        'numero_empleado',x.numero_empleado,
+        'nombre',x.nombre,
+        'apellidos',x.apellidos,
+        'nombre_completo',btrim(concat_ws(' ',x.nombre,x.apellidos)),
+        'puesto',x.puesto,
+        'departamento',x.departamento,
+        'turno',x.turno,
+        'esquema_pago',x.esquema_pago,
+        'fecha',x.fecha,
+        'entrada',x.entrada,
+        'salida',x.salida,
+        'horas',case when x.entrada is not null and x.salida is not null and x.salida>x.entrada then round((extract(epoch from(x.salida-x.entrada))/3600.0)::numeric,2) else 0 end,
+        'incompleta',case when x.entrada is null or x.salida is null then true else false end,
+        'faltante',case when x.entrada is null then 'entrada' when x.salida is null then 'salida' else null end
+    ) order by x.fecha desc,x.apellidos,x.nombre),'[]'::jsonb)
+    into v_result
+    from punch_days x;
+
+    return coalesce(v_result,'[]'::jsonb);
+end;
+$$;
+
+revoke all on function public.crm_sky_asistencia_v80(text) from public,anon;
+grant execute on function public.crm_sky_asistencia_v80(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V80-CHECADOR-HORAS-SKY-2026-08-14',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V80-CHECADOR-HORAS-SKY-2026-08-14' as revision,
+       case when to_regprocedure('public.crm_sky_asistencia_v80(text)') is not null then 'OK' else 'FALTA' end as sky_asistencia;
