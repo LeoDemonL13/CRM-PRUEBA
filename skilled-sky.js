@@ -51,7 +51,7 @@
             gerente_general: { title:'Sky · Asistente de Gerencia General', subtitle:'Consulta ejecutiva transversal de Almacén, RH, Compras, proveedores, proyectos, finanzas, checador y vehículos, además de chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención hoy?', examples:[['Resumen ejecutivo','Dame un resumen ejecutivo del proyecto 26001'],['Horas RH','¿Cuántas horas se han registrado esta semana en el checador?'],['Personal','¿Cuántas personas tengo en el proyecto 26001?'],['Material','¿Cuántos tipos de tubos tengo?'],['Compras','¿Cuántas compras están pendientes?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
             subgerente: { title:'Sky · Asistente de Subgerencia', subtitle:'Consulta ejecutiva transversal de operación, proyectos, personal, compras, proveedores, finanzas, checador y vehículos, con chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención hoy?', examples:[['Atención','¿Qué requiere atención hoy?'],['Horas RH','¿Quién tiene checada incompleta hoy?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Compras','¿Qué compras están pendientes?'],['Reunión','Convoca una reunión general mañana a las 9']] },
             tsi: { title:'Sky · Asistente de TSI', subtitle:'Orientación del CRM, consulta de EPP y proyectos autorizados, explicación de procesos, chat interno y apoyo para coordinar incidencias.', placeholder:'Ej. Explícame cómo se relacionan Compras y Almacén', examples:[['CRM','Explícame cómo se relacionan Compras y Almacén'],['EPP','Busca chaleco gabardina azul'],['Proyecto','¿Cómo va el proyecto 26001?'],['Incidencia','Ayúdame a describir una falla del CRM'],['Mensaje','Dile a Administración que revisaré la incidencia'],['Reunión','Genera una reunión con Administración a las 4 para revisar el sistema']] },
-            sky_demo: { title:'Sky · Modo presentación', subtitle:'Demostración transversal de conversación, consultas seguras, mensajes internos y reuniones sin modificar registros operativos.', placeholder:'Ej. Soy gerente, ¿en qué me puedes ayudar?', examples:[['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Recepción','Soy de Recepción, ¿en qué me puedes ayudar?'],['Mensaje','Dile a Compras que llegó el proveedor ABB'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Proyecto','Dame un resumen del proyecto 26001'],['Quién te creó','¿Quién te desarrolló?']] },
+            sky_demo: { title:'Sky · Modo presentación', subtitle:'Demostración transversal de conversación, consultas seguras, mensajes internos y reuniones sin modificar registros operativos.', placeholder:'Ej. Soy gerente, ¿en qué me puedes ayudar?', examples:[['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Recepción','Soy de Recepción, ¿en qué me puedes ayudar?'],['Mensaje','Dile a Compras que llegó el proveedor ABB'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Proyecto','Dame un resumen del proyecto 26001'],['Herramientas','¿Qué lenguajes y herramientas utilizan?'],['Quién te creó','¿Quién te desarrolló?']] },
             consulta: { title:'Sky · Asistente de Consulta', subtitle:'Búsquedas de lectura en los datos autorizados, con conversación contextual y comunicación interna cuando corresponde.', placeholder:'Ej. Busca el proyecto 26001', examples:[['Proyecto','Busca el proyecto 26001'],['Continuación','¿Y quién es el responsable?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
         };
         if (base[profile]) return base[profile];
@@ -1595,7 +1595,7 @@
             rhPeople: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('personal') : tableRows('rh_personal'),
             rhAssignments: () => tableRows('rh_proyecto_asignaciones'),
             rhIncidents: () => tableRows('rh_incidencias'),
-            rhAttendance: () => typeof SkilledDB.getSkyAttendanceV80 === 'function' ? SkilledDB.getSkyAttendanceV80() : [],
+            rhAttendance: () => typeof SkilledDB.getSkyAttendanceV81 === 'function' ? SkilledDB.getSkyAttendanceV81() : [],
             rhDocuments: () => tableRows('rh_documentos', '*,personal:rh_personal(id,numero_empleado,nombre,apellidos,puesto)'),
             rhTrainings: () => tableRows('rh_capacitaciones'),
             rhParticipants: () => tableRows('rh_capacitacion_participantes', '*,personal:rh_personal(id,nombre,apellidos)'),
@@ -1903,6 +1903,20 @@
         if (email) actions.push({ label: 'Correo', href: `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Contacto · Skilled Proyectos Industriales · ${providerName}`)}&body=${encodeURIComponent(body)}` });
         return actions;
     }
+
+    const demoToolDefaults = [
+        {name:'Java',category:'Lenguaje',description:'Base para lógica estructurada y procesos robustos cuando el CRM requiera servicios adicionales.'},
+        {name:'JavaScript',category:'Lenguaje',description:'Interactividad, validaciones, buscadores, Sky y conexión del frontend con Supabase.'},
+        {name:'SQL',category:'Base de datos',description:'Consultas, funciones RPC, vistas y reglas de trazabilidad para inventario, compras, RH y proyectos.'},
+        {name:'HTML',category:'Estructura',description:'Pantallas, formularios, tarjetas y navegación de cada perfil del CRM.'},
+        {name:'CSS',category:'Diseño',description:'Diseño corporativo, modo claro/oscuro, responsividad móvil y experiencia visual profesional.'},
+        {name:'PowerShell .ps1',category:'Automatización',description:'Scripts de Windows para publicación, configuración, impresión directa y preparación del entorno.'},
+        {name:'Supabase',category:'Nube y datos',description:'Autenticación, base de datos, permisos, funciones y sincronización centralizada.'},
+        {name:'Visual Studio',category:'Desarrollo',description:'Entorno usado para organizar, revisar y mejorar el código del CRM.'}
+    ];
+    function demoTools(){try{const rows=JSON.parse(localStorage.getItem('skilled_sky_demo_tools_v81')||'null');return Array.isArray(rows)&&rows.length?rows:demoToolDefaults}catch(_){return demoToolDefaults}}
+    function toolsUsedIntent(raw){const norm=commandNormalize(raw);return /(lenguajes|herramientas|tecnologias|tecnologías|stack|java|javascript|sql|html|css|powershell|supabase|visual studio|con que.*hecho|con que.*desarrollado|que usaron|qué usaron|que utilizan|qué utilizan)/.test(norm)&&/(utilizad|usad|hech|desarroll|crm|sky|sistema|programa|herramientas|lenguajes|stack|tecnologias|tecnologías)/.test(norm)}
+    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Sky.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Sky sin afectar la implementación final.',cards,{href:'SKY.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
 
     function projectMatch(projects, raw) {
         const norm = commandNormalize(raw);
@@ -2760,7 +2774,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=80'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=81'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3149,6 +3163,8 @@
         const norm = commandNormalize(raw);
         const date = localDateParts();
         captureAreaContext(raw);
+        const toolsAnswer=answerToolsUsed(raw);
+        if(toolsAnswer)return toolsAnswer;
         if (/\b(activa|enciende|pon|ponte|inicia)\b.*\b(modo conversacion|modo conversación|escucha continua|manos libres|modo manos libres|modo alexa)\b/.test(norm) || /^(modo conversacion|modo conversación|escucha continua|manos libres)$/.test(norm)) {
             handsFreeEnabled=true;
             try{localStorage.setItem('skilled_sky_handsfree','1')}catch(_){}
@@ -3574,9 +3590,27 @@
         return total?`Hay ${total} señales que requieren revisión: ${low} de bajo mínimo, ${locations} sin ubicación, ${incomplete} con información incompleta y ${purchases} compras pendientes.`:'No detecté pendientes en los criterios ejecutivos actuales.';
     }
 
+    async function answerExecutiveDecisionBrief(raw){
+        const prefix=detectProfile()==='gerente_general'?'GG':'SG';
+        const rows=await SkilledDB.getExecutiveProjectSummary().catch(()=>[]);
+        const alerts=await SkilledDB.listOperationalAlerts?.().catch(()=>null);
+        const active=Array.isArray(rows)?rows.filter(row=>!/complet|cerrad|cancelad/i.test(text(row.estado))):[];
+        const planned=active.reduce((s,r)=>s+number(r.total_planeado),0),real=active.reduce((s,r)=>s+number(r.total_real),0),pct=planned>0?real/planned*100:real>0?100:0;
+        const today=new Date();today.setHours(12,0,0,0);
+        const due=active.filter(row=>{if(!row.fechaEntrega)return false;const d=new Date(`${row.fechaEntrega}T12:00:00`);if(Number.isNaN(d.getTime()))return false;return Math.ceil((d-today)/86400000)<=14});
+        const over=active.filter(row=>number(row.desviacion_total)>0);
+        const summary=alerts?.summary||{},ops=number(summary.bajoMinimo)+number(summary.comprasPendientes)+number(summary.ubicacionesPendientes)+number(summary.herramientasVencidas)+number(summary.documentosVehiculo);
+        const cards=[{title:'Portafolio activo',detail:`${active.length} proyectos`},{title:'Presupuesto utilizado',detail:`${Math.round(pct)}% · ${currency(real)} real`},{title:'Sobre plan',detail:`${over.length} proyectos`},{title:'Entrega próxima',detail:`${due.length} proyectos`},{title:'Señales operativas',detail:String(ops)}];
+        const main=`Resumen para decisión: ${active.length} proyectos activos, ${Math.round(pct)}% del presupuesto utilizado, ${over.length} proyectos sobre plan, ${due.length} entregas próximas o vencidas y ${ops} señales operativas.`;
+        const detail=ops||over.length||due.length?'Recomiendo revisar primero los proyectos con mayor desviación, después entregas próximas y finalmente pendientes de Almacén/Compras.':'La operación aparece estable con los criterios ejecutivos actuales.';
+        setAnswer('Centro de decisiones',main,detail,cards,{href:`${prefix}.inicio.html#exec-decision-center`,label:'Abrir centro de decisiones'});
+        return `${main} ${detail}`;
+    }
+
     async function answerExecutive(raw) {
         const norm=commandNormalize(raw);
         const prefix=detectProfile()==='gerente_general'?'GG':'SG';
+        if (/resumen.*decision|resumen.*decisión|centro.*decision|centro.*decisión|que debo revisar primero|qué debo revisar primero|prioridad ejecutiva|prioridades ejecutivas|que requiere atencion hoy|qué requiere atención hoy|que ocupa atencion|qué ocupa atención/.test(norm)) return answerExecutiveDecisionBrief(raw);
         if (/vehiculo|vehículos|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas|flotilla/.test(norm)) return answerVehicles(raw);
         if (officeAssetIntent(raw) || /resguardo|resguardos|activo.*oficina|material.*oficina|que tiene asignado|qué tiene asignado/.test(norm)) return answerRHOfficeAssets(raw,true);
         if (attendanceIntent(raw)) return answerAttendance(raw,true);

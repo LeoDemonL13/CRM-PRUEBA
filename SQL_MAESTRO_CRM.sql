@@ -9383,7 +9383,7 @@ select 'SQL V78 aplicado: materiales incompletos, permisos y recarga de schema r
 
 begin;
 
-create or replace function public.crm_sky_asistencia_v80(p_filtro text default null)
+create or replace function public.crm_sky_asistencia_v81(p_filtro text default null)
 returns jsonb
 language plpgsql
 security definer
@@ -9450,16 +9450,16 @@ begin
 end;
 $$;
 
-revoke all on function public.crm_sky_asistencia_v80(text) from public,anon;
-grant execute on function public.crm_sky_asistencia_v80(text) to authenticated;
+revoke all on function public.crm_sky_asistencia_v81(text) from public,anon;
+grant execute on function public.crm_sky_asistencia_v81(text) to authenticated;
 
 insert into public.crm_migraciones(version,aplicada_at)
-values('CRM-V80-CHECADOR-HORAS-SKY-2026-08-14',now())
+values('CRM-V81-CHECADOR-HORAS-SKY-2026-08-14',now())
 on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 notify pgrst,'reload schema';
 commit;
 
 select 'OK' as estado,
-       'CRM-V80-CHECADOR-HORAS-SKY-2026-08-14' as revision,
-       case when to_regprocedure('public.crm_sky_asistencia_v80(text)') is not null then 'OK' else 'FALTA' end as sky_asistencia;
+       'CRM-V81-CHECADOR-HORAS-SKY-2026-08-14' as revision,
+       case when to_regprocedure('public.crm_sky_asistencia_v81(text)') is not null then 'OK' else 'FALTA' end as sky_asistencia;

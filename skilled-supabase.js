@@ -6123,9 +6123,9 @@
         return Array.isArray(data) ? data : [];
     }
 
-    async function getSkyAttendanceV80(filter = '') {
-        const { data, error } = await client.rpc('crm_sky_asistencia_v80', { p_filtro: text(filter) || null });
-        assertNoError(error, 'Sky no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql V80.');
+    async function getSkyAttendanceV81(filter = '') {
+        const { data, error } = await client.rpc('crm_sky_asistencia_v81', { p_filtro: text(filter) || null });
+        assertNoError(error, 'Sky no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql V81.');
         return Array.isArray(data) ? data : [];
     }
 
@@ -6182,7 +6182,7 @@
         listTimeClockPunches,
         registerTimeClockPunch,
         getAttendanceSummaryV73,
-        getSkyAttendanceV80,
+        getSkyAttendanceV81,
         recalculatePayrollV73,
         getExecutiveProjectSummary,
         getExecutiveProjectDetail,
