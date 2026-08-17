@@ -123,3 +123,7 @@ body .crm-v83-hero .profile-hero-icon{
   border:1px solid #24466e !important;
   color:#6db7ff !important;
 }
+
+html[data-skilled-ui-mode] body #skilled-sidebar.skilled-sidebar-shell,html[data-skilled-ui-mode] body .skilled-sidebar{background:var(--crm-user-sidebar-bg)!important;background-image:none!important;border-color:var(--crm-user-border)!important}
+html[data-skilled-ui-mode] body .skilled-app-header{background:var(--crm-user-topbar-bg)!important;border-color:var(--crm-user-topbar-border)!important}
+html[data-skilled-ui-mode] body .skilled-sidebar a.is-active,html[data-skilled-ui-mode] body .skilled-sidebar a[aria-current="page"]{background:var(--crm-user-sidebar-active)!important;background-image:none!important;color:var(--crm-user-sidebar-active-text)!important}
