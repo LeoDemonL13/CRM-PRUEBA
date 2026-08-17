@@ -74,3 +74,9 @@ html[data-crm-theme="claro"] .crm-v83-section-title,html[data-crm-theme="claro"]
 body.profile-clean-hero .profile-hero{background:#08111f!important;border-color:var(--crm83-border)!important;box-shadow:0 12px 36px rgba(0,0,0,.1)!important}
 body.profile-clean-hero .profile-hero::before,body.profile-clean-hero .profile-hero::after{content:none!important;display:none!important}
 body.profile-clean-hero .profile-hero .profile-hero-icon{background:#0b1a30!important;border-color:#24466e!important;color:#6db7ff!important}
+
+/* V86 neutral professional hero cleanup */
+.profile-hero,.exec-hero,.sky-demo-hero,.crm-v83-hero{background:#08111f!important;border-color:var(--crm83-border)!important;box-shadow:0 12px 34px rgba(0,0,0,.12)!important}
+.profile-hero::before,.profile-hero::after,.exec-hero::before,.exec-hero::after,.sky-demo-hero::before,.sky-demo-hero::after,.crm-v83-hero::before,.crm-v83-hero::after{content:none!important;display:none!important}
+.profile-hero .profile-hero-icon,.exec-hero .profile-hero-icon,.sky-demo-hero .profile-hero-icon,.crm-v83-hero .profile-hero-icon{background:#0b1a30!important;border-color:#24466e!important;color:#6db7ff!important}
+html[data-crm-theme="claro"] .profile-hero,html[data-crm-theme="claro"] .exec-hero,html[data-crm-theme="claro"] .sky-demo-hero,html[data-crm-theme="claro"] .crm-v83-hero,body.tema-claro .profile-hero,body.tema-claro .exec-hero,body.tema-claro .sky-demo-hero,body.tema-claro .crm-v83-hero{background:#ffffff!important;border-color:#d7e1ee!important;box-shadow:0 10px 28px rgba(15,23,42,.06)!important}
