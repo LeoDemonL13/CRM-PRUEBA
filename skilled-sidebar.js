@@ -777,7 +777,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
                 type: 'Material', symbol: 'M', title: item.descripcion || item.desc || item.codigo,
                 subtitle: `${item.codigo || 'Sin código'} · ${item.categoria || 'Sin categoría'}${item.stock != null ? ` · Stock ${Number(item.stock) || 0}` : ''}`,
                 url: `AL.catalogo.html?q=${encodeURIComponent(item.codigo || item.descripcion || '')}`,
-                terms: [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.proveedor,item.contactoProveedor,item.contacto_proveedor,item.unidad,item.tipoCable,item.tamano,item.ubicacion,item.esIncompleto?'informacion incompleta':'',...(item.modismos||[])].join(' ')
+                terms: [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.codigoMarca,item.codigo_marca,item.proveedor,item.contactoProveedor,item.contacto_proveedor,item.unidad,item.tipoCable,item.tipo_cable,item.tamano,item.tamano_mm2,item.ubicacion,item.esIncompleto?'informacion incompleta':'',...(item.modismos||[])].join(' ')
             }));
             if (name === 'purchases') {
                 const groups = new Map();

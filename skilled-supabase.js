@@ -2474,7 +2474,7 @@
         return rows.filter(row => {
             if (category && lower(row.categoria) !== category) return false;
             if (search) {
-                const values = [row.codigo, row.descripcion, row.categoria, row.almacenNombre, row.marca, row.codigoMarca, row.codigo_marca, row.proveedor, row.contactoProveedor, ...(Array.isArray(row.modismos) ? row.modismos : [])];
+                const values = [row.codigo, row.descripcion, row.desc, row.categoria, row.almacenNombre, row.marca, row.codigoMarca, row.codigo_marca, row.proveedor, row.contactoProveedor, row.contacto_proveedor, row.unidad, row.tipoCable, row.tipo_cable, row.tamano, row.tamano_mm2, ...(Array.isArray(row.modismos) ? row.modismos : [])];
                 const hay = window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, search) : values.some(value => lower(value).includes(search));
                 if (!hay) return false;
             }
