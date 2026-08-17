@@ -347,3 +347,12 @@ window.descargarReporteExcel=exportExcel;
 window.descargarReporteAlcancePdfV14=exportPdf;
 window.descargarReporteAlcancePdfV15=exportPdf;
 })();
+
+(function(){
+'use strict';
+const done=new Set(['finalizado','finalizada','cerrado','cerrada','completado','completada']);
+const original=window.renderDetalle;
+function sync(){const button=document.getElementById('btn-devolver-sobrantes');if(!button)return;const project=typeof proyectoActual!=='undefined'?proyectoActual:null;const state=String(project?.estado??'').trim().toLocaleLowerCase('es-MX');const number=String(project?.proyecto??project?.idProyecto??'').trim();const visible=done.has(state)&&number;button.classList.toggle('hidden',!visible);button.href=visible?`AL.devolucion-sobrantes.html?proyecto=${encodeURIComponent(number)}`:'AL.devolucion-sobrantes.html'}
+if(typeof original==='function')window.renderDetalle=function(){const result=original.apply(this,arguments);sync();return result};
+document.addEventListener('DOMContentLoaded',sync,{once:true});
+})();

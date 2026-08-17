@@ -108,7 +108,7 @@
         {title:'Cuenta',items:[['AL.inicio.html','Inicio','home'],['AL.escaner.html','Escáner','scanner'],['perfil.html','Mi perfil','user']]},
         {title:'Materiales',items:[['AL.catalogo.html','Catálogo','box'],['AL.bajo-minimo.html','Bajo mínimo','alert'],['AL.almacenes.html','Almacenes','warehouse'],['AL.etiquetas.html','Etiquetas','tag']]},
         {title:'Operación automática',items:[['AL.automatizaciones.html','Cola operativa','automation']]},
-        {title:'Movimientos',items:[['AL.movimientos.html','Registrar movimiento','plus'],['AL.historial-movimientos.html','Historial movimientos','history'],['AL.tomas-fisicas.html','Tomas físicas','clipboard']]},
+        {title:'Movimientos',items:[['AL.movimientos.html','Registrar movimiento','plus'],['AL.devolucion-sobrantes.html','Devolución de sobrantes','history'],['AL.historial-movimientos.html','Historial movimientos','history'],['AL.tomas-fisicas.html','Tomas físicas','clipboard']]},
         {title:'Compras y solicitudes',items:[['AL.entrega-directa.html','Entrega directa','delivery'],['PAQ.paquetes-materiales.html','Paquetes predeterminados','box'],['AL.solicitudes-material.html','Solicitudes de material','request'],['AL.solicitudes-epp-tsi.html','Solicitudes EPP TSI','request'],['AL.ordenes-compra.html','Órdenes de compra','cart']]},
         {title:'Proyectos y reportes',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=almacen','Importar proyectos','delivery'],['AL.reportes.html','Reportes','report']]},
         {title:'Herramientas',items:[['AL.herramientas.html','Herramientas','tool'],['AL.unidades-herramientas.html','Unidades','layers'],['AL.asignaciones-herramientas.html','Asignaciones','assignment'],['AL.estado-herramientas.html','Estado actual','layers'],['AL.historial-herramientas.html','Historial','history']]},
@@ -1227,7 +1227,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=84');
+                await loadOptionalScript('skilled-sky.js?v=85');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1252,7 +1252,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=84');
+                await loadOptionalScript('skilled-chat.js?v=85');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1273,7 +1273,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=84').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=85').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1287,7 +1287,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=84'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=85'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
