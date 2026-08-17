@@ -3603,7 +3603,32 @@
     async function saveProjectPlanV12(projectNumber, lines) {
         const project = text(projectNumber);
         if (!project) throw new Error('Falta el número del proyecto.');
-        const input = Array.isArray(lines) ? lines : [];
+        const rawInput = Array.isArray(lines) ? lines : [];
+        const groupedInput = new Map();
+        for (const source of rawInput) {
+            const sourceMaterial = source?.material || {};
+            const sourceCode = text(source?.codigo ?? sourceMaterial.codigo);
+            const key = lower(sourceCode);
+            if (!key) {
+                groupedInput.set(`__missing_${groupedInput.size}`, { ...source });
+                continue;
+            }
+            if (!groupedInput.has(key)) {
+                groupedInput.set(key, { ...source, codigo: sourceCode });
+                continue;
+            }
+            const current = groupedInput.get(key);
+            current.cantidadPlaneada = number(current.cantidadPlaneada ?? current.cantidad_planeada) + number(source.cantidadPlaneada ?? source.cantidad_planeada);
+            current.cantidadEntregada = number(current.cantidadEntregada ?? current.cantidad_entregada) + number(source.cantidadEntregada ?? source.cantidad_entregada);
+            current.cantidadSobrante = number(current.cantidadSobrante ?? current.cantidad_sobrante) + number(source.cantidadSobrante ?? source.cantidad_sobrante);
+            const notes = [text(current.observaciones ?? current.notas), text(source.observaciones ?? source.notas)].filter(Boolean);
+            current.observaciones = [...new Set(notes)].join(' · ');
+            if (!current.material && sourceMaterial) current.material = sourceMaterial;
+            if (!current.unidad && source.unidad) current.unidad = source.unidad;
+            if (!number(current.precioUnitario ?? current.precio_unitario) && number(source.precioUnitario ?? source.precio_unitario)) current.precioUnitario = number(source.precioUnitario ?? source.precio_unitario);
+            current.esNoListado = boolean(current.esNoListado ?? current.es_no_listado) || boolean(source.esNoListado ?? source.es_no_listado);
+        }
+        const input = [...groupedInput.values()];
         const [currentResult, legacyResult, catalog] = await Promise.all([
             client.from('proyecto_materiales').select('material_codigo,estado_solicitud,aprobada_por,aprobada_at,rechazo_motivo').eq('proyecto_numero', project),
             client.from('proyecto_materiales_no_listados').select('*').eq('proyecto_numero', project),
