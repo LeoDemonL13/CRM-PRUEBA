@@ -21,7 +21,7 @@
 </style>
 <script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='85',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale()})();</script>
 <link rel="stylesheet" href="crm-v83-design.css?v=85"></head>
-<body class="min-h-screen flex overflow-x-hidden">
+<body class="profile-clean-hero min-h-screen flex overflow-x-hidden">
 <script>function alternarTema(){window.SkilledTheme?.toggleLight()}</script>
 <aside></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">

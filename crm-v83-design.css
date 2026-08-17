@@ -70,3 +70,7 @@ html[data-crm-theme="claro"] .crm-v83-section-title,html[data-crm-theme="claro"]
 #skilled-sidebar.skilled-sidebar-shell{display:flex!important;visibility:visible!important;opacity:1!important}
 @media(min-width:1024px){body.crm-v83-page.skilled-has-sidebar:not(.skilled-sidebar-collapsed){padding-left:260px!important}body.crm-v83-page.skilled-has-sidebar.skilled-sidebar-collapsed{padding-left:76px!important}body.crm-v83-page:not(.skilled-has-sidebar){padding-left:0!important}#skilled-sidebar.skilled-sidebar-shell{position:fixed!important;left:0!important;top:0!important;bottom:0!important;height:100dvh!important}}
 @media(max-width:1023px){body.crm-v83-page{padding-left:0!important}}
+
+body.profile-clean-hero .profile-hero{background:#08111f!important;border-color:var(--crm83-border)!important;box-shadow:0 12px 36px rgba(0,0,0,.1)!important}
+body.profile-clean-hero .profile-hero::before,body.profile-clean-hero .profile-hero::after{content:none!important;display:none!important}
+body.profile-clean-hero .profile-hero .profile-hero-icon{background:#0b1a30!important;border-color:#24466e!important;color:#6db7ff!important}
