@@ -4,7 +4,14 @@ const file=(location.pathname.split('/').pop()||'').toLowerCase();
 const body=document.body;
 if(!body)return;
 const publicPage=/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(file);
-if(publicPage){body.classList.add('crm-v83-no-sidebar');return}
+if(publicPage){
+body.classList.add('crm-v83-no-sidebar');
+body.classList.remove('crm-v83-page','skilled-has-sidebar','skilled-sidebar-collapsed','skilled-mobile-sidebar-open');
+document.documentElement.style.setProperty('--crm-sidebar-live','0px');
+document.getElementById('skilled-sidebar')?.remove();
+document.getElementById('skilled-sidebar-overlay')?.remove();
+return
+}
 body.classList.add('crm-v83-page');
 const profileMap={al:'almacen',co:'compras',rh:'rh',fi:'finanzas',gg:'gerente_general',sg:'subgerente',tsi:'tsi',sky:'sky_demo',pl:'planeacion',cr:'coordinacion',lg:'logistica',re:'recepcion',proy:'proyectos',adm:'administrador'};
 const prefix=(file.match(/^([a-z]+)\./)||[])[1]||'';

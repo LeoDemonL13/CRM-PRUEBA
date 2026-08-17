@@ -3,21 +3,21 @@
 <head>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=83" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=83">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=83">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=83">
-<link rel="manifest" href="/site.webmanifest?v=83">
+<link rel="icon" href="/favicon.ico?v=84" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=84">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=84">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=84">
+<link rel="manifest" href="/site.webmanifest?v=84">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>Skilled - Catálogo de Productos</title>
-    <link rel="stylesheet" href="interfaz.css?v=83"><script src="skilled-theme.js?v=83"></script>
-    <script src="navegacion-suave.js?v=83"></script>
+    <link rel="stylesheet" href="interfaz.css?v=84"><script src="skilled-theme.js?v=84"></script>
+    <script src="navegacion-suave.js?v=84"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=83"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=83">
+    <script src="skilled-supabase.js?v=84"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=84">
     <style>
         body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#060814}
         .lista-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.lista-scroll::-webkit-scrollbar-track{background:transparent}
@@ -30,10 +30,10 @@
         body.tema-claro .form-section{background:#f7f9fc;border-color:#dfe4ef}
         body.tema-claro .product-input{background:#fff;border-color:#cbd5e1;color:#111827}
     </style>
-<script src="skilled-search.js?v=83"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='83',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
-<link rel="stylesheet" href="crm-v69-responsive.css?v=83">
-<link rel="stylesheet" href="crm-v83-design.css?v=83"></head>
+<script src="skilled-search.js?v=84"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='84',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v69-responsive.css?v=84">
+<link rel="stylesheet" href="crm-v83-design.css?v=84"></head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <aside></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
@@ -70,7 +70,7 @@
 
 <div id="modal-producto" class="crm-workspace-overlay hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm items-center justify-center p-4"><div class="crm-workspace-dialog w-full max-w-5xl max-h-[94vh] overflow-y-auto lista-scroll bg-[#10172a] border border-[#243257] rounded-2xl shadow-2xl"><div class="sticky top-0 z-10 p-5 border-b border-[#243257] bg-[#10172a] flex items-start justify-between"><div><h3 id="producto-titulo" class="font-bold text-white text-lg">Nuevo producto</h3><p class="mt-1 text-xs text-gray-500">Información general, datos comerciales y existencias del material.</p></div><button onclick="cerrarProducto()" class="text-xl text-gray-500 hover:text-white">×</button></div><div class="p-5 space-y-5"><section class="form-section"><div class="form-section-title">Información general</div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="text-xs font-semibold">Código *</label><input id="p-codigo" class="product-input"></div><div><label class="text-xs font-semibold">Descripción *</label><input id="p-descripcion" class="product-input"></div><div class="sm:col-span-2"><label class="text-xs font-semibold">Modismos / otros nombres</label><textarea id="p-modismos" rows="2" placeholder="Ej. cincho, cinturón plástico, amarre..." class="product-input"></textarea><p class="mt-1 text-[10px] text-gray-500">Separa cada nombre con coma, punto y coma o salto de línea.</p></div><div><label class="text-xs font-semibold">Categoría *</label><input id="p-categoria" list="catalogo-categorias-v125" placeholder="Selecciona o escribe una categoría" class="product-input"><datalist id="catalogo-categorias-v125"></datalist></div><div><label class="text-xs font-semibold">Unidad *</label><input id="p-unidad" placeholder="PIEZA, METRO..." class="product-input"></div><div><label class="text-xs font-semibold">Tipo de cable</label><input id="p-tipo" class="product-input"></div><div><label class="text-xs font-semibold">Tamaño mm²/AWG</label><input id="p-tamano" class="product-input"></div></div></section><section class="form-section"><div class="form-section-title">Información comercial</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Marca</label><input id="p-marca" class="product-input" placeholder="Marca o fabricante"></div><div><label class="text-xs font-semibold">Código de marca / modelo *</label><input id="p-codigo-marca" class="product-input" placeholder="Ej. 3RT2026-1BB40, 48-22-8426, modelo del fabricante"></div><div><label class="text-xs font-semibold">Proveedor</label><input id="p-proveedor" class="product-input" placeholder="Proveedor principal"></div><div><label class="text-xs font-semibold">Contacto del proveedor</label><input id="p-contacto-proveedor" class="product-input" placeholder="Nombre, teléfono o correo"></div><div><label class="text-xs font-semibold">Precio unitario</label><input id="p-precio" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Moneda del costo</label><select id="p-moneda-costo" class="product-input"><option value="MXN">MXN — Peso mexicano</option><option value="USD">USD — Dólar estadounidense</option><option value="EUR">EUR — Euro</option></select></div></div></section><section class="form-section"><div class="form-section-title">Existencia y ubicación</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label class="text-xs font-semibold">Almacén</label><select id="p-almacen" onchange="cambiarAlmacenProducto()" class="product-input"></select></div><div><label class="text-xs font-semibold">Stock en almacén</label><input id="p-stock" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock mínimo</label><input id="p-minimo" type="number" min="0" step="0.01" class="product-input"></div><div><label class="text-xs font-semibold">Stock medio</label><input id="p-medio" type="number" min="0" step="0.01" class="product-input" placeholder="Se calcula automáticamente"></div><div><label class="text-xs font-semibold">Stock máximo</label><input id="p-maximo" type="number" min="0" step="0.01" class="product-input" placeholder="Por defecto: 2 × mínimo"></div></div><p class="mt-3 text-[10px] text-gray-500">El nivel medio y el máximo pueden editarse. Si quedan vacíos o en cero, el CRM calcula el máximo como dos veces el mínimo y el medio como el punto intermedio.</p></section><section class="form-section"><div class="form-section-title">Imagen del material</div><div class="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-4 items-start"><div><label class="text-xs font-semibold">URL de imagen</label><input id="p-imagen" oninput="previewProducto()" class="product-input" placeholder="https://..."></div><div id="p-preview" class="h-40 bg-white rounded-xl flex items-center justify-center text-gray-500 overflow-hidden">Vista previa</div></div></section></div><div class="sticky bottom-0 p-4 border-t border-[#243257] bg-[#10172a] flex justify-end gap-2"><button onclick="cerrarProducto()" class="px-4 py-2.5 rounded-lg bg-[#1b253c]">Cancelar</button><button onclick="guardarProducto()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">Guardar producto</button></div></div></div>
 
-<script src="skilled-sidebar.js?v=83" defer></script>
+<script src="skilled-sidebar.js?v=84" defer></script>
 <script>
 (function () {
     if (localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen') === 'claro') {
@@ -543,9 +543,9 @@ $('cat-filter').addEventListener('change', () => {
 
 cargarCatalogoVisual();
 </script>
-<script src="AL.catalogo.js?v=83"></script>
-<script src="auth-guard.js?v=83"></script>
+<script src="AL.catalogo.js?v=84"></script>
+<script src="auth-guard.js?v=84"></script>
 
-<script src="crm-v78-fixes.js?v=83" defer></script><script src="skilled-performance.js?v=83" defer></script>
-<script src="crm-v83-shell.js?v=83" defer></script></body>
+<script src="crm-v78-fixes.js?v=84" defer></script><script src="skilled-performance.js?v=84" defer></script>
+<script src="crm-v83-shell.js?v=84" defer></script></body>
 </html>
