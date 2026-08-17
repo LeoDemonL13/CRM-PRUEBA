@@ -3719,6 +3719,26 @@
         return { ok: true, proyecto: project, codigo: code, estado: state };
     }
 
+    async function approveMaterialProjectRequests(projectNumber, options = {}) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Selecciona un proyecto válido.');
+        const now = new Date().toISOString();
+        const row = {
+            estado_solicitud: 'aprobada',
+            aprobada_por: text(options.usuario) || 'Almacén',
+            aprobada_at: now,
+            rechazo_motivo: null,
+            updated_at: now
+        };
+        const { data, error } = await client.from('proyecto_materiales')
+            .update(row)
+            .eq('proyecto_numero', project)
+            .eq('estado_solicitud', 'pendiente')
+            .select('id,material_codigo');
+        assertNoError(error, 'No se pudieron aprobar las solicitudes del proyecto.');
+        return { ok: true, proyecto: project, actualizadas: Array.isArray(data) ? data.length : 0, materiales: Array.isArray(data) ? data : [] };
+    }
+
     async function createMaterialAdjustment(payload = {}) {
         const project = text(payload.proyecto ?? payload.project);
         const code = text(payload.codigo ?? payload.materialCodigo);
@@ -6282,6 +6302,7 @@
         syncProjectUnlistedMaterials,
         listMaterialRequests,
         setMaterialRequestStatus,
+        approveMaterialProjectRequests,
         createMaterialAdjustment,
         listMaterialAdjustments,
         resolveMaterialAdjustment,
