@@ -423,7 +423,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 body:not(.skilled-sidebar-collapsed) .skilled-sidebar .sidebar-label,
 body:not(.skilled-sidebar-collapsed) .skilled-sidebar .sidebar-section-title,
 body:not(.skilled-sidebar-collapsed) .skilled-sidebar .sidebar-profile-info{display:block!important;opacity:1!important;visibility:visible!important;}
-@media (min-width:1024px){body:not(.skilled-sidebar-collapsed){padding-left:260px!important;}body.skilled-sidebar-collapsed{padding-left:76px!important;}.skilled-sidebar{position:fixed;left:0;top:0;bottom:0;}}
+@media (min-width:1024px){body:not(.login-dark):not(.crm-v83-no-sidebar):not(.skilled-sidebar-collapsed){padding-left:260px!important;}body:not(.login-dark):not(.crm-v83-no-sidebar).skilled-sidebar-collapsed{padding-left:76px!important;}.skilled-sidebar{position:fixed;left:0;top:0;bottom:0;}}
 @media (max-width:920px){.comparison-caption{display:none}.offer-grid{grid-template-columns:1fr}.profile-shell{padding-left:1rem!important;padding-right:1rem!important}}
 
 :root{--crm-v82-blue:#00416B;--crm-v82-blue-bright:#0B6EA8;--crm-v82-red:#EA0029;--crm-v82-silver:#B4C6D4;--crm-v82-bg:#060914;--crm-v82-surface:#090f1d;--crm-v82-border:#1c2a43;--crm-v82-muted:#7c8ca5}

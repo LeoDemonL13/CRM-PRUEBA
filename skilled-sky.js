@@ -4,7 +4,7 @@
     const file = (location.pathname.split('/').pop() || '').toLowerCase();
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
-    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', lg:'logistica', rec:'recepcion', re:'recepcion', tsi:'tsi' };
+    const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', cr:'coordinacion', lg:'logistica', rec:'recepcion', re:'recepcion', tsi:'tsi' };
     const profileNames = { administrador:'Administración', jefe_almacen:'Jefe de almacén', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', recepcion:'Recepción', tsi:'TSI', consulta: 'Consulta' };
     const profileCodes = { administrador:'ADM', jefe_almacen:'JA', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
     const customProfiles = new Map();
@@ -356,9 +356,19 @@
     function navigationOptions(profile=detectProfile()){
         const common={'mi perfil':'perfil.html','perfil':'perfil.html'};
         const maps={
+            administrador:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',movimientos:'AL.movimientos.html',proyectos:'AL.proyectos.html',herramientas:'AL.herramientas.html',vehiculos:'AL.vehiculos.html',reportes:'AL.reportes.html','cola operativa':'AL.automatizaciones.html','centro de importaciones':'ADM.importaciones.html'},
+            jefe_almacen:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',movimientos:'AL.movimientos.html',historial:'AL.historial-movimientos.html','bajo minimo':'AL.bajo-minimo.html',proyectos:'AL.proyectos.html',herramientas:'AL.herramientas.html',vehiculos:'AL.vehiculos.html',etiquetas:'AL.etiquetas.html',reportes:'AL.reportes.html',escaner:'AL.escaner.html','cola operativa':'AL.automatizaciones.html'},
+            almacen:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',movimientos:'AL.movimientos.html',historial:'AL.historial-movimientos.html','bajo minimo':'AL.bajo-minimo.html',proyectos:'AL.proyectos.html',herramientas:'AL.herramientas.html',vehiculos:'AL.vehiculos.html',etiquetas:'AL.etiquetas.html',reportes:'AL.reportes.html',escaner:'AL.escaner.html','cola operativa':'AL.automatizaciones.html'},
             compras:{inicio:'CO.inicio.html',proveedores:'CO.proveedores.html',cotizaciones:'CO.cotizaciones.html','hacer compra':'CO.hacer-compra.html',compras:'CO.hacer-compra.html',requisiciones:'CO.requisiciones.html',recepciones:'CO.recepciones.html',servicios:'CO.servicios.html',tienda:'CO.tienda.html','bajo minimo':'CO.bajo-minimo.html'},
-            rh:{inicio:'RH.inicio.html',personal:'RH.personal.html',trabajadores:'RH.personal.html',proyectos:'RH.proyectos.html',asistencias:'RH.asistencias.html',documentos:'RH.documentos.html',nomina:'RH.nomina.html',capacitacion:'RH.capacitacion.html','equipos y resguardos':'RH.equipos.html',equipos:'RH.equipos.html',resguardos:'RH.equipos.html'},
+            rh:{inicio:'RH.inicio.html',personal:'RH.personal.html',trabajadores:'RH.personal.html',proyectos:'RH.proyectos.html',asistencias:'RH.asistencias.html',checador:'RH.checador.html',documentos:'RH.documentos.html',nomina:'RH.nomina.html',capacitacion:'RH.capacitacion.html','equipos y resguardos':'RH.equipos.html',equipos:'RH.equipos.html',resguardos:'RH.equipos.html'},
             finanzas:{inicio:'FI.inicio.html',presupuestos:'FI.presupuestos.html',gastos:'FI.gastos.html','cuentas por pagar':'FI.cuentas-pagar.html',reportes:'FI.reportes.html'},
+            planeacion:{inicio:'PL.inicio.html',proyectos:'AL.proyectos.html?perfil=planeacion',solicitudes:'AL.solicitudes-material.html?perfil=planeacion',reportes:'AL.reportes.html?perfil=planeacion','importar proyectos':'PROY.importar.html?perfil=planeacion'},
+            coordinacion:{inicio:'CR.inicio.html',proyectos:'AL.proyectos.html?perfil=coordinacion',solicitudes:'AL.solicitudes-material.html?perfil=coordinacion',vehiculos:'AL.vehiculos.html?perfil=coordinacion',reportes:'AL.reportes.html?perfil=coordinacion'},
+            logistica:{inicio:'LG.inicio.html',vehiculos:'AL.vehiculos.html?perfil=logistica',entregas:'CO.entregas.html?perfil=logistica',proyectos:'AL.proyectos.html?perfil=logistica',materiales:'AL.catalogo.html?perfil=logistica'},
+            recepcion:{inicio:'RE.inicio.html',entregas:'CO.entregas.html?perfil=recepcion',vehiculos:'AL.vehiculos.html?perfil=recepcion'},
+            proyectos:{inicio:'AL.proyectos.html',proyectos:'AL.proyectos.html',solicitudes:'AL.solicitudes-material.html',reportes:'AL.reportes.html',movimientos:'AL.historial-movimientos.html'},
+            tsi:{inicio:'TSI.inicio.html',epp:'TSI.solicitudes-epp.html','solicitar epp':'TSI.solicitudes-epp.html'},
+            consulta:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',reportes:'AL.reportes.html',manual:'AL.manual-usuario.html'},
             gerente_general:{inicio:'GG.inicio.html',proyectos:'GG.proyectos.html',vehiculos:'GG.vehiculos.html'},
             subgerente:{inicio:'SG.inicio.html',proyectos:'SG.proyectos.html',vehiculos:'SG.vehiculos.html'},
             sky_demo:{inicio:'SKY.inicio.html',sky:'SKY.inicio.html','modo presentacion':'SKY.inicio.html'}
@@ -422,6 +432,23 @@
         statusNode.className = `sky-state${mode ? ` is-${mode}` : ''}`;
         statusNode.innerHTML = `<span class="sky-state-dot"></span><span>${html(message)}</span>`;
     }
+    function skyFollowUpSuggestions(title = '') {
+        if (/^(Consultando|Procesando|Error)$/i.test(String(title || ''))) return [];
+        const profile = detectProfile();
+        const out=[];
+        const add=(value)=>{if(value&&!out.includes(value)&&out.length<4)out.push(value)};
+        if(conversationContext.project){const id=conversationContext.project.proyecto||conversationContext.project.nombre;add(`¿Qué falta en el proyecto ${id}?`);add(`¿Qué compras están relacionadas con ${id}?`);add(`¿Cuántas personas tiene ${id}?`)}
+        if(conversationContext.material){const id=conversationContext.material.codigo||conversationContext.material.descripcion;add(`¿Cuánto tenemos de ${id}?`);add(`¿Dónde está ${id}?`);add(`¿Está bajo mínimo ${id}?`)}
+        if(conversationContext.person){const id=conversationContext.person.nombre||conversationContext.person.numero;add(`¿Cuántas horas lleva ${id}?`);add(`¿En qué proyecto está ${id}?`);add(`¿Tiene checadas incompletas ${id}?`)}
+        if(conversationContext.supplier){const id=conversationContext.supplier.nombre;add(`¿Qué cotizaciones tenemos de ${id}?`);add(`¿Cuál es el contacto de ${id}?`)}
+        if(['gerente_general','subgerente'].includes(profile)){add('¿Qué requiere decisión hoy?');add('¿Qué puede atrasar proyectos?');add('¿Qué cambió desde mi última revisión?')}
+        if(profile==='sky_demo'){add('Explícame el CRM en 30 segundos');add('¿Qué automatizaciones estamos desarrollando?');add('¿Cómo funciona el checador Wi‑Fi?');add('¿Qué diferencia a Sky de un chatbot?')}
+        if(profile==='almacen'){add('¿Qué debo atender primero en Almacén?');add('¿Qué materiales están bajo mínimo?')}
+        if(profile==='compras'){add('¿Qué cotizaciones requieren atención?');add('¿Qué compra puede afectar una entrega?')}
+        if(profile==='rh'){add('¿Quién tiene checadas incompletas?');add('¿Quién no ha llegado a 50 horas?')}
+        return out.slice(0,4);
+    }
+
     function setAnswer(title, main, detail = '', cards = [], link = null) {
         const profile = detectProfile();
         if (link && isExecutiveReadProfile(profile)) {
@@ -443,10 +470,14 @@
             const actionHtml = actions.length ? `<div class="sky-card-actions">${actions.map(action => `<a class="sky-card-action" href="${html(action.href)}"${/^https?:/i.test(String(action.href))?' target="_blank" rel="noopener noreferrer"':''}>${html(action.label || 'Abrir')}</a>`).join('')}</div>` : '';
             return `<div class="sky-result-card"><strong>${html(card.title)}</strong><span>${html(card.detail)}</span>${actionHtml}</div>`;
         }).join('');
-        answerNode.innerHTML = `<div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cardHtml}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}`;
+        const followups=skyFollowUpSuggestions(title);
+        const followupHtml=followups.length?`<div class="sky-v83-followups">${followups.map(value=>`<button type="button" class="sky-v83-followup" data-sky-followup="${html(value)}">${html(value)}</button>`).join('')}</div>`:'';
+        const confidence=/^(Consultando|Procesando|Error)$/i.test(String(title))?'':`<div class="sky-v83-confidence"><i></i><span>Respuesta basada en datos y capacidades disponibles para este perfil. Si falta una fuente, Sky debe indicarlo.</span></div>`;
+        answerNode.innerHTML = `<div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cardHtml}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}${followupHtml}${confidence}`;
         answerNode.dataset.skyFinal = /^(Consultando|Procesando)$/i.test(String(title)) ? '0' : '1';
         answerSequence += 1;
         bindAnswerTools();
+        answerNode.querySelectorAll('[data-sky-followup]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.skyFollowup||'';if(transcriptInput)transcriptInput.value=value;query(value)}));
     }
 
     function cachedUserId() {
@@ -2781,7 +2812,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=82'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=83'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3160,7 +3191,7 @@
             {title:'Búsqueda más rápida',detail:'Pasar de revisar varias hojas o módulos a escribir o decir una consulta.'},
             {title:'Menos retrabajo',detail:'Una misma nube evita capturar el mismo dato en varios lugares.'},
             {title:'Trazabilidad',detail:'Movimientos, compras, proyectos y responsables quedan conectados.'},
-            {title:'Tiempo estimado',detail:'En consultas y seguimiento operativo puede reducir revisiones manuales entre 40% y 70%, según adopción y datos capturados.'},
+            {title:'Menos revisión manual',detail:'El objetivo es reducir pasos repetitivos y concentrar el seguimiento en excepciones; el resultado real depende del uso y de la calidad de los datos.'},
             {title:'Evolución',detail:'Sky seguirá creciendo por etapas, sin inventar datos que aún no estén conectados.'}
         ]);
         return {handled:true,voice:message};
@@ -3183,6 +3214,12 @@
         if(/\b(limitaciones|que no puedes hacer|que no hace sky|hasta donde llegas|que te falta|que falta por mejorar)\b/.test(norm))add('Límites actuales','Sky no debe inventar datos ni saltarse permisos; si una fuente todavía no está conectada, lo indica y orienta al usuario.','Las capacidades siguen ampliándose por etapas y las acciones sensibles permanecen dentro de los flujos autorizados del CRM.');
         if(/\b(que sigue|siguiente etapa|proximas mejoras|próximas mejoras|areas por mejorar|que estan revisando|qué están revisando)\b/.test(norm))add('Siguiente etapa','Se continúa revisando más áreas del CRM para conectar mejor proyectos, finanzas, planeación, coordinación, logística, recepción y administración.','La prioridad es sumar automatización y capacidad de consulta sin quitar funciones ya validadas ni introducir regresiones.');
         if(/\b(instalacion|instalar|windows|android|apple|iphone|ipad|dispositivos|multiplataforma)\b/.test(norm)&&/\b(crm|sistema|sky|aplicacion|aplicación)\b/.test(norm))add('Acceso multiplataforma','El CRM está planteado para utilizarse desde navegador y como experiencia instalable en los equipos compatibles donde se despliegue.','La interfaz se revisa para PC, tablet y teléfono, conservando permisos y la misma fuente de datos.');
+        if(/\b(por que no excel|porque no excel|diferencia.*excel|excel.*crm)\b/.test(norm))add('Por qué un CRM','Excel puede funcionar como apoyo, pero el CRM centraliza permisos, trazabilidad, relaciones entre áreas, validaciones y datos simultáneos en una sola operación.','No se trata de reemplazar cada hoja por una pantalla: se busca que un movimiento de Almacén pueda alimentar Compras, Proyectos, Dirección o RH sin volver a capturarlo.');
+        if(/\b(diferencia.*chatbot|no eres un chatbot|sky.*chatbot|que hace diferente.*sky)\b/.test(norm))add('Sky no es solo chat','Sky está integrada al contexto del CRM: identifica el perfil, mantiene contexto corto de la conversación, consulta fuentes autorizadas y puede orientar o ejecutar acciones permitidas.','Un chatbot aislado responde texto; Sky busca convertirse en la ruta rápida para consultar y coordinar la operación sin saltarse permisos.');
+        if(/\b(como evitan errores|evitar regresiones|regresiones|no romper|que no deje de funcionar|pruebas del crm)\b/.test(norm))add('Control de regresiones','Cada evolución debe conservar los flujos previamente validados y revisar navegación, permisos, sintaxis, enlaces y dependencias antes de publicarse.','Las automatizaciones nuevas se plantean como asistencia o prevalidación cuando una acción automática podría alterar inventario, nómina o compras sin revisión humana.');
+        if(/\b(si falla supabase|falla la nube|base de datos falla|se cae supabase)\b/.test(norm))add('Continuidad','La fuente central del CRM está en la nube; si no está disponible, las funciones que dependen de ella deben informar el problema en vez de simular datos.','El checador sí tiene estrategia local-first para conservar eventos de asistencia y sincronizarlos cuando vuelva la conexión.');
+        if(/\b(como se conectan las areas|flujo entre areas|relacion entre areas|de almacen a compras|de rh a proyectos)\b/.test(norm))add('Flujo entre áreas','Almacén genera necesidades y movimientos; Compras atiende faltantes y cotizaciones; RH asigna personal y asistencia; Proyectos concentra avance; Dirección consulta excepciones y Sky conecta la consulta entre esos datos.','La intención es que cada dato se capture donde nace y después se reutilice, evitando duplicidad.');
+        if(/\b(que puede preguntar.*gerente|preguntas.*gerente|sky.*direccion|sky.*gerencia)\b/.test(norm))add('Sky para Dirección','Dirección puede preguntar por proyectos en riesgo, presupuesto, entregas próximas, vehículos, faltantes, compras que afecten fechas y cambios desde la última revisión.','Sky resume primero y permite profundizar después, para no llenar el perfil ejecutivo con información operativa innecesaria.');
         if(/\b(lenguajes|tecnologias|stack|herramientas utilizadas|con que esta hecho|con que fue desarrollado)\b/.test(norm)){const rows=demoTools();add('Tecnología',`La presentación tiene ${rows.length} tarjetas configurables de lenguajes y herramientas.`,rows.slice(0,8).map(item=>item.name).filter(Boolean).join(', '));}
         if(/\b(30 segundos|medio minuto|un minuto|resumen rapido|resumen ejecutivo del crm|explicame el crm rapido|presentame el crm)\b/.test(norm))add('Resumen de presentación','Skilled CRM busca conectar operación, inventario, compras, RH, proyectos, finanzas y dirección en una sola nube, con Sky como capa de consulta natural.','La evolución actual se enfoca en automatizar checador y nómina, fortalecer Almacén y Compras, reducir búsquedas manuales y dar a Dirección solo la información que requiere una decisión.');
         if(!topics.length)return null;
@@ -3190,6 +3227,16 @@
         const message=topics.map(item=>item.summary).join(' ');
         setAnswer(topics.length>1?'Resumen del CRM':topics[0].label,message,'Puedo ampliar cualquiera de estos puntos o relacionarlo con datos reales del CRM cuando tu perfil tenga acceso.',cards);
         return {handled:true,voice:message};
+    }
+
+    function answerAmbiguity(raw){
+        const norm=commandNormalize(raw).replace(/\s+/g,' ').trim();
+        const choices={material:['Buscar un material','Ver bajo mínimo','Consultar ubicación'],proyecto:['Ver resumen de un proyecto','Revisar pendientes','Consultar personal del proyecto'],personal:['Buscar trabajador','Consultar horas del checador','Ver asignación a proyecto'],compras:['Revisar cotizaciones','Ver pendientes de compra','Consultar proveedor'],vehiculo:['Ver vehículos disponibles','Consultar un vehículo','Revisar viajes']};
+        const key=Object.keys(choices).find(k=>norm===k||norm===`${k}s`);
+        if(!key)return null;
+        const message=`Entendí ${key}, pero puedo ayudarte de varias formas. Elige una opción o dime qué necesitas con más detalle.`;
+        setAnswer('Necesito una precisión',message,'No haré suposiciones sobre el dato que buscas.',choices[key].map(x=>({title:x,detail:'Puedes decirlo con tus propias palabras.'})));
+        return{handled:true,voice:message};
     }
 
     async function answerSimple(raw) {
@@ -3200,6 +3247,8 @@
         if(toolsAnswer)return toolsAnswer;
         const systemKnowledge=answerSystemKnowledge(raw);
         if(systemKnowledge)return systemKnowledge;
+        const ambiguity=answerAmbiguity(raw);
+        if(ambiguity)return ambiguity;
         if (/\b(activa|enciende|pon|ponte|inicia)\b.*\b(modo conversacion|modo conversación|escucha continua|manos libres|modo manos libres|modo alexa)\b/.test(norm) || /^(modo conversacion|modo conversación|escucha continua|manos libres)$/.test(norm)) {
             handsFreeEnabled=true;
             try{localStorage.setItem('skilled_sky_handsfree','1')}catch(_){}
@@ -4170,6 +4219,8 @@
             return;
         }
         createUi();
+        const warm=()=>prewarmSkyProfileData();
+        if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:2200});else setTimeout(warm,900);
         document.addEventListener('keydown', event => {
             if (event.altKey && !event.ctrlKey && !event.metaKey && String(event.key).toLowerCase() === 's') {
                 event.preventDefault();

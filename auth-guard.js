@@ -21,11 +21,15 @@
         compras: ['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','al.ordenes-compra.html','al.reportes.html','paq.paquetes-materiales.html'],
         rh: ['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','proy.importar.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         finanzas: ['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.reportes.html','al.proyectos.html','paq.paquetes-materiales.html'],
-        gerente_general: ['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
-        subgerente: ['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
+        gerente_general: ['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
+        subgerente: ['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html'],
         sky_demo: ['sky.inicio.html','perfil.html'],
         tsi: ['tsi.inicio.html','tsi.solicitudes-epp.html','perfil.html','paq.paquetes-materiales.html'],
         proyectos: ['al.proyectos.html','proy.importar.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','al.catalogo.html','perfil.html','paq.paquetes-materiales.html'],
+        planeacion: ['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
+        coordinacion: ['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
+        logistica: ['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
+        recepcion: ['re.inicio.html','co.entregas.html','al.vehiculos.html','perfil.html'],
         consulta: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','paq.paquetes-materiales.html']
     };
 
@@ -41,6 +45,10 @@
         sky_demo: 'SKY.inicio.html',
         tsi: 'TSI.inicio.html',
         proyectos: 'AL.proyectos.html',
+        planeacion: 'PL.inicio.html',
+        coordinacion: 'CR.inicio.html',
+        logistica: 'LG.inicio.html',
+        recepcion: 'RE.inicio.html',
         consulta: 'AL.inicio.html'
     };
 

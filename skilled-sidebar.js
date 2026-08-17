@@ -41,6 +41,10 @@
         if (file.startsWith('co.')) return 'compras';
         if (file.startsWith('rh.')) return 'rh';
         if (file.startsWith('fi.')) return 'finanzas';
+        if (file.startsWith('pl.')) return 'planeacion';
+        if (file.startsWith('cr.')) return 'coordinacion';
+        if (file.startsWith('lg.')) return 'logistica';
+        if (file.startsWith('re.')) return 'recepcion';
         if (file.startsWith('gg.')) return 'gerente_general';
         if (file.startsWith('sg.')) return 'subgerente';
         if (file.startsWith('tsi.')) return 'tsi';
@@ -127,6 +131,10 @@
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
         ],
         finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Solicitudes internas',items:[['PAQ.paquetes-materiales.html?perfil=finanzas','Paquetes de materiales','box']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
+        planeacion:[{title:'Planeación',items:[['PL.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=planeacion','Proyectos','folder'],['PROY.importar.html?perfil=planeacion','Importar proyectos','delivery'],['AL.solicitudes-material.html?perfil=planeacion','Solicitudes','request'],['AL.reportes.html?perfil=planeacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=planeacion','Mi perfil','user']]}],
+        coordinacion:[{title:'Coordinación',items:[['CR.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=coordinacion','Proyectos','folder'],['AL.solicitudes-material.html?perfil=coordinacion','Solicitudes','request'],['AL.vehiculos.html?perfil=coordinacion','Vehículos','vehicle'],['AL.reportes.html?perfil=coordinacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=coordinacion','Mi perfil','user']]}],
+        logistica:[{title:'Logística',items:[['LG.inicio.html','Inicio','home'],['AL.vehiculos.html?perfil=logistica','Vehículos','vehicle'],['CO.entregas.html?perfil=logistica','Entregas','delivery'],['AL.proyectos.html?perfil=logistica','Proyectos','folder'],['AL.catalogo.html?perfil=logistica','Materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=logistica','Mi perfil','user']]}],
+        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         sky_demo:[{title:'Sky',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
@@ -399,6 +407,10 @@
         sky_demo:['sky.inicio.html','perfil.html'],
         tsi:['tsi.inicio.html','tsi.solicitudes-epp.html','perfil.html','paq.paquetes-materiales.html'],
         proyectos:['al.proyectos.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','perfil.html','paq.paquetes-materiales.html'],
+        planeacion:['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
+        coordinacion:['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
+        logistica:['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
+        recepcion:['re.inicio.html','co.entregas.html','al.vehiculos.html','perfil.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html','paq.paquetes-materiales.html']
     };
 
@@ -1085,7 +1097,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const header=document.querySelector('body > div header, header');if(!header)return;
         let copy=header.querySelector('.skilled-mobile-header-copy');
         if(!copy){copy=document.createElement('div');copy.className='skilled-mobile-header-copy';const toggle=header.querySelector('[data-sidebar-mobile-toggle]');if(toggle?.nextSibling)header.insertBefore(copy,toggle.nextSibling);else if(toggle)header.appendChild(copy);else header.prepend(copy)}
-        const profileLabels={almacen:'Almacén',compras:'Compras',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerencia General',subgerente:'Subgerencia',sky_demo:'Sky · Presentación',tsi:'TSI',proyectos:'Proyectos',consulta:'Consulta'};
+        const profileLabels={administrador:'Administración',jefe_almacen:'Jefe de Almacén',almacen:'Almacén',compras:'Compras',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerencia General',subgerente:'Subgerencia',sky_demo:'Sky · Presentación',tsi:'TSI',proyectos:'Proyectos',planeacion:'Planeación',coordinacion:'Coordinación',logistica:'Logística',recepcion:'Recepción',consulta:'Consulta'};
         const profile=sidebarProfileKey();let section=currentFile().replace(/\.html?$/i,'').replace(/^[A-Z]{2}\./i,'').replace(/[._-]+/g,' ').trim();section=section?section.charAt(0).toUpperCase()+section.slice(1):'Inicio';
         const markup=`<strong>${safeHtml(profileLabels[profile]||'Skilled CRM')}</strong><span>${safeHtml(section)}</span>`;
         if(copy.innerHTML!==markup)copy.innerHTML=markup;
@@ -1215,7 +1227,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=82');
+                await loadOptionalScript('skilled-sky.js?v=83');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1240,7 +1252,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=82');
+                await loadOptionalScript('skilled-chat.js?v=83');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1261,7 +1273,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=82').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=83').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;
@@ -1275,7 +1287,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=82'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=83'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
