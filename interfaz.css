@@ -475,3 +475,46 @@ body.tema-claro:not(.login-dark) .profile-modal-header,body.tema-claro:not(.logi
 .crm-network-state.is-offline{border-color:rgba(234,0,41,.34);color:#fecdd3}
 .crm-network-state.is-offline span{background:#EA0029;box-shadow:0 0 0 3px rgba(234,0,41,.12)}
 @media(max-width:700px){.crm-network-state{left:12px;right:12px;bottom:12px;max-width:none;justify-content:center}}
+
+/* V88 final professional cleanup */
+
+body .profile-hero,
+body .exec-hero,
+body .sky-demo-hero,
+body .crm-v83-hero{
+  background:#08111f !important;
+  background-image:none !important;
+  border:1px solid #1b2642 !important;
+  box-shadow:0 12px 34px rgba(0,0,0,.12) !important;
+}
+body .profile-hero::before,
+body .profile-hero::after,
+body .exec-hero::before,
+body .exec-hero::after,
+body .sky-demo-hero::before,
+body .sky-demo-hero::after,
+body .crm-v83-hero::before,
+body .crm-v83-hero::after{
+  content:none !important;
+  display:none !important;
+  background:none !important;
+  box-shadow:none !important;
+  border:none !important;
+}
+body .profile-title,
+body .exec-hero h1,
+body .sky-demo-hero h1,
+body .crm-v83-hero h1{color:#e8eef8 !important; text-shadow:none !important}
+body .profile-subtitle,
+body .exec-hero p,
+body .sky-demo-hero p,
+body .crm-v83-hero p{color:#9eb0c8 !important}
+body .profile-kicker{color:#7db9ee !important}
+body .profile-hero-icon,
+body .exec-hero .profile-hero-icon,
+body .sky-demo-hero .profile-hero-icon,
+body .crm-v83-hero .profile-hero-icon{
+  background:#0b1a30 !important;
+  border:1px solid #24466e !important;
+  color:#6db7ff !important;
+}
