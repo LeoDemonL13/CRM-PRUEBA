@@ -33,7 +33,7 @@ function badge(state){
 function sanitizeVisibility(){
   $$('#epp-list p, #epp-list span, #epp-list small, #epp-list div').forEach(el => {
     const tx = (el.textContent || '').trim();
-    if (/^Existencia total\s*:/i.test(tx)) el.remove();
+    if (/^Existencia total\s*:/i.test(tx) || /\bexistencia total\b/i.test(tx)) el.remove();
   });
 }
 
@@ -60,7 +60,7 @@ function renderProducts(){
           <span class="rounded-full border border-blue-500/20 bg-blue-950/20 px-2 py-1 text-[8px] font-bold text-blue-300">EPP</span>
         </div>
         <p class="mt-1 text-[9px] text-gray-500"><span class="font-mono text-blue-300">${esc(m.codigo)}</span>${m.marca ? ` · ${esc(m.marca)}` : ''}${m.codigo_marca ? ` · ${esc(m.codigo_marca)}` : ''}</p>
-        <p class="mt-1 text-[9px] text-gray-500">Solicitud interna de EPP · disponible para captura</p>
+        <p class="mt-1 text-[9px] text-gray-500">Solicitud interna de EPP · listo para agregar a tu solicitud</p>
       </div>
       <input class="field !py-2 text-center" type="number" min="1" step="1" value="1" data-qty="${esc(m.codigo)}">
       <button class="crm-icon-button" data-add="${esc(m.codigo)}" title="Agregar">+</button>

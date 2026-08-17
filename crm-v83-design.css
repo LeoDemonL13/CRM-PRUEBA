@@ -127,3 +127,13 @@ body .crm-v83-hero .profile-hero-icon{
 html[data-skilled-ui-mode] body #skilled-sidebar.skilled-sidebar-shell,html[data-skilled-ui-mode] body .skilled-sidebar{background:var(--crm-user-sidebar-bg)!important;background-image:none!important;border-color:var(--crm-user-border)!important}
 html[data-skilled-ui-mode] body .skilled-app-header{background:var(--crm-user-topbar-bg)!important;border-color:var(--crm-user-topbar-border)!important}
 html[data-skilled-ui-mode] body .skilled-sidebar a.is-active,html[data-skilled-ui-mode] body .skilled-sidebar a[aria-current="page"]{background:var(--crm-user-sidebar-active)!important;background-image:none!important;color:var(--crm-user-sidebar-active-text)!important}
+
+
+html[data-skilled-ui-mode] body .skilled-sidebar-brand{background:var(--crm-user-sidebar-brand-bg)!important;border-bottom-color:var(--crm-user-sidebar-divider)!important}
+html[data-skilled-ui-mode] body #skilled-sidebar>div:last-child,html[data-skilled-ui-mode] body .skilled-sidebar-shell>div:last-child{border-top-color:var(--crm-user-sidebar-divider)!important}
+html[data-skilled-ui-mode] body.skilled-sidebar-collapsed #skilled-sidebar nav>div+div{border-top-color:var(--crm-user-sidebar-divider)!important}
+html[data-skilled-ui-mode] body .profile-hero,html[data-skilled-ui-mode] body .exec-hero,html[data-skilled-ui-mode] body .sky-demo-hero,html[data-skilled-ui-mode] body .crm-v83-hero{background:var(--crm-user-hero-bg)!important;background-image:none!important;border-color:var(--crm-user-hero-border)!important}
+html[data-skilled-ui-mode] body .profile-title,html[data-skilled-ui-mode] body .exec-hero h1,html[data-skilled-ui-mode] body .sky-demo-hero h1,html[data-skilled-ui-mode] body .crm-v83-hero h1{color:var(--crm-user-hero-title)!important}
+html[data-skilled-ui-mode] body .profile-subtitle,html[data-skilled-ui-mode] body .exec-hero p,html[data-skilled-ui-mode] body .sky-demo-hero p,html[data-skilled-ui-mode] body .crm-v83-hero p{color:var(--crm-user-hero-subtitle)!important}
+html[data-skilled-ui-mode] body .profile-kicker{color:var(--crm-user-hero-kicker)!important}
+html[data-skilled-ui-mode] body .profile-hero-icon,html[data-skilled-ui-mode] body .exec-hero .profile-hero-icon,html[data-skilled-ui-mode] body .sky-demo-hero .profile-hero-icon,html[data-skilled-ui-mode] body .crm-v83-hero .profile-hero-icon{background:var(--crm-user-hero-icon-bg)!important;border-color:var(--crm-user-hero-icon-border)!important;color:var(--crm-user-hero-icon-text)!important}
