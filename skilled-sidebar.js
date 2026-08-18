@@ -1227,7 +1227,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-sky.js?v=89');
+                await loadOptionalScript('skilled-sky.js?v=95');
                 window.SkilledSky?.open?.();
             } catch (_) {
                 createLazySkyButton();
@@ -1273,7 +1273,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         }
         if (window.SkilledSky) return;
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=89').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=95').catch(() => createLazySkyButton());
             return;
         }
         if (document.querySelector('script[src*="skilled-sky.js"]')) return;

@@ -6139,6 +6139,60 @@
         return data || {};
     }
 
+    async function createDirectPurchaseOrderFromQuotationV96(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!text(payload.cotizacionId)) throw new Error('Falta la solicitud de cotización.');
+        if (!Number(payload.proveedorId || 0)) throw new Error('Selecciona el proveedor.');
+        if (!items.length) throw new Error('La orden directa no contiene partidas.');
+        const rows = items.map(item => ({
+            cotizacion_item_id: Number(item.cotizacionItemId || item.id || 0),
+            precio_unitario: number(item.precioUnitario ?? item.precio),
+            moneda: normalizeCurrencyCode(item.moneda),
+            plazo_entrega_dias: Math.max(0, Math.round(number(item.plazoEntregaDias)))
+        }));
+        if (rows.some(row => !row.cotizacion_item_id)) throw new Error('Hay partidas de la cotización sin identificador.');
+        const { data, error } = await client.rpc('co_crear_orden_directa_cotizacion_v96', {
+            p_cotizacion_id: text(payload.cotizacionId),
+            p_orden: text(payload.ordenCompra) || null,
+            p_proveedor_id: Number(payload.proveedorId),
+            p_referencia: text(payload.referencia) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_notas: text(payload.notas) || null,
+            p_items: rows
+        });
+        assertNoError(error, 'No se pudo crear la orden directa desde la solicitud. Ejecuta SQL_MAESTRO_CRM.sql V96.');
+        return data || {};
+    }
+
+    async function listPurchaseOrderSignatures(order = '') {
+        const value = text(order);
+        if (!value) return [];
+        const { data, error } = await client.from('co_orden_firmas').select('*').eq('orden_compra', value).order('id');
+        if (error && ['42P01','PGRST205'].includes(text(error.code))) return [];
+        assertNoError(error, 'No se pudieron consultar las firmas de la orden. Ejecuta SQL_MAESTRO_CRM.sql V96.');
+        return (data || []).map(row => ({ id:Number(row.id),ordenCompra:text(row.orden_compra),tipo:text(row.tipo),nombre:text(row.nombre),firmaDataUrl:text(row.firma_data_url),userId:text(row.user_id),firmadoAt:text(row.firmado_at),updatedAt:text(row.updated_at) }));
+    }
+
+    async function savePurchaseOrderSignature(payload = {}) {
+        const order = text(payload.ordenCompra), type = text(payload.tipo).toLowerCase(), name = text(payload.nombre), signature = text(payload.firmaDataUrl);
+        if (!order) throw new Error('La orden necesita número antes de firmar.');
+        if (!['solicito','elaboro','reviso','aprobo'].includes(type)) throw new Error('El tipo de firma no es válido.');
+        if (!name) throw new Error('Escribe el nombre de quien firma.');
+        if (!/^data:image\/(png|jpeg);base64,/i.test(signature)) throw new Error('Dibuja la firma antes de guardarla.');
+        const user = (await client.auth.getUser()).data?.user;
+        if (!user?.id) throw new Error('La sesión no está activa.');
+        const row = { orden_compra:order,tipo:type,nombre:name,firma_data_url:signature,user_id:user.id,firmado_at:new Date().toISOString(),updated_at:new Date().toISOString() };
+        const { data, error } = await client.from('co_orden_firmas').upsert(row,{onConflict:'orden_compra,tipo'}).select('*').single();
+        assertNoError(error, 'No se pudo guardar la firma. Ejecuta SQL_MAESTRO_CRM.sql V96.');
+        return { id:Number(data.id),ordenCompra:text(data.orden_compra),tipo:text(data.tipo),nombre:text(data.nombre),firmaDataUrl:text(data.firma_data_url),userId:text(data.user_id),firmadoAt:text(data.firmado_at),updatedAt:text(data.updated_at) };
+    }
+
+    async function deletePurchaseOrderSignature(order, type) {
+        const { error } = await client.from('co_orden_firmas').delete().eq('orden_compra', text(order)).eq('tipo', text(type));
+        assertNoError(error, 'No se pudo retirar la firma.');
+        return true;
+    }
+
     async function listTimeClockPunches(options = {}) {
         let query = client.from('rh_checadas').select('*,rh_personal(id,numero_empleado,nombre,apellidos,puesto,departamento)').order('fecha_hora', { ascending: false });
         const day = text(options.fecha ?? options.date);
@@ -6224,6 +6278,10 @@
         fulfillMaterialPackageRequest,
         countMaterialPackageRequests,
         createManualPurchaseOrderV73,
+        createDirectPurchaseOrderFromQuotationV96,
+        listPurchaseOrderSignatures,
+        savePurchaseOrderSignature,
+        deletePurchaseOrderSignature,
         listTimeClockPunches,
         registerTimeClockPunch,
         getAttendanceSummaryV73,

@@ -3988,12 +3988,13 @@
         if (!window.SkilledDB?.interpretSkyQuery || Date.now() < aiRetryAfter) return false;
         const norm=commandNormalize(raw);
         const words=norm.split(' ').filter(Boolean);
-        if(words.length<3)return false;
+        if(words.length<2)return false;
         const followup=/^(y|tambien|también|ahora|ese|esa|esos|esas|el mismo|la misma)\b/.test(norm)||/\b(compara|comparame|compárame|resume|resumen|prioridad|prioridades|critico|crítico|riesgo|mayor|menor|mas alto|más alto|menos|cerca de entrega|requiere atencion|requiere atención|relaciona|combina)\b/.test(norm);
         if(followup)return true;
-        if(/\b(mensaje|chat|dile|avisa|avisale|avísale|manda|envia|envía|escribele|escríbele|comenta|coméntale|informa|infórmale|reunion|reunión|junta|convoca|agenda|agendar)\b/.test(norm)&&words.length>=3)return true;
-        if(words.length>=6)return true;
-        return !hasStrongLocalIntent(raw,profile)&&words.length>=4;
+        if(/\b(mensaje|chat|dile|avisa|avisale|avísale|manda|envia|envía|escribele|escríbele|comenta|coméntale|informa|infórmale|reunion|reunión|junta|convoca|agenda|agendar)\b/.test(norm)&&words.length>=2)return true;
+        if(/\b(quien|quién|que|qué|como|cómo|cual|cuál|cuales|cuáles|donde|dónde|cuanto|cuánto|cuantos|cuántos|cuanta|cuánta|muestra|buscar|busca|resume|resumen|explica|explicame|explícame|ayuda)\b/.test(norm)&&words.length>=2)return true;
+        if(words.length>=5)return true;
+        return !hasStrongLocalIntent(raw,profile)&&words.length>=3;
     }
 
     async function interpretWithSkyAI(raw, profile = detectProfile()) {
@@ -4003,7 +4004,7 @@
         if (aiQueryCache.has(key)) return aiQueryCache.get(key);
         try {
             const plan = await SkilledDB.interpretSkyQuery(raw, { profile, context });
-            if (!plan?.intent || Number(plan.confidence || 0) < .58 || plan.intent === 'unknown') return null;
+            if (!plan?.intent || Number(plan.confidence || 0) < .5 || plan.intent === 'unknown') return null;
             aiQueryCache.set(key, plan);
             if (aiQueryCache.size > 48) aiQueryCache.delete(aiQueryCache.keys().next().value);
             return plan;

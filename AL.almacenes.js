@@ -18,7 +18,7 @@
     let selectedRack = 0;
     let selectedZone = 0;
     const selectedQrPositions = new Map();
-    const MAX_MATERIALS_PER_POSITION = 7;
+    const MAX_MATERIALS_PER_POSITION = 8;
 
     function currentWarehouse() {
         return warehouses.find(item => Number(item.id) === Number(selectedWarehouse)) || null;
@@ -216,7 +216,7 @@
             return;
         }
         $('location-title').textContent = `Ubicaciones en ${warehouse.nombre}`;
-        $('location-subtitle').textContent = 'Arrastra materiales a cada posición física. Cada cajón admite hasta 7 tipos de material.';
+        $('location-subtitle').textContent = 'Arrastra materiales a cada posición física. Cada cajón admite hasta 8 tipos de material.';
         renderTable();
         renderVisual();
     }
@@ -348,7 +348,7 @@
         $('location-boards').innerHTML = visibleLocations.length
             ? `<section class="rack-physical-view">
                 <div class="rack-physical-header">
-                    <div><p class="text-sm font-bold text-white">Rack ${rackCode} · Zona ${selectedZone}</p><p class="mt-1 text-[9px] text-gray-500">Cada posición representa un cajón. Puede contener hasta 7 tipos de material y tiene su propia etiqueta QR de 14.5 × 5 cm.</p></div>
+                    <div><p class="text-sm font-bold text-white">Rack ${rackCode} · Zona ${selectedZone}</p><p class="mt-1 text-[9px] text-gray-500">Cada posición representa un cajón. Puede contener hasta 8 tipos de material y tiene su propia etiqueta QR de 14.5 × 5 cm.</p></div>
                     <div class="qr-batch-tools"><span class="rack-floor-count">${visibleLocations.length} piso${visibleLocations.length === 1 ? '' : 's'}</span><button type="button" data-select-visible-qr class="qr-batch-btn">Seleccionar visibles</button><button type="button" data-clear-qr class="qr-batch-btn">Limpiar</button><button type="button" data-print-selected-qr class="qr-batch-btn primary" ${selectedQrPositions.size?'':'disabled'}>Imprimir seleccionados (${selectedQrPositions.size})</button></div>
                 </div>
                 <div class="rack-frame">
@@ -730,17 +730,20 @@
     }
 
     function printQrPosition(locationId, sequence) {
-        const data=getQrPositionData(locationId,sequence); if(!data) return;
-        $('qr-title').textContent = `Posición ${data.position}`;
-        $('qr-subtitle').textContent = data.warehouse.nombre;
-        $('qr-code').textContent = data.position;
+        const data = getQrPositionData(locationId, sequence);
+        if (!data) return;
+        const base = parseBaseCode(data.location.codigo) || {};
+        $('qr-title').textContent = data.position;
+        $('qr-subtitle').textContent = `${data.warehouse.nombre} · Rack ${String(base.rack || '').padStart(2, '0')} · Zona ${base.zona || ''} · Piso ${base.piso || ''}`;
+        $('qr-code').textContent = 'Posición física de almacén';
         $('qr-material-count').textContent = `${data.materials.length}/${MAX_MATERIALS_PER_POSITION} materiales`;
         $('qr-materials').innerHTML = data.materials.length
-            ? data.materials.map(item => `<div><strong>${esc(item.codigo)}</strong> · ${esc(item.descripcion || item.codigo)}</div>`).join('')
+            ? data.materials.map(item => `<div><strong>${esc(item.codigo)}</strong><span>${esc(item.descripcion || item.codigo)}</span></div>`).join('')
             : '<div class="qr-empty">Posición libre</div>';
         $('qr-container').innerHTML = '';
-        new QRCode($('qr-container'), { text: data.value, width: 145, height: 145, colorDark:'#00416B', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
-        const printButton=$('print-single-qr'); if(printButton) printButton.onclick=()=>printQrBatch([data]);
+        new QRCode($('qr-container'), { text: data.value, width: 170, height: 170, colorDark:'#00416B', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+        const printButton = $('print-single-qr');
+        if (printButton) printButton.onclick = () => printQrBatch([data]);
         openModal('qr-modal');
     }
 
@@ -760,9 +763,11 @@
     function clearQrSelection(){selectedQrPositions.clear();document.querySelectorAll('[data-select-qr-position]').forEach(input=>input.checked=false);updateQrSelectionButton();}
 
     function buildRackPrintLabel(data,index){
-        const base=parseBaseCode(data.location.codigo)||{};
-        const wrap=document.createElement('section');wrap.className='rack-print-label';wrap.dataset.index=String(index);
-        wrap.innerHTML=`<div class="rack-print-left"><div class="rack-print-qr"></div></div><div class="rack-print-right"><div class="rack-print-head"><img src="logo-reporte.png" class="rack-print-logo" alt="Skilled"><span class="rack-print-kicker">UBICACIÓN DE ALMACÉN</span></div><div class="rack-print-position">${esc(data.position)}</div><div class="rack-print-meta">${esc(data.warehouse.nombre)} · Rack ${esc(String(base.rack||'').padStart(2,'0'))} · Zona ${esc(base.zona||'')} · Piso ${esc(base.piso||'')}</div><div class="rack-print-materials">${data.materials.length?data.materials.map(item=>`<div class="rack-print-material"><b>${esc(item.codigo)}</b> · ${esc(item.descripcion||item.codigo)}</div>`).join(''):'<div class="rack-print-empty">Posición libre</div>'}</div></div>`;
+        const base = parseBaseCode(data.location.codigo) || {};
+        const wrap = document.createElement('section');
+        wrap.className = 'rack-print-label';
+        wrap.dataset.index = String(index);
+        wrap.innerHTML = `<div class="rack-print-left"><img src="logo-reporte.png" class="rack-print-logo" alt="Skilled"><span class="rack-print-kicker">UBICACIÓN DE ALMACÉN</span><div class="rack-print-position">${esc(data.position)}</div><div class="rack-print-mini">Posición física</div><div class="rack-print-qr"></div></div><div class="rack-print-right"><div class="rack-print-meta">${esc(data.warehouse.nombre)} · Rack ${esc(String(base.rack||'').padStart(2,'0'))} · Zona ${esc(base.zona||'')} · Piso ${esc(base.piso||'')}</div><div class="rack-print-count">${data.materials.length}/${MAX_MATERIALS_PER_POSITION} materiales</div><div class="rack-print-materials">${data.materials.length ? data.materials.map(item=>`<div class="rack-print-material"><b>${esc(item.codigo)}</b><span>${esc(item.descripcion||item.codigo)}</span></div>`).join('') : '<div class="rack-print-empty">Posición libre</div>'}</div></div>`;
         return wrap;
     }
 
@@ -792,7 +797,7 @@
         const materials=data.materials.length
             ? data.materials.slice(0,MAX_MATERIALS_PER_POSITION).map(item=>`<div class="material"><b>${esc(item.codigo)}</b><span>${esc(item.descripcion||item.codigo)}</span></div>`).join('')
             : '<div class="empty">Posición libre</div>';
-        return `<article class="label" style="--slot:${slot}"><div class="qr"><img src="${qr}" alt="QR ${esc(data.position)}"></div><div class="info"><header><img src="${new URL('logo-reporte.png',location.href).href}" alt="Skilled"><strong>UBICACIÓN DE ALMACÉN</strong></header><h1>${esc(data.position)}</h1><p>${esc(data.warehouse.nombre)} · Rack ${esc(String(base.rack||'').padStart(2,'0'))} · Zona ${esc(base.zona||'')} · Piso ${esc(base.piso||'')}</p><div class="materials">${materials}</div></div></article>`;
+        return `<article class="label" style="--slot:${slot}"><aside class="side"><img src="${new URL('logo-reporte.png',location.href).href}" alt="Skilled" class="logo"><strong class="kicker">UBICACIÓN DE ALMACÉN</strong><h1>${esc(data.position)}</h1><p class="side-note">Posición física</p><div class="qr"><img src="${qr}" alt="QR ${esc(data.position)}"></div></aside><section class="info"><div class="meta-row"><p class="meta">${esc(data.warehouse.nombre)} · Rack ${esc(String(base.rack||'').padStart(2,'0'))} · Zona ${esc(base.zona||'')} · Piso ${esc(base.piso||'')}</p><strong class="count">${data.materials.length}/${MAX_MATERIALS_PER_POSITION} materiales</strong></div><div class="materials">${materials}</div></section></article>`;
     }
 
     async function printQrBatch(items){
@@ -816,10 +821,9 @@
             @page{size:Letter portrait;margin:0}
             .sheet{position:relative;width:215.9mm;height:279.4mm;overflow:hidden;break-after:page;page-break-after:always;background:#fff}
             .sheet:last-child{break-after:auto;page-break-after:auto}
-            .label{position:absolute;left:35.45mm;top:calc(9.7mm + (var(--slot) * 52mm));width:145mm;height:50mm;overflow:hidden;border:.45mm solid #00416b;background:#fff;padding:3.2mm 4mm;display:grid;grid-template-columns:37mm minmax(0,1fr);gap:4mm;break-inside:avoid;page-break-inside:avoid}
-            .qr{display:flex;align-items:center;justify-content:center}.qr img{width:34mm;height:34mm;display:block}
-            .info{min-width:0;display:flex;flex-direction:column}.info header{height:8.5mm;display:flex;align-items:flex-start;justify-content:space-between;gap:3mm;border-bottom:.5mm solid #00416b;padding-bottom:1.2mm}.info header img{width:34mm;max-height:8mm;object-fit:contain}.info header strong{font-size:6.5pt;color:#00416b;letter-spacing:.12em;text-align:right;white-space:nowrap}
-            h1{font-size:15pt;line-height:1;margin:1.5mm 0 .8mm;font-weight:900}p{font-size:7pt;color:#58738b;margin:0}.materials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8mm 3mm;margin-top:1.7mm}.material{display:flex;gap:1mm;min-width:0;font-size:6.2pt;border-bottom:.15mm solid #dbe3ec;padding-bottom:.5mm;white-space:nowrap;overflow:hidden}.material b{font-family:monospace;color:#00416b;flex:0 0 auto}.material span{overflow:hidden;text-overflow:ellipsis}.empty{font-size:7pt;color:#6b7280;margin-top:2mm}
+            .label{position:absolute;left:35.45mm;top:calc(9.7mm + (var(--slot) * 52mm));width:145mm;height:50mm;overflow:hidden;border:.45mm solid #00416b;background:#fff;padding:2.8mm 3.4mm;display:grid;grid-template-columns:42mm minmax(0,1fr);gap:3mm;break-inside:avoid;page-break-inside:avoid}
+            .side{display:flex;flex-direction:column;gap:1.1mm;padding-right:2.6mm;border-right:.45mm solid #00416b;min-width:0}.logo{width:31mm;max-height:7.5mm;object-fit:contain}.kicker{font-size:5.8pt;color:#00416b;letter-spacing:.14em;line-height:1.1}.side h1{font-size:16pt;line-height:1;margin:.4mm 0 0;font-weight:900}.side-note{font-size:6.7pt;color:#5f7389;margin:0}.qr{margin-top:auto;display:flex;align-items:center;justify-content:center}.qr img{width:29mm;height:29mm;display:block}
+            .info{min-width:0;display:flex;flex-direction:column}.meta-row{display:flex;align-items:flex-start;justify-content:space-between;gap:2mm;border-bottom:.45mm solid #00416b;padding-bottom:1.1mm}.meta{font-size:7pt;line-height:1.25;color:#32506a;margin:0;font-weight:700}.count{font-size:6.5pt;color:#00416b;white-space:nowrap}.materials{display:flex;flex-direction:column;gap:.15mm;margin-top:1.2mm}.material{display:grid;grid-template-columns:29mm minmax(0,1fr);gap:1.2mm;align-items:start;font-size:7.2pt;line-height:1.15;padding:.45mm 0;border-bottom:.15mm solid #dbe3ec;min-width:0}.material b{font-family:monospace;color:#00416b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.material span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.empty{font-size:7pt;color:#6b7280;margin-top:2mm}
             @media screen{body{background:#eef2f7}.sheet{margin:8px auto;box-shadow:0 1px 9px rgba(0,0,0,.18)}}
         </style></head><body>${sheets.join('')}</body></html>`);
         doc.close();
