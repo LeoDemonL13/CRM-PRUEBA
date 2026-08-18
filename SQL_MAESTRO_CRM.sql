@@ -6167,7 +6167,7 @@ as $$
         from public.perfiles_usuario p
         where p.id=auth.uid()
           and p.activo=true
-          and p.rol in ('administrador','gerente_general','subgerente','sky_demo')
+          and p.rol in ('gerente_general','subgerente','sky_demo')
     );
 $$;
 revoke all on function public.crm_es_direccion() from public,anon;
@@ -6183,7 +6183,7 @@ security definer
 set search_path=public
 as $$
 begin
-    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','gerente_general','subgerente','sky_demo')) then
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('gerente_general','subgerente','sky_demo')) then
         raise exception using errcode='42501',message='Este resumen está disponible solo para Dirección.';
     end if;
     return query
@@ -6247,7 +6247,7 @@ set search_path=public
 as $$
 declare v_summary record; v_materiales jsonb; v_personal jsonb;
 begin
-    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','gerente_general','subgerente','sky_demo')) then
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('gerente_general','subgerente','sky_demo')) then
         raise exception using errcode='42501',message='Este detalle está disponible solo para Dirección.';
     end if;
     select * into v_summary from public.crm_resumen_ejecutivo_proyectos() s where s.proyecto=p_proyecto;
@@ -6299,7 +6299,7 @@ set search_path=public,auth
 as $$
 declare v_activos jsonb;v_asignaciones jsonb;
 begin
-    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('administrador','gerente_general','subgerente','sky_demo')) then raise exception using errcode='42501',message='Esta consulta de Sky está disponible solo para Dirección.';end if;
+    if not exists(select 1 from public.perfiles_usuario p where p.id=auth.uid() and p.activo=true and p.rol in ('gerente_general','subgerente','sky_demo')) then raise exception using errcode='42501',message='Esta consulta de Sky está disponible solo para Dirección.';end if;
     select coalesce(jsonb_agg(jsonb_build_object('id',x.id,'codigo',x.codigo,'nombre',x.nombre,'categoria',x.categoria,'marca',x.marca,'modelo',x.modelo,'numeroSerie',x.numero_serie,'unidad',x.unidad,'cantidadTotal',x.cantidad_total,'asignado',x.asignado,'noDisponible',x.no_disponible,'disponible',greatest(x.cantidad_total-x.no_disponible,0),'ubicacion',x.ubicacion,'estado',x.estado) order by x.nombre),'[]'::jsonb) into v_activos from (select a.*,coalesce(sum(r.cantidad) filter(where r.estado='asignado'),0) asignado,coalesce(sum(r.cantidad) filter(where r.estado in ('asignado','danado','perdido')),0) no_disponible from public.rh_activos_oficina a left join public.rh_activos_asignaciones r on r.activo_id=a.id group by a.id)x;
     select coalesce(jsonb_agg(jsonb_build_object('id',r.id,'activoId',a.id,'activoCodigo',a.codigo,'activoNombre',a.nombre,'categoria',a.categoria,'marca',a.marca,'modelo',a.modelo,'numeroSerie',a.numero_serie,'unidad',a.unidad,'personalId',p.id,'personalNumero',p.numero_empleado,'personalNombre',btrim(coalesce(p.nombre,'')||' '||coalesce(p.apellidos,'')),'puesto',p.puesto,'departamento',p.departamento,'cantidad',r.cantidad,'fechaAsignacion',r.fecha_asignacion,'fechaDevolucion',r.fecha_devolucion,'estado',r.estado,'condicionEntrega',r.condicion_entrega,'condicionDevolucion',r.condicion_devolucion,'responsableEntrega',r.responsable_entrega,'responsableRecepcion',r.responsable_recepcion) order by r.fecha_asignacion desc,r.id desc),'[]'::jsonb) into v_asignaciones from public.rh_activos_asignaciones r join public.rh_activos_oficina a on a.id=r.activo_id join public.rh_personal p on p.id=r.personal_id;
     return jsonb_build_object('activos',v_activos,'asignaciones',v_asignaciones);
@@ -6752,15 +6752,29 @@ begin
     if v_role not in ('administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta') then
         raise exception using errcode='42501',message='Sky no está habilitado para este perfil.';
     end if;
-    v_financial:=v_role in ('administrador','finanzas','gerente_general','subgerente','sky_demo');
+    if v_role not in ('gerente_general','subgerente','sky_demo') then
+        if v_role in ('jefe_almacen','almacen') and v_fuente not in ('materiales','categorias','almacenes','herramientas','vehiculos','proyectos','projectdetails','compras','purchases') then raise exception using errcode='42501',message='Sky Almacén no puede consultar esa fuente.'; end if;
+        if v_role='compras' and v_fuente not in ('materiales','categorias','proyectos','projectdetails','proveedores','suppliers','compras','purchases','cotizaciones','quotations') then raise exception using errcode='42501',message='Sky Compras no puede consultar esa fuente.'; end if;
+        if v_role='rh' and v_fuente not in ('personal','proyectos','projectdetails','vehiculos') then raise exception using errcode='42501',message='Sky RH no puede consultar esa fuente.'; end if;
+        if v_role='finanzas' and v_fuente not in ('proyectos','projectdetails','compras','purchases','cotizaciones','quotations') then raise exception using errcode='42501',message='Sky Finanzas no puede consultar esa fuente.'; end if;
+        if v_role='proyectos' and v_fuente not in ('proyectos','projectdetails','materiales','categorias','compras','purchases') then raise exception using errcode='42501',message='Sky Proyectos no puede consultar esa fuente.'; end if;
+        if v_role='planeacion' and v_fuente not in ('proyectos','projectdetails','materiales','categorias','compras','purchases') then raise exception using errcode='42501',message='Sky Planeación no puede consultar esa fuente.'; end if;
+        if v_role='coordinacion' and v_fuente not in ('proyectos','projectdetails','vehiculos','compras','purchases') then raise exception using errcode='42501',message='Sky Coordinación no puede consultar esa fuente.'; end if;
+        if v_role='logistica' and v_fuente not in ('proyectos','projectdetails','vehiculos','materiales','categorias') then raise exception using errcode='42501',message='Sky Logística no puede consultar esa fuente.'; end if;
+        if v_role='tsi' and v_fuente not in ('materiales','categorias','proyectos','projectdetails') then raise exception using errcode='42501',message='Sky TSI no puede consultar esa fuente.'; end if;
+        if v_role='consulta' and v_fuente not in ('materiales','categorias') then raise exception using errcode='42501',message='Sky Consulta no puede consultar esa fuente.'; end if;
+        if v_role='recepcion' then raise exception using errcode='42501',message='Sky Recepción solo puede consultar presencia limitada y enviar avisos internos.'; end if;
+        if v_role='administrador' then raise exception using errcode='42501',message='Sky Administración no tiene acceso transversal a datos operativos.'; end if;
+    end if;
+    v_financial:=v_role in ('finanzas','gerente_general','subgerente','sky_demo');
 
     if v_fuente='materiales' then
         select coalesce(jsonb_agg(jsonb_build_object(
             'codigo',m.codigo,'descripcion',m.descripcion,'categoria',m.categoria,'tipo_cable',m.tipo_cable,'tamano_mm2',m.tamano_mm2,
             'unidad',m.unidad,'precio',case when v_role in ('administrador','compras','finanzas','gerente_general','subgerente','sky_demo') then coalesce(m.precio,0) else 0 end,
             'marca',m.marca,'codigo_marca',m.codigo_marca,'proveedor',m.proveedor,'contacto_proveedor',case when v_role in ('administrador','compras','gerente_general','subgerente','sky_demo') then m.contacto_proveedor else null end,
-            'modismos',to_jsonb(m.modismos),'stock',coalesce(inv.stock,0),'stock_minimo',coalesce(inv.stock_minimo,0),'stock_medio',coalesce(inv.stock_medio,0),'stock_maximo',coalesce(inv.stock_maximo,0),
-            'almacenes',coalesce(inv.almacenes,'[]'::jsonb),'rollos_disponibles',coalesce(rr.rollos_disponibles,0),'metros_rollos',coalesce(rr.metros_rollos,0),'activo',coalesce(m.activo,true)
+            'modismos',to_jsonb(m.modismos),'stock',case when v_role='tsi' then 0 else coalesce(inv.stock,0) end,'stock_minimo',case when v_role='tsi' then 0 else coalesce(inv.stock_minimo,0) end,'stock_medio',case when v_role='tsi' then 0 else coalesce(inv.stock_medio,0) end,'stock_maximo',case when v_role='tsi' then 0 else coalesce(inv.stock_maximo,0) end,
+            'almacenes',case when v_role='tsi' then '[]'::jsonb else coalesce(inv.almacenes,'[]'::jsonb) end,'rollos_disponibles',case when v_role='tsi' then 0 else coalesce(rr.rollos_disponibles,0) end,'metros_rollos',case when v_role='tsi' then 0 else coalesce(rr.metros_rollos,0) end,'activo',coalesce(m.activo,true)
         ) order by m.codigo),'[]'::jsonb)
         into v_result
         from public.materiales m
@@ -9397,7 +9411,7 @@ begin
     if v_role is null then
         raise exception using errcode='42501',message='Tu perfil no está activo para Sky.';
     end if;
-    if v_role not in ('administrador','rh','gerente_general','subgerente','sky_demo') then
+    if v_role not in ('rh','gerente_general','subgerente','sky_demo') then
         raise exception using errcode='42501',message='Tu perfil no puede consultar horas del checador mediante Sky.';
     end if;
 
@@ -9574,3 +9588,113 @@ select 'OK' as estado,
        'CRM-V96-COTIZACION-DIRECTA-FIRMAS-2026-08-18' as revision,
        case when to_regclass('public.co_orden_firmas') is not null then 'OK' else 'FALTA' end as firmas_oc,
        case when to_regprocedure('public.co_crear_orden_directa_cotizacion_v96(uuid,text,bigint,text,text,text,jsonb)') is not null then 'OK' else 'FALTA' end as oc_directa_cotizacion;
+
+
+alter table if exists public.herramientas_catalogo add column if not exists es_kit boolean not null default false;
+alter table if exists public.herramientas_catalogo add column if not exists kit_componentes jsonb not null default '[]'::jsonb;
+update public.herramientas_catalogo set kit_componentes='[]'::jsonb where kit_componentes is null;
+
+
+alter table if exists public.herramientas_catalogo add column if not exists tipo_alimentacion text;
+alter table if exists public.herramientas_catalogo add column if not exists costo_adquisicion numeric(14,2) not null default 0;
+alter table if exists public.herramientas_catalogo add column if not exists moneda_adquisicion text not null default 'MXN';
+alter table if exists public.herramientas_catalogo add column if not exists renta_mensual_pct numeric(6,2) not null default 10;
+alter table if exists public.herramientas_catalogo add column if not exists proveedor_mantenimiento text;
+alter table if exists public.herramientas_catalogo add column if not exists contacto_mantenimiento text;
+alter table if exists public.herramientas_catalogo add column if not exists telefono_mantenimiento text;
+alter table if exists public.herramientas_catalogo add column if not exists email_mantenimiento text;
+alter table if exists public.herramientas_asignaciones add column if not exists costo_adquisicion_snapshot numeric(14,2);
+alter table if exists public.herramientas_asignaciones add column if not exists renta_mensual_pct_snapshot numeric(6,2);
+
+create or replace function public.crm_herramienta_snapshot_renta()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+    v_costo numeric(14,2);
+    v_pct numeric(6,2);
+begin
+    if coalesce(new.destino_tipo,'')='proyecto' then
+        select coalesce(nullif(u.costo_adquisicion,0),h.costo_adquisicion,0),coalesce(h.renta_mensual_pct,10)
+        into v_costo,v_pct
+        from public.herramientas_unidades u
+        join public.herramientas_catalogo h on h.id=u.herramienta_id
+        where u.id=new.unidad_id;
+        if coalesce(new.costo_adquisicion_snapshot,0)<=0 then new.costo_adquisicion_snapshot:=coalesce(v_costo,0); end if;
+        if coalesce(new.renta_mensual_pct_snapshot,0)<=0 then new.renta_mensual_pct_snapshot:=coalesce(v_pct,10); end if;
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists trg_herramienta_snapshot_renta on public.herramientas_asignaciones;
+create trigger trg_herramienta_snapshot_renta
+before insert or update of unidad_id,destino_tipo on public.herramientas_asignaciones
+for each row execute function public.crm_herramienta_snapshot_renta();
+
+update public.herramientas_asignaciones a
+set costo_adquisicion_snapshot=coalesce(nullif(a.costo_adquisicion_snapshot,0),nullif(u.costo_adquisicion,0),h.costo_adquisicion,0),
+    renta_mensual_pct_snapshot=coalesce(nullif(a.renta_mensual_pct_snapshot,0),h.renta_mensual_pct,10)
+from public.herramientas_unidades u
+join public.herramientas_catalogo h on h.id=u.herramienta_id
+where a.unidad_id=u.id and coalesce(a.destino_tipo,'')='proyecto';
+
+insert into public.crm_migraciones_aplicadas(revision,applied_at)
+values('CRM-V99-HERRAMIENTAS-RENTAS-FINANZAS-2026-08-18',now())
+on conflict (revision) do nothing;
+
+
+begin;
+
+create or replace function public.crm_sky_recepcion_presencia_v100(p_filtro text default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+    v_role text;
+    v_filter text:=nullif(lower(btrim(coalesce(p_filtro,''))),'');
+    v_today date:=(now() at time zone 'America/Mexico_City')::date;
+    v_result jsonb;
+begin
+    select lower(btrim(rol)) into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
+    if v_role not in ('recepcion','rh','gerente_general','subgerente','sky_demo') then
+        raise exception using errcode='42501',message='Tu perfil no puede consultar presencia de Recepción mediante Sky.';
+    end if;
+    with latest as(
+        select distinct on(c.personal_id) c.personal_id,c.tipo,c.fecha_hora
+        from public.rh_checadas c
+        where c.fecha_local=v_today
+        order by c.personal_id,c.fecha_hora desc,c.id desc
+    )
+    select coalesce(jsonb_agg(jsonb_build_object(
+        'personal_id',p.id,
+        'nombre',p.nombre,
+        'apellidos',p.apellidos,
+        'nombre_completo',btrim(concat_ws(' ',p.nombre,p.apellidos)),
+        'puesto',p.puesto,
+        'departamento',p.departamento,
+        'presente',coalesce(l.tipo='entrada',false),
+        'ultima_checada',l.fecha_hora
+    ) order by p.departamento,p.apellidos,p.nombre),'[]'::jsonb)
+    into v_result
+    from public.rh_personal p
+    left join latest l on l.personal_id=p.id
+    where lower(coalesce(p.estado,''))<>'baja'
+      and (v_filter is null or lower(concat_ws(' ',p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento)) like '%'||v_filter||'%');
+    return coalesce(v_result,'[]'::jsonb);
+end;
+$$;
+revoke all on function public.crm_sky_recepcion_presencia_v100(text) from public,anon;
+grant execute on function public.crm_sky_recepcion_presencia_v100(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V100-SKY-PERMISOS-RECEPCION-2026-08-18',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;

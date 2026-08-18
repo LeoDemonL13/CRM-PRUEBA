@@ -9,6 +9,8 @@
     const profileCodes = { administrador:'ADM', jefe_almacen:'JA', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
     const customProfiles = new Map();
     const skyProfiles = new Set(['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta']);
+    const fullSkyProfiles = new Set(['gerente_general','subgerente','sky_demo']);
+    const profileSourceAccess = {administrador:new Set([]),jefe_almacen:new Set(['materiales','categorias','almacenes','herramientas','vehiculos','proyectos','compras']),almacen:new Set(['materiales','categorias','almacenes','herramientas','vehiculos','proyectos','compras']),compras:new Set(['materiales','categorias','proyectos','proveedores','compras','cotizaciones']),proyectos:new Set(['proyectos','materiales','categorias','compras']),planeacion:new Set(['proyectos','materiales','categorias','compras']),coordinacion:new Set(['proyectos','vehiculos','compras']),logistica:new Set(['proyectos','vehiculos','materiales','categorias']),recepcion:new Set(['presencia_recepcion']),rh:new Set(['personal','proyectos','vehiculos','asistencia','activos_rh']),finanzas:new Set(['proyectos','compras','cotizaciones']),tsi:new Set(['materiales','proyectos']),consulta:new Set(['materiales','categorias'])};
     function currentRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
@@ -33,26 +35,27 @@
         return skyProfiles.has(detectProfile());
     }
     function isExecutiveReadProfile(profile = detectProfile()) {
-        return ['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(profile);
+        return fullSkyProfiles.has(profile);
     }
+    function skySourceAllowed(source,profile=detectProfile()){return isExecutiveReadProfile(profile)||profileSourceAccess[profile]?.has(String(source||'').toLowerCase())===true}
     function profileConfig(profile = detectProfile()) {
         const base = {
-            administrador: { title:'Sky · Asistente de Administración', subtitle:'Vista transversal autorizada para coordinar operación, proyectos, personal, materiales, compras, proveedores, vehículos, chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención y a quién debo avisar?', examples:[['Resumen operativo','Dame un resumen de lo que requiere atención'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','Busca a Eduardo'],['Compras','¿Qué compras siguen pendientes?'],['Mensaje interno','Dile a Compras que revise la orden pendiente'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            administrador: { title:'Sky · Asistente de Administración', subtitle:'Ayuda sobre configuración, navegación, procesos administrativos, chat y reuniones. No obtiene información operativa de otras áreas.', placeholder:'Ej. ¿Qué puedo configurar desde Administración?', examples:[['Ayuda','¿Qué puedo hacer desde Administración?'],['Perfil','Llévame a mi perfil'],['Mensaje interno','Dile a Compras que revise el aviso pendiente'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Permisos','Explícame los permisos de Sky']] },
             jefe_almacen: { title:'Sky · Asistente de Jefatura de Almacén', subtitle:'Existencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y coordinación mediante chat.', placeholder:'Ej. ¿Qué materiales requieren atención?', examples:[['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Herramientas','¿Qué herramientas están vencidas?'],['Proyecto','¿Qué materiales tiene el proyecto 26001?'],['Mensaje','Avisa a Compras que necesitamos revisar mínimos'],['Reunión','Convoca a Almacén mañana a las 9 para revisar pendientes']] },
             almacen: { title:'Sky · Asistente de Almacén', subtitle:'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y comunicación interna.', placeholder:'Ej. ¿Cuántos tipos de tubos tengo?', examples:[['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas','¿Qué herramientas están vencidas?'],['Mensaje','Avisa a Compras que falta material']] },
             compras: { title:'Sky · Asistente de Compras', subtitle:'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y comunicación interna.', placeholder:'Ej. ¿Quién vende tubo conduit?', examples:[['Proveedor','¿Quién vende tubo conduit?'],['Contacto','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones','¿Qué cotizaciones requieren atención?'],['Comparación','Compara proveedores de la cotización abierta'],['Órdenes','¿Qué órdenes de compra requieren atención?'],['Mensaje','Dile a Almacén que ya llegó la orden 1234']] },
-            proyectos: { title:'Sky · Asistente de Proyectos', subtitle:'Avance, responsables, materiales, personal, solicitudes, costos autorizados, vehículos y coordinación entre áreas.', placeholder:'Ej. ¿Cómo va el proyecto 26001?', examples:[['Estado','¿Cómo va el proyecto 26001?'],['Materiales','¿Qué materiales tiene el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Responsable','¿Quién es responsable del proyecto 26001?'],['Mensaje','Dile a Planeación que revise el proyecto 26001'],['Reunión','Genera una reunión con Coordinación a las 4 para revisar el proyecto 26001']] },
-            planeacion: { title:'Sky · Asistente de Planeación', subtitle:'Proyectos, materiales, personal, compras, proveedores, vehículos y coordinación contextual sin recorrer varios módulos.', placeholder:'Ej. Dame un resumen del proyecto 26001', examples:[['Proyecto','Dame un resumen del proyecto 26001'],['Materiales','¿Qué materiales tenemos para el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Compras','¿Qué compras están relacionadas con el proyecto?'],['Mensaje','Avisa a Coordinación que el plan del proyecto está listo'],['Reunión','Convoca mañana a las 9 con Coordinación para revisar el plan']] },
-            coordinacion: { title:'Sky · Asistente de Coordinación', subtitle:'Punto de consulta entre proyectos, personal, materiales, compras, proveedores, logística y comunicación interna.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Material','¿Hay tubo conduit disponible?'],['Proveedor','Busca el proveedor ABB'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
-            logistica: { title:'Sky · Asistente de Logística', subtitle:'Flotilla, proyectos, personal, materiales, responsables y coordinación mediante chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Personal','¿Cuántas personas tiene el proyecto 26001?'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
-            recepcion: { title:'Sky · Asistente de Recepción', subtitle:'Orientación de visitantes, responsables, proyectos, proveedores, vehículos, avisos internos y reuniones con lenguaje natural.', placeholder:'Ej. Llegó ABB, avisa a Compras', examples:[['Ayuda','Soy de Recepción, ¿en qué me puedes ayudar?'],['Avisar llegada','Dile a Compras que llegó el proveedor ABB'],['Responsable','Busca al responsable del proyecto 26001'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Persona','Busca a Eduardo'],['Vehículos','¿Qué vehículos están disponibles?']] },
+            proyectos: { title:'Sky · Asistente de Proyectos', subtitle:'Proyectos, materiales, solicitudes y movimientos autorizados para este perfil, con chat y reuniones.', placeholder:'Ej. ¿Cómo va el proyecto 26001?', examples:[['Estado','¿Cómo va el proyecto 26001?'],['Materiales','¿Qué materiales tiene el proyecto 26001?'],['Solicitudes','¿Qué solicitudes están relacionadas con el proyecto 26001?'],['Responsable','¿Quién es responsable del proyecto 26001?'],['Mensaje','Dile a Planeación que revise el proyecto 26001'],['Reunión','Genera una reunión con Coordinación a las 4 para revisar el proyecto 26001']] },
+            planeacion: { title:'Sky · Asistente de Planeación', subtitle:'Proyectos, materiales y solicitudes vinculadas a la planeación, sin abrir datos de RH, proveedores u otras áreas no autorizadas.', placeholder:'Ej. Dame un resumen del proyecto 26001', examples:[['Proyecto','Dame un resumen del proyecto 26001'],['Materiales','¿Qué materiales tenemos para el proyecto 26001?'],['Compras','¿Qué solicitudes de compra están relacionadas con el proyecto?'],['Mensaje','Avisa a Coordinación que el plan del proyecto está listo'],['Reunión','Convoca mañana a las 9 con Coordinación para revisar el plan']] },
+            coordinacion: { title:'Sky · Asistente de Coordinación', subtitle:'Proyectos, solicitudes y vehículos visibles para Coordinación, además de chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Solicitudes','¿Qué solicitudes del proyecto 26001 siguen abiertas?'],['Vehículos','¿Qué vehículos están disponibles para coordinación?'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            logistica: { title:'Sky · Asistente de Logística', subtitle:'Flotilla, entregas, proyectos y consulta de materiales autorizada para Logística, con chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Material','Busca cable 14 AWG'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
+            recepcion: { title:'Sky · Asistente de Recepción', subtitle:'Timbre inteligente, visitantes, personal reconocido, presencia por área y avisos internos. No expone inventario, RH, Compras ni otros datos operativos.', placeholder:'Ej. ¿Hay alguien de Compras aquí?', examples:[['Presencia','¿Hay alguien de Compras aquí?'],['Persona','¿Está Leobardo en las instalaciones?'],['Puerta','Leobardo está en la entrada y pide que le abran'],['Llamar área','Avisa a Compras que Leobardo está en la entrada'],['Comida','Traen un pedido de comida, avisa a Recepción'],['Materiales','Llegó un proveedor con materiales, avisa a Compras']] },
             rh: { title:'Sky · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, checador, horas trabajadas, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántas horas lleva cada trabajador esta semana?', examples:[['Horas del checador','¿Cuántas horas lleva cada trabajador esta semana?'],['Salida pendiente','¿Quién sigue dentro y no ha checado salida hoy?'],['Sin checada','¿Quién no ha checado hoy?'],['Colaborador','Muéstrame los días y horas de Leobardo esta semana'],['Meta semanal','¿A quién le faltan horas para llegar a 50 esta semana?'],['Nómina','¿Cuál es el último periodo de nómina?']] },
-            finanzas: { title:'Sky · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras y proveedores autorizados, con comunicación interna y reuniones.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Proveedor','Busca el proveedor ABB'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
+            finanzas: { title:'Sky · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras, cotizaciones y rentas de herramientas visibles para Finanzas.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Cotizaciones','¿Qué cotizaciones siguen abiertas?'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
             gerente_general: { title:'Sky · Asistente de Gerencia General', subtitle:'Consulta ejecutiva por excepción: riesgos, cambios, presupuesto, proyectos, RH, Compras, Almacén, checador y vehículos sin saturar la pantalla con operación innecesaria.', placeholder:'Ej. ¿Qué cambió y qué requiere mi atención?', examples:[['Atención','¿Qué requiere mi atención hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','Resume el proyecto 26001 y dime sus riesgos'],['Horas RH','¿Hay checadas incompletas o personal por debajo de su meta semanal?'],['Compras','¿Qué compras o cotizaciones pueden afectar una entrega?'],['Almacén','¿Qué faltantes pueden frenar proyectos?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
             subgerente: { title:'Sky · Asistente de Subgerencia', subtitle:'Seguimiento ejecutivo por prioridad: proyectos, personal, compras, Almacén, costos, checador y vehículos con acceso al detalle solo cuando aporta una decisión.', placeholder:'Ej. ¿Qué debo dar seguimiento hoy?', examples:[['Prioridades','¿Qué debo dar seguimiento hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','¿Qué proyectos tienen riesgo o entrega próxima?'],['Horas RH','¿Quién tiene checada incompleta o pocas horas esta semana?'],['Compras','¿Qué cotizaciones o compras siguen detenidas?'],['Almacén','¿Qué faltantes requieren seguimiento?'],['Reunión','Convoca una reunión general mañana a las 9']] },
             tsi: { title:'Sky · Asistente de TSI', subtitle:'Apoyo para solicitar EPP, consultar proyectos autorizados, explicar procesos del CRM, coordinar incidencias y enviar avisos internos sin exponer existencias del almacén.', placeholder:'Ej. Ayúdame a solicitar casco, chaleco y lentes para Juan Pérez', examples:[['Solicitud EPP','Ayúdame a solicitar casco, lentes y chaleco para Juan Pérez'],['Proceso','Explícame cómo se relacionan Compras y Almacén'],['Proyecto','¿Cómo va el proyecto 26001?'],['Incidencia','Ayúdame a describir una falla del CRM'],['Mensaje','Dile a Administración que revisaré la incidencia'],['Reunión','Genera una reunión con Administración a las 4 para revisar el sistema'],['Permisos','¿Qué puedo consultar desde TSI?']] },
             sky_demo: { title:'Sky · Modo presentación', subtitle:'Demostración transversal y segura: conversación natural, explicación del CRM, perfiles, automatizaciones, consultas conectadas, mensajes y reuniones sin modificar registros operativos.', placeholder:'Pregúntame como lo harías durante la presentación', examples:[['CRM','Explícame el CRM en 30 segundos'],['Perfiles','¿Qué perfiles llevamos y cómo se conectan?'],['Checador','Explícame el checador Wi-Fi y la automatización de nómina'],['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Evolución','¿Qué hemos mejorado y qué sigue en revisión?'],['Herramientas','¿Qué lenguajes y herramientas utilizan?'],['Proyecto','Dame un resumen del proyecto 26001'],['Quién te creó','¿Quién te desarrolló?']] },
-            consulta: { title:'Sky · Asistente de Consulta', subtitle:'Búsquedas de lectura en los datos autorizados, con conversación contextual y comunicación interna cuando corresponde.', placeholder:'Ej. Busca el proyecto 26001', examples:[['Proyecto','Busca el proyecto 26001'],['Continuación','¿Y quién es el responsable?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
+            consulta: { title:'Sky · Asistente de Consulta', subtitle:'Consulta de catálogo y categorías en modo lectura, sin acceso a datos de otras áreas.', placeholder:'Ej. Busca cable 14 AWG', examples:[['Material','Busca cable 14 AWG'],['Categorías','¿Qué categorías de materiales existen?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
         };
         if (base[profile]) return base[profile];
         const label = profileNames[profile] || profile.replace(/[_-]+/g, ' ').replace(/\b\w/g, value => value.toUpperCase());
@@ -365,7 +368,7 @@
             planeacion:{inicio:'PL.inicio.html',proyectos:'AL.proyectos.html?perfil=planeacion',solicitudes:'AL.solicitudes-material.html?perfil=planeacion',reportes:'AL.reportes.html?perfil=planeacion','importar proyectos':'PROY.importar.html?perfil=planeacion'},
             coordinacion:{inicio:'CR.inicio.html',proyectos:'AL.proyectos.html?perfil=coordinacion',solicitudes:'AL.solicitudes-material.html?perfil=coordinacion',vehiculos:'AL.vehiculos.html?perfil=coordinacion',reportes:'AL.reportes.html?perfil=coordinacion'},
             logistica:{inicio:'LG.inicio.html',vehiculos:'AL.vehiculos.html?perfil=logistica',entregas:'CO.entregas.html?perfil=logistica',proyectos:'AL.proyectos.html?perfil=logistica',materiales:'AL.catalogo.html?perfil=logistica'},
-            recepcion:{inicio:'RE.inicio.html',entregas:'CO.entregas.html?perfil=recepcion',vehiculos:'AL.vehiculos.html?perfil=recepcion'},
+            recepcion:{inicio:'RE.inicio.html','sky porteria':'RE.sky-porteria.html',porteria:'RE.sky-porteria.html',timbre:'RE.sky-porteria.html',entregas:'CO.entregas.html?perfil=recepcion',vehiculos:'AL.vehiculos.html?perfil=recepcion'},
             proyectos:{inicio:'AL.proyectos.html',proyectos:'AL.proyectos.html',solicitudes:'AL.solicitudes-material.html',reportes:'AL.reportes.html',movimientos:'AL.historial-movimientos.html'},
             tsi:{inicio:'TSI.inicio.html',epp:'TSI.solicitudes-epp.html','solicitar epp':'TSI.solicitudes-epp.html'},
             consulta:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',reportes:'AL.reportes.html',manual:'AL.manual-usuario.html'},
@@ -384,7 +387,7 @@
         const href=map[key];setAnswer('Abrir apartado',`Voy a abrir ${key}.`,'La navegación respeta los permisos del perfil activo.',[],{href,label:`Abrir ${key}`});setTimeout(()=>{location.href=href},280);return {handled:true,voice:`Abriendo ${key}.`};
     }
     function pageHelp(){
-        const page=currentPageKey().replace(/^[a-z]{2}\./,'').replace(/[._-]+/g,' '), config=profileConfig();const examples=pageAwareExamples(config).slice(0,7).map(([label,example])=>({title:label,detail:example}));const message=`En ${page||'esta pantalla'} puedo ayudarte con consultas relacionadas con ${profileNames[detectProfile()]||detectProfile()} y también con información autorizada de Almacén, RH, Compras, proyectos y vehículos, manteniendo el contexto de lo que vayamos preguntando.`;setAnswer('Sky en esta pantalla',message,'También puedo llevarte a apartados autorizados, recordar la entidad de la consulta anterior y continuar con preguntas como “¿y dónde está?” o “¿y cuánto queda?”.',examples);return message;
+        const page=currentPageKey().replace(/^[a-z]{2}\./,'').replace(/[._-]+/g,' '), config=profileConfig();const examples=pageAwareExamples(config).slice(0,7).map(([label,example])=>({title:label,detail:example}));const message=isExecutiveReadProfile()?`En ${page||'esta pantalla'} puedo ayudarte con consultas transversales de las áreas conectadas al CRM, siempre en modo seguro.`:`En ${page||'esta pantalla'} puedo ayudarte únicamente con la información y acciones autorizadas para ${profileNames[detectProfile()]||detectProfile()}. No consultaré datos de otras áreas.`;setAnswer('Sky en esta pantalla',message,'También puedo llevarte a apartados autorizados, recordar la entidad de la consulta anterior y continuar con preguntas como “¿y dónde está?” o “¿y cuánto queda?”.',examples);return message;
     }
     function open() {
         createUi();
@@ -1036,12 +1039,8 @@
         if (vocabularyPriming || vocabularyPrimedProfile === profile) return;
         vocabularyPriming = true;
         try {
-            if (profile === 'compras') await Promise.all([loadData('coSuppliers'), loadData('coServices'), loadData('coQuotations')]);
-            else if (profile === 'rh') await loadData('rhPeople');
-            else if (profile === 'finanzas' || profile === 'proyectos') await loadData('projectDetails');
-            else if (isExecutiveReadProfile(profile)) await Promise.allSettled([loadData('materials'), loadData('vehicles')]);
-            else if (profile === 'almacen' || profile === 'consulta') await Promise.all([loadData('materials'), loadData('tools'), loadData('vehicles'), loadData('projects')]);
-            else await loadData('materials');
+            if (isExecutiveReadProfile(profile)) await Promise.allSettled([loadData('materials'),loadData('projects'),loadData('vehicles')]);
+            else {const keys=[...new Set(profileSmartSearchConfig(profile).map(item=>item.key))].slice(0,4);if(keys.length)await Promise.allSettled(keys.map(loadData));}
             vocabularyPrimedProfile = profile;
         } catch (_) {} finally { vocabularyPriming = false; }
     }
@@ -1608,6 +1607,9 @@
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
         const profile = detectProfile();
         const bridge = skyBridgeProfile(profile);
+        const sourceForKey={materials:'materiales',low:'materiales',purchases:'compras',tools:'herramientas',vehicles:'vehiculos',projects:'proyectos',projectDetails:'proyectos',coSuppliers:'proveedores',coQuotations:'cotizaciones',categories:'categorias',rhPeople:'personal',rhAttendance:'asistencia',rhOfficeAssets:'activos_rh',rePresence:'presencia_recepcion'};
+        const neededSource=sourceForKey[key];
+        if(neededSource&&!skySourceAllowed(neededSource,profile))throw new Error(`Sky no tiene permiso para consultar ${neededSource} desde ${profileNames[profile]||profile}.`);
         const loaders = {
             materials: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : bridge && SkilledDB.getSkyProfileData ? skyBridge('materiales') : SkilledDB.listMaterials(),
             low: async () => bridge && SkilledDB.getSkyProfileData ? (await skyBridge('materiales')).filter(item => number(item.stock) <= number(item.stockMinimo ?? item.stock_minimo)) : SkilledDB.listLowStock(),
@@ -1637,6 +1639,7 @@
             executiveWarehouses: () => SkilledDB.getExecutiveSkyWarehouses(),
             executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts(),
             categories: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveSkyCategories === 'function' ? SkilledDB.listExecutiveSkyCategories() : bridge && SkilledDB.getSkyProfileData ? skyBridge('categorias') : SkilledDB.listCategories(),
+            rePresence: () => typeof SkilledDB.getReceptionPresenceV100==='function' ? SkilledDB.getReceptionPresenceV100('') : [],
             executiveSearch: () => []
         };
         if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
@@ -2277,6 +2280,7 @@
     async function answerFinance(raw) {
         const projects = await loadData('projectDetails');
         const norm = commandNormalize(raw);
+        if (/herramient|renta|rentad|invertido.*almacen|inversion.*almacen|inversión.*almacén|ganado.*renta/.test(norm)) { const summary=await SkilledDB.getToolFinanceSummary().catch(()=>null); if(summary){const cards=[{title:'Invertido en Almacén',detail:currency(summary.warehouseInvestment)},{title:'Materiales',detail:currency(summary.materialInvestment)},{title:'Herramientas',detail:currency(summary.toolInvestment)},{title:'Rentas de herramientas',detail:currency(summary.rentalIncome)}];setAnswer('Inversión y rentas',`Almacén concentra ${currency(summary.warehouseInvestment)} de inversión estimada y las herramientas han generado ${currency(summary.rentalIncome)} de cargos internos a proyectos.`,summary.missingToolCosts?`${summary.missingToolCosts} herramientas aún no tienen costo de adquisición capturado.`:'Los costos de herramientas están completos para las unidades registradas.',cards,{href:'FI.activos-rentas.html',label:'Abrir inversión y rentas'});return `La inversión estimada en Almacén es ${currency(summary.warehouseInvestment)} y la renta interna de herramientas suma ${currency(summary.rentalIncome)}.`}}
         if (/que puede|ayuda|funciones|consultar/.test(norm) && !/proyecto/.test(norm)) {
             setAnswer('Sky en Finanzas', 'Puedo consultar presupuestos y costos reales de los proyectos que ya están conectados al CRM.', 'Los módulos de gastos, cuentas por pagar y reportes financieros todavía son estructura visual; Sky no inventará cifras que aún no estén conectadas a Supabase.', [{ title: 'Disponible ahora', detail: 'Presupuesto planeado, costo real, avance y costo fuera de plan por proyecto.' }, { title: 'Pendiente de conexión', detail: 'Gastos financieros, cuentas por pagar y conciliaciones.' }], { href: 'FI.inicio.html', label: 'Abrir Finanzas' });
             return 'En Finanzas puedo consultar presupuestos y costos reales por proyecto. Los demás módulos financieros todavía no tienen datos transaccionales conectados.';
@@ -3183,6 +3187,73 @@
         if ('requestIdleCallback' in window) requestIdleCallback(run,{timeout:1800}); else setTimeout(run,120);
     }
 
+    function skyDayGreeting() {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'buenos días';
+        if (hour < 19) return 'buenas tardes';
+        return 'buenas noches';
+    }
+
+    async function receptionPresence(filter=''){if(!window.SkilledDB?.getReceptionPresenceV100)return[];try{return await SkilledDB.getReceptionPresenceV100(filter)}catch(_){return[]}}
+    function receptionAreaFromText(raw){const norm=commandNormalize(raw);const known=['compras','recursos humanos','rh','almacen','almacén','finanzas','planeacion','planeación','coordinacion','coordinación','logistica','logística','tsi','administracion','administración','gerencia','subgerencia'];return known.find(x=>norm.includes(commandNormalize(x)))||''}
+    async function answerReceptionPresenceAndAccess(raw){if(detectProfile()!=='recepcion')return null;const norm=commandNormalize(raw);const door=/\b(abrir.*puerta|abran.*puerta|abre.*puerta|abrirme|que me abran|quiere que le abran|solicita.*acceso|dejarlo pasar|dejarla pasar|entrada.*abrir)\b/.test(norm);const presence=/\b(hay alguien|esta alguien|está alguien|quien esta|quién está|se encuentra|esta aqui|está aquí|esta en las instalaciones|está en las instalaciones|vino|ya llego|ya llegó)\b/.test(norm);const callArea=/\b(llama|llamar|avisa|avisar|dile|manda mensaje|envia mensaje|envía mensaje|necesito a|que venga|puedes llamar)\b/.test(norm);const area=receptionAreaFromText(raw);if(door){const person=text(raw).replace(/.*?\b(?:puerta|acceso)\b/i,'').trim();const who=person||'un colaborador';const msg=`${who} está en la entrada y solicita que le abran la puerta. Favor de validar identidad y autorizar acceso.`;const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});const response='Todavía no controlo físicamente la cerradura. Ya envié a Recepción la solicitud para que validen y abran la puerta de forma segura.';setAnswer('Solicitud de acceso enviada',response,'Sky Recepción puede coordinar el acceso, pero la apertura física permanece bajo validación humana.',[{title:'Seguridad',detail:'La puerta no se abre solo por voz.'},{title:'Aviso',detail:msg}]);return{handled:true,voice:result?.voice||response}}
+        if(presence||(/\b(esta|está)\b/.test(norm)&&area)){const rows=await receptionPresence(area||raw);const present=rows.filter(x=>x.presente);if(area){const label=area.toUpperCase();const response=present.length?`Sí. Tengo ${present.length} persona${present.length===1?'':'s'} de ${label} con registro de entrada y sin salida hoy.`:`No encuentro a nadie de ${label} con registro de entrada pendiente de salida en este momento.`;setAnswer('Presencia por área',response,'Recepción solo recibe nombre, puesto, área y estado de presencia; no obtiene datos privados de RH.',present.slice(0,8).map(x=>({title:x.nombre_completo||x.departamento,detail:`${x.puesto||'Sin puesto'} · ${x.presente?'Presente':'No presente'}`})));return{handled:true,voice:response}}
+            const response=present.length?`Encontré ${present.length} coincidencia${present.length===1?'':'s'} presente${present.length===1?'':'s'} hoy.`:'No encontré una coincidencia presente con ese nombre o criterio.';setAnswer('Consulta de presencia',response,'Esta consulta usa únicamente estado de entrada/salida para Recepción.',present.slice(0,8).map(x=>({title:x.nombre_completo||'Personal',detail:`${x.departamento||'Sin área'} · ${x.puesto||'Sin puesto'}`})));return{handled:true,voice:response}}
+        if(callArea&&area){const msg=`Se solicita apoyo de ${area} en la entrada/Recepción. Motivo comunicado: “${text(raw)}”.`;const result=await executeChatMessage(area,msg,{allowAmbiguous:true});const response=`Ya preparé el aviso para ${area}.`;setAnswer('Aviso interno',response,'Sky Recepción puede avisar a un área sobre quién está en entrada sin abrir información de otros módulos.',[{title:'Mensaje',detail:msg}]);return{handled:true,voice:result?.voice||response}}
+        return null}
+
+    async function answerReceptionDoorbell(raw) {
+        const profile=detectProfile();
+        if(profile!=='recepcion'&&!isExecutiveReadProfile(profile))return null;
+        const access=await answerReceptionPresenceAndAccess(raw);if(access)return access;
+        const norm = commandNormalize(raw);
+        const relevant = /\b(timbre|porteria|porter[ií]a|entrada|visitante|visita|camara|c[aá]mara|reconoce|reconocer|rostro|persona desconocida|llego alguien|lleg[oó] alguien|pedido de comida|comida|uber|didi|rappi|entregar materiales|trae materiales|entrega material|proveedor lleg[oó]|lleg[oó] proveedor|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a)\b/.test(norm);
+        if (!relevant) return null;
+        const greeting = skyDayGreeting();
+        const food = /\b(comida|pedido|uber|didi|rappi|restaurant|restaurante|lonche|desayuno|almuerzo)\b/.test(norm);
+        const materials = /\b(material|materiales|proveedor|entrega|orden de compra|oc|paquete|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a|factura|remision|remisión)\b/.test(norm);
+        const recognized = /\b(reconocio|reconoció|reconoce|identifico|identificó|personal|colaborador|trabajador|empleado|skilled)\b/.test(norm) && !/\b(no reconoce|no reconocio|no reconoció|desconocid|visitante)\b/.test(norm);
+        let title = 'Sky en recepción';
+        let message = `Al presionar el timbre, Sky debe saludar con “Hola, ${greeting}” y preguntar en qué puede ayudar.`;
+        let detail = 'Después clasifica la visita, genera el aviso correcto y deja evidencia para Recepción sin abrir información operativa innecesaria.';
+        const cards = [
+            { title:'1. Timbre', detail:'Activa cámara, micrófono y registro de evento.' },
+            { title:'2. Identificación', detail:'Si reconoce personal de Skilled, registra acceso interno; si no, trata el caso como visitante.' },
+            { title:'3. Pregunta', detail:`“Hola, ${greeting}. ¿En qué puedo ayudarle?”` },
+            { title:'4. Aviso', detail:'Comida → Recepción. Materiales/proveedor → Compras. Visita → responsable.' }
+        ];
+        let notifyTarget = '';
+        let notifyMessage = '';
+        if (recognized) {
+            title = 'Personal reconocido';
+            message = 'Si la cámara reconoce a alguien del personal de Skilled, Sky puede registrar el acceso como evento interno y evitar interrumpir a Recepción, salvo que haya una alerta o restricción configurada.';
+            detail = 'El registro debe guardar hora, cámara, resultado de reconocimiento y confianza; no debe exponer datos personales a visitantes.';
+        } else if (food) {
+            title = 'Pedido de comida detectado';
+            message = 'Si el visitante indica que trae comida, Sky debe avisar a Recepción para confirmar si alguien del personal realizó el pedido antes de permitir el acceso.';
+            detail = 'Mensaje sugerido: “Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien lo espera”.';
+            notifyTarget = 'Recepción';
+            notifyMessage = 'Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien del personal lo espera.';
+        } else if (materials) {
+            title = 'Entrega de materiales detectada';
+            message = 'Si el visitante indica que viene a entregar materiales, Sky debe avisar a Compras para que validen proveedor, OC, factura/remisión y puedan recibir el material.';
+            detail = 'Mensaje sugerido: “Llegó proveedor con materiales en entrada. Favor de pasar a validar recepción, OC y documentos”.';
+            notifyTarget = 'Compras';
+            notifyMessage = 'Llegó proveedor con materiales en entrada. Favor de pasar a validar recepción, OC y documentos.';
+        } else {
+            title = 'Visitante no reconocido';
+            message = `Si la cámara no reconoce a la persona, Sky debe saludar con “Hola, ${greeting}”, preguntar el motivo de la visita y canalizarla a Recepción o al área responsable.`;
+            detail = 'La primera versión puede funcionar como triage: registra el motivo, pide nombre/empresa y notifica a la persona o área correspondiente.';
+        }
+        const wantsNotify = /\b(notifica|notificar|avisa|avisar|manda|envia|envía|dile|pasale|pásale)\b/.test(norm);
+        if (wantsNotify && notifyTarget && notifyMessage) {
+            const result = await executeChatMessage(notifyTarget, notifyMessage, { allowAmbiguous:true });
+            if (result?.handled && result.voice) return result;
+        }
+        setAnswer(title, message, detail, cards);
+        return { handled:true, voice:message };
+    }
+
     function answerCRMObjective(raw) {
         const norm=commandNormalize(raw);
         if(!/\b(objetivo|para que sirve|qué se busca|que se busca|reduccion|reducción|tiempo|ahorra|ahorro|nube|conectados|una sola nube|beneficio|beneficios|proceso|procesos|evolucion|evolución)\b/.test(norm))return null;
@@ -3292,8 +3363,9 @@
         }
         const pendingAction=await answerPendingAction(raw);if(pendingAction)return pendingAction;
         const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
+        const receptionDoorbell=await answerReceptionDoorbell(raw);if(receptionDoorbell)return receptionDoorbell;
         const chatAction=await answerChatAction(raw);if(chatAction)return chatAction;
-        const meetingAction=await answerMeetingAction(raw);if(meetingAction)return meetingAction;
+        const meetingAction=detectProfile()==='recepcion'?null:await answerMeetingAction(raw);if(meetingAction)return meetingAction;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
         const crmObjective=answerCRMObjective(raw);if(crmObjective)return crmObjective;
         const areaHelp=answerAreaHelp(raw);if(areaHelp)return areaHelp;
@@ -3452,7 +3524,7 @@
 
     async function answerCategories(raw) {
         const profile=detectProfile();
-        if (!(isExecutiveReadProfile(profile) || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile))) return null;
+        if (!(isExecutiveReadProfile(profile) || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','tsi'].includes(profile))) return null;
         let rows=[];
         try { rows=await loadData('categories'); } catch (_) {
             const materials=await loadData('materials');
@@ -3849,54 +3921,18 @@
                 {type:'Documento',key:'rhDocuments',fields:d=>[d.tipo,d.nombre,d.descripcion,d.estado,d.personal?.nombre,d.personal?.apellidos],title:d=>d.nombre||d.tipo||'Documento',detail:d=>d.estado||'Sin estado'},
                 commonProject
             ],
-            finanzas:[
-                commonProject,
-                {type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proveedor,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'} · ${o.proveedor||'sin proveedor'}`},
-                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.rfc,p.contacto,p.email].filter(Boolean).join(' · ')||'Sin datos'}
-            ],
-            proyectos:[
-                commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
-                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
-                {type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proveedor,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'} · ${o.proveedor||'sin proveedor'}`}
-            ],
-            planeacion:[
-                commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
-                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
-                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
-            ],
-            coordinacion:[
-                commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
-                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
-                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
-                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
-            ],
-            logistica:[
-                commonProject,
-                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
-                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`}
-            ],
-            administrador:[
-                commonProject,
-                {type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca,m.proveedor],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},
-                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
-                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
-                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
-            ],
-            recepcion:[
-                commonProject,
-                {type:'Persona',key:'rhPeople',fields:p=>[p.numero_empleado,p.nombre,p.apellidos,p.puesto,p.departamento,p.correo,p.telefono],title:p=>`${p.nombre||''} ${p.apellidos||''}`.trim()||p.numero_empleado||'Persona',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin departamento'}`},
-                {type:'Proveedor',key:'coSuppliers',fields:p=>[p.razon_social,p.nombre_comercial,p.rfc,p.contacto,p.email,p.telefono,p.whatsapp],title:p=>p.nombre_comercial||p.razon_social||'Proveedor',detail:p=>[p.contacto,p.email,p.whatsapp||p.telefono].filter(Boolean).join(' · ')||'Sin contacto'},
-                {type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`}
-            ],
+            finanzas:[commonProject,{type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proveedor,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'} · ${o.proveedor||'sin proveedor'}`},{type:'Cotización',key:'coQuotations',fields:q=>[q.folio,q.estado,q.prioridad,q.referencia],title:q=>q.folio||'Cotización',detail:q=>`${q.estado||'sin estado'} · ${q.prioridad||'sin prioridad'}`}],
+            proyectos:[commonProject,{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},{type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud de compra',detail:o=>`${o.estado||'sin estado'}`}],
+            planeacion:[commonProject,{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`},{type:'Compra',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.ordenCompra,o.proyecto],title:o=>o.folio||o.ordenCompra||o.descripcion||'Solicitud',detail:o=>o.estado||'Sin estado'}],
+            coordinacion:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`},{type:'Solicitud',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proyecto],title:o=>o.folio||o.descripcion||'Solicitud',detail:o=>o.estado||'Sin estado'}],
+            logistica:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`}],
+            administrador:[],
+            recepcion:[{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
             tsi:[
                 {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
                 commonProject
             ],
-            consulta:[commonProject]
+            consulta:[{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${m.categoria||'Sin categoría'}`}]
         };
         return configs[profile] || [];
     }
@@ -3975,11 +4011,12 @@
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso|cajon|posicion)\b/.test(norm)) return true;
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
-        if ((profile === 'compras' || profile === 'recepcion') && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
+        if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
+        if (profile === 'recepcion' && /timbre|porteria|portería|visitante|comida|paqueteria|paquetería|camara|cámara|entrada|puerta|abrir|presente|hay alguien|esta alguien|llama|avisar|mercado libre|amazon|materiales/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|checador|checada|hora.*trabaj|entrada|salida|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
         if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|checador|checada|hora.*trabaj|entrada|salida|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
-        if (['proyectos','planeacion','coordinacion','logistica','administrador'].includes(profile) && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable|vehiculo|vehículo|personal|proveedor|compra|cotiz|ubicacion|ubicación|stock|existencia|pendiente|alerta/.test(norm)) return true;
+        if (['proyectos','planeacion','coordinacion','logistica'].includes(profile) && /proyecto|avance|costo|solicitud|material|entrega|picking|ruta|responsable|vehiculo|vehículo|personal|proveedor|compra|cotiz|ubicacion|ubicación|stock|existencia|pendiente|alerta/.test(norm)) return true;
         if (profile === 'tsi' && /epp|casco|lente|guante|chaleco|botas|proteccion|protección|solicitud|proyecto|destinatario/.test(norm)) return true;
         return false;
     }
@@ -4025,36 +4062,37 @@
             const result = await answerChatAction(raw, plan);
             return result?.voice || null;
         }
+        if (profile === 'recepcion') return null;
         if (plan.intent === 'meeting') {
             const result = await answerMeetingAction(queryText);
             return result?.voice || null;
         }
         if (plan.intent === 'global_search') return executive ? answerExecutiveGlobalSearch(queryText) : null;
-        if (plan.intent === 'categories') return (executive || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile)) ? answerCategories(queryText) : null;
+        if (plan.intent === 'categories') return (executive || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','tsi'].includes(profile)) ? answerCategories(queryText) : null;
         if (['material_family','material_stock','material_location'].includes(plan.intent)) {
-            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi','consulta'].includes(profile))) return null;
+            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','tsi','consulta'].includes(profile))) return null;
             if (plan.intent === 'material_family') return answerMaterialFamily(queryText);
             return answerMaterial(queryText, plan.intent === 'material_location');
         }
-        if (plan.intent === 'low_stock') return (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador'].includes(profile)) ? answerLowStock() : null;
+        if (plan.intent === 'low_stock') return (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica'].includes(profile)) ? answerLowStock() : null;
         if (plan.intent === 'purchase_order') {
             if (executive) return answerExecutivePurchasing(raw);
             if (profile === 'compras') return answerPurchasing(raw);
             if (profile === 'almacen') return answerPurchase(raw);
             return null;
         }
-        if (plan.intent === 'tools') return (executive || ['almacen','proyectos','planeacion','coordinacion','administrador'].includes(profile)) ? answerTools(raw) : null;
-        if (plan.intent === 'vehicles') return (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','recepcion','finanzas','administrador'].includes(profile)) ? answerVehicles(raw) : null;
+        if (plan.intent === 'tools') return (executive || ['almacen','proyectos','planeacion','coordinacion'].includes(profile)) ? answerTools(raw) : null;
+        if (plan.intent === 'vehicles') return (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','finanzas'].includes(profile)) ? answerVehicles(raw) : null;
         if (plan.intent === 'project') {
             if (executive) return answerExecutive(raw);
             if (profile === 'finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion','administrador','tsi','consulta'].includes(profile)) return answerProjects(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','tsi','consulta'].includes(profile)) return answerProjects(raw);
             return null;
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) {
             if (executive) return answerExecutivePurchasing(raw);
-            if(profile==='compras'||profile==='administrador')return answerPurchasing(raw);
-            return ['recepcion','coordinacion','finanzas'].includes(profile)?answerScopedSmartSearch(raw,profile):null;
+            if(profile==='compras')return answerPurchasing(raw);
+            return ['coordinacion','finanzas'].includes(profile)?answerScopedSmartSearch(raw,profile):null;
         }
         if (plan.intent === 'rh_assets') {
             if (executive) return answerRHOfficeAssets(raw,true);
@@ -4062,7 +4100,7 @@
         }
         if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) {
             if (executive) return answerExecutivePeople(raw, []);
-            return ['rh','proyectos','planeacion','coordinacion','logistica','recepcion','administrador'].includes(profile) ? (profile==='rh'?answerRH(raw):answerScopedSmartSearch(raw,profile)) : null;
+            return ['rh','proyectos','planeacion','coordinacion','logistica'].includes(profile) ? (profile==='rh'?answerRH(raw):answerScopedSmartSearch(raw,profile)) : null;
         }
         if (plan.intent === 'finance') return (executive || profile === 'finanzas') ? (executive ? answerExecutive(raw) : answerFinance(raw)) : null;
         if (plan.intent === 'executive') return executive ? answerExecutive(raw) : null;
@@ -4081,24 +4119,24 @@
         if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
-            const chatText='También puedo enviar mensajes por el Chat interno y generar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
+            const chatText=profile==='recepcion'?'Puedo enviar avisos internos para informar quién está en la entrada, solicitar validación para abrir la puerta o avisar una entrega. No consulto información operativa de otros perfiles.':'También puedo enviar mensajes por el Chat interno y generar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
             setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}. También puedo ayudarte a reformular preguntas, orientar procesos del CRM y sugerir el siguiente paso útil según el perfil activo.`,`No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área. ${chatText} ${voiceText}`,examples);
             return `Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. ${chatText} ${voiceText}`;
         }
         if (/\b(vehiculo|vehiculos|camioneta|pickup|placa|placas|flotilla|montacargas|generador)\b/.test(norm)) {
-            if (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','recepcion','finanzas','administrador'].includes(profile)) return answerVehicles(raw);
+            if (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','finanzas'].includes(profile)) return answerVehicles(raw);
             return null;
         }
         if (/\b(proyecto|proyectos|avance|entrega|responsable)\b/.test(norm)) {
             if (executive) return answerExecutive(raw);
             if (profile==='finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','recepcion','administrador','tsi','consulta'].includes(profile)) return answerProjects(raw);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','tsi','consulta'].includes(profile)) return answerProjects(raw);
             return null;
         }
         if (/\b(proveedor|proveedores|cotizacion|cotizaciones|orden de compra|compras|requisicion|precio|plazo|rfc|whatsapp|correo|email)\b/.test(norm)) {
             if (executive) return answerExecutivePurchasing(raw);
-            if (profile==='compras'||profile==='administrador') return answerPurchasing(raw);
-            if (['recepcion','coordinacion','finanzas'].includes(profile)) return answerScopedSmartSearch(raw,profile);
+            if (profile==='compras') return answerPurchasing(raw);
+            if (['coordinacion','finanzas'].includes(profile)) return answerScopedSmartSearch(raw,profile);
             return null;
         }
         if (officeAssetIntent(raw)) {
@@ -4109,15 +4147,15 @@
         if (/\b(personal|persona|personas|trabajador|trabajadores|empleado|empleados|colaborador|colaboradores|rh|recursos humanos)\b/.test(norm)) {
             if (executive) return answerExecutivePeople(raw,[]);
             if (profile==='rh') return answerRH(raw);
-            if (['proyectos','planeacion','coordinacion','logistica','recepcion','administrador'].includes(profile)) return answerScopedSmartSearch(raw,profile);
+            if (['proyectos','planeacion','coordinacion','logistica'].includes(profile)) return answerScopedSmartSearch(raw,profile);
             return null;
         }
         if (/\b(categoria|categorias|categoría|categorías)\b/.test(norm) && /\b(cuantas|cuántas|cuantos|cuántos|lista|listar|muestra|mostrar|hay|tiene|tenemos|almacen|almacén|catalogo|catálogo)\b/.test(norm)) {
-            if (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi'].includes(profile)) return answerCategories(raw);
+            if (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','tsi'].includes(profile)) return answerCategories(raw);
             return null;
         }
         if (/\b(material|materiales|tubo|tuberia|cable|tornillo|pija|pijas|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|stock|existencia|ubicacion|ubicación|rack|almacen|almacén)\b/.test(norm)) {
-            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','administrador','tsi','consulta'].includes(profile))) return null;
+            if (!(executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica','tsi','consulta'].includes(profile))) return null;
             if (isMaterialFamilyQuery(raw)) return answerMaterialFamily(raw);
             if (/donde|ubicacion|ubicación|rack|almacen|almacén/.test(norm)) return answerMaterial(raw,true);
             return answerMaterial(raw,false);
@@ -4141,7 +4179,9 @@
             const scoped=await answerScopedSmartSearch(raw,profile).catch(()=>null);
             return scoped || answerProjects(raw);
         }
-        if (profile === 'recepcion' || profile === 'administrador' || profile === 'tsi') return localIntent ? answerScopedSmartSearch(raw,profile) : null;
+        if (profile === 'recepcion') {const r=await answerReceptionPresenceAndAccess(raw);return r?.voice||null;}
+        if (profile === 'administrador') return null;
+        if (profile === 'tsi') return localIntent ? answerScopedSmartSearch(raw,profile) : null;
         if (profile === 'consulta') {
             const norm = commandNormalize(raw);
             if (/proyecto/.test(norm)) return answerProjects(raw);

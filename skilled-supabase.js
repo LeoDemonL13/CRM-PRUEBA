@@ -1665,6 +1665,9 @@
             collectRows(() => client.from('materiales').select('codigo,precio').order('codigo', { ascending: true }))
         ]);
 
+        const toolAssignments = await listToolAssignments({}).catch(() => []);
+        const toolRentByProject = new Map();
+        toolAssignments.filter(item => lower(item.destinoTipo) === 'proyecto' && lower(item.estadoDb) !== 'cancelada').forEach(item => { const key=text(item.proyecto); if(!key)return; const charge=toolRentalCharge(item); if(normalizeCurrencyCode(charge.moneda||'MXN')!=='MXN')return; toolRentByProject.set(key,(toolRentByProject.get(key)||0)+number(charge.total)); });
         const priceByCode = new Map(materials.map(row => [text(row.codigo), number(row.precio)]));
         const linesByProject = new Map();
         const movesByProject = new Map();
@@ -1773,6 +1776,9 @@
                 .filter(Boolean)
                 .sort();
 
+            const toolRentalCost = number(toolRentByProject.get(projectNumber));
+            const projectTotalWithTools = realProjectCost + toolRentalCost;
+
             return {
                 proyecto: projectNumber,
                 idProyecto: projectNumber,
@@ -1794,8 +1800,11 @@
                 consumido: consumed,
                 costoPlaneado: text(project.tipo_control) === 'presupuesto' ? Math.max(0, number(project.presupuesto_planeado)) : plannedCost,
 
-                costoConsumido: realProjectCost,
-                costoRealProyecto: realProjectCost,
+                costoConsumido: projectTotalWithTools,
+                costoRealProyecto: projectTotalWithTools,
+                costoMateriales: realProjectCost,
+                costoRentaHerramientas: toolRentalCost,
+                costoHerramientas: toolRentalCost,
                 costoIngresado: enteredCost,
                 costoEntregado: consumedCost,
                 costoFueraPlan: outsidePlanCost,
@@ -1803,7 +1812,7 @@
                 usaCostoEntradas: usesEntriesAsCost,
 
                 avance: text(project.tipo_control) === 'presupuesto'
-                    ? (number(project.presupuesto_planeado) > 0 ? realProjectCost / number(project.presupuesto_planeado) * 100 : 0)
+                    ? (number(project.presupuesto_planeado) > 0 ? projectTotalWithTools / number(project.presupuesto_planeado) * 100 : 0)
                     : (planned > 0 ? consumed / planned * 100 : 0),
                 movimientos: projectMoves.length,
                 cantidadMovimientos: projectMoves.length,
@@ -3037,6 +3046,22 @@
             marca: text(row.marca),
             modelo: text(row.modelo),
             uso: text(row.uso) || 'OTRO',
+            tipoAlimentacion: text(row.tipo_alimentacion),
+            tipo_alimentacion: text(row.tipo_alimentacion),
+            costoAdquisicion: number(row.costo_adquisicion),
+            costo_adquisicion: number(row.costo_adquisicion),
+            monedaAdquisicion: normalizeCurrencyCode(row.moneda_adquisicion || 'MXN'),
+            moneda_adquisicion: normalizeCurrencyCode(row.moneda_adquisicion || 'MXN'),
+            rentaMensualPct: number(row.renta_mensual_pct) || 10,
+            renta_mensual_pct: number(row.renta_mensual_pct) || 10,
+            proveedorMantenimiento: text(row.proveedor_mantenimiento),
+            proveedor_mantenimiento: text(row.proveedor_mantenimiento),
+            contactoMantenimiento: text(row.contacto_mantenimiento),
+            contacto_mantenimiento: text(row.contacto_mantenimiento),
+            telefonoMantenimiento: text(row.telefono_mantenimiento),
+            telefono_mantenimiento: text(row.telefono_mantenimiento),
+            emailMantenimiento: text(row.email_mantenimiento),
+            email_mantenimiento: text(row.email_mantenimiento),
             unidad: text(row.unidad) || 'pieza',
             piezasPorUnidad: number(row.piezas_por_unidad) || 1,
             piezas_por_unidad: number(row.piezas_por_unidad) || 1,
@@ -3044,6 +3069,10 @@
             imagen: text(row.imagen_url),
             imagenUrl: text(row.imagen_url),
             imagen_url: text(row.imagen_url),
+            esKit: row.es_kit === true,
+            es_kit: row.es_kit === true,
+            kitComponentes: (()=>{const value=row.kit_componentes;if(Array.isArray(value))return value;try{return typeof value==='string'?JSON.parse(value):[]}catch(_){return[]}})(),
+            kit_componentes: (()=>{const value=row.kit_componentes;if(Array.isArray(value))return value;try{return typeof value==='string'?JSON.parse(value):[]}catch(_){return[]}})(),
             esIncompleta: incomplete,
             es_incompleta: incomplete,
             origenAlta: text(row.origen_alta),
@@ -3091,10 +3120,20 @@
             marca: draft.marca || null,
             modelo: draft.modelo || null,
             uso: draft.uso || 'OTRO',
+            tipo_alimentacion: /electrica|eléctrica/i.test(`${draft.uso} ${draft.clasificacion}`) ? text(tool.tipoAlimentacion ?? tool.tipo_alimentacion).toUpperCase() || null : null,
+            costo_adquisicion: Math.max(0, number(tool.costoAdquisicion ?? tool.costo_adquisicion)),
+            moneda_adquisicion: normalizeCurrencyCode(tool.monedaAdquisicion ?? tool.moneda_adquisicion ?? 'MXN'),
+            renta_mensual_pct: Math.max(0, number(tool.rentaMensualPct ?? tool.renta_mensual_pct) || 10),
+            proveedor_mantenimiento: text(tool.proveedorMantenimiento ?? tool.proveedor_mantenimiento) || null,
+            contacto_mantenimiento: text(tool.contactoMantenimiento ?? tool.contacto_mantenimiento) || null,
+            telefono_mantenimiento: text(tool.telefonoMantenimiento ?? tool.telefono_mantenimiento) || null,
+            email_mantenimiento: text(tool.emailMantenimiento ?? tool.email_mantenimiento) || null,
             unidad: text(tool.unidad) || 'pieza',
             piezas_por_unidad: Math.max(.0001, number(tool.piezasPorUnidad ?? tool.piezas_por_unidad) || 1),
             serializada: tool.serializada !== false,
             imagen_url: draft.imagen_url || null,
+            es_kit: tool.esKit === true || tool.es_kit === true,
+            kit_componentes: (tool.esKit === true || tool.es_kit === true) ? (Array.isArray(tool.kitComponentes ?? tool.kit_componentes) ? (tool.kitComponentes ?? tool.kit_componentes).map(item=>({tipo:text(item.tipo)||'Otro',descripcion:text(item.descripcion),cantidad:Math.max(1,Math.floor(number(item.cantidad)||1)),serializada:item.serializada===true})) .filter(item=>item.descripcion) : []) : [],
             es_incompleta: incompleteMode && pending.length > 0,
             origen_alta: incompleteMode ? (text(tool.origenAlta ?? tool.origen_alta) || 'herramienta_no_listada') : null,
             campos_pendientes: incompleteMode ? pending : [],
@@ -3103,6 +3142,7 @@
         };
         if (!row.sku || !row.descripcion) throw new Error('SKU y descripción son obligatorios.');
         if (!incompleteMode && !row.clasificacion) throw new Error('La clasificación es obligatoria.');
+        if (/electrica|eléctrica/i.test(`${row.uso} ${row.clasificacion}`) && !row.tipo_alimentacion) throw new Error('Indica si la herramienta eléctrica es inalámbrica o alámbrica.');
         const id = Number(originalId || tool.id || 0);
         let result;
         if (id) result = await client.from('herramientas_catalogo').update(row).eq('id', id).select('*').single();
@@ -3166,10 +3206,20 @@
                 marca: marca || null,
                 modelo: modelo || null,
                 uso,
+                tipo_alimentacion: /electrica|eléctrica/i.test(`${uso} ${clasificacion}`) ? text(item.tipoAlimentacion ?? item.tipo_alimentacion ?? item['Alimentación eléctrica'] ?? item['Alimentacion electrica']).toUpperCase() || null : null,
+                costo_adquisicion: Math.max(0, number(item.costoAdquisicion ?? item.costo_adquisicion ?? item['Costo adquisición'] ?? item['Costo adquisicion'])),
+                moneda_adquisicion: normalizeCurrencyCode(item.monedaAdquisicion ?? item.moneda_adquisicion ?? item.Moneda ?? 'MXN'),
+                renta_mensual_pct: Math.max(0, number(item.rentaMensualPct ?? item.renta_mensual_pct ?? item['Renta mensual %']) || 10),
+                proveedor_mantenimiento: text(item.proveedorMantenimiento ?? item.proveedor_mantenimiento ?? item['Proveedor mantenimiento']) || null,
+                contacto_mantenimiento: text(item.contactoMantenimiento ?? item.contacto_mantenimiento ?? item['Contacto mantenimiento']) || null,
+                telefono_mantenimiento: text(item.telefonoMantenimiento ?? item.telefono_mantenimiento ?? item['Teléfono mantenimiento'] ?? item['Telefono mantenimiento']) || null,
+                email_mantenimiento: text(item.emailMantenimiento ?? item.email_mantenimiento ?? item['Correo mantenimiento']) || null,
                 unidad: text(item.unidad ?? item.Unidad) || 'pieza',
                 piezas_por_unidad: Math.max(.0001, number(item.piezasPorUnidad ?? item['Piezas por unidad'] ?? item.piezas_por_unidad) || 1),
                 serializada: boolean(item.serializada ?? item.Serializada ?? true),
                 imagen_url: imagen || null,
+                es_kit: boolean(item.esKit ?? item.es_kit ?? item.Kit ?? item['Es kit']),
+                kit_componentes: (()=>{const raw=item.kitComponentes ?? item.kit_componentes ?? item['Componentes del kit'];if(Array.isArray(raw))return raw;const value=text(raw);if(!value)return[];return value.split('|').map(part=>{const [cantidad,tipo,...rest]=part.split(':');const descripcion=rest.join(':').trim()||tipo?.trim()||'';const qty=Math.max(1,Math.floor(number(cantidad)||1));return{tipo:(rest.length?text(tipo):'Otro')||'Otro',descripcion,cantidad:qty,serializada:false}}).filter(x=>x.descripcion)})(),
                 es_incompleta: markedIncomplete && pending.length > 0,
                 origen_alta: markedIncomplete ? 'importacion_incompleta' : null,
                 campos_pendientes: markedIncomplete ? pending : [],
@@ -3179,6 +3229,8 @@
         });
         const invalid = normalized.find(item => !item.sku || !item.descripcion || (!item.clasificacion && !item.es_incompleta));
         if (invalid) throw new Error('Todas las filas normales deben incluir SKU, descripción y clasificación. Las filas incompletas deben marcarse como “Sí”.');
+        const electricMissing = normalized.find(item => /electrica|eléctrica/i.test(`${item.uso} ${item.clasificacion || ''}`) && !item.tipo_alimentacion);
+        if (electricMissing) throw new Error(`La herramienta eléctrica ${electricMissing.sku || ''} debe indicar si es inalámbrica o alámbrica.`);
         const { data, error } = await client.from('herramientas_catalogo').upsert(normalized, { onConflict: 'sku' }).select('*');
         assertNoError(error, 'No se pudieron importar las herramientas.');
         return (data || []).map(item => toolFromDb(item, []));
@@ -3219,6 +3271,14 @@
                 marca: text(tool.marca),
                 modelo: text(tool.modelo),
                 uso: text(tool.uso) || 'OTRO',
+                tipoAlimentacion: text(tool.tipo_alimentacion),
+                costoAdquisicion: number(tool.costo_adquisicion),
+                monedaAdquisicion: normalizeCurrencyCode(tool.moneda_adquisicion || 'MXN'),
+                rentaMensualPct: number(tool.renta_mensual_pct) || 10,
+                proveedorMantenimiento: text(tool.proveedor_mantenimiento),
+                contactoMantenimiento: text(tool.contacto_mantenimiento),
+                telefonoMantenimiento: text(tool.telefono_mantenimiento),
+                emailMantenimiento: text(tool.email_mantenimiento),
                 unidad: text(tool.unidad) || 'pieza',
                 serializada: tool.serializada !== false,
                 imagen: text(tool.imagen_url),
@@ -3271,7 +3331,7 @@
         if (!toolId) throw new Error('Selecciona una herramienta.');
         const { data: toolDefinition, error: toolDefinitionError } = await client
             .from('herramientas_catalogo')
-            .select('serializada')
+            .select('serializada,costo_adquisicion,moneda_adquisicion')
             .eq('id', toolId)
             .single();
         assertNoError(toolDefinitionError, 'No se encontró la herramienta seleccionada.');
@@ -3288,7 +3348,7 @@
             almacen_id: Number(unit.almacenId ?? unit.almacen_id ?? 0) || null,
             ubicacion_id: Number(unit.ubicacionId ?? unit.ubicacion_id ?? 0) || null,
             fecha_adquisicion: text(unit.fechaAdquisicion ?? unit.fecha_adquisicion) || null,
-            costo_adquisicion: Math.max(0, number(unit.costoAdquisicion ?? unit.costo_adquisicion)),
+            costo_adquisicion: Math.max(0, number(unit.costoAdquisicion ?? unit.costo_adquisicion) || number(toolDefinition.costo_adquisicion)),
             vida_util_meses: text(unit.vidaUtilMeses ?? unit.vida_util_meses) === '' ? null : Math.max(0, Math.trunc(number(unit.vidaUtilMeses ?? unit.vida_util_meses))),
             complementos: text(unit.complementos) || null,
             observaciones: text(unit.observaciones) || null,
@@ -4336,11 +4396,16 @@
             accesoriosSalida: text(row.accesorios_salida),
             observaciones: text(row.observaciones),
             observacionesDevolucion: text(row.observaciones_devolucion),
+            costoAdquisicionSnapshot: number(row.costo_adquisicion_snapshot),
+            rentaMensualPctSnapshot: number(row.renta_mensual_pct_snapshot) || 10,
             unidad: {
                 id: Number(unit.id),
                 codigoInterno: text(unit.codigo_interno),
                 numeroSerie: text(unit.numero_serie),
                 estado: text(unit.estado),
+                cantidad: number(unit.cantidad) || 1,
+                fechaAdquisicion: text(unit.fecha_adquisicion),
+                costoAdquisicion: number(unit.costo_adquisicion),
                 almacenId: unit.almacen_id == null ? null : Number(unit.almacen_id),
                 ubicacionId: unit.ubicacion_id == null ? null : Number(unit.ubicacion_id),
                 herramienta: {
@@ -4350,6 +4415,14 @@
                     marca: text(tool.marca),
                     modelo: text(tool.modelo),
                     clasificacion: text(tool.clasificacion),
+                    tipoAlimentacion: text(tool.tipo_alimentacion),
+                    costoAdquisicion: number(tool.costo_adquisicion),
+                    monedaAdquisicion: normalizeCurrencyCode(tool.moneda_adquisicion || 'MXN'),
+                    rentaMensualPct: number(row.renta_mensual_pct_snapshot) || number(tool.renta_mensual_pct) || 10,
+                    proveedorMantenimiento: text(tool.proveedor_mantenimiento),
+                    contactoMantenimiento: text(tool.contacto_mantenimiento),
+                    telefonoMantenimiento: text(tool.telefono_mantenimiento),
+                    emailMantenimiento: text(tool.email_mantenimiento),
                     esIncompleta: boolean(tool.es_incompleta),
                     camposPendientes: toolPendingFields(tool)
                 }
@@ -4357,6 +4430,59 @@
             createdAt: text(row.created_at),
             updatedAt: text(row.updated_at)
         };
+    }
+
+    function toolRentalMonths(assignment, asOf = new Date()) {
+        if (!assignment || lower(assignment.destinoTipo ?? assignment.destino_tipo) !== 'proyecto') return 0;
+        if (lower(assignment.estadoDb ?? assignment.estado) === 'cancelada') return 0;
+        const startText = text(assignment.fechaAsignacion ?? assignment.fecha_asignacion);
+        if (!startText) return 0;
+        const endText = text(assignment.fechaDevolucionReal ?? assignment.fecha_devolucion_real);
+        const start = new Date(`${startText.slice(0,10)}T12:00:00`);
+        const end = endText ? new Date(`${endText.slice(0,10)}T12:00:00`) : new Date(asOf);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+        return Math.max(1, Math.ceil(((end - start) / 86400000) / 30));
+    }
+
+    function toolRentalCharge(assignment, asOf = new Date()) {
+        const tool = assignment?.unidad?.herramienta || {};
+        const unit = assignment?.unidad || {};
+        const quantity = Math.max(.0001, number(unit.cantidad) || 1);
+        const cost = Math.max(0, number(assignment?.costoAdquisicionSnapshot) || (number(unit.costoAdquisicion) * quantity) || (number(tool.costoAdquisicion) * quantity));
+        const rate = Math.max(0, number(assignment?.rentaMensualPctSnapshot) || number(tool.rentaMensualPct) || 10);
+        const months = toolRentalMonths(assignment, asOf);
+        const monthly = cost * rate / 100;
+        return { meses: months, costoAdquisicion: cost, porcentaje: rate, mensual: monthly, total: monthly * months, moneda: normalizeCurrencyCode(tool.monedaAdquisicion || tool.moneda_adquisicion || 'MXN') };
+    }
+
+    async function getToolFinanceSummary() {
+        const [materials, tools, units, assignments] = await Promise.all([
+            listMaterials({}).catch(() => []),
+            listTools({ includeInactive: true }).catch(() => []),
+            listToolUnits({ includeInactive: true }).catch(() => []),
+            listToolAssignments({}).catch(() => [])
+        ]);
+        const sumByCurrency = (rows, valueFn, currencyFn) => rows.reduce((map,item)=>{const currency=normalizeCurrencyCode(currencyFn(item)||'MXN');map[currency]=(map[currency]||0)+Math.max(0,number(valueFn(item)));return map;},{});
+        const materialByCurrency = sumByCurrency(materials, item => Math.max(0, number(item.stock)) * Math.max(0, number(item.precio)), item => item.monedaCosto || item.moneda_costo || 'MXN');
+        const toolByCurrency = sumByCurrency(units.filter(item=>item.activo!==false&&lower(item.estado)!=='baja'), item => Math.max(.0001, number(item.cantidad)||1) * Math.max(0, number(item.costoAdquisicion) || number(item.herramienta?.costoAdquisicion)), item => item.herramienta?.monedaAdquisicion || 'MXN');
+        const materialInvestment = number(materialByCurrency.MXN);
+        const toolInvestment = number(toolByCurrency.MXN);
+        const missingToolCosts = units.filter(item=>item.activo!==false&&lower(item.estado)!=='baja'&&number(item.costoAdquisicion)<=0&&number(item.herramienta?.costoAdquisicion)<=0).length;
+        const rentals = assignments.filter(item => lower(item.destinoTipo) === 'proyecto' && lower(item.estadoDb) !== 'cancelada').map(item => {
+            const charge = toolRentalCharge(item);
+            return { asignacionId:item.id, proyecto:item.proyecto, estado:item.estadoDb, fechaAsignacion:item.fechaAsignacion, fechaDevolucionReal:item.fechaDevolucionReal, unidad:item.unidad?.codigoInterno, herramienta:item.unidad?.herramienta?.descripcion, sku:item.unidad?.herramienta?.sku, ...charge };
+        });
+        const rentalByCurrency = sumByCurrency(rentals, item => item.total, item => item.moneda || 'MXN');
+        const rentalIncome = number(rentalByCurrency.MXN);
+        const activeRentalIncome = rentals.filter(item => lower(item.estado) === 'activa' && normalizeCurrencyCode(item.moneda || 'MXN') === 'MXN').reduce((sum, item) => sum + number(item.total), 0);
+        const byProjectMap = new Map();
+        rentals.filter(item => normalizeCurrencyCode(item.moneda || 'MXN') === 'MXN').forEach(item => {
+            const key = text(item.proyecto) || 'Sin proyecto';
+            if (!byProjectMap.has(key)) byProjectMap.set(key, { proyecto:key, total:0, asignaciones:0, herramientas:0 });
+            const row = byProjectMap.get(key);
+            row.total += number(item.total); row.asignaciones += 1; row.herramientas += 1;
+        });
+        return { materialInvestment, toolInvestment, warehouseInvestment: materialInvestment + toolInvestment, rentalIncome, activeRentalIncome, missingToolCosts, materialByCurrency, toolByCurrency, rentalByCurrency, rentals, byProject:[...byProjectMap.values()].sort((a,b)=>b.total-a.total), tools, units, assignments };
     }
 
     async function listToolAssignments(options = {}) {
@@ -5962,6 +6088,12 @@
         const {data,error}=await client.rpc('crm_sky_direccion_activos_oficina');assertNoError(error,'Sky no pudo consultar los resguardos de RH.');return data||{activos:[],asignaciones:[]};
     }
 
+    async function getReceptionPresenceV100(filter = '') {
+        const {data,error}=await client.rpc('crm_sky_recepcion_presencia_v100',{p_filtro:text(filter)||null});
+        assertNoError(error,'Sky Recepción no pudo consultar la presencia actual. Ejecuta SQL_MAESTRO_CRM.sql V100.');
+        return Array.isArray(data)?data:[];
+    }
+
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
         const { data, error } = await client.rpc('crm_sky_perfil_consultar', { p_fuente: sourceKey, p_filtro: text(filter) || null });
@@ -6267,6 +6399,7 @@
         assignRHOfficeAsset,
         closeRHOfficeAssetAssignment,
         getExecutiveRHOfficeAssets,
+        getReceptionPresenceV100,
         getSkyProfileData,
         listMaterialPackages,
         saveMaterialPackage,
@@ -6359,6 +6492,9 @@
         cancelToolAssignment,
         listToolHistory,
         getToolAssignmentGroup,
+        getToolFinanceSummary,
+        toolRentalMonths,
+        toolRentalCharge,
         getMyProfile,
         saveMyProfile,
         saveUiPreferences,

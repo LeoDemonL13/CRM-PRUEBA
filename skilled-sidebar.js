@@ -130,11 +130,11 @@
             {title:'Operación compartida',items:[['PAQ.paquetes-materiales.html?perfil=rh','Paquetes de materiales','box'],['AL.vehiculos.html?perfil=rh','Control vehicular','vehicle']]},
             {title:'Cuenta',items:[['perfil.html?perfil=rh','Mi perfil','user']]}
         ],
-        finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Solicitudes internas',items:[['PAQ.paquetes-materiales.html?perfil=finanzas','Paquetes de materiales','box']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
+        finanzas:[{title:'Finanzas',items:[['FI.inicio.html','Inicio','home'],['FI.activos-rentas.html','Inversión y rentas','report'],['FI.presupuestos.html','Presupuestos','report'],['FI.gastos.html','Gastos','cart'],['FI.cuentas-pagar.html','Cuentas por pagar','clipboard'],['FI.reportes.html','Reportes financieros','report']]},{title:'Solicitudes internas',items:[['PAQ.paquetes-materiales.html?perfil=finanzas','Paquetes de materiales','box']]},{title:'Consulta',items:[['AL.proyectos.html?perfil=finanzas','Proyectos','folder'],['AL.reportes.html?perfil=finanzas','Reportes operativos','report']]},{title:'Cuenta',items:[['perfil.html?perfil=finanzas','Mi perfil','user']]}],
         planeacion:[{title:'Planeación',items:[['PL.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=planeacion','Proyectos','folder'],['PROY.importar.html?perfil=planeacion','Importar proyectos','delivery'],['AL.solicitudes-material.html?perfil=planeacion','Solicitudes','request'],['AL.reportes.html?perfil=planeacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=planeacion','Mi perfil','user']]}],
         coordinacion:[{title:'Coordinación',items:[['CR.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=coordinacion','Proyectos','folder'],['AL.solicitudes-material.html?perfil=coordinacion','Solicitudes','request'],['AL.vehiculos.html?perfil=coordinacion','Vehículos','vehicle'],['AL.reportes.html?perfil=coordinacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=coordinacion','Mi perfil','user']]}],
         logistica:[{title:'Logística',items:[['LG.inicio.html','Inicio','home'],['AL.vehiculos.html?perfil=logistica','Vehículos','vehicle'],['CO.entregas.html?perfil=logistica','Entregas','delivery'],['AL.proyectos.html?perfil=logistica','Proyectos','folder'],['AL.catalogo.html?perfil=logistica','Materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=logistica','Mi perfil','user']]}],
-        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
+        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.sky-porteria.html','Sky Portería','shield'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         sky_demo:[{title:'Sky',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
@@ -401,7 +401,7 @@
         almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
         compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','paq.paquetes-materiales.html'],
         rh:['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
-        finanzas:['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html','paq.paquetes-materiales.html'],
+        finanzas:['fi.inicio.html','fi.activos-rentas.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html','paq.paquetes-materiales.html'],
         gerente_general:['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
         subgerente:['sg.inicio.html','sg.proyectos.html','sg.vehiculos.html','perfil.html'],
         sky_demo:['sky.inicio.html','perfil.html'],
@@ -410,7 +410,7 @@
         planeacion:['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
         coordinacion:['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
         logistica:['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
-        recepcion:['re.inicio.html','co.entregas.html','al.vehiculos.html','perfil.html'],
+        recepcion:['re.inicio.html','re.sky-porteria.html','co.entregas.html','al.vehiculos.html','perfil.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html','paq.paquetes-materiales.html']
     };
 
@@ -1212,6 +1212,23 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         return header ? headerActionContainer(header) : null;
     }
 
+    async function openSkyFromUi(question='') {
+        if(!skyAllowed())return false;
+        try{
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=100');
+            window.SkilledSky?.open?.();
+            if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
+            return Boolean(window.SkilledSky);
+        }catch(_){createLazySkyButton();return false}
+    }
+    function bindSkyTriggers(){
+        document.querySelectorAll('[data-sky-open]').forEach(node=>{
+            if(node.dataset.skyBound==='1')return;
+            node.dataset.skyBound='1';
+            node.addEventListener('click',event=>{event.preventDefault();openSkyFromUi(node.dataset.skyQuestion||'')});
+        });
+    }
+
     function createLazySkyButton() {
         if (document.getElementById('sky-open')) return;
         const host = lazyActionHost();
@@ -1226,12 +1243,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.disabled = true;
             button.remove();
             syncMobileDock();
-            try {
-                await loadOptionalScript('skilled-sky.js?v=95');
-                window.SkilledSky?.open?.();
-            } catch (_) {
-                createLazySkyButton();
-            }
+            await openSkyFromUi();
             syncMobileDock();
         }, { once:true });
         host.insertBefore(button, host.firstChild);
@@ -1271,13 +1283,14 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             document.querySelectorAll('[data-skilled-sky]').forEach(node => node.remove());
             return;
         }
-        if (window.SkilledSky) return;
+        bindSkyTriggers();
+        if (window.SkilledSky) {if(!document.getElementById('sky-open'))createLazySkyButton();return;}
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=95').catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=100').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
             return;
         }
-        if (document.querySelector('script[src*="skilled-sky.js"]')) return;
-        createLazySkyButton();
+        if (!document.querySelector('script[src*="skilled-sky.js"]')) createLazySkyButton();
+        setTimeout(()=>{bindSkyTriggers();if(!window.SkilledSky&&!document.getElementById('sky-open'))createLazySkyButton()},80);
     }
 
     let chatIdleScheduled = false;
@@ -1312,8 +1325,6 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     }
 
     window.addEventListener('skilled:sessionready', () => {
-        ensureSky();
-        ensureChat();
         const role = currentRole();
         if (!document.getElementById('skilled-sidebar') || renderedRole !== role) {
             renderSidebar();
@@ -1325,6 +1336,9 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             applySidebarWidth(aside, compact);
         }
         normalizeSharedHeader();
+        ensureSky();
+        ensureChat();
+        bindSkyTriggers();
         syncProfileIdentity(true);
     });
     window.addEventListener('skilled:profileupdated', event => {
@@ -1334,12 +1348,13 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     });
 
     function initialize() {
-        ensureSky();
-        ensureChat();
         renderSidebar();
         normalizeBreadcrumbHome();
         scheduleRequestBadgeUpdate();
         normalizeSharedHeader();
+        ensureSky();
+        ensureChat();
+        bindSkyTriggers();
     }
 
     if (document.readyState === 'loading') {
