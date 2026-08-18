@@ -5066,6 +5066,20 @@
         };
     }
 
+    async function parseSupplierQuotationDocumentV102(payload = {}) {
+        const raw = text(payload.text).slice(0, 60000);
+        if (!raw) throw new Error('El documento no contiene texto legible.');
+        const quotation = payload.quotation && typeof payload.quotation === 'object' ? {
+            folio: text(payload.quotation.folio).slice(0, 120),
+            reference: text(payload.quotation.reference).slice(0, 240),
+            items: Array.isArray(payload.quotation.items) ? payload.quotation.items.slice(0, 120).map(item => ({ id:Number(item?.id)||0, code:text(item?.code).slice(0,100), description:text(item?.description).slice(0,320), quantity:number(item?.quantity), unit:text(item?.unit).slice(0,50) })) : []
+        } : {};
+        const { data, error } = await client.functions.invoke('sky-transcribir', { body: { mode:'quotation_document', text:raw, filename:text(payload.filename).slice(0,260), profile:'compras', quotation } });
+        if (error) throw await edgeFunctionFailure(error, 'Skill no pudo interpretar el documento de cotización.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill no devolvió una lectura válida del documento.');
+        return { ok:true, providerName:text(data.providerName), rfc:text(data.rfc), reference:text(data.reference), currency:text(data.currency), validity:text(data.validity), deliveryDays:number(data.deliveryDays), rows:Array.isArray(data.rows)?data.rows:[], warnings:Array.isArray(data.warnings)?data.warnings.map(text).filter(Boolean):[], confidence:number(data.confidence), provider:text(data.provider), model:text(data.model) };
+    }
+
     async function askSkyGeneral(value, options = {}) {
         const input = text(value).slice(0, 1800);
         if (!input) throw new Error('Falta la consulta para Skill.');
@@ -6094,6 +6108,13 @@
         return Array.isArray(data)?data:[];
     }
 
+
+    async function getReceptionRecognitionDirectoryV102() {
+        const {data,error}=await client.rpc('crm_skill_recepcion_directorio_v102');
+        assertNoError(error,'Skill Recepción no pudo consultar los nombres de perfil. Ejecuta SQL_MAESTRO_CRM.sql V102.');
+        return Array.isArray(data)?data:[];
+    }
+
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
         const { data, error } = await client.rpc('crm_sky_perfil_consultar', { p_fuente: sourceKey, p_filtro: text(filter) || null });
@@ -6400,6 +6421,7 @@
         closeRHOfficeAssetAssignment,
         getExecutiveRHOfficeAssets,
         getReceptionPresenceV100,
+        getReceptionRecognitionDirectoryV102,
         getSkyProfileData,
         listMaterialPackages,
         saveMaterialPackage,
@@ -6542,6 +6564,7 @@
         transcribeSkyAudio,
         interpretSkyQuery,
         askSkyGeneral,
+        parseSupplierQuotationDocumentV102,
         listQuotationRequests,
         getQuotationRequest,
         createQuotationRequest,

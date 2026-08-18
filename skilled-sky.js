@@ -374,7 +374,7 @@
             consulta:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',reportes:'AL.reportes.html',manual:'AL.manual-usuario.html'},
             gerente_general:{inicio:'GG.inicio.html',proyectos:'GG.proyectos.html',vehiculos:'GG.vehiculos.html'},
             subgerente:{inicio:'SG.inicio.html',proyectos:'SG.proyectos.html',vehiculos:'SG.vehiculos.html'},
-            sky_demo:{inicio:'SKY.inicio.html',skill:'SKY.inicio.html',sky:'SKY.inicio.html','modo presentacion':'SKY.inicio.html'}
+            sky_demo:{inicio:'SKILL.inicio.html',skill:'SKILL.inicio.html',sky:'SKILL.inicio.html','modo presentacion':'SKILL.inicio.html'}
         };
         const map={...common,...(maps[profile]||{})};
         if(map.documentos==='RH.documentos.html,')map.documentos='RH.documentos.html';
@@ -457,7 +457,7 @@
         if (link && isExecutiveReadProfile(profile)) {
             const target = String(link.href || '');
             if (profile === 'sky_demo') {
-                if (!/^SKY\.inicio(?:\.html)?/i.test(target) && !/^perfil\.html/i.test(target) && !/^https?:\/\//i.test(target)) link = null;
+                if (!/^SKILL\.inicio(?:\.html)?/i.test(target) && !/^perfil\.html/i.test(target) && !/^https?:\/\//i.test(target)) link = null;
             } else {
                 const ownPrefix = profile === 'gerente_general' ? 'GG.' : 'SG.';
                 if (/^AL\.vehiculos(?:\.html)?/i.test(target)) {
@@ -1640,6 +1640,7 @@
             executiveAlerts: () => SkilledDB.getExecutiveSkyAlerts(),
             categories: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveSkyCategories === 'function' ? SkilledDB.listExecutiveSkyCategories() : bridge && SkilledDB.getSkyProfileData ? skyBridge('categorias') : SkilledDB.listCategories(),
             rePresence: () => typeof SkilledDB.getReceptionPresenceV100==='function' ? SkilledDB.getReceptionPresenceV100('') : [],
+            reDirectory: () => typeof SkilledDB.getReceptionRecognitionDirectoryV102==='function' ? SkilledDB.getReceptionRecognitionDirectoryV102() : [],
             executiveSearch: () => []
         };
         if (!loaders[key]) throw new Error(`Skill no tiene un origen de datos registrado para ${key}.`);
@@ -1954,7 +1955,7 @@
     ];
     function demoTools(){try{const rows=JSON.parse(localStorage.getItem('skilled_sky_demo_tools_v82')||localStorage.getItem('skilled_sky_demo_tools_v81')||'null');return Array.isArray(rows)&&rows.length?rows:demoToolDefaults}catch(_){return demoToolDefaults}}
     function toolsUsedIntent(raw){const norm=commandNormalize(raw);return /\b(lenguajes|herramientas|tecnologias|stack|java|javascript|sql|html|css|powershell|supabase|visual studio|con que.*hecho|con que.*desarrollado|que usaron|que utilizan)\b/.test(norm)&&/\b(utilizad|usad|hech|desarroll|crm|sky|sistema|programa|herramientas|lenguajes|stack|tecnologias)\b/.test(norm)}
-    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Skill.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Skill sin afectar la implementación final.',cards,{href:'SKY.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
+    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Skill.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Skill sin afectar la implementación final.',cards,{href:'SKILL.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
 
     function projectMatch(projects, raw) {
         const norm = commandNormalize(raw);
@@ -2635,7 +2636,7 @@
 
     function answerPresentationPlaybook(raw) {
         const norm=commandNormalize(raw);
-        const wantsDemo=/\b(como presento|cómo presento|presentar a sky|presentacion de sky|presentación de sky|guion de demo|guión de demo|exposicion|exposición|como hago la demo|cómo hago la demo|como demuestro sky|cómo demuestro sky)\b/.test(norm);
+        const wantsDemo=/\b(como presento|cómo presento|presentar a skill|presentar a sky|presentacion de skill|presentacion de skill|presentacion de sky|presentación de skill|presentación de sky|guion de demo|guión de demo|exposicion|exposición|como hago la demo|cómo hago la demo|como demuestro skill|cómo demuestro skill|como demuestro sky|cómo demuestro sky)\b/.test(norm);
         if (wantsDemo) {
             const message='Para presentar a Skill, empieza mostrando que conversa, después demuestra que entiende áreas y termina con una consulta real del CRM. La clave es no explicar demasiado antes: deja que Skill responda.';
             setAnswer('Guía rápida para presentar a Skill',message,'Ruta recomendada de 5 a 7 minutos. Usa el usuario de demostración para que nadie pueda editar información.',[
@@ -2648,7 +2649,7 @@
             ]);
             return {handled:true,voice:message};
         }
-        if (/\b(quiero probarte|que te pregunto|qué te pregunto|preguntas para probar|modo demo|demo de sky|prueba de sky)\b/.test(norm)) {
+        if (/\b(quiero probarte|que te pregunto|qué te pregunto|preguntas para probar|modo demo|demo de skill|prueba de skill|demo de sky|prueba de sky)\b/.test(norm)) {
             const message='Puedes probarme con preguntas de conversación, por área y con datos del CRM. Si algo aún no está conectado, te lo diré con claridad.';
             setAnswer('Preguntas para probar a Skill',message,'Estas preguntas funcionan bien para demostrar alcance sin dar permisos de edición.',[
                 {title:'Conversación',detail:'Skill, ¿cómo estás hoy?'},
@@ -2679,10 +2680,10 @@
         const exactName = /^(?:el\s+)?(?:ing(?:eniero)?\s+)?(?:leo|leobardo|leobardo\s+hernandez(?:\s+jeronimo)?|hernandez\s+jeronimo)$/i.test(norm);
         const whoName = /\b(?:quien|quién)\s+(?:es|fue|resulta\s+ser)\s+(?:el\s+)?(?:ing(?:eniero)?\s+)?(?:leo|leobardo|leobardo\s+hernandez(?:\s+jeronimo)?|hernandez\s+jeronimo)\b/i.test(norm);
         const creatorWords = /\b(?:crea|creando|creo|creó|desarrolla|desarrollando|desarrollo|desarrolló|programa|programando|programo|programó|hizo|hacer|diseña|diseñando|diseño|diseñó|disena|disenando|diseno|construye|construyendo|construyo|inventó|invento|autor|creador|desarrollador|programador|diseñador|disenador)\b/i;
-        const aboutSky = /\b(?:sky|asistente|ia|inteligencia\s+artificial|tu|te|ti)\b/i.test(norm);
+        const aboutSky = /\b(?:skill|skil|sky|asistente|ia|inteligencia\s+artificial|tu|te|ti)\b/i.test(norm);
         const whoCreator = /\b(?:quien|quién)\b/i.test(norm) && creatorWords.test(norm) && aboutSky;
-        const directCreator = /\b(?:tu\s+creador|tu\s+desarrollador|tu\s+programador|tu\s+autor|creador\s+de\s+sky|desarrollador\s+de\s+sky|programador\s+de\s+sky|autor\s+de\s+sky)\b/i.test(norm);
-        return exactName || whoName || whoCreator || directCreator || hasFuzzy(norm,['quien te creo','quien te desarrollo','quien te programo','quien te diseno','quien te diseño','quien te hizo','quien es tu creador','quien esta creando sky','quien desarrollo sky','quien diseno sky'],1);
+        const directCreator = /\b(?:tu\s+creador|tu\s+desarrollador|tu\s+programador|tu\s+autor|creador\s+de\s+(?:skill|sky)|desarrollador\s+de\s+(?:skill|sky)|programador\s+de\s+(?:skill|sky)|autor\s+de\s+(?:skill|sky))\b/i.test(norm);
+        return exactName || whoName || whoCreator || directCreator || hasFuzzy(norm,['quien te creo','quien te desarrollo','quien te programo','quien te diseno','quien te diseño','quien te hizo','quien es tu creador','quien esta creando skill','quien desarrollo skill','quien diseno skill','quien esta creando sky','quien desarrollo sky','quien diseno sky'],1);
     }
 
     function answerCreatorIdentity(raw) {
@@ -2952,7 +2953,7 @@
             .replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,' ')
             .replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,' ')
             .replace(/\b\d{1,2}:\d{2}\s*(?:am|pm)?\b/ig,' ')
-            .replace(/^(?:oye\s+)?(?:sky[,;:\s-]*)?/i,'')
+            .replace(/^(?:oye\s+)?(?:(?:skill|skil|sky)[,;:\s-]*)?/i,'')
             .replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s*/i,'')
             .replace(/^(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?\s*/i,'')
             .replace(/\s+/g,' ').trim();
@@ -2977,14 +2978,14 @@
         const audienceInfo=extractMeetingAudience(source);
         const topic=source.match(/\b(?:para revisar|para ver|para tratar|sobre|tema de|del tema|por motivo de|porque|para hablar de|para checar|para revisar lo de)\s+(.+)$/i);
         const capabilitySource=source.replace(/^[¿?¡!\s]+/,'');
-        const capabilityLead=/^(?:oye\s+)?(?:sky[,;:\s-]*)?(?:puedes|podrias|podrías|sabes|eres capaz)\b/i.test(capabilitySource);
+        const capabilityLead=/^(?:oye\s+)?(?:(?:skill|skil|sky)[,;:\s-]*)?(?:puedes|podrias|podrías|sabes|eres capaz)\b/i.test(capabilitySource);
         const capability=capabilityLead&&!timeInfo.hasExplicitTime&&!audienceInfo.specified&&!topic;
         if(capability)return{capability:true};
         let title='Reunión general';
         let note='';
         if(topic){note=text(topic[1]);title=`Reunión · ${note.slice(0,80)}`}
         if(!note){
-            const cleaned=text(source.replace(/^(?:oye\s+)?(?:sky[,;:\s-]*)?/i,'').replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,'').replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,'').replace(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+)?[^,.;]+$/i,'').trim());
+            const cleaned=text(source.replace(/^(?:oye\s+)?(?:(?:skill|skil|sky)[,;:\s-]*)?/i,'').replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,'').replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,'').replace(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+)?[^,.;]+$/i,'').trim());
             if(cleaned&&commandNormalize(cleaned)!==commandNormalize(audienceInfo.audience))note=cleaned;
         }
         if(!note)note='Reunión solicitada desde Skill.';
@@ -3195,12 +3196,19 @@
     }
 
     async function receptionPresence(filter=''){if(!window.SkilledDB?.getReceptionPresenceV100)return[];try{return await SkilledDB.getReceptionPresenceV100(filter)}catch(_){return[]}}
+    async function receptionDirectory(){if(!window.SkilledDB?.getReceptionRecognitionDirectoryV102)return[];try{return await SkilledDB.getReceptionRecognitionDirectoryV102()}catch(_){return[]}}
+    async function receptionPersonFromText(raw){const rows=await receptionDirectory();if(!rows.length)return null;const q=commandNormalize(raw);const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(rows,raw,p=>[p.nombre_completo,p.puesto,p.departamento,p.rol]):rows.filter(p=>q.includes(commandNormalize(p.nombre_completo)));return ranked[0]||null}
     function receptionAreaFromText(raw){const norm=commandNormalize(raw);const known=['compras','recursos humanos','rh','almacen','almacén','finanzas','planeacion','planeación','coordinacion','coordinación','logistica','logística','tsi','administracion','administración','gerencia','subgerencia'];return known.find(x=>norm.includes(commandNormalize(x)))||''}
-    async function answerReceptionPresenceAndAccess(raw){if(detectProfile()!=='recepcion')return null;const norm=commandNormalize(raw);const door=/\b(abrir.*puerta|abran.*puerta|abre.*puerta|abrirme|que me abran|quiere que le abran|solicita.*acceso|dejarlo pasar|dejarla pasar|entrada.*abrir)\b/.test(norm);const presence=/\b(hay alguien|esta alguien|está alguien|quien esta|quién está|se encuentra|esta aqui|está aquí|esta en las instalaciones|está en las instalaciones|vino|ya llego|ya llegó)\b/.test(norm);const callArea=/\b(llama|llamar|avisa|avisar|dile|manda mensaje|envia mensaje|envía mensaje|necesito a|que venga|puedes llamar)\b/.test(norm);const area=receptionAreaFromText(raw);if(door){const person=text(raw).replace(/.*?\b(?:puerta|acceso)\b/i,'').trim();const who=person||'un colaborador';const msg=`${who} está en la entrada y solicita que le abran la puerta. Favor de validar identidad y autorizar acceso.`;const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});const response='Todavía no controlo físicamente la cerradura. Ya envié a Recepción la solicitud para que validen y abran la puerta de forma segura.';setAnswer('Solicitud de acceso enviada',response,'Skill Recepción puede coordinar el acceso, pero la apertura física permanece bajo validación humana.',[{title:'Seguridad',detail:'La puerta no se abre solo por voz.'},{title:'Aviso',detail:msg}]);return{handled:true,voice:result?.voice||response}}
-        if(presence||(/\b(esta|está)\b/.test(norm)&&area)){const rows=await receptionPresence(area||raw);const present=rows.filter(x=>x.presente);if(area){const label=area.toUpperCase();const response=present.length?`Sí. Tengo ${present.length} persona${present.length===1?'':'s'} de ${label} con registro de entrada y sin salida hoy.`:`No encuentro a nadie de ${label} con registro de entrada pendiente de salida en este momento.`;setAnswer('Presencia por área',response,'Recepción solo recibe nombre, puesto, área y estado de presencia; no obtiene datos privados de RH.',present.slice(0,8).map(x=>({title:x.nombre_completo||x.departamento,detail:`${x.puesto||'Sin puesto'} · ${x.presente?'Presente':'No presente'}`})));return{handled:true,voice:response}}
-            const response=present.length?`Encontré ${present.length} coincidencia${present.length===1?'':'s'} presente${present.length===1?'':'s'} hoy.`:'No encontré una coincidencia presente con ese nombre o criterio.';setAnswer('Consulta de presencia',response,'Esta consulta usa únicamente estado de entrada/salida para Recepción.',present.slice(0,8).map(x=>({title:x.nombre_completo||'Personal',detail:`${x.departamento||'Sin área'} · ${x.puesto||'Sin puesto'}`})));return{handled:true,voice:response}}
-        if(callArea&&area){const msg=`Se solicita apoyo de ${area} en la entrada/Recepción. Motivo comunicado: “${text(raw)}”.`;const result=await executeChatMessage(area,msg,{allowAmbiguous:true});const response=`Ya preparé el aviso para ${area}.`;setAnswer('Aviso interno',response,'Skill Recepción puede avisar a un área sobre quién está en entrada sin abrir información de otros módulos.',[{title:'Mensaje',detail:msg}]);return{handled:true,voice:result?.voice||response}}
-        return null}
+    async function answerReceptionPresenceAndAccess(raw){
+        if(detectProfile()!=='recepcion')return null;
+        const norm=commandNormalize(raw),door=/(abrir.*puerta|abran.*puerta|abre.*puerta|abrirme|que me abran|quiere que le abran|solicita.*acceso|dejarlo pasar|dejarla pasar|entrada.*abrir|pueden abrir|me abre)/.test(norm),presence=/(hay alguien|esta alguien|está alguien|quien esta|quién está|se encuentra|esta aqui|está aquí|esta en las instalaciones|está en las instalaciones|vino|ya llego|ya llegó|esta presente|está presente)/.test(norm),call=/(llama|llamar|avisa|avisar|dile|manda mensaje|envia mensaje|envía mensaje|necesito a|que venga|puedes llamar|contacta|contactar|busco a)/.test(norm),area=receptionAreaFromText(raw),person=await receptionPersonFromText(raw);
+        if(door){const who=person?.nombre_completo||text(raw).replace(/.*?(?:puerta|acceso)/i,'').trim()||'un colaborador';const msg=`${who} está en la entrada y solicita que le abran la puerta. Favor de validar identidad y autorizar acceso.`;const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});const response=`Ya envié a Recepción la solicitud de acceso para ${who}. La apertura física permanece bajo validación humana.`;setAnswer('Solicitud de acceso enviada',response,'Skill puede relacionar el rostro con el nombre completo del perfil cuando el motor biométrico esté integrado; por ahora la identidad requiere validación.',[{title:'Persona',detail:who},{title:'Seguridad',detail:'La puerta no se abre automáticamente solo por reconocimiento o voz.'}]);return{handled:true,voice:result?.voice||response}}
+        if(presence||(/(esta|está|vino|llego|llegó)/.test(norm)&&(area||person))){const filter=person?.nombre_completo||area||raw,rows=await receptionPresence(filter),present=rows.filter(x=>x.presente);if(person){const exact=present.find(x=>commandNormalize(x.nombre_completo).includes(commandNormalize(person.nombre_completo))||commandNormalize(person.nombre_completo).includes(commandNormalize(x.nombre_completo)));const response=exact?`${person.nombre_completo} aparece con entrada registrada y sin salida hoy.`:`No encuentro a ${person.nombre_completo} con registro de entrada pendiente de salida en este momento.`;setAnswer('Presencia de personal',response,'Recepción solo ve nombre, puesto, área y presencia. No se exponen datos privados de RH.',exact?[{title:exact.nombre_completo,detail:`${exact.puesto||'Sin puesto'} · ${exact.departamento||'Sin área'} · Presente`}]:[{title:person.nombre_completo,detail:`${person.puesto||'Sin puesto'} · ${person.departamento||'Sin área'}`}]);return{handled:true,voice:response}}
+            if(area){const response=present.length?`Sí. Hay ${present.length} persona${present.length===1?'':'s'} de ${area} con entrada registrada y sin salida hoy.`:`No encuentro personal de ${area} con entrada pendiente de salida en este momento.`;setAnswer('Presencia por área',response,'Recepción solo recibe nombre, puesto, área y estado de presencia.',present.slice(0,8).map(x=>({title:x.nombre_completo||x.departamento,detail:`${x.puesto||'Sin puesto'} · ${x.presente?'Presente':'No presente'}`})));return{handled:true,voice:response}}
+        }
+        if(call&&(area||person)){const recipient=person?.nombre_completo||area,msg=`${person?.nombre_completo||area} es requerido en la entrada/Recepción. Motivo comunicado: “${text(raw)}”.`;const result=await executeChatMessage(recipient,msg,{allowAmbiguous:true});const response=`Listo. Preparé el aviso para ${recipient}.`;setAnswer('Aviso interno',response,'Skill Recepción puede avisar a una persona o área sobre quién está en la entrada sin abrir información de otros módulos.',[{title:'Destinatario',detail:recipient},{title:'Mensaje',detail:msg}]);return{handled:true,voice:result?.voice||response}}
+        return null;
+    }
 
     async function answerReceptionDoorbell(raw) {
         const profile=detectProfile();
@@ -3211,7 +3219,8 @@
         if (!relevant) return null;
         const greeting = skyDayGreeting();
         const food = /\b(comida|pedido|uber|didi|rappi|restaurant|restaurante|lonche|desayuno|almuerzo)\b/.test(norm);
-        const materials = /\b(material|materiales|proveedor|entrega|orden de compra|oc|paquete|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a|factura|remision|remisión)\b/.test(norm);
+        const carrier = /\b(mercado libre|mercadolibre|amazon|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a)\b/.test(norm);
+        const materials = /\b(material|materiales|proveedor|entrega de material|orden de compra|oc|factura|remision|remisión|herramientas|refacciones)\b/.test(norm);
         const recognized = /\b(reconocio|reconoció|reconoce|identifico|identificó|personal|colaborador|trabajador|empleado|skilled)\b/.test(norm) && !/\b(no reconoce|no reconocio|no reconoció|desconocid|visitante)\b/.test(norm);
         let title = 'Skill en recepción';
         let message = `Al presionar el timbre, Skill debe saludar con “Hola, ${greeting}” y preguntar en qué puede ayudar.`;
@@ -3234,6 +3243,12 @@
             detail = 'Mensaje sugerido: “Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien lo espera”.';
             notifyTarget = 'Recepción';
             notifyMessage = 'Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien del personal lo espera.';
+        } else if (carrier) {
+            title = 'Paquetería detectada';
+            message = 'Si llega una entrega de Mercado Libre, Amazon o mensajería, Skill debe avisar a Recepción para validar quién espera el paquete antes de permitir el acceso.';
+            detail = 'El aviso conserva únicamente empresa de paquetería, hora y mensaje del repartidor.';
+            notifyTarget = 'Recepción';
+            notifyMessage = 'Llegó una entrega de paquetería en la entrada. Favor de validar quién espera el paquete.';
         } else if (materials) {
             title = 'Entrega de materiales detectada';
             message = 'Si el visitante indica que viene a entregar materiales, Skill debe avisar a Compras para que validen proveedor, OC, factura/remisión y puedan recibir el material.';
@@ -3342,7 +3357,7 @@
             setTimeout(()=>{if(!listening&&!queryBusy)startListening({preserveClearedInput:true}).catch(()=>{})},350);
             return {handled:true,voice:message};
         }
-        if (/\b(desactiva|apaga|quita|deten|detén|para)\b.*\b(modo conversacion|modo conversación|escucha continua|manos libres|modo manos libres|modo alexa)\b/.test(norm) || /\b(deja de escuchar|ya no escuches|descansa sky|duerme sky)\b/.test(norm)) {
+        if (/\b(desactiva|apaga|quita|deten|detén|para)\b.*\b(modo conversacion|modo conversación|escucha continua|manos libres|modo manos libres|modo alexa)\b/.test(norm) || /\b(deja de escuchar|ya no escuches|descansa skill|duerme skill|descansa sky|duerme sky)\b/.test(norm)) {
             handsFreeEnabled=false;
             try{localStorage.setItem('skilled_sky_handsfree','0')}catch(_){}
             clearTimeout(handsFreeTimer);
@@ -3356,7 +3371,7 @@
             setAnswer('Te lo repito',lastSpokenText);
             return {handled:true,voice:lastSpokenText};
         }
-        if (/\b(callate|cállate|silencio sky|para de hablar|deja de hablar)\b/.test(norm)) {
+        if (/\b(callate|cállate|silencio skill|silencio sky|para de hablar|deja de hablar)\b/.test(norm)) {
             try{speechSynthesis.cancel()}catch(_){}
             setAnswer('De acuerdo','Me quedo en silencio.');
             return {handled:true,voice:''};
@@ -3364,6 +3379,51 @@
         const pendingAction=await answerPendingAction(raw);if(pendingAction)return pendingAction;
         const creatorIdentity=answerCreatorIdentity(raw);if(creatorIdentity)return creatorIdentity;
         const receptionDoorbell=await answerReceptionDoorbell(raw);if(receptionDoorbell)return receptionDoorbell;
+        const pageName=(location.pathname.split('/').pop()||'').toLowerCase();
+        if(pageName==='co.cotizaciones.html'){
+            if(/\b(leer|cargar|importar|capturar|subir|procesar|analizar)\b.*\b(cotizacion|cotización|respuesta|pdf|excel|archivo|documento)\b/.test(norm)||/\b(cotizacion|cotización)\b.*\b(recibida|proveedor|archivo|documento)\b/.test(norm)){
+                if(window.SkillQuoteImporterV102?.open){
+                    window.SkillQuoteImporterV102.open();
+                    const message='Abrí la captura de respuesta de proveedor. Puedes pegar una tabla o cargar PDF, Excel, CSV o texto; después revisamos las coincidencias antes de guardar precios o crear la orden de compra.';
+                    setAnswer('Capturar cotización recibida',message,'Skill no inventará precios: las partidas que no pueda relacionar quedarán para revisión manual.');
+                    return{handled:true,voice:message};
+                }
+            }
+            if(/\b(hacer|crear|generar|preparar)\b.*\b(orden de compra|oc directa|orden directa)\b/.test(norm)){
+                const button=document.getElementById('quote-direct-order');
+                if(button){
+                    button.click();
+                    const message='Abrí la creación directa de orden de compra para la cotización seleccionada.';
+                    setAnswer('Orden de compra directa',message,'Revisa proveedor, precios y partidas antes de confirmar.');
+                    return{handled:true,voice:message};
+                }
+            }
+            if(/\b(que falta|qué falta|como va|cómo va|resume|resumen|estado)\b/.test(norm)){
+                const q=window.SkillQuoteWorkspaceV102?.getCurrent?.();
+                if(q){
+                    const total=q.items?.length||0,offers=(q.items||[]).filter(i=>i.ofertas?.length).length,selected=(q.items||[]).filter(i=>i.ofertaSeleccionadaId).length,missing=Math.max(0,total-offers);
+                    const message=`La cotización ${q.folio||''} tiene ${total} materiales: ${offers} con alguna propuesta, ${selected} con proveedor seleccionado y ${missing} todavía sin cotizar.`;
+                    setAnswer('Estado de la cotización',message,missing?'Puedes cargar una respuesta de proveedor, capturar una propuesta manualmente o hacer una orden directa si ya tienes precio y proveedor.':'Si ya revisaste las propuestas, puedes seleccionar las ganadoras y aprobar la cotización.');
+                    return{handled:true,voice:message};
+                }
+            }
+        }
+        if(pageName==='re.sky-porteria.html'){
+            if(/\b(enciende|activa|abre|inicia)\b.*\b(camara|cámara)\b/.test(norm)){
+                const button=document.getElementById('camera-toggle');
+                if(button&&button.dataset.live!=='1')button.click();
+                const message='Estoy intentando encender la cámara de recepción. Si el navegador solicita permiso, autorízalo para continuar.';
+                setAnswer('Cámara de recepción',message,'La detección de rostro queda preparada; la identificación biométrica seguirá requiriendo validación hasta conectar el motor facial.');
+                return{handled:true,voice:message};
+            }
+            if(/\b(apaga|desactiva|cierra|deten|detén)\b.*\b(camara|cámara)\b/.test(norm)){
+                const button=document.getElementById('camera-toggle');
+                if(button&&button.dataset.live==='1')button.click();
+                const message='Cámara de recepción apagada.';
+                setAnswer('Cámara de recepción',message);
+                return{handled:true,voice:message};
+            }
+        }
         const chatAction=await answerChatAction(raw);if(chatAction)return chatAction;
         const meetingAction=detectProfile()==='recepcion'?null:await answerMeetingAction(raw);if(meetingAction)return meetingAction;
         const presentationHelp=answerPresentationPlaybook(raw);if(presentationHelp)return presentationHelp;
@@ -3394,7 +3454,7 @@
             setAnswer('Skill', message);
             return { handled:true, voice:message };
         }
-        if (/\b(buen trabajo|muy bien|excelente|eso es todo|perfecto sky|bien hecho|te rifaste|te la rifaste)\b/.test(norm)) {
+        if (/\b(buen trabajo|muy bien|excelente|eso es todo|perfecto skill|perfecto sky|bien hecho|te rifaste|te la rifaste)\b/.test(norm)) {
             const message='Gracias. Sigo aprendiendo con cada mejora, pero ya estoy lista para seguir ayudándote. ¿Qué hacemos ahora?';
             setAnswer('Gracias',message,'Puedes continuar con otra pregunta sin repetir el contexto si estamos hablando del mismo material, proyecto, proveedor o persona.');
             return {handled:true,voice:message};
@@ -3435,7 +3495,7 @@
             return { handled:true, voice:message };
         }
         if (/\b(busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea|googlear|busqueda web)\b/.test(norm)) {
-            let term=text(raw).replace(/^(?:sky[,;:\s-]*)?/i,'').replace(/\b(?:busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea(?:r)?|busqueda web)\b/ig,'').replace(/^[,:;\s-]+/,'').trim();
+            let term=text(raw).replace(/^(?:(?:skill|skil|sky)[,;:\s-]*)?/i,'').replace(/\b(?:busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea(?:r)?|busqueda web)\b/ig,'').replace(/^[,:;\s-]+/,'').trim();
             if (!term) {
                 const message='Dime qué quieres buscar. Por ejemplo: “busca en internet ficha técnica de cable THW”.';
                 setAnswer('Búsqueda en Internet',message,'Por seguridad Skill no ejecuta ni instala contenido de sitios externos.');
@@ -3446,12 +3506,12 @@
             setAnswer('Búsqueda en Internet',message,'Pulsa “Abrir búsqueda web” para revisar resultados en una pestaña nueva. La información externa no modifica datos del CRM.',[],{href,label:'Abrir búsqueda web'});
             return {handled:true,voice:message};
         }
-        if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve sky)\b/.test(norm)) {
+        if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve skill|para que sirve sky)\b/.test(norm)) {
             const message='Fui desarrollado para ayudar a Skilled Proyectos Industriales a consultar información, orientar procesos y resolver situaciones dentro de los apartados autorizados del CRM de una forma más rápida y natural.';
             setAnswer('Propósito de Skill', message, 'Puedo adaptar mis consultas al perfil activo y usar contexto de la conversación para entender preguntas de seguimiento.');
             return {handled:true,voice:message};
         }
-        if (/\b(presentate|preséntate|haz tu presentacion|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
+        if (/\b(presentate|preséntate|haz tu presentacion|presentacion de skill|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
             let cached={}; try{cached=JSON.parse(localStorage.getItem('skilled_profile_cache')||'null')||{}}catch(_){}
             const userName=text(window.SkilledSession?.profile?.nombre || cached.nombre || '').split(/\s+/)[0] || 'usuario';
             const profile=detectProfile();
@@ -3476,7 +3536,7 @@
             setAnswer('Sección actual', section, `Perfil: ${profileNames[detectProfile()] || detectProfile()}.`);
             return { handled:true, voice:message };
         }
-        if (/\b(atajo|como te activo|como activar sky|tecla para sky)\b/.test(norm)) {
+        if (/\b(atajo|como te activo|como activar skill|tecla para skill|como activar sky|tecla para sky)\b/.test(norm)) {
             const message=`Mi atajo es ${shortcutLabel}. Con Skill abierto, el mismo atajo inicia o termina la escucha.`;
             setAnswer('Atajo de Skill', shortcutLabel, 'Puedes usarlo desde cualquier sección que tenga Skill activo.');
             return { handled:true, voice:message };
@@ -3559,7 +3619,7 @@
         if (!isExecutiveReadProfile()) return null;
         const query=expandEntityAliases(stripWakeWord(raw));
         const searchTerms=executiveSearchTerms(query);
-        if (!text(query) || commandNormalize(query).split(' ').length===1 && /^(hola|gracias|sky)$/.test(commandNormalize(query))) return null;
+        if (!text(query) || commandNormalize(query).split(' ').length===1 && /^(hola|gracias|skill|skil|sky)$/.test(commandNormalize(query))) return null;
         let hits=[];
         if (typeof SkilledDB.searchExecutiveSky==='function') {
             try {
@@ -3886,10 +3946,26 @@
         return lines.join('\n').slice(0,5000);
     }
 
+    function visiblePageContext() {
+        const lines=[];
+        const title=text(document.querySelector('.profile-title,h1')?.textContent);
+        const subtitle=text(document.querySelector('.profile-subtitle')?.textContent);
+        const breadcrumb=[...document.querySelectorAll('.profile-breadcrumb a,.profile-breadcrumb span')].map(el=>text(el.textContent)).filter(Boolean).join(' > ');
+        if(title)lines.push(`Página visible: ${title}.`);
+        if(subtitle)lines.push(`Descripción visible: ${subtitle}.`);
+        if(breadcrumb)lines.push(`Ruta: ${breadcrumb}.`);
+        [...document.querySelectorAll('.profile-metric')].slice(0,8).forEach(card=>{const label=text(card.querySelector('.profile-metric-label,[class*="uppercase"]')?.textContent),value=text(card.querySelector('.profile-metric-value,[class*="text-lg"],[class*="text-xl"]')?.textContent);if(label||value)lines.push(`Indicador: ${label||'dato'} = ${value||'—'}.`)});
+        const active=document.querySelector('.quote-list-card.active,[aria-current="page"],.profile-list-item.active,.selected');
+        if(active){const value=text(active.textContent).replace(/\s+/g,' ').slice(0,700);if(value)lines.push(`Elemento seleccionado: ${value}.`)}
+        return lines.join('\n').slice(0,2600);
+    }
+
     async function answerGeneralAI(raw, profile = detectProfile()) {
         if (!window.SkilledDB?.askSkyGeneral) return null;
         try {
-            const crmContext=await buildRelevantCRMContext(raw,profile);
+            const recovered=await buildRelevantCRMContext(raw,profile);
+            const pageContext=visiblePageContext();
+            const crmContext=[recovered,pageContext].filter(Boolean).join('\n');
             const context = { lastIntent:conversationContext.lastIntent, lastEntity:conversationContext.lastEntity, lastQuery:conversationContext.lastQuery, area:conversationContext.area, turns:conversationContext.turns, page:currentPageKey(), crmContext };
             const result = await SkilledDB.askSkyGeneral(raw, { profile, context });
             const answer = text(result?.answer || result?.text);
@@ -3927,7 +4003,7 @@
             coordinacion:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`},{type:'Solicitud',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proyecto],title:o=>o.folio||o.descripcion||'Solicitud',detail:o=>o.estado||'Sin estado'}],
             logistica:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`}],
             administrador:[],
-            recepcion:[{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
+            recepcion:[{type:'Perfil',key:'reDirectory',fields:p=>[p.nombre_completo,p.puesto,p.departamento,p.rol],title:p=>p.nombre_completo||'Personal',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin área'}`},{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
             tsi:[
                 {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
                 commonProject
@@ -3960,7 +4036,7 @@
         if (isExecutiveReadProfile(profile)) return answerExecutiveGlobalSearch(raw);
         const q = expandEntityAliases(stripWakeWord(raw));
         const norm = commandNormalize(q);
-        if (norm.length < 2 || /^(hola|gracias|sky|si|no|ok|okay)$/.test(norm)) return null;
+        if (norm.length < 2 || /^(hola|gracias|skill|skil|sky|si|no|ok|okay)$/.test(norm)) return null;
         const configs = profileSmartSearchConfig(profile);
         if (!configs.length) return null;
         const hits=[];
@@ -4062,7 +4138,10 @@
             const result = await answerChatAction(raw, plan);
             return result?.voice || null;
         }
-        if (profile === 'recepcion') return null;
+        if (profile === 'recepcion') {
+            if (['reception','rh_people','help','unknown'].includes(plan.intent)) { const r=await answerReceptionPresenceAndAccess(queryText); if(r)return r.voice||null; const d=await answerReceptionDoorbell(queryText); return d?.voice||null; }
+            if (plan.intent !== 'chat_message') return null;
+        }
         if (plan.intent === 'meeting') {
             const result = await answerMeetingAction(queryText);
             return result?.voice || null;
@@ -4116,7 +4195,7 @@
             setAnswer('Hola, soy Skill',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
             return 'Hola. Soy Skill. Aún estoy en evolución, pero estoy lista para ayudarte. Dime qué necesitas resolver y lo intentamos juntos.';
         }
-        if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
+        if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de skill|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
             const chatText=profile==='recepcion'?'Puedo enviar avisos internos para informar quién está en la entrada, solicitar validación para abrir la puerta o avisar una entrega. No consulto información operativa de otros perfiles.':'También puedo enviar mensajes por el Chat interno y generar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';

@@ -137,7 +137,7 @@
         recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.sky-porteria.html','Skill Portería','shield'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
-        sky_demo:[{title:'Skill',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
+        sky_demo:[{title:'Skill',items:[['SKILL.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
         tsi:[{title:'TSI',items:[['TSI.inicio.html','Inicio','home'],['TSI.solicitudes-epp.html','Solicitar EPP','request'],['PAQ.paquetes-materiales.html?perfil=tsi','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=tsi','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['PAQ.paquetes-materiales.html?perfil=proyectos','Paquetes de materiales','box'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['PAQ.paquetes-materiales.html','Paquetes de materiales','box'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
@@ -1215,7 +1215,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=101');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=102');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1286,7 +1286,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         bindSkyTriggers();
         if (window.SkilledSky) {if(!document.getElementById('sky-open'))createLazySkyButton();return;}
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=101').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=102').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
             return;
         }
         if (!document.querySelector('script[src*="skilled-sky.js"]')) createLazySkyButton();

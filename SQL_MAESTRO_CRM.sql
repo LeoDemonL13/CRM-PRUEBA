@@ -9698,3 +9698,47 @@ on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 notify pgrst,'reload schema';
 commit;
+
+begin;
+
+create or replace function public.crm_skill_recepcion_directorio_v102()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+    v_role text;
+    v_result jsonb;
+begin
+    select lower(btrim(rol)) into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
+    if v_role not in ('recepcion','rh','gerente_general','subgerente','sky_demo') then
+        raise exception using errcode='42501',message='Tu perfil no puede consultar el directorio limitado de reconocimiento de Recepción.';
+    end if;
+    select coalesce(jsonb_agg(jsonb_build_object(
+        'id',p.id,
+        'nombre_completo',btrim(coalesce(p.nombre,'')),
+        'puesto',coalesce(p.puesto,''),
+        'departamento',coalesce(p.departamento,''),
+        'rol',coalesce(p.rol,''),
+        'foto_url',coalesce(p.foto_url,'')
+    ) order by coalesce(p.departamento,''),coalesce(p.nombre,'')),'[]'::jsonb)
+    into v_result
+    from public.perfiles_usuario p
+    where p.activo=true
+      and nullif(btrim(coalesce(p.nombre,'')),'') is not null
+      and lower(coalesce(p.rol,'')) not in ('sky_demo');
+    return coalesce(v_result,'[]'::jsonb);
+end;
+$$;
+
+revoke all on function public.crm_skill_recepcion_directorio_v102() from public,anon;
+grant execute on function public.crm_skill_recepcion_directorio_v102() to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V102-SKILL-RECEPCION-COTIZACIONES-2026-08-18',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;

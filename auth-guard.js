@@ -42,7 +42,7 @@
         finanzas: 'FI.inicio.html',
         gerente_general: 'GG.inicio.html',
         subgerente: 'SG.inicio.html',
-        sky_demo: 'SKY.inicio.html',
+        sky_demo: 'SKILL.inicio.html',
         tsi: 'TSI.inicio.html',
         proyectos: 'AL.proyectos.html',
         planeacion: 'PL.inicio.html',
