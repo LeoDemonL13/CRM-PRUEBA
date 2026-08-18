@@ -3,7 +3,7 @@
 const key='skilled_sky_demo_tools_v82',legacyKey='skilled_sky_demo_tools_v81';
 const defaults=[
 {name:'Java',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg',description:'Lógica estructurada y crecimiento de servicios cuando se requieran procesos adicionales.'},
-{name:'JavaScript',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',description:'Interfaz, validaciones, buscadores, Sky y conexión del frontend con Supabase.'},
+{name:'JavaScript',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',description:'Interfaz, validaciones, buscadores, Skill y conexión del frontend con Supabase.'},
 {name:'TypeScript',category:'Lenguaje',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg',description:'Funciones de servidor y procesos controlados en Supabase Edge Functions.'},
 {name:'SQL / PostgreSQL',category:'Base de datos',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg',description:'Consultas, vistas, funciones RPC, permisos y reglas de trazabilidad del CRM.'},
 {name:'HTML5',category:'Estructura',image:'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg',description:'Pantallas, formularios, tarjetas y navegación por perfil.'},

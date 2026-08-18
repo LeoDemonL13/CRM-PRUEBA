@@ -134,10 +134,10 @@
         planeacion:[{title:'Planeación',items:[['PL.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=planeacion','Proyectos','folder'],['PROY.importar.html?perfil=planeacion','Importar proyectos','delivery'],['AL.solicitudes-material.html?perfil=planeacion','Solicitudes','request'],['AL.reportes.html?perfil=planeacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=planeacion','Mi perfil','user']]}],
         coordinacion:[{title:'Coordinación',items:[['CR.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=coordinacion','Proyectos','folder'],['AL.solicitudes-material.html?perfil=coordinacion','Solicitudes','request'],['AL.vehiculos.html?perfil=coordinacion','Vehículos','vehicle'],['AL.reportes.html?perfil=coordinacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=coordinacion','Mi perfil','user']]}],
         logistica:[{title:'Logística',items:[['LG.inicio.html','Inicio','home'],['AL.vehiculos.html?perfil=logistica','Vehículos','vehicle'],['CO.entregas.html?perfil=logistica','Entregas','delivery'],['AL.proyectos.html?perfil=logistica','Proyectos','folder'],['AL.catalogo.html?perfil=logistica','Materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=logistica','Mi perfil','user']]}],
-        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.sky-porteria.html','Sky Portería','shield'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
+        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.sky-porteria.html','Skill Portería','shield'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
-        sky_demo:[{title:'Sky',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
+        sky_demo:[{title:'Skill',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
         tsi:[{title:'TSI',items:[['TSI.inicio.html','Inicio','home'],['TSI.solicitudes-epp.html','Solicitar EPP','request'],['PAQ.paquetes-materiales.html?perfil=tsi','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=tsi','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['PAQ.paquetes-materiales.html?perfil=proyectos','Paquetes de materiales','box'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['PAQ.paquetes-materiales.html','Paquetes de materiales','box'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
@@ -590,7 +590,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         finanzas: 'Finanzas',
         gerente_general: 'Gerencia General',
         subgerente: 'Subgerencia',
-        sky_demo: 'Sky · Presentación',
+        sky_demo: 'Skill · Presentación',
         tsi: 'TSI'
     };
 
@@ -1097,7 +1097,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const header=document.querySelector('body > div header, header');if(!header)return;
         let copy=header.querySelector('.skilled-mobile-header-copy');
         if(!copy){copy=document.createElement('div');copy.className='skilled-mobile-header-copy';const toggle=header.querySelector('[data-sidebar-mobile-toggle]');if(toggle?.nextSibling)header.insertBefore(copy,toggle.nextSibling);else if(toggle)header.appendChild(copy);else header.prepend(copy)}
-        const profileLabels={administrador:'Administración',jefe_almacen:'Jefe de Almacén',almacen:'Almacén',compras:'Compras',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerencia General',subgerente:'Subgerencia',sky_demo:'Sky · Presentación',tsi:'TSI',proyectos:'Proyectos',planeacion:'Planeación',coordinacion:'Coordinación',logistica:'Logística',recepcion:'Recepción',consulta:'Consulta'};
+        const profileLabels={administrador:'Administración',jefe_almacen:'Jefe de Almacén',almacen:'Almacén',compras:'Compras',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerencia General',subgerente:'Subgerencia',sky_demo:'Skill · Presentación',tsi:'TSI',proyectos:'Proyectos',planeacion:'Planeación',coordinacion:'Coordinación',logistica:'Logística',recepcion:'Recepción',consulta:'Consulta'};
         const profile=sidebarProfileKey();let section=currentFile().replace(/\.html?$/i,'').replace(/^[A-Z]{2}\./i,'').replace(/[._-]+/g,' ').trim();section=section?section.charAt(0).toUpperCase()+section.slice(1):'Inicio';
         const markup=`<strong>${safeHtml(profileLabels[profile]||'Skilled CRM')}</strong><span>${safeHtml(section)}</span>`;
         if(copy.innerHTML!==markup)copy.innerHTML=markup;
@@ -1215,7 +1215,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=100');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=101');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1237,8 +1237,8 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         button.id = 'sky-open';
         button.type = 'button';
         button.className = 'skilled-header-button skilled-sky-launcher';
-        button.title = 'Consultar Sky';
-        button.innerHTML = '<span class="skilled-sky-dot"></span><svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Sky</span><span class="skilled-sky-caption">Asistente</span>';
+        button.title = 'Consultar Skill';
+        button.innerHTML = '<span class="skilled-sky-dot"></span><svg fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>Skill</span><span class="skilled-sky-caption">Asistente</span>';
         button.addEventListener('click', async () => {
             button.disabled = true;
             button.remove();
@@ -1286,7 +1286,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         bindSkyTriggers();
         if (window.SkilledSky) {if(!document.getElementById('sky-open'))createLazySkyButton();return;}
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=100').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=101').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
             return;
         }
         if (!document.querySelector('script[src*="skilled-sky.js"]')) createLazySkyButton();

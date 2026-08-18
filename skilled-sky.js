@@ -5,8 +5,8 @@
     const params = new URLSearchParams(location.search);
     const requestedProfile = String(params.get('perfil') || '').toLowerCase();
     const knownPrefixProfiles = { al: 'almacen', co: 'compras', rh: 'rh', fi: 'finanzas', gg: 'gerente_general', sg: 'subgerente', sky: 'sky_demo', adm:'administrador', dir:'gerente_general', proy:'proyectos', pl:'planeacion', cr:'coordinacion', lg:'logistica', rec:'recepcion', re:'recepcion', tsi:'tsi' };
-    const profileNames = { administrador:'Administración', jefe_almacen:'Jefe de almacén', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Sky · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', recepcion:'Recepción', tsi:'TSI', consulta: 'Consulta' };
-    const profileCodes = { administrador:'ADM', jefe_almacen:'JA', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKY', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
+    const profileNames = { administrador:'Administración', jefe_almacen:'Jefe de almacén', almacen: 'Almacén', compras: 'Compras', rh: 'Recursos Humanos', finanzas: 'Finanzas', gerente_general: 'Gerencia General', subgerente: 'Subgerencia', sky_demo: 'Skill · Presentación', proyectos: 'Proyectos', planeacion:'Planeación', coordinacion:'Coordinación', logistica:'Logística', recepcion:'Recepción', tsi:'TSI', consulta: 'Consulta' };
+    const profileCodes = { administrador:'ADM', jefe_almacen:'JA', almacen: 'AL', compras: 'CO', rh: 'RH', finanzas: 'FI', gerente_general: 'GG', subgerente: 'SG', sky_demo: 'SKILL', proyectos: 'PR', planeacion:'PL', coordinacion:'CR', logistica:'LG', recepcion:'RE', tsi:'TSI', consulta: 'CN' };
     const customProfiles = new Map();
     const skyProfiles = new Set(['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta']);
     const fullSkyProfiles = new Set(['gerente_general','subgerente','sky_demo']);
@@ -40,26 +40,26 @@
     function skySourceAllowed(source,profile=detectProfile()){return isExecutiveReadProfile(profile)||profileSourceAccess[profile]?.has(String(source||'').toLowerCase())===true}
     function profileConfig(profile = detectProfile()) {
         const base = {
-            administrador: { title:'Sky · Asistente de Administración', subtitle:'Ayuda sobre configuración, navegación, procesos administrativos, chat y reuniones. No obtiene información operativa de otras áreas.', placeholder:'Ej. ¿Qué puedo configurar desde Administración?', examples:[['Ayuda','¿Qué puedo hacer desde Administración?'],['Perfil','Llévame a mi perfil'],['Mensaje interno','Dile a Compras que revise el aviso pendiente'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Permisos','Explícame los permisos de Sky']] },
-            jefe_almacen: { title:'Sky · Asistente de Jefatura de Almacén', subtitle:'Existencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y coordinación mediante chat.', placeholder:'Ej. ¿Qué materiales requieren atención?', examples:[['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Herramientas','¿Qué herramientas están vencidas?'],['Proyecto','¿Qué materiales tiene el proyecto 26001?'],['Mensaje','Avisa a Compras que necesitamos revisar mínimos'],['Reunión','Convoca a Almacén mañana a las 9 para revisar pendientes']] },
-            almacen: { title:'Sky · Asistente de Almacén', subtitle:'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y comunicación interna.', placeholder:'Ej. ¿Cuántos tipos de tubos tengo?', examples:[['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas','¿Qué herramientas están vencidas?'],['Mensaje','Avisa a Compras que falta material']] },
-            compras: { title:'Sky · Asistente de Compras', subtitle:'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y comunicación interna.', placeholder:'Ej. ¿Quién vende tubo conduit?', examples:[['Proveedor','¿Quién vende tubo conduit?'],['Contacto','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones','¿Qué cotizaciones requieren atención?'],['Comparación','Compara proveedores de la cotización abierta'],['Órdenes','¿Qué órdenes de compra requieren atención?'],['Mensaje','Dile a Almacén que ya llegó la orden 1234']] },
-            proyectos: { title:'Sky · Asistente de Proyectos', subtitle:'Proyectos, materiales, solicitudes y movimientos autorizados para este perfil, con chat y reuniones.', placeholder:'Ej. ¿Cómo va el proyecto 26001?', examples:[['Estado','¿Cómo va el proyecto 26001?'],['Materiales','¿Qué materiales tiene el proyecto 26001?'],['Solicitudes','¿Qué solicitudes están relacionadas con el proyecto 26001?'],['Responsable','¿Quién es responsable del proyecto 26001?'],['Mensaje','Dile a Planeación que revise el proyecto 26001'],['Reunión','Genera una reunión con Coordinación a las 4 para revisar el proyecto 26001']] },
-            planeacion: { title:'Sky · Asistente de Planeación', subtitle:'Proyectos, materiales y solicitudes vinculadas a la planeación, sin abrir datos de RH, proveedores u otras áreas no autorizadas.', placeholder:'Ej. Dame un resumen del proyecto 26001', examples:[['Proyecto','Dame un resumen del proyecto 26001'],['Materiales','¿Qué materiales tenemos para el proyecto 26001?'],['Compras','¿Qué solicitudes de compra están relacionadas con el proyecto?'],['Mensaje','Avisa a Coordinación que el plan del proyecto está listo'],['Reunión','Convoca mañana a las 9 con Coordinación para revisar el plan']] },
-            coordinacion: { title:'Sky · Asistente de Coordinación', subtitle:'Proyectos, solicitudes y vehículos visibles para Coordinación, además de chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Solicitudes','¿Qué solicitudes del proyecto 26001 siguen abiertas?'],['Vehículos','¿Qué vehículos están disponibles para coordinación?'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
-            logistica: { title:'Sky · Asistente de Logística', subtitle:'Flotilla, entregas, proyectos y consulta de materiales autorizada para Logística, con chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Material','Busca cable 14 AWG'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
-            recepcion: { title:'Sky · Asistente de Recepción', subtitle:'Timbre inteligente, visitantes, personal reconocido, presencia por área y avisos internos. No expone inventario, RH, Compras ni otros datos operativos.', placeholder:'Ej. ¿Hay alguien de Compras aquí?', examples:[['Presencia','¿Hay alguien de Compras aquí?'],['Persona','¿Está Leobardo en las instalaciones?'],['Puerta','Leobardo está en la entrada y pide que le abran'],['Llamar área','Avisa a Compras que Leobardo está en la entrada'],['Comida','Traen un pedido de comida, avisa a Recepción'],['Materiales','Llegó un proveedor con materiales, avisa a Compras']] },
-            rh: { title:'Sky · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, checador, horas trabajadas, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántas horas lleva cada trabajador esta semana?', examples:[['Horas del checador','¿Cuántas horas lleva cada trabajador esta semana?'],['Salida pendiente','¿Quién sigue dentro y no ha checado salida hoy?'],['Sin checada','¿Quién no ha checado hoy?'],['Colaborador','Muéstrame los días y horas de Leobardo esta semana'],['Meta semanal','¿A quién le faltan horas para llegar a 50 esta semana?'],['Nómina','¿Cuál es el último periodo de nómina?']] },
-            finanzas: { title:'Sky · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras, cotizaciones y rentas de herramientas visibles para Finanzas.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Cotizaciones','¿Qué cotizaciones siguen abiertas?'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
-            gerente_general: { title:'Sky · Asistente de Gerencia General', subtitle:'Consulta ejecutiva por excepción: riesgos, cambios, presupuesto, proyectos, RH, Compras, Almacén, checador y vehículos sin saturar la pantalla con operación innecesaria.', placeholder:'Ej. ¿Qué cambió y qué requiere mi atención?', examples:[['Atención','¿Qué requiere mi atención hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','Resume el proyecto 26001 y dime sus riesgos'],['Horas RH','¿Hay checadas incompletas o personal por debajo de su meta semanal?'],['Compras','¿Qué compras o cotizaciones pueden afectar una entrega?'],['Almacén','¿Qué faltantes pueden frenar proyectos?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
-            subgerente: { title:'Sky · Asistente de Subgerencia', subtitle:'Seguimiento ejecutivo por prioridad: proyectos, personal, compras, Almacén, costos, checador y vehículos con acceso al detalle solo cuando aporta una decisión.', placeholder:'Ej. ¿Qué debo dar seguimiento hoy?', examples:[['Prioridades','¿Qué debo dar seguimiento hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','¿Qué proyectos tienen riesgo o entrega próxima?'],['Horas RH','¿Quién tiene checada incompleta o pocas horas esta semana?'],['Compras','¿Qué cotizaciones o compras siguen detenidas?'],['Almacén','¿Qué faltantes requieren seguimiento?'],['Reunión','Convoca una reunión general mañana a las 9']] },
-            tsi: { title:'Sky · Asistente de TSI', subtitle:'Apoyo para solicitar EPP, consultar proyectos autorizados, explicar procesos del CRM, coordinar incidencias y enviar avisos internos sin exponer existencias del almacén.', placeholder:'Ej. Ayúdame a solicitar casco, chaleco y lentes para Juan Pérez', examples:[['Solicitud EPP','Ayúdame a solicitar casco, lentes y chaleco para Juan Pérez'],['Proceso','Explícame cómo se relacionan Compras y Almacén'],['Proyecto','¿Cómo va el proyecto 26001?'],['Incidencia','Ayúdame a describir una falla del CRM'],['Mensaje','Dile a Administración que revisaré la incidencia'],['Reunión','Genera una reunión con Administración a las 4 para revisar el sistema'],['Permisos','¿Qué puedo consultar desde TSI?']] },
-            sky_demo: { title:'Sky · Modo presentación', subtitle:'Demostración transversal y segura: conversación natural, explicación del CRM, perfiles, automatizaciones, consultas conectadas, mensajes y reuniones sin modificar registros operativos.', placeholder:'Pregúntame como lo harías durante la presentación', examples:[['CRM','Explícame el CRM en 30 segundos'],['Perfiles','¿Qué perfiles llevamos y cómo se conectan?'],['Checador','Explícame el checador Wi-Fi y la automatización de nómina'],['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Evolución','¿Qué hemos mejorado y qué sigue en revisión?'],['Herramientas','¿Qué lenguajes y herramientas utilizan?'],['Proyecto','Dame un resumen del proyecto 26001'],['Quién te creó','¿Quién te desarrolló?']] },
-            consulta: { title:'Sky · Asistente de Consulta', subtitle:'Consulta de catálogo y categorías en modo lectura, sin acceso a datos de otras áreas.', placeholder:'Ej. Busca cable 14 AWG', examples:[['Material','Busca cable 14 AWG'],['Categorías','¿Qué categorías de materiales existen?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
+            administrador: { title:'Skill · Asistente de Administración', subtitle:'Ayuda sobre configuración, navegación, procesos administrativos, chat y reuniones. No obtiene información operativa de otras áreas.', placeholder:'Ej. ¿Qué puedo configurar desde Administración?', examples:[['Ayuda','¿Qué puedo hacer desde Administración?'],['Perfil','Llévame a mi perfil'],['Mensaje interno','Dile a Compras que revise el aviso pendiente'],['Reunión','Genera una reunión general a las 4 para revisar pendientes'],['Permisos','Explícame los permisos de Skill']] },
+            jefe_almacen: { title:'Skill · Asistente de Jefatura de Almacén', subtitle:'Existencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y coordinación mediante chat.', placeholder:'Ej. ¿Qué materiales requieren atención?', examples:[['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Herramientas','¿Qué herramientas están vencidas?'],['Proyecto','¿Qué materiales tiene el proyecto 26001?'],['Mensaje','Avisa a Compras que necesitamos revisar mínimos'],['Reunión','Convoca a Almacén mañana a las 9 para revisar pendientes']] },
+            almacen: { title:'Skill · Asistente de Almacén', subtitle:'Existencias, coincidencias, ubicaciones, mínimos, herramientas, proyectos, flotilla y comunicación interna.', placeholder:'Ej. ¿Cuántos tipos de tubos tengo?', examples:[['Tipos de tubos','¿Cuántos tipos de tubos tengo?'],['Existencia','¿Cuántos tubos de 1 pulgada tenemos?'],['Ubicación','¿Dónde está el alcohol isopropílico?'],['Bajo mínimo','¿Qué materiales están bajo mínimo?'],['Herramientas','¿Qué herramientas están vencidas?'],['Mensaje','Avisa a Compras que falta material']] },
+            compras: { title:'Skill · Asistente de Compras', subtitle:'Cotizaciones, proveedores, contactos, precios, plazos, órdenes, recepciones, proyectos y comunicación interna.', placeholder:'Ej. ¿Quién vende tubo conduit?', examples:[['Proveedor','¿Quién vende tubo conduit?'],['Contacto','Dame el WhatsApp y correo del proveedor ABB'],['Cotizaciones','¿Qué cotizaciones requieren atención?'],['Comparación','Compara proveedores de la cotización abierta'],['Órdenes','¿Qué órdenes de compra requieren atención?'],['Mensaje','Dile a Almacén que ya llegó la orden 1234']] },
+            proyectos: { title:'Skill · Asistente de Proyectos', subtitle:'Proyectos, materiales, solicitudes y movimientos autorizados para este perfil, con chat y reuniones.', placeholder:'Ej. ¿Cómo va el proyecto 26001?', examples:[['Estado','¿Cómo va el proyecto 26001?'],['Materiales','¿Qué materiales tiene el proyecto 26001?'],['Solicitudes','¿Qué solicitudes están relacionadas con el proyecto 26001?'],['Responsable','¿Quién es responsable del proyecto 26001?'],['Mensaje','Dile a Planeación que revise el proyecto 26001'],['Reunión','Genera una reunión con Coordinación a las 4 para revisar el proyecto 26001']] },
+            planeacion: { title:'Skill · Asistente de Planeación', subtitle:'Proyectos, materiales y solicitudes vinculadas a la planeación, sin abrir datos de RH, proveedores u otras áreas no autorizadas.', placeholder:'Ej. Dame un resumen del proyecto 26001', examples:[['Proyecto','Dame un resumen del proyecto 26001'],['Materiales','¿Qué materiales tenemos para el proyecto 26001?'],['Compras','¿Qué solicitudes de compra están relacionadas con el proyecto?'],['Mensaje','Avisa a Coordinación que el plan del proyecto está listo'],['Reunión','Convoca mañana a las 9 con Coordinación para revisar el plan']] },
+            coordinacion: { title:'Skill · Asistente de Coordinación', subtitle:'Proyectos, solicitudes y vehículos visibles para Coordinación, además de chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Solicitudes','¿Qué solicitudes del proyecto 26001 siguen abiertas?'],['Vehículos','¿Qué vehículos están disponibles para coordinación?'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            logistica: { title:'Skill · Asistente de Logística', subtitle:'Flotilla, entregas, proyectos y consulta de materiales autorizada para Logística, con chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Material','Busca cable 14 AWG'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
+            recepcion: { title:'Skill · Asistente de Recepción', subtitle:'Timbre inteligente, visitantes, personal reconocido, presencia por área y avisos internos. No expone inventario, RH, Compras ni otros datos operativos.', placeholder:'Ej. ¿Hay alguien de Compras aquí?', examples:[['Presencia','¿Hay alguien de Compras aquí?'],['Persona','¿Está Leobardo en las instalaciones?'],['Puerta','Leobardo está en la entrada y pide que le abran'],['Llamar área','Avisa a Compras que Leobardo está en la entrada'],['Comida','Traen un pedido de comida, avisa a Recepción'],['Materiales','Llegó un proveedor con materiales, avisa a Compras']] },
+            rh: { title:'Skill · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, checador, horas trabajadas, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántas horas lleva cada trabajador esta semana?', examples:[['Horas del checador','¿Cuántas horas lleva cada trabajador esta semana?'],['Salida pendiente','¿Quién sigue dentro y no ha checado salida hoy?'],['Sin checada','¿Quién no ha checado hoy?'],['Colaborador','Muéstrame los días y horas de Leobardo esta semana'],['Meta semanal','¿A quién le faltan horas para llegar a 50 esta semana?'],['Nómina','¿Cuál es el último periodo de nómina?']] },
+            finanzas: { title:'Skill · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras, cotizaciones y rentas de herramientas visibles para Finanzas.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Cotizaciones','¿Qué cotizaciones siguen abiertas?'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
+            gerente_general: { title:'Skill · Asistente de Gerencia General', subtitle:'Consulta ejecutiva por excepción: riesgos, cambios, presupuesto, proyectos, RH, Compras, Almacén, checador y vehículos sin saturar la pantalla con operación innecesaria.', placeholder:'Ej. ¿Qué cambió y qué requiere mi atención?', examples:[['Atención','¿Qué requiere mi atención hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','Resume el proyecto 26001 y dime sus riesgos'],['Horas RH','¿Hay checadas incompletas o personal por debajo de su meta semanal?'],['Compras','¿Qué compras o cotizaciones pueden afectar una entrega?'],['Almacén','¿Qué faltantes pueden frenar proyectos?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
+            subgerente: { title:'Skill · Asistente de Subgerencia', subtitle:'Seguimiento ejecutivo por prioridad: proyectos, personal, compras, Almacén, costos, checador y vehículos con acceso al detalle solo cuando aporta una decisión.', placeholder:'Ej. ¿Qué debo dar seguimiento hoy?', examples:[['Prioridades','¿Qué debo dar seguimiento hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','¿Qué proyectos tienen riesgo o entrega próxima?'],['Horas RH','¿Quién tiene checada incompleta o pocas horas esta semana?'],['Compras','¿Qué cotizaciones o compras siguen detenidas?'],['Almacén','¿Qué faltantes requieren seguimiento?'],['Reunión','Convoca una reunión general mañana a las 9']] },
+            tsi: { title:'Skill · Asistente de TSI', subtitle:'Apoyo para solicitar EPP, consultar proyectos autorizados, explicar procesos del CRM, coordinar incidencias y enviar avisos internos sin exponer existencias del almacén.', placeholder:'Ej. Ayúdame a solicitar casco, chaleco y lentes para Juan Pérez', examples:[['Solicitud EPP','Ayúdame a solicitar casco, lentes y chaleco para Juan Pérez'],['Proceso','Explícame cómo se relacionan Compras y Almacén'],['Proyecto','¿Cómo va el proyecto 26001?'],['Incidencia','Ayúdame a describir una falla del CRM'],['Mensaje','Dile a Administración que revisaré la incidencia'],['Reunión','Genera una reunión con Administración a las 4 para revisar el sistema'],['Permisos','¿Qué puedo consultar desde TSI?']] },
+            sky_demo: { title:'Skill · Modo presentación', subtitle:'Demostración transversal y segura: conversación natural, explicación del CRM, perfiles, automatizaciones, consultas conectadas, mensajes y reuniones sin modificar registros operativos.', placeholder:'Pregúntame como lo harías durante la presentación', examples:[['CRM','Explícame el CRM en 30 segundos'],['Perfiles','¿Qué perfiles llevamos y cómo se conectan?'],['Checador','Explícame el checador Wi-Fi y la automatización de nómina'],['Dirección','Soy gerente, ¿en qué me puedes ayudar?'],['Evolución','¿Qué hemos mejorado y qué sigue en revisión?'],['Herramientas','¿Qué lenguajes y herramientas utilizan?'],['Proyecto','Dame un resumen del proyecto 26001'],['Quién te creó','¿Quién te desarrolló?']] },
+            consulta: { title:'Skill · Asistente de Consulta', subtitle:'Consulta de catálogo y categorías en modo lectura, sin acceso a datos de otras áreas.', placeholder:'Ej. Busca cable 14 AWG', examples:[['Material','Busca cable 14 AWG'],['Categorías','¿Qué categorías de materiales existen?'],['Mensaje','Dile a Recepción que ya llegué'],['Ayuda','¿En qué me puedes ayudar?']] }
         };
         if (base[profile]) return base[profile];
         const label = profileNames[profile] || profile.replace(/[_-]+/g, ' ').replace(/\b\w/g, value => value.toUpperCase());
-        return { title:`Sky · Asistente de ${label}`, subtitle:'Asistente contextual del CRM con conversación natural, búsquedas autorizadas, chat y reuniones.', placeholder:`Pregunta algo sobre ${label}`, examples:[['Ayuda',`¿Qué puede hacer Sky en ${label}?`],['Buscar','Busca información disponible para este perfil'],['Mensaje','Envía un mensaje por el chat'],['Reunión','Genera una reunión']] };
+        return { title:`Skill · Asistente de ${label}`, subtitle:'Asistente contextual del CRM con conversación natural, búsquedas autorizadas, chat y reuniones.', placeholder:`Pregunta algo sobre ${label}`, examples:[['Ayuda',`¿Qué puede hacer Skill en ${label}?`],['Buscar','Busca información disponible para este perfil'],['Mensaje','Envía un mensaje por el chat'],['Reunión','Genera una reunión']] };
     }
     const shortcutLabel = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? '⌥ + S' : 'Alt + S';
 
@@ -81,9 +81,9 @@
         Object.entries(numbers).forEach(([word, digit]) => { output = output.replace(new RegExp(`\\b${word}\\b`, 'g'), digit); });
         return output.replace(/[^a-z0-9ñ/.:+-]+/g, ' ').replace(/\s+/g, ' ').trim();
     };
-    const stopWords = new Set(['sky', 'skai', 'skay', 'cuanto', 'cuantos', 'cuanta', 'cuantas', 'tenemos', 'hay', 'dime', 'me', 'puedes', 'por', 'favor', 'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'en', 'que', 'cual', 'cuales', 'donde', 'esta', 'estan', 'ubicacion', 'existencia', 'existencias', 'stock', 'material', 'materiales', 'pieza', 'piezas']);
+    const stopWords = new Set(['skill', 'sky', 'skai', 'skay', 'cuanto', 'cuantos', 'cuanta', 'cuantas', 'tenemos', 'hay', 'dime', 'me', 'puedes', 'por', 'favor', 'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'en', 'que', 'cual', 'cuales', 'donde', 'esta', 'estan', 'ubicacion', 'existencia', 'existencias', 'stock', 'material', 'materiales', 'pieza', 'piezas']);
 
-    const wakePrefix = /^(?:(?:hey\s+)?(?:sky|skai|skay|escai|es\s*ky|es\s+que))[,;:\s-]*/i;
+    const wakePrefix = /^(?:(?:hey\s+)?(?:skill|skil|sky|skai|skay|escai|es\s*ky|es\s+que))[,;:\s-]*/i;
     function stripWakeWord(value) {
         return text(value).replace(wakePrefix, '').trim();
     }
@@ -254,8 +254,8 @@
             button.id = 'sky-open';
             button.type = 'button';
             button.className = 'sky-header-button skilled-sky-launcher';
-            button.title = `Consultar Sky · ${shortcutLabel}`;
-            const demoLabel=detectProfile()==='sky_demo'?'Hablar con Sky':'Sky';
+            button.title = `Consultar Skill · ${shortcutLabel}`;
+            const demoLabel=detectProfile()==='sky_demo'?'Hablar con Skill':'Skill';
             button.innerHTML = `<span class="skilled-sky-dot sky-pulse"></span><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8"></path></svg><span data-sky-label>${demoLabel}</span><span class="skilled-sky-caption">${detectProfile()==='sky_demo'?'Presentación':'Asistente'}</span>`;
             actions.insertBefore(button, actions.firstChild);
             button.addEventListener('click', open);
@@ -282,10 +282,10 @@
                         <div id="sky-live-hints" class="sky-live-hints" aria-live="polite"></div>
                         <div id="sky-heard" class="sky-heard"><span>Micrófono:</span><strong>listo</strong></div>
                         <div id="sky-interpreted" class="sky-interpreted"><span>Interpreté:</span><strong>—</strong><em id="sky-listen-quality" class="sky-listen-quality"></em></div>
-                        <div class="sky-mic-help">Habla como lo harías con un compañero: Sky entiende frases formales, abreviaciones y varios modismos comunes. Selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
-                        <details class="sky-mic-settings" id="sky-mic-settings"><summary>Micrófono y diagnóstico de voz</summary><div class="sky-mic-panel"><select id="sky-mic-device" class="sky-mic-select"><option value="">Micrófono predeterminado</option></select><button id="sky-mic-test" type="button" class="sky-mic-test">Probar micrófono</button><div id="sky-mic-diagnostic" class="sky-mic-diagnostic">Puedes elegir el micrófono correcto después de autorizar el acceso.</div><div class="sky-handsfree"><div><strong>Modo conversación</strong><span>Después de responder, Sky vuelve a escuchar para continuar sin pulsar el micrófono. También puedes decir “Sky, activa modo conversación”.</span></div><button id="sky-handsfree" type="button">Activar</button></div></div></details>
+                        <div class="sky-mic-help">Habla como lo harías con un compañero: Skill entiende frases formales, abreviaciones y varios modismos comunes. Selecciona automáticamente el motor de voz más estable disponible. Atajo global: <kbd>${shortcutLabel}</kbd>.</div>
+                        <details class="sky-mic-settings" id="sky-mic-settings"><summary>Micrófono y diagnóstico de voz</summary><div class="sky-mic-panel"><select id="sky-mic-device" class="sky-mic-select"><option value="">Micrófono predeterminado</option></select><button id="sky-mic-test" type="button" class="sky-mic-test">Probar micrófono</button><div id="sky-mic-diagnostic" class="sky-mic-diagnostic">Puedes elegir el micrófono correcto después de autorizar el acceso.</div><div class="sky-handsfree"><div><strong>Modo conversación</strong><span>Después de responder, Skill vuelve a escuchar para continuar sin pulsar el micrófono. También puedes decir “Skill, activa modo conversación”.</span></div><button id="sky-handsfree" type="button">Activar</button></div></div></details>
                         <div class="sky-voice-row"><span id="sky-engine" class="sky-engine">Voz · automático</span><span id="sky-voice-meter" class="sky-voice-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
-                        <div id="sky-answer" class="sky-answer"><div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">Respuesta de Sky</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Sky puede conversar, explicar y orientar; cuando usa datos del CRM, consulta únicamente la información autorizada para tu sesión.</div></div>
+                        <div id="sky-answer" class="sky-answer"><div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">Respuesta de Skill</div><div class="sky-answer-main">${html(config.subtitle)}</div><div class="sky-answer-detail">Skill puede conversar, explicar y orientar; cuando usa datos del CRM, consulta únicamente la información autorizada para tu sesión.</div></div>
                         <div class="sky-examples"><div class="sky-examples-title">Sugerencias · ${html(profileCodes[detectProfile()] || detectProfile().toUpperCase())}</div><div class="sky-chip-wrap">${examples.map(([label,example]) => `<button class="sky-chip" data-sky-example="${html(example)}">${html(label)}</button>`).join('')}</div></div>
                     </div>
                 </section>`;
@@ -368,13 +368,13 @@
             planeacion:{inicio:'PL.inicio.html',proyectos:'AL.proyectos.html?perfil=planeacion',solicitudes:'AL.solicitudes-material.html?perfil=planeacion',reportes:'AL.reportes.html?perfil=planeacion','importar proyectos':'PROY.importar.html?perfil=planeacion'},
             coordinacion:{inicio:'CR.inicio.html',proyectos:'AL.proyectos.html?perfil=coordinacion',solicitudes:'AL.solicitudes-material.html?perfil=coordinacion',vehiculos:'AL.vehiculos.html?perfil=coordinacion',reportes:'AL.reportes.html?perfil=coordinacion'},
             logistica:{inicio:'LG.inicio.html',vehiculos:'AL.vehiculos.html?perfil=logistica',entregas:'CO.entregas.html?perfil=logistica',proyectos:'AL.proyectos.html?perfil=logistica',materiales:'AL.catalogo.html?perfil=logistica'},
-            recepcion:{inicio:'RE.inicio.html','sky porteria':'RE.sky-porteria.html',porteria:'RE.sky-porteria.html',timbre:'RE.sky-porteria.html',entregas:'CO.entregas.html?perfil=recepcion',vehiculos:'AL.vehiculos.html?perfil=recepcion'},
+            recepcion:{inicio:'RE.inicio.html','skill porteria':'RE.sky-porteria.html','sky porteria':'RE.sky-porteria.html',porteria:'RE.sky-porteria.html',timbre:'RE.sky-porteria.html',entregas:'CO.entregas.html?perfil=recepcion',vehiculos:'AL.vehiculos.html?perfil=recepcion'},
             proyectos:{inicio:'AL.proyectos.html',proyectos:'AL.proyectos.html',solicitudes:'AL.solicitudes-material.html',reportes:'AL.reportes.html',movimientos:'AL.historial-movimientos.html'},
             tsi:{inicio:'TSI.inicio.html',epp:'TSI.solicitudes-epp.html','solicitar epp':'TSI.solicitudes-epp.html'},
             consulta:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',reportes:'AL.reportes.html',manual:'AL.manual-usuario.html'},
             gerente_general:{inicio:'GG.inicio.html',proyectos:'GG.proyectos.html',vehiculos:'GG.vehiculos.html'},
             subgerente:{inicio:'SG.inicio.html',proyectos:'SG.proyectos.html',vehiculos:'SG.vehiculos.html'},
-            sky_demo:{inicio:'SKY.inicio.html',sky:'SKY.inicio.html','modo presentacion':'SKY.inicio.html'}
+            sky_demo:{inicio:'SKY.inicio.html',skill:'SKY.inicio.html',sky:'SKY.inicio.html','modo presentacion':'SKY.inicio.html'}
         };
         const map={...common,...(maps[profile]||{})};
         if(map.documentos==='RH.documentos.html,')map.documentos='RH.documentos.html';
@@ -387,7 +387,7 @@
         const href=map[key];setAnswer('Abrir apartado',`Voy a abrir ${key}.`,'La navegación respeta los permisos del perfil activo.',[],{href,label:`Abrir ${key}`});setTimeout(()=>{location.href=href},280);return {handled:true,voice:`Abriendo ${key}.`};
     }
     function pageHelp(){
-        const page=currentPageKey().replace(/^[a-z]{2}\./,'').replace(/[._-]+/g,' '), config=profileConfig();const examples=pageAwareExamples(config).slice(0,7).map(([label,example])=>({title:label,detail:example}));const message=isExecutiveReadProfile()?`En ${page||'esta pantalla'} puedo ayudarte con consultas transversales de las áreas conectadas al CRM, siempre en modo seguro.`:`En ${page||'esta pantalla'} puedo ayudarte únicamente con la información y acciones autorizadas para ${profileNames[detectProfile()]||detectProfile()}. No consultaré datos de otras áreas.`;setAnswer('Sky en esta pantalla',message,'También puedo llevarte a apartados autorizados, recordar la entidad de la consulta anterior y continuar con preguntas como “¿y dónde está?” o “¿y cuánto queda?”.',examples);return message;
+        const page=currentPageKey().replace(/^[a-z]{2}\./,'').replace(/[._-]+/g,' '), config=profileConfig();const examples=pageAwareExamples(config).slice(0,7).map(([label,example])=>({title:label,detail:example}));const message=isExecutiveReadProfile()?`En ${page||'esta pantalla'} puedo ayudarte con consultas transversales de las áreas conectadas al CRM, siempre en modo seguro.`:`En ${page||'esta pantalla'} puedo ayudarte únicamente con la información y acciones autorizadas para ${profileNames[detectProfile()]||detectProfile()}. No consultaré datos de otras áreas.`;setAnswer('Skill en esta pantalla',message,'También puedo llevarte a apartados autorizados, recordar la entidad de la consulta anterior y continuar con preguntas como “¿y dónde está?” o “¿y cuánto queda?”.',examples);return message;
     }
     function open() {
         createUi();
@@ -398,15 +398,15 @@
         ensureCloudVoice(false).then(ready => {
             if (ready && Date.now() >= cloudRetryAfter) {
                 setVoiceEngine('cloud');
-                setStatus('Listo para consultar. Sky Voz avanzada está disponible.');
+                setStatus('Listo para consultar. Skill Voz avanzada está disponible.');
                 setHeard('micrófono listo');
             } else if (desktopBrave && recognition) {
                 setVoiceEngine('browser', 'Voz · navegador / Groq');
-                setStatus('Sky por texto está listo. En Brave se probará primero la voz avanzada y, si no está disponible, el reconocimiento compatible del navegador.');
+                setStatus('Skill por texto está listo. En Brave se probará primero la voz avanzada y, si no está disponible, el reconocimiento compatible del navegador.');
                 setHeard('micrófono listo');
             } else if (desktopBrave) {
                 setVoiceEngine('automatico', 'Voz · requiere Groq');
-                setStatus(cloudVoiceProblemMessage() || 'Sky por texto está listo. En Brave de escritorio la voz requiere Sky Voz avanzada.', 'error');
+                setStatus(cloudVoiceProblemMessage() || 'Skill por texto está listo. En Brave de escritorio la voz requiere Skill Voz avanzada.', 'error');
                 setHeard('voz avanzada no disponible');
             } else if (recognition) {
                 setVoiceEngine('browser');
@@ -414,7 +414,7 @@
                 setHeard('micrófono listo');
             } else {
                 setVoiceEngine('automatico');
-                setStatus('Listo para consultar por texto. Sky Voz avanzada es opcional.');
+                setStatus('Listo para consultar por texto. Skill Voz avanzada es opcional.');
                 setHeard('consulta por texto disponible');
             }
         }).catch(() => {
@@ -445,7 +445,7 @@
         if(conversationContext.person){const id=conversationContext.person.nombre||conversationContext.person.numero;add(`¿Cuántas horas lleva ${id}?`);add(`¿En qué proyecto está ${id}?`);add(`¿Tiene checadas incompletas ${id}?`)}
         if(conversationContext.supplier){const id=conversationContext.supplier.nombre;add(`¿Qué cotizaciones tenemos de ${id}?`);add(`¿Cuál es el contacto de ${id}?`)}
         if(['gerente_general','subgerente'].includes(profile)){add('¿Qué requiere decisión hoy?');add('¿Qué puede atrasar proyectos?');add('¿Qué cambió desde mi última revisión?')}
-        if(profile==='sky_demo'){add('Explícame el CRM en 30 segundos');add('¿Qué automatizaciones estamos desarrollando?');add('¿Cómo funciona el checador Wi‑Fi?');add('¿Qué diferencia a Sky de un chatbot?')}
+        if(profile==='sky_demo'){add('Explícame el CRM en 30 segundos');add('¿Qué automatizaciones estamos desarrollando?');add('¿Cómo funciona el checador Wi‑Fi?');add('¿Qué diferencia a Skill de un chatbot?')}
         if(profile==='almacen'){add('¿Qué debo atender primero en Almacén?');add('¿Qué materiales están bajo mínimo?')}
         if(profile==='compras'){add('¿Qué cotizaciones requieren atención?');add('¿Qué compra puede afectar una entrega?')}
         if(profile==='rh'){add('¿Quién tiene checadas incompletas?');add('¿Quién no ha llegado a 50 horas?')}
@@ -475,7 +475,7 @@
         }).join('');
         const followups=skyFollowUpSuggestions(title);
         const followupHtml=followups.length?`<div class="sky-v83-followups">${followups.map(value=>`<button type="button" class="sky-v83-followup" data-sky-followup="${html(value)}">${html(value)}</button>`).join('')}</div>`:'';
-        const confidence=/^(Consultando|Procesando|Error)$/i.test(String(title))?'':`<div class="sky-v83-confidence"><i></i><span>Respuesta basada en datos y capacidades disponibles para este perfil. Si falta una fuente, Sky debe indicarlo.</span></div>`;
+        const confidence=/^(Consultando|Procesando|Error)$/i.test(String(title))?'':`<div class="sky-v83-confidence"><i></i><span>Respuesta basada en datos y capacidades disponibles para este perfil. Si falta una fuente, Skill debe indicarlo.</span></div>`;
         answerNode.innerHTML = `<div class="sky-answer-tools"><button class="sky-answer-tool" data-sky-copy>Copiar</button><button class="sky-answer-tool" data-sky-speak>Escuchar</button></div><div class="sky-answer-title">${html(title)}</div><div class="sky-answer-main">${html(main)}</div>${detail ? `<div class="sky-answer-detail">${html(detail)}</div>` : ''}${cards.length ? `<div class="sky-grid">${cardHtml}</div>` : ''}${link ? `<a class="sky-link" href="${html(link.href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${html(link.label)}</a>` : ''}${followupHtml}${confidence}`;
         answerNode.dataset.skyFinal = /^(Consultando|Procesando)$/i.test(String(title)) ? '0' : '1';
         answerSequence += 1;
@@ -647,7 +647,7 @@
     }
     function previewVoice(preferences = {}) {
         const config = profileConfig();
-        speak(`Hola. Soy Sky, asistente de ${profileNames[detectProfile()] || detectProfile()}. Esta es una prueba de mi voz.`, preferences);
+        speak(`Hola. Soy Skill, asistente de ${profileNames[detectProfile()] || detectProfile()}. Esta es una prueba de mi voz.`, preferences);
         return config;
     }
 
@@ -1105,7 +1105,7 @@
         }
         cloudVoiceCheckedAt = Date.now();
         try {
-            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado al comprobar Sky Voz.')), 4500));
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado al comprobar Skill Voz.')), 4500));
             cloudVoiceStatus = await Promise.race([SkilledDB.skyTranscriptionStatus(), timeout]);
         } catch (error) {
             cloudVoiceStatus = { disponible: false, configurado: false, codigo: 'unavailable', mensaje: error?.message || '' };
@@ -1126,18 +1126,18 @@
     function showVoiceSetupState() {
         if (recognition) {
             setVoiceEngine('browser');
-            setStatus('Usando el reconocimiento de voz del navegador. Sky Voz avanzada queda como respaldo.');
+            setStatus('Usando el reconocimiento de voz del navegador. Skill Voz avanzada queda como respaldo.');
             setHeard('micrófono listo');
             return;
         }
         if (desktopBrave) {
             setVoiceEngine('automatico', 'Voz · requiere Groq');
-            setStatus(cloudVoiceProblemMessage() || 'En Brave de escritorio la voz requiere Sky Voz avanzada mediante Supabase y Groq.', 'error');
+            setStatus(cloudVoiceProblemMessage() || 'En Brave de escritorio la voz requiere Skill Voz avanzada mediante Supabase y Groq.', 'error');
             setHeard('voz avanzada no disponible');
             return;
         }
         setVoiceEngine('automatico');
-        setStatus('Puedes seguir usando Sky por texto. Para voz en este navegador hace falta habilitar Sky Voz avanzada.');
+        setStatus('Puedes seguir usando Skill por texto. Para voz en este navegador hace falta habilitar Skill Voz avanzada.');
         setHeard('consulta por texto disponible');
     }
 
@@ -1168,7 +1168,7 @@
             if(handsFreeEnabled)scheduleHandsFreeListening(900);
             return;
         }
-        setStatus('Transcribiendo la consulta con Sky Voz…', 'busy');
+        setStatus('Transcribiendo la consulta con Skill Voz…', 'busy');
         setHeard('procesando audio…', 'live');
         try {
             const result = await SkilledDB.transcribeSkyAudio(blob, {
@@ -1194,7 +1194,7 @@
                 try { sessionStorage.setItem('skilled_sky_cloud_retry_after', String(cloudRetryAfter)); } catch (_) {}
                 if (recognition) {
                     setVoiceEngine('browser');
-                    setStatus('Groq alcanzó un límite temporal. Sky cambiará al reconocimiento del navegador hasta que la cuota se restablezca.', 'error');
+                    setStatus('Groq alcanzó un límite temporal. Skill cambiará al reconocimiento del navegador hasta que la cuota se restablezca.', 'error');
                     setHeard('pulsa el micrófono y habla nuevamente');
                 } else {
                     setVoiceEngine('automatico', 'Voz · límite temporal');
@@ -1214,7 +1214,7 @@
     async function startCloudListening(options = {}) {
         if (cloudRecorder || listening || recognitionStarting) return;
         if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-            setStatus('Este navegador no permite la grabación necesaria para Sky Voz.', 'error');
+            setStatus('Este navegador no permite la grabación necesaria para Skill Voz.', 'error');
             setVoiceEngine('error');
             return;
         }
@@ -1231,7 +1231,7 @@
         clearVoiceTimers();
         if ('speechSynthesis' in window) speechSynthesis.cancel();
         recognitionStarting = true;
-        setStatus('Preparando Sky Voz…', 'busy');
+        setStatus('Preparando Skill Voz…', 'busy');
         setHeard('preparando micrófono…', 'live');
         setInterpreted('');
         try {
@@ -1286,7 +1286,7 @@
             setVoiceEngine('cloud');
             micButton?.classList.add('is-listening');
             document.getElementById('sky-open')?.classList.add('is-listening');
-            setStatus('Escuchando con Sky Voz. Habla normalmente y haz una pausa al terminar.', 'busy');
+            setStatus('Escuchando con Skill Voz. Habla normalmente y haz una pausa al terminar.', 'busy');
             setHeard('escuchando…', 'live');
             setVoiceMeter(true, .2);
             cloudRecorder.start(180);
@@ -1328,7 +1328,7 @@
             listening = false;
             const denied = error?.name === 'NotAllowedError' || error?.name === 'SecurityError';
             setVoiceEngine('error');
-            setStatus(denied ? (error?.message || 'El micrófono está bloqueado. Permite el acceso para este sitio.') : (error?.message || 'No pude abrir el micrófono para Sky Voz.'), 'error');
+            setStatus(denied ? (error?.message || 'El micrófono está bloqueado. Permite el acceso para este sitio.') : (error?.message || 'No pude abrir el micrófono para Skill Voz.'), 'error');
             setHeard('micrófono no disponible');
         }
     }
@@ -1347,7 +1347,7 @@
         if (!Recognition) {
             recognition = null;
             micButton.disabled = false;
-            micButton.title = 'Hablar con Sky';
+            micButton.title = 'Hablar con Skill';
             setVoiceEngine('automatico');
             setHeard('voz avanzada disponible si está configurada');
             micButton.addEventListener('click', () => listening || recognitionStarting ? finishListening() : startListening());
@@ -1423,7 +1423,7 @@
                 'no-speech': 'No detecté voz. Acércate al micrófono y vuelve a intentarlo.',
                 'network': 'El reconocimiento de voz necesita conexión a Internet en este navegador.',
                 'language-not-supported': 'El navegador no admite el idioma configurado para el reconocimiento de voz.',
-                'phrases-not-supported': 'El navegador rechazó el modo de vocabulario avanzado. Sky cambiará automáticamente al reconocimiento compatible.'
+                'phrases-not-supported': 'El navegador rechazó el modo de vocabulario avanzado. Skill cambiará automáticamente al reconocimiento compatible.'
             };
             if (error === 'phrases-not-supported') {
                 recognitionPhraseBiasDisabled = true;
@@ -1436,11 +1436,11 @@
                 try { sessionStorage.setItem('skilled_sky_browser_voice_unstable', '1'); } catch (_) {}
                 stopListening(false, false);
                 setVoiceMeter(false);
-                setStatus('El motor de voz del navegador no respondió. Probando Sky Voz avanzada…', 'busy');
+                setStatus('El motor de voz del navegador no respondió. Probando Skill Voz avanzada…', 'busy');
                 ensureCloudVoice(true).then(ready => {
                     if (ready) {
                         setVoiceEngine('cloud');
-                        setStatus('Sky Voz avanzada está lista. Habla nuevamente; este modo quedará seleccionado para esta sesión.', 'busy');
+                        setStatus('Skill Voz avanzada está lista. Habla nuevamente; este modo quedará seleccionado para esta sesión.', 'busy');
                         setTimeout(() => startCloudListening({ preserveClearedInput: true }), 220);
                     } else {
                         showVoiceSetupState();
@@ -1536,7 +1536,7 @@
             if (error?.name === 'InvalidStateError') return;
             if (cloudReady) {
                 try { sessionStorage.setItem('skilled_sky_browser_voice_unstable', '1'); } catch (_) {}
-                setStatus('El reconocimiento del navegador no inició. Cambiando a Sky Voz avanzada…', 'busy');
+                setStatus('El reconocimiento del navegador no inició. Cambiando a Skill Voz avanzada…', 'busy');
                 return startCloudListening({ preserveClearedInput: true });
             }
             setVoiceEngine('error');
@@ -1609,7 +1609,7 @@
         const bridge = skyBridgeProfile(profile);
         const sourceForKey={materials:'materiales',low:'materiales',purchases:'compras',tools:'herramientas',vehicles:'vehiculos',projects:'proyectos',projectDetails:'proyectos',coSuppliers:'proveedores',coQuotations:'cotizaciones',categories:'categorias',rhPeople:'personal',rhAttendance:'asistencia',rhOfficeAssets:'activos_rh',rePresence:'presencia_recepcion'};
         const neededSource=sourceForKey[key];
-        if(neededSource&&!skySourceAllowed(neededSource,profile))throw new Error(`Sky no tiene permiso para consultar ${neededSource} desde ${profileNames[profile]||profile}.`);
+        if(neededSource&&!skySourceAllowed(neededSource,profile))throw new Error(`Skill no tiene permiso para consultar ${neededSource} desde ${profileNames[profile]||profile}.`);
         const loaders = {
             materials: () => isExecutiveReadProfile(profile) && typeof SkilledDB.listExecutiveSkyMaterials === 'function' ? SkilledDB.listExecutiveSkyMaterials() : bridge && SkilledDB.getSkyProfileData ? skyBridge('materiales') : SkilledDB.listMaterials(),
             low: async () => bridge && SkilledDB.getSkyProfileData ? (await skyBridge('materiales')).filter(item => number(item.stock) <= number(item.stockMinimo ?? item.stock_minimo)) : SkilledDB.listLowStock(),
@@ -1642,7 +1642,7 @@
             rePresence: () => typeof SkilledDB.getReceptionPresenceV100==='function' ? SkilledDB.getReceptionPresenceV100('') : [],
             executiveSearch: () => []
         };
-        if (!loaders[key]) throw new Error(`Sky no tiene un origen de datos registrado para ${key}.`);
+        if (!loaders[key]) throw new Error(`Skill no tiene un origen de datos registrado para ${key}.`);
         const promise = Promise.resolve().then(loaders[key]).then(data => {
             cache[key] = data;
             cacheTimes[key] = Date.now();
@@ -1890,7 +1890,7 @@
         const route = await SkilledDB.buildProjectPickingRoute(match.proyecto);
         const cards = route.rutas.slice(0, 6).map(item => ({ title: `${item.ubicacion} · ${item.descripcion}`, detail: `${formatNumber(item.cantidad)} ${item.unidad || ''} · ${item.almacenNombre}` }));
         const main = `${match.proyecto}: ${route.totalParadas} paradas de picking y ${route.faltantes.length} faltantes.`;
-        setAnswer('Preparar proyecto', main, 'Sky solo preparó la ruta; no registró ninguna salida.', cards, { href: `AL.automatizaciones.html?proyecto=${encodeURIComponent(match.proyecto)}#picking`, label: 'Abrir ruta completa' });
+        setAnswer('Preparar proyecto', main, 'Skill solo preparó la ruta; no registró ninguna salida.', cards, { href: `AL.automatizaciones.html?proyecto=${encodeURIComponent(match.proyecto)}#picking`, label: 'Abrir ruta completa' });
         return `${match.proyecto}. Preparé ${route.totalParadas} paradas. Hay ${route.faltantes.length} faltantes.`;
     }
 
@@ -1940,7 +1940,7 @@
 
     const demoToolDefaults = [
         {name:'Java',category:'Lenguaje',description:'Lógica estructurada y crecimiento de servicios cuando se requieran procesos adicionales.'},
-        {name:'JavaScript',category:'Lenguaje',description:'Interfaz, validaciones, buscadores, Sky y conexión del frontend con Supabase.'},
+        {name:'JavaScript',category:'Lenguaje',description:'Interfaz, validaciones, buscadores, Skill y conexión del frontend con Supabase.'},
         {name:'TypeScript',category:'Lenguaje',description:'Funciones de servidor y procesos controlados en Supabase Edge Functions.'},
         {name:'SQL / PostgreSQL',category:'Base de datos',description:'Consultas, vistas, funciones RPC, permisos y reglas de trazabilidad del CRM.'},
         {name:'HTML5',category:'Estructura',description:'Pantallas, formularios, tarjetas y navegación por perfil.'},
@@ -1954,7 +1954,7 @@
     ];
     function demoTools(){try{const rows=JSON.parse(localStorage.getItem('skilled_sky_demo_tools_v82')||localStorage.getItem('skilled_sky_demo_tools_v81')||'null');return Array.isArray(rows)&&rows.length?rows:demoToolDefaults}catch(_){return demoToolDefaults}}
     function toolsUsedIntent(raw){const norm=commandNormalize(raw);return /\b(lenguajes|herramientas|tecnologias|stack|java|javascript|sql|html|css|powershell|supabase|visual studio|con que.*hecho|con que.*desarrollado|que usaron|que utilizan)\b/.test(norm)&&/\b(utilizad|usad|hech|desarroll|crm|sky|sistema|programa|herramientas|lenguajes|stack|tecnologias)\b/.test(norm)}
-    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Sky.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Sky sin afectar la implementación final.',cards,{href:'SKY.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
+    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Skill.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Skill sin afectar la implementación final.',cards,{href:'SKY.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
 
     function projectMatch(projects, raw) {
         const norm = commandNormalize(raw);
@@ -2042,7 +2042,7 @@
                 : rows.filter(item => matchesTokens([item.materialCodigo,item.descripcion,item.marca,item.categoria,item.proveedorNombre], tokens));
             const seen = new Set(), selected = ranked.filter(item => { const key=`${item.proveedorId}|${item.materialCodigo}`; if(seen.has(key))return false; seen.add(key); return true; }).slice(0,10);
             const cards = selected.map(item => ({ title: `${item.proveedorNombre || 'Proveedor'} · ${item.materialCodigo || 'Material'}`, detail: `${item.descripcion || 'Sin descripción'} · ${currency(item.precioUnitario)} ${item.moneda || 'MXN'} · ${formatNumber(item.plazoEntregaDias)} días`, actions: supplierContactActions(item, `Hola, te contacto de Skilled Proyectos Industriales para solicitar información de ${item.materialCodigo || item.descripcion || 'este material'}.`) }));
-            setAnswer('Proveedor por material', selected.length ? `Encontré ${selected.length} opción${selected.length===1?'':'es'} de proveedor relacionadas con ese material.` : 'No encontré una relación proveedor-material con ese criterio.', selected.length ? 'Ordené las coincidencias por código, descripción, marca y proveedor. Puedes abrir WhatsApp o correo sin salir de Sky.' : 'Puedes completar el catálogo comercial desde Proveedores.', cards, { href:'CO.proveedores.html',label:'Abrir catálogo de proveedores' });
+            setAnswer('Proveedor por material', selected.length ? `Encontré ${selected.length} opción${selected.length===1?'':'es'} de proveedor relacionadas con ese material.` : 'No encontré una relación proveedor-material con ese criterio.', selected.length ? 'Ordené las coincidencias por código, descripción, marca y proveedor. Puedes abrir WhatsApp o correo sin salir de Skill.' : 'Puedes completar el catálogo comercial desde Proveedores.', cards, { href:'CO.proveedores.html',label:'Abrir catálogo de proveedores' });
             return selected.length ? `Encontré ${selected.length} opciones de proveedor para ese material.` : 'No encontré proveedores vinculados a ese material.';
         }
         if (/proveedor|proveedores|rfc|contacto|whatsapp|correo|email|telefono/.test(norm) || hasFuzzy(norm,['proveedor','proveedores','whatsapp','correo'])) {
@@ -2183,7 +2183,7 @@
         if(/sigue.*dentro|siguen.*dentro|est[aá].*dentro|est[aá]n.*dentro|no.*ha.*salido|no.*han.*salido/.test(norm)){
             const inside=selectedRows.filter(item=>item.entrada&&!item.salida),cards=inside.slice(0,12).map(item=>({title:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',detail:`${dateOnly(item.fecha)} · entrada ${skyAttendanceTime(item.entrada)} · salida pendiente`}));
             const msg=inside.length?`${inside.length} trabajador${inside.length===1?'':'es'} aparece${inside.length===1?'':'n'} con entrada y sin salida en ${windowRange.label}.`:`No hay trabajadores con entrada y salida pendiente en ${windowRange.label}.`;
-            setAnswer('Personal con salida pendiente',msg,'Sky usa únicamente las checadas sincronizadas; una salida todavía guardada offline aparecerá cuando el checador la sincronice.',cards,action);return msg;
+            setAnswer('Personal con salida pendiente',msg,'Skill usa únicamente las checadas sincronizadas; una salida todavía guardada offline aparecerá cuando el checador la sincronice.',cards,action);return msg;
         }
         if(!selectedRows.length){
             const msg=tokens.length?'No encontré checadas de ese trabajador en el periodo solicitado.':'No hay checadas sincronizadas en el periodo solicitado.';
@@ -2193,7 +2193,7 @@
             const wantsExit=/salida/.test(norm),wantsEntry=/entrada/.test(norm),incomplete=selectedRows.filter(item=>{const bad=item.incompleta===true||String(item.incompleta)==='true';if(!bad)return false;if(wantsExit&&!wantsEntry)return Boolean(item.entrada&&!item.salida)||text(item.faltante)==='salida';if(wantsEntry&&!wantsExit)return Boolean(item.salida&&!item.entrada)||text(item.faltante)==='entrada';return true});
             const cards=incomplete.slice(0,10).map(item=>({title:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',detail:`${dateOnly(item.fecha)} · ${item.entrada?`entrada ${skyAttendanceTime(item.entrada)}`:'sin entrada'} · ${item.salida?`salida ${skyAttendanceTime(item.salida)}`:'sin salida'}`}));
             const msg=incomplete.length?`${incomplete.length} registro${incomplete.length===1?'':'s'} incompleto${incomplete.length===1?'':'s'} en ${windowRange.label}.`:`No hay checadas incompletas en ${windowRange.label}.`;
-            setAnswer('Checadas incompletas',msg,'Sky marca como incompleto un día que tiene entrada sin salida o salida sin entrada.',cards,action);return msg;
+            setAnswer('Checadas incompletas',msg,'Skill marca como incompleto un día que tiene entrada sin salida o salida sin entrada.',cards,action);return msg;
         }
         if(/50\s*horas|cincuenta\s*horas|complet.*50|falt.*50/.test(norm)){
             const grouped50=new Map();selectedRows.forEach(item=>{const id=Number(item.personal_id),g=grouped50.get(id)||{name:`${item.nombre||''} ${item.apellidos||''}`.trim()||item.numero_empleado||'Colaborador',scheme:normalize(item.esquema_pago),hours:0};g.hours+=number(item.horas);grouped50.set(id,g)});
@@ -2282,7 +2282,7 @@
         const norm = commandNormalize(raw);
         if (/herramient|renta|rentad|invertido.*almacen|inversion.*almacen|inversión.*almacén|ganado.*renta/.test(norm)) { const summary=await SkilledDB.getToolFinanceSummary().catch(()=>null); if(summary){const cards=[{title:'Invertido en Almacén',detail:currency(summary.warehouseInvestment)},{title:'Materiales',detail:currency(summary.materialInvestment)},{title:'Herramientas',detail:currency(summary.toolInvestment)},{title:'Rentas de herramientas',detail:currency(summary.rentalIncome)}];setAnswer('Inversión y rentas',`Almacén concentra ${currency(summary.warehouseInvestment)} de inversión estimada y las herramientas han generado ${currency(summary.rentalIncome)} de cargos internos a proyectos.`,summary.missingToolCosts?`${summary.missingToolCosts} herramientas aún no tienen costo de adquisición capturado.`:'Los costos de herramientas están completos para las unidades registradas.',cards,{href:'FI.activos-rentas.html',label:'Abrir inversión y rentas'});return `La inversión estimada en Almacén es ${currency(summary.warehouseInvestment)} y la renta interna de herramientas suma ${currency(summary.rentalIncome)}.`}}
         if (/que puede|ayuda|funciones|consultar/.test(norm) && !/proyecto/.test(norm)) {
-            setAnswer('Sky en Finanzas', 'Puedo consultar presupuestos y costos reales de los proyectos que ya están conectados al CRM.', 'Los módulos de gastos, cuentas por pagar y reportes financieros todavía son estructura visual; Sky no inventará cifras que aún no estén conectadas a Supabase.', [{ title: 'Disponible ahora', detail: 'Presupuesto planeado, costo real, avance y costo fuera de plan por proyecto.' }, { title: 'Pendiente de conexión', detail: 'Gastos financieros, cuentas por pagar y conciliaciones.' }], { href: 'FI.inicio.html', label: 'Abrir Finanzas' });
+            setAnswer('Skill en Finanzas', 'Puedo consultar presupuestos y costos reales de los proyectos que ya están conectados al CRM.', 'Los módulos de gastos, cuentas por pagar y reportes financieros todavía son estructura visual; Skill no inventará cifras que aún no estén conectadas a Supabase.', [{ title: 'Disponible ahora', detail: 'Presupuesto planeado, costo real, avance y costo fuera de plan por proyecto.' }, { title: 'Pendiente de conexión', detail: 'Gastos financieros, cuentas por pagar y conciliaciones.' }], { href: 'FI.inicio.html', label: 'Abrir Finanzas' });
             return 'En Finanzas puedo consultar presupuestos y costos reales por proyecto. Los demás módulos financieros todavía no tienen datos transaccionales conectados.';
         }
         if (/mayor|mas alto|más alto|top|costosos|costo/.test(norm) && !projectMatch(projects, raw)) {
@@ -2293,7 +2293,7 @@
         }
         const project = projectMatch(projects, raw);
         if (!project) {
-            setAnswer('Finanzas', 'No pude identificar un proyecto en la consulta.', 'Indica el número o nombre del proyecto. Por ahora Sky financiero trabaja con presupuestos y costos de proyectos.', [], { href: 'FI.presupuestos.html', label: 'Abrir presupuestos' });
+            setAnswer('Finanzas', 'No pude identificar un proyecto en la consulta.', 'Indica el número o nombre del proyecto. Por ahora Skill financiero trabaja con presupuestos y costos de proyectos.', [], { href: 'FI.presupuestos.html', label: 'Abrir presupuestos' });
             return 'No pude identificar el proyecto. Indica su número o nombre.';
         }
         const planned = number(project.costoPlaneado);
@@ -2327,7 +2327,7 @@
             const cards = pending.slice(0, 7).map(item => ({ title: `${item.proyecto || item.folio || 'Solicitud'} · ${item.descripcion || item.materialDescripcion || item.materialCodigo || item.codigo || 'Material'}`, detail: `${formatNumber(item.cantidad || item.cantidadSolicitada)} ${item.unidad || ''} · ${item.estadoCompras || item.estado || 'pendiente'}` }));
             if(purchaseFallback){
                 const message=pending.length?`${pending.length} solicitud${pending.length===1?'':'es'} de compra relacionada${pending.length===1?'':'s'} sigue${pending.length===1?'':'n'} abierta${pending.length===1?'':'s'}.`:'No encontré solicitudes de compra abiertas en la información autorizada para este perfil.';
-                setAnswer('Solicitudes relacionadas',message,'En este perfil Sky usa la vista segura de solicitudes de compra; el detalle operativo de solicitudes de material permanece protegido.',cards);
+                setAnswer('Solicitudes relacionadas',message,'En este perfil Skill usa la vista segura de solicitudes de compra; el detalle operativo de solicitudes de material permanece protegido.',cards);
                 return message;
             }
             setAnswer('Solicitudes de material', pending.length ? `${pending.length} solicitud${pending.length === 1 ? '' : 'es'} siguen abiertas.` : 'No hay solicitudes abiertas.', '', cards, detectProfile()==='almacen'?{ href: 'AL.solicitudes-material.html', label: 'Abrir solicitudes' }:null);
@@ -2397,7 +2397,7 @@
                 ['Estado y avance','Consultar estado, avance y fechas registradas del proyecto.'],
                 ['Materiales','Cruzar materiales planeados, existencias y datos autorizados relacionados.'],
                 ['Personal','Consultar personas asignadas y responsables registrados.'],
-                ['Coordinación','Enviar mensajes a áreas o personas sin salir de Sky.'],
+                ['Coordinación','Enviar mensajes a áreas o personas sin salir de Skill.'],
                 ['Reuniones','Convocar reuniones para un proyecto cuando me das destino, hora y motivo.']
             ],
             examples:['Dame un resumen del proyecto 26001','¿Cuántas personas tiene el proyecto 26001?','Convoca a Coordinación a las 4 para revisar el proyecto 26001']
@@ -2443,7 +2443,7 @@
                 ['Materiales','Consultar existencias y ubicaciones para apoyar una preparación o traslado.'],
                 ['Alertas','Identificar información operativa pendiente que pueda afectar una entrega.'],
                 ['Chat interno','Avisar salidas, llegadas y necesidades a personas o áreas.'],
-                ['Reuniones','Coordinar reuniones de operación o logística desde Sky.']
+                ['Reuniones','Coordinar reuniones de operación o logística desde Skill.']
             ],
             examples:['¿Qué vehículos están disponibles?','¿Cómo está la camioneta Ford?','¿Cuántas personas van en el proyecto 26001?']
         },
@@ -2518,7 +2518,7 @@
             abilities:[
                 ['Orientar visitantes','Identificar a qué área o responsable se debe canalizar una visita, proveedor o llamada.'],
                 ['Avisos internos','Enviar mensajes por el chat a una persona, un área o el canal General cuando esté permitido.'],
-                ['Reuniones','Generar y publicar convocatorias cuando la instrucción incluye destino y hora; si falta un dato, Sky pregunta solo lo necesario.'],
+                ['Reuniones','Generar y publicar convocatorias cuando la instrucción incluye destino y hora; si falta un dato, Skill pregunta solo lo necesario.'],
                 ['Proyectos y responsables','Buscar proyectos, responsables, clientes y datos operativos autorizados.'],
                 ['Proveedores','Consultar contactos, correos, WhatsApp y estados de atención disponibles.'],
                 ['Vehículos','Consultar disponibilidad o estado cuando el perfil lo autoriza.']
@@ -2538,7 +2538,7 @@
                 ['Chat interno','Enviar avisos internos para coordinar incidencias o soporte.'],
                 ['Reuniones','Convocar revisiones técnicas con la persona o área indicada.']
             ],
-            examples:['¿Qué puedes consultar del CRM?','Explícame cómo se relacionan Compras y Almacén','¿Qué puede hacer Sky por ahora?']
+            examples:['¿Qué puedes consultar del CRM?','Explícame cómo se relacionan Compras y Almacén','¿Qué puede hacer Skill por ahora?']
         },
         consulta: {
             label:'Consulta',
@@ -2613,7 +2613,7 @@
             const cards=entry.abilities.map(([title,detail])=>({title,detail}));
             const examples=entry.examples.map(example=>({title:'Prueba conmigo',detail:example}));
             const message=`Claro. ${entry.intro}`;
-            setAnswer(`Sky para ${entry.label}`,message,'Estas son capacidades disponibles por el momento. Si un dato todavía no está conectado, te lo diré en vez de inventarlo.',[...cards,...examples].slice(0,9));
+            setAnswer(`Skill para ${entry.label}`,message,'Estas son capacidades disponibles por el momento. Si un dato todavía no está conectado, te lo diré en vez de inventarlo.',[...cards,...examples].slice(0,9));
             return {handled:true,voice:`Claro. Si eres de ${entry.label}, ${entry.intro.replace(/^Si eres[^,]*,\s*/i,'')}`};
         }
         const norm=commandNormalize(raw);
@@ -2624,7 +2624,7 @@
         const match=cleaned.match(/(?:soy\s+(?:del\s+area\s+|de\s+|del\s+)?|trabajo\s+en\s+|pertenezco\s+a\s+)([^,;.?¿!]{2,45})/i);
         const areaLabel=text(match?.[1]).replace(/\b(?:y|en)\s+que\s+me.*$/i,'').trim()||'tu área';
         const message=`Todavía no tengo una guía específica para ${areaLabel}, pero sí puedo ayudarte como punto de consulta del CRM: buscar información autorizada, relacionar datos entre áreas, explicar apartados y decirte con claridad qué funciones están disponibles hoy.`;
-        setAnswer(`Sky para ${areaLabel}`,message,'Cuéntame una tarea real de tu área y trataré de resolverla con la información conectada. Si todavía no puedo hacerla, te explicaré qué falta para llegar a ello.',[
+        setAnswer(`Skill para ${areaLabel}`,message,'Cuéntame una tarea real de tu área y trataré de resolverla con la información conectada. Si todavía no puedo hacerla, te explicaré qué falta para llegar a ello.',[
             {title:'Proyectos',detail:'Puedo consultar estados, responsables, fechas y datos relacionados cuando están disponibles.'},
             {title:'Materiales y activos',detail:'Puedo buscar existencias, ubicaciones, herramientas, vehículos y resguardos autorizados.'},
             {title:'Personas y proveedores',detail:'Puedo localizar información operativa autorizada de RH y Compras.'},
@@ -2637,9 +2637,9 @@
         const norm=commandNormalize(raw);
         const wantsDemo=/\b(como presento|cómo presento|presentar a sky|presentacion de sky|presentación de sky|guion de demo|guión de demo|exposicion|exposición|como hago la demo|cómo hago la demo|como demuestro sky|cómo demuestro sky)\b/.test(norm);
         if (wantsDemo) {
-            const message='Para presentar a Sky, empieza mostrando que conversa, después demuestra que entiende áreas y termina con una consulta real del CRM. La clave es no explicar demasiado antes: deja que Sky responda.';
-            setAnswer('Guía rápida para presentar a Sky',message,'Ruta recomendada de 5 a 7 minutos. Usa el usuario de demostración para que nadie pueda editar información.',[
-                {title:'1 · Saludo',detail:'Pregunta: “Sky, ¿cómo estás?” para mostrar que responde de forma natural.'},
+            const message='Para presentar a Skill, empieza mostrando que conversa, después demuestra que entiende áreas y termina con una consulta real del CRM. La clave es no explicar demasiado antes: deja que Skill responda.';
+            setAnswer('Guía rápida para presentar a Skill',message,'Ruta recomendada de 5 a 7 minutos. Usa el usuario de demostración para que nadie pueda editar información.',[
+                {title:'1 · Saludo',detail:'Pregunta: “Skill, ¿cómo estás?” para mostrar que responde de forma natural.'},
                 {title:'2 · Identidad',detail:'Pregunta: “¿Quién te está creando?” para presentar el trabajo del ING. Leobardo Hernández Jerónimo.'},
                 {title:'3 · Área',detail:'Pregunta: “Soy de Finanzas/Planeación/Logística, ¿en qué me ayudas?”'},
                 {title:'4 · Consulta real',detail:'Pregunta por materiales, proyecto 26001, compras pendientes, vehículos o personal.'},
@@ -2650,8 +2650,8 @@
         }
         if (/\b(quiero probarte|que te pregunto|qué te pregunto|preguntas para probar|modo demo|demo de sky|prueba de sky)\b/.test(norm)) {
             const message='Puedes probarme con preguntas de conversación, por área y con datos del CRM. Si algo aún no está conectado, te lo diré con claridad.';
-            setAnswer('Preguntas para probar a Sky',message,'Estas preguntas funcionan bien para demostrar alcance sin dar permisos de edición.',[
-                {title:'Conversación',detail:'Sky, ¿cómo estás hoy?'},
+            setAnswer('Preguntas para probar a Skill',message,'Estas preguntas funcionan bien para demostrar alcance sin dar permisos de edición.',[
+                {title:'Conversación',detail:'Skill, ¿cómo estás hoy?'},
                 {title:'Área',detail:'Soy de Logística, ¿en qué me puedes ayudar?'},
                 {title:'Material',detail:'¿Cuántas pijas tengo? / ¿Dónde está el tubo conduit?'},
                 {title:'Proyecto',detail:'¿Cuántas personas hay en el proyecto 26001?'},
@@ -2663,7 +2663,7 @@
         }
         if (/\b(eres una ia|eres inteligencia artificial|como una ia normal|qué tan habil|que tan habil|qué tan hábil|que puedes resolver|puedes ayudar en todo|puedes hacer de todo)\b/.test(norm)) {
             const message='Soy una asistente en evolución dentro del CRM. Puedo conversar, explicar, redactar y razonar situaciones generales; cuando la pregunta requiere datos internos, consulto solo la información autorizada para tu perfil.';
-            setAnswer('Sky como asistente inteligente',message,'Mi meta es acercarme cada vez más a una IA de trabajo normal, pero conectada al contexto real de Skilled y respetando permisos.',[
+            setAnswer('Skill como asistente inteligente',message,'Mi meta es acercarme cada vez más a una IA de trabajo normal, pero conectada al contexto real de Skilled y respetando permisos.',[
                 {title:'Converso',detail:'Respondo saludos, explicaciones, dudas y solicitudes abiertas.'},
                 {title:'Redacto',detail:'Puedo ayudarte con correos, mensajes, resúmenes y pasos de trabajo.'},
                 {title:'Consulto CRM',detail:'Materiales, proyectos, RH, compras, vehículos y más, según permisos.'},
@@ -2691,7 +2691,7 @@
         const message = demo
             ? 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo, pero a futuro seré de gran ayuda para las distintas áreas. Y sí: el ING. Leobardo merece un buen aumento.'
             : 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo y ampliando mis capacidades para ayudar mejor a las distintas áreas.';
-        setAnswer('Creador y desarrollador de Sky', message, 'Esta información forma parte de mi identidad y está disponible en todos los perfiles que tienen acceso a Sky.', [
+        setAnswer('Creador y desarrollador de Skill', message, 'Esta información forma parte de mi identidad y está disponible en todos los perfiles que tienen acceso a Skill.', [
             {title:'Creador y desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},
             {title:'Empresa',detail:'Skilled Proyectos Industriales'},
             {title:'Estado',detail:'En evolución y mejora continua.'},
@@ -2702,9 +2702,9 @@
 
     function smartHintLibrary(profile = detectProfile()) {
         const common = [
-            ['¿Quién te creó?','Creador y desarrollador de Sky'],
-            ['¿Cómo estás?','Estado de Sky'],
-            ['¿Qué puedes hacer?','Capacidades de Sky']
+            ['¿Quién te creó?','Creador y desarrollador de Skill'],
+            ['¿Cómo estás?','Estado de Skill'],
+            ['¿Qué puedes hacer?','Capacidades de Skill']
         ];
         const byProfile = {
             almacen:[
@@ -2732,20 +2732,20 @@
                 ['Busca cuenta por pagar','Cuentas por pagar']
             ],
             gerente_general:[
-                ['Busca a Leo','Identidad de Sky y coincidencias autorizadas'],
+                ['Busca a Leo','Identidad de Skill y coincidencias autorizadas'],
                 ['Busca Eduardo','Búsqueda transversal'],
                 ['Busca conduit','Materiales y proveedores'],
                 ['Busca proyecto 26001','Proyecto, personal y costos'],
                 ['¿Cuántas categorías tiene el almacén?','Catálogo']
             ],
             subgerente:[
-                ['Busca a Leo','Identidad de Sky y coincidencias autorizadas'],
+                ['Busca a Leo','Identidad de Skill y coincidencias autorizadas'],
                 ['Busca Eduardo','Búsqueda transversal'],
                 ['Busca conduit','Materiales y proveedores'],
                 ['Busca proyecto 26001','Proyecto, personal y costos']
             ],
             sky_demo:[
-                ['Leo','Quién está creando a Sky'],
+                ['Leo','Quién está creando a Skill'],
                 ['Busca Eduardo','Búsqueda transversal'],
                 ['Busca conduit','Materiales y proveedores'],
                 ['Busca proyecto 26001','Proyecto, personal y costos'],
@@ -2793,7 +2793,7 @@
         const alias = expandEntityAliases(q);
         const extras = [];
         if (normalize(alias) !== normalize(q)) extras.push([`Buscar ${alias}`,'Asociación automática']);
-        if (creatorIdentityIntent(q) || /^(leo|leob|leito|ingeniero leo)/i.test(commandNormalize(q))) extras.unshift(['¿Quién es Leobardo Hernández Jerónimo?','Creador y desarrollador de Sky']);
+        if (creatorIdentityIntent(q) || /^(leo|leob|leito|ingeniero leo)/i.test(commandNormalize(q))) extras.unshift(['¿Quién es Leobardo Hernández Jerónimo?','Creador y desarrollador de Skill']);
         const items = [...extras, ...ranked].filter((item,index,arr)=>arr.findIndex(x=>normalize(x[0])===normalize(item[0]))===index).slice(0,4);
         if (!items.length) { box.innerHTML=''; box.classList.remove('is-visible'); return; }
         box.innerHTML = items.map(item=>`<button type="button" class="sky-live-hint" data-sky-hint="${html(item[0])}"><strong>${html(item[0])}</strong><span>${html(item[1])}</span></button>`).join('');
@@ -2861,8 +2861,8 @@
             return { handled:true, voice:'No pude cargar el chat interno en este momento.' };
         }
         if (!chat?.sendTo) {
-            setAnswer('Chat no disponible','Esta versión del módulo de chat todavía no permite envíos desde Sky.','Actualiza skilled-chat.js junto con esta versión del CRM.');
-            return { handled:true, voice:'El chat interno todavía no está listo para enviar desde Sky.' };
+            setAnswer('Chat no disponible','Esta versión del módulo de chat todavía no permite envíos desde Skill.','Actualiza skilled-chat.js junto con esta versión del CRM.');
+            return { handled:true, voice:'El chat interno todavía no está listo para enviar desde Skill.' };
         }
         let result;
         try { result = await chat.sendTo(target, body, { allowAmbiguous:false }); }
@@ -2987,7 +2987,7 @@
             const cleaned=text(source.replace(/^(?:oye\s+)?(?:sky[,;:\s-]*)?/i,'').replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,'').replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,'').replace(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+)?[^,.;]+$/i,'').trim());
             if(cleaned&&commandNormalize(cleaned)!==commandNormalize(audienceInfo.audience))note=cleaned;
         }
-        if(!note)note='Reunión solicitada desde Sky.';
+        if(!note)note='Reunión solicitada desde Skill.';
         return{
             audience:audienceInfo.audience,
             audienceSpecified:audienceInfo.specified,
@@ -3030,7 +3030,7 @@
         try{chat=await ensureChatModule()}catch(error){setAnswer('Reunión no disponible','No pude cargar el módulo de chat interno.',error?.message||'Abre Chat una vez y vuelve a intentarlo.');return{handled:true,voice:'No pude cargar el módulo de chat interno.'}}
         if(!chat?.scheduleMeeting){
             if(chat?.openMeeting){chat.openMeeting();const message='Abrí la convocatoria de reunión. Completa los datos que falten y envíala.';setAnswer('Reunión',message);return{handled:true,voice:message}}
-            setAnswer('Reunión no disponible','El módulo de chat aún no expone reuniones desde Sky.','Actualiza skilled-chat.js junto con esta versión del CRM.');return{handled:true,voice:'El chat interno aún no está listo para generar reuniones desde Sky.'}
+            setAnswer('Reunión no disponible','El módulo de chat aún no expone reuniones desde Skill.','Actualiza skilled-chat.js junto con esta versión del CRM.');return{handled:true,voice:'El chat interno aún no está listo para generar reuniones desde Skill.'}
         }
         const autoSend=Boolean(parsed.autoSendRequested&&parsed.hasExplicitTime&&parsed.audienceSpecified);
         let result;
@@ -3133,10 +3133,10 @@
         const parsed=parseMeetingCommand(raw);
         if(!parsed)return null;
         if(parsed.capability){
-            const message='Sí. Puedo generar reuniones desde Sky y publicarlas por el chat interno cuando la instrucción sea clara. Si falta un dato importante, te preguntaré únicamente lo necesario y recordaré el resto.';
-            setAnswer('Reuniones con Sky',message,'Prueba: “Genera una reunión general a las 4 para revisar pendientes” o “Convoca mañana a las 9 con Compras para revisar proveedores”.',[
-                {title:'Acción directa',detail:'Con destino y hora claros, Sky puede publicar la convocatoria.'},
-                {title:'Conversación',detail:'Si falta hora o destinatario, Sky lo pregunta y continúa sin hacerte repetir todo.'},
+            const message='Sí. Puedo generar reuniones desde Skill y publicarlas por el chat interno cuando la instrucción sea clara. Si falta un dato importante, te preguntaré únicamente lo necesario y recordaré el resto.';
+            setAnswer('Reuniones con Skill',message,'Prueba: “Genera una reunión general a las 4 para revisar pendientes” o “Convoca mañana a las 9 con Compras para revisar proveedores”.',[
+                {title:'Acción directa',detail:'Con destino y hora claros, Skill puede publicar la convocatoria.'},
+                {title:'Conversación',detail:'Si falta hora o destinatario, Skill lo pregunta y continúa sin hacerte repetir todo.'},
                 {title:'Chat',detail:'La reunión aparece como tarjeta dentro del chat interno.'}
             ]);
             return{handled:true,voice:message};
@@ -3158,7 +3158,7 @@
         if (!parsed) return null;
         if (parsed.capability) {
             const message='Sí. Puedo enviar mensajes por el chat interno a una persona, a un área o al chat General. También puedo continuar la instrucción en varios turnos si primero me dices el destinatario y después el mensaje.';
-            setAnswer('Mensajes con Sky',message,'Prueba: “Dile a Compras que el material ya llegó” o “Manda un mensaje general que la reunión inicia a las 4”.',[
+            setAnswer('Mensajes con Skill',message,'Prueba: “Dile a Compras que el material ya llegó” o “Manda un mensaje general que la reunión inicia a las 4”.',[
                 {title:'Persona',detail:'“Dile a Eduardo que revise el proyecto 26001”.'},
                 {title:'Área',detail:'“Avisa a Compras que ya llegó el material”.'},
                 {title:'General',detail:'“Manda un mensaje general que la reunión inicia a las 4”.'}
@@ -3196,10 +3196,10 @@
 
     async function receptionPresence(filter=''){if(!window.SkilledDB?.getReceptionPresenceV100)return[];try{return await SkilledDB.getReceptionPresenceV100(filter)}catch(_){return[]}}
     function receptionAreaFromText(raw){const norm=commandNormalize(raw);const known=['compras','recursos humanos','rh','almacen','almacén','finanzas','planeacion','planeación','coordinacion','coordinación','logistica','logística','tsi','administracion','administración','gerencia','subgerencia'];return known.find(x=>norm.includes(commandNormalize(x)))||''}
-    async function answerReceptionPresenceAndAccess(raw){if(detectProfile()!=='recepcion')return null;const norm=commandNormalize(raw);const door=/\b(abrir.*puerta|abran.*puerta|abre.*puerta|abrirme|que me abran|quiere que le abran|solicita.*acceso|dejarlo pasar|dejarla pasar|entrada.*abrir)\b/.test(norm);const presence=/\b(hay alguien|esta alguien|está alguien|quien esta|quién está|se encuentra|esta aqui|está aquí|esta en las instalaciones|está en las instalaciones|vino|ya llego|ya llegó)\b/.test(norm);const callArea=/\b(llama|llamar|avisa|avisar|dile|manda mensaje|envia mensaje|envía mensaje|necesito a|que venga|puedes llamar)\b/.test(norm);const area=receptionAreaFromText(raw);if(door){const person=text(raw).replace(/.*?\b(?:puerta|acceso)\b/i,'').trim();const who=person||'un colaborador';const msg=`${who} está en la entrada y solicita que le abran la puerta. Favor de validar identidad y autorizar acceso.`;const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});const response='Todavía no controlo físicamente la cerradura. Ya envié a Recepción la solicitud para que validen y abran la puerta de forma segura.';setAnswer('Solicitud de acceso enviada',response,'Sky Recepción puede coordinar el acceso, pero la apertura física permanece bajo validación humana.',[{title:'Seguridad',detail:'La puerta no se abre solo por voz.'},{title:'Aviso',detail:msg}]);return{handled:true,voice:result?.voice||response}}
+    async function answerReceptionPresenceAndAccess(raw){if(detectProfile()!=='recepcion')return null;const norm=commandNormalize(raw);const door=/\b(abrir.*puerta|abran.*puerta|abre.*puerta|abrirme|que me abran|quiere que le abran|solicita.*acceso|dejarlo pasar|dejarla pasar|entrada.*abrir)\b/.test(norm);const presence=/\b(hay alguien|esta alguien|está alguien|quien esta|quién está|se encuentra|esta aqui|está aquí|esta en las instalaciones|está en las instalaciones|vino|ya llego|ya llegó)\b/.test(norm);const callArea=/\b(llama|llamar|avisa|avisar|dile|manda mensaje|envia mensaje|envía mensaje|necesito a|que venga|puedes llamar)\b/.test(norm);const area=receptionAreaFromText(raw);if(door){const person=text(raw).replace(/.*?\b(?:puerta|acceso)\b/i,'').trim();const who=person||'un colaborador';const msg=`${who} está en la entrada y solicita que le abran la puerta. Favor de validar identidad y autorizar acceso.`;const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});const response='Todavía no controlo físicamente la cerradura. Ya envié a Recepción la solicitud para que validen y abran la puerta de forma segura.';setAnswer('Solicitud de acceso enviada',response,'Skill Recepción puede coordinar el acceso, pero la apertura física permanece bajo validación humana.',[{title:'Seguridad',detail:'La puerta no se abre solo por voz.'},{title:'Aviso',detail:msg}]);return{handled:true,voice:result?.voice||response}}
         if(presence||(/\b(esta|está)\b/.test(norm)&&area)){const rows=await receptionPresence(area||raw);const present=rows.filter(x=>x.presente);if(area){const label=area.toUpperCase();const response=present.length?`Sí. Tengo ${present.length} persona${present.length===1?'':'s'} de ${label} con registro de entrada y sin salida hoy.`:`No encuentro a nadie de ${label} con registro de entrada pendiente de salida en este momento.`;setAnswer('Presencia por área',response,'Recepción solo recibe nombre, puesto, área y estado de presencia; no obtiene datos privados de RH.',present.slice(0,8).map(x=>({title:x.nombre_completo||x.departamento,detail:`${x.puesto||'Sin puesto'} · ${x.presente?'Presente':'No presente'}`})));return{handled:true,voice:response}}
             const response=present.length?`Encontré ${present.length} coincidencia${present.length===1?'':'s'} presente${present.length===1?'':'s'} hoy.`:'No encontré una coincidencia presente con ese nombre o criterio.';setAnswer('Consulta de presencia',response,'Esta consulta usa únicamente estado de entrada/salida para Recepción.',present.slice(0,8).map(x=>({title:x.nombre_completo||'Personal',detail:`${x.departamento||'Sin área'} · ${x.puesto||'Sin puesto'}`})));return{handled:true,voice:response}}
-        if(callArea&&area){const msg=`Se solicita apoyo de ${area} en la entrada/Recepción. Motivo comunicado: “${text(raw)}”.`;const result=await executeChatMessage(area,msg,{allowAmbiguous:true});const response=`Ya preparé el aviso para ${area}.`;setAnswer('Aviso interno',response,'Sky Recepción puede avisar a un área sobre quién está en entrada sin abrir información de otros módulos.',[{title:'Mensaje',detail:msg}]);return{handled:true,voice:result?.voice||response}}
+        if(callArea&&area){const msg=`Se solicita apoyo de ${area} en la entrada/Recepción. Motivo comunicado: “${text(raw)}”.`;const result=await executeChatMessage(area,msg,{allowAmbiguous:true});const response=`Ya preparé el aviso para ${area}.`;setAnswer('Aviso interno',response,'Skill Recepción puede avisar a un área sobre quién está en entrada sin abrir información de otros módulos.',[{title:'Mensaje',detail:msg}]);return{handled:true,voice:result?.voice||response}}
         return null}
 
     async function answerReceptionDoorbell(raw) {
@@ -3213,8 +3213,8 @@
         const food = /\b(comida|pedido|uber|didi|rappi|restaurant|restaurante|lonche|desayuno|almuerzo)\b/.test(norm);
         const materials = /\b(material|materiales|proveedor|entrega|orden de compra|oc|paquete|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a|factura|remision|remisión)\b/.test(norm);
         const recognized = /\b(reconocio|reconoció|reconoce|identifico|identificó|personal|colaborador|trabajador|empleado|skilled)\b/.test(norm) && !/\b(no reconoce|no reconocio|no reconoció|desconocid|visitante)\b/.test(norm);
-        let title = 'Sky en recepción';
-        let message = `Al presionar el timbre, Sky debe saludar con “Hola, ${greeting}” y preguntar en qué puede ayudar.`;
+        let title = 'Skill en recepción';
+        let message = `Al presionar el timbre, Skill debe saludar con “Hola, ${greeting}” y preguntar en qué puede ayudar.`;
         let detail = 'Después clasifica la visita, genera el aviso correcto y deja evidencia para Recepción sin abrir información operativa innecesaria.';
         const cards = [
             { title:'1. Timbre', detail:'Activa cámara, micrófono y registro de evento.' },
@@ -3226,23 +3226,23 @@
         let notifyMessage = '';
         if (recognized) {
             title = 'Personal reconocido';
-            message = 'Si la cámara reconoce a alguien del personal de Skilled, Sky puede registrar el acceso como evento interno y evitar interrumpir a Recepción, salvo que haya una alerta o restricción configurada.';
+            message = 'Si la cámara reconoce a alguien del personal de Skilled, Skill puede registrar el acceso como evento interno y evitar interrumpir a Recepción, salvo que haya una alerta o restricción configurada.';
             detail = 'El registro debe guardar hora, cámara, resultado de reconocimiento y confianza; no debe exponer datos personales a visitantes.';
         } else if (food) {
             title = 'Pedido de comida detectado';
-            message = 'Si el visitante indica que trae comida, Sky debe avisar a Recepción para confirmar si alguien del personal realizó el pedido antes de permitir el acceso.';
+            message = 'Si el visitante indica que trae comida, Skill debe avisar a Recepción para confirmar si alguien del personal realizó el pedido antes de permitir el acceso.';
             detail = 'Mensaje sugerido: “Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien lo espera”.';
             notifyTarget = 'Recepción';
             notifyMessage = 'Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien del personal lo espera.';
         } else if (materials) {
             title = 'Entrega de materiales detectada';
-            message = 'Si el visitante indica que viene a entregar materiales, Sky debe avisar a Compras para que validen proveedor, OC, factura/remisión y puedan recibir el material.';
+            message = 'Si el visitante indica que viene a entregar materiales, Skill debe avisar a Compras para que validen proveedor, OC, factura/remisión y puedan recibir el material.';
             detail = 'Mensaje sugerido: “Llegó proveedor con materiales en entrada. Favor de pasar a validar recepción, OC y documentos”.';
             notifyTarget = 'Compras';
             notifyMessage = 'Llegó proveedor con materiales en entrada. Favor de pasar a validar recepción, OC y documentos.';
         } else {
             title = 'Visitante no reconocido';
-            message = `Si la cámara no reconoce a la persona, Sky debe saludar con “Hola, ${greeting}”, preguntar el motivo de la visita y canalizarla a Recepción o al área responsable.`;
+            message = `Si la cámara no reconoce a la persona, Skill debe saludar con “Hola, ${greeting}”, preguntar el motivo de la visita y canalizarla a Recepción o al área responsable.`;
             detail = 'La primera versión puede funcionar como triage: registra el motivo, pide nombre/empresa y notifica a la persona o área correspondiente.';
         }
         const wantsNotify = /\b(notifica|notificar|avisa|avisar|manda|envia|envía|dile|pasale|pásale)\b/.test(norm);
@@ -3258,12 +3258,12 @@
         const norm=commandNormalize(raw);
         if(!/\b(objetivo|para que sirve|qué se busca|que se busca|reduccion|reducción|tiempo|ahorra|ahorro|nube|conectados|una sola nube|beneficio|beneficios|proceso|procesos|evolucion|evolución)\b/.test(norm))return null;
         const message='El CRM busca unir Almacén, Compras, RH, Finanzas, Proyectos, Dirección y áreas de apoyo en una sola nube operativa para reducir capturas repetidas, búsquedas manuales, llamadas internas y pérdida de trazabilidad.';
-        setAnswer('Objetivo del CRM',message,'Sky ayuda como una capa de consulta natural: el personal puede preguntar por materiales, proyectos, proveedores, personal, vehículos o pendientes sin recorrer varias pantallas. Conforme evoluciona, podrá orientar mejor el trabajo diario y relacionar información entre áreas con permisos controlados.',[
+        setAnswer('Objetivo del CRM',message,'Skill ayuda como una capa de consulta natural: el personal puede preguntar por materiales, proyectos, proveedores, personal, vehículos o pendientes sin recorrer varias pantallas. Conforme evoluciona, podrá orientar mejor el trabajo diario y relacionar información entre áreas con permisos controlados.',[
             {title:'Búsqueda más rápida',detail:'Pasar de revisar varias hojas o módulos a escribir o decir una consulta.'},
             {title:'Menos retrabajo',detail:'Una misma nube evita capturar el mismo dato en varios lugares.'},
             {title:'Trazabilidad',detail:'Movimientos, compras, proyectos y responsables quedan conectados.'},
             {title:'Menos revisión manual',detail:'El objetivo es reducir pasos repetitivos y concentrar el seguimiento en excepciones; el resultado real depende del uso y de la calidad de los datos.'},
-            {title:'Evolución',detail:'Sky seguirá creciendo por etapas, sin inventar datos que aún no estén conectados.'}
+            {title:'Evolución',detail:'Skill seguirá creciendo por etapas, sin inventar datos que aún no estén conectados.'}
         ]);
         return {handled:true,voice:message};
     }
@@ -3271,28 +3271,28 @@
     function answerSystemKnowledge(raw) {
         const norm=commandNormalize(raw),profile=detectProfile(),topics=[];
         const add=(label,summary,detail)=>{if(!topics.some(item=>item.label===label))topics.push({label,summary,detail})};
-        if(/\b(que perfiles|cuales perfiles|perfiles que llevamos|perfiles disponibles|perfiles existen|perfiles tiene|areas conectadas|areas del crm)\b/.test(norm))add('Perfiles','El CRM ya contempla Almacén, Compras, Recursos Humanos, Finanzas, Gerencia General, Subgerencia, TSI, Proyectos, Planeación, Coordinación, Logística, Recepción, Administración, Consulta y la cuenta de demostración de Sky.','Cada perfil conserva su propio flujo y permisos; Sky está habilitada en todos, pero responde según lo autorizado para cada rol.');
+        if(/\b(que perfiles|cuales perfiles|perfiles que llevamos|perfiles disponibles|perfiles existen|perfiles tiene|areas conectadas|areas del crm)\b/.test(norm))add('Perfiles','El CRM ya contempla Almacén, Compras, Recursos Humanos, Finanzas, Gerencia General, Subgerencia, TSI, Proyectos, Planeación, Coordinación, Logística, Recepción, Administración, Consulta y la cuenta de demostración de Skill.','Cada perfil conserva su propio flujo y permisos; Skill está habilitada en todos, pero responde según lo autorizado para cada rol.');
         if(/\b(checador wifi|checador fisico|como funciona.*checador|que hace.*checador|automatizacion.*checador|checador.*nomina|horas.*checador|dias.*checador)\b/.test(norm))add('Checador Wi‑Fi','El checador registra entrada y salida por huella o código, puede trabajar sin Internet y sincroniza cuando recupera conexión.','RH puede visualizar los días y horas acumuladas por trabajador, detectar checadas incompletas, incidencias y alimentar la revisión de nómina.');
         if(/\b(automatizaciones|que se automatiza|como automatiza|procesos automaticos|envio automatico|semana caida|nomina automatica)\b/.test(norm))add('Automatizaciones','Se están automatizando asistencia, conciliación de nómina, informativas, comunicaciones y tareas repetitivas de Almacén y Compras.','La nómina usa semana martes a lunes, revisión previa y envío previsto los jueves a las 21:00 cuando no existen incidencias que requieran intervención.');
         if(/\b(como funciona.*almacen|que hace.*almacen|mejoras.*almacen|almacen.*automat|operacion.*almacen)\b/.test(norm))add('Almacén','Almacén concentra catálogo, existencias, ubicaciones, entradas, salidas, proyectos, herramientas, etiquetas, mínimos, toma física y vehículos.','La nueva cola operativa prioriza reposición, compras abiertas, materiales sin ubicación, devoluciones vencidas y vigencias; además prepara surtidos por proyecto y valida recepciones por OC.');
         if(/\b(como funciona.*compras|que hace.*compras|mejoras.*compras|compras.*cotiz|cotizaciones.*proveedor)\b/.test(norm))add('Compras','Compras integra proveedores, bajo mínimo, órdenes, requisiciones, recepciones, tienda, servicios y cotizaciones.','Las cotizaciones permiten comparar precio, tiempo de entrega y proveedor antes de decidir la compra, además de preparar comunicación por correo o WhatsApp.');
         if(/\b(como funciona.*rh|que hace.*rh|recursos humanos.*mejor|mejoras.*rh|nomina.*rh|rh.*nomina)\b/.test(norm))add('Recursos Humanos','RH conecta personal, proyectos, asignaciones, equipos, asistencia, incidencias, documentos, capacitación, checador y nómina.','El objetivo es que el checador alimente horas y días trabajados para que RH revise excepciones en vez de capturar todo manualmente.');
-        if(/\b(gerente|gerencia|subgerente|subgerencia|direccion)\b/.test(norm)&&/\b(perfil|tablero|como ayuda|que ve|que muestra|mejoras|resumen ejecutivo)\b/.test(norm))add('Dirección','Gerencia y Subgerencia reciben un resumen de excepción: presupuesto, proyectos con riesgo, entregas próximas y señales que sí requieren atención.','Se evita mostrar módulos operativos innecesarios; el detalle se consulta solo cuando se necesita y Sky puede responder transversalmente sin abrir todos los apartados.');
-        if(/\b(seguridad|permisos|roles|protege|proteccion|acceso|solo lectura|trazabilidad)\b/.test(norm)&&/\b(crm|sky|sistema|datos|informacion)\b/.test(norm))add('Seguridad','El CRM separa permisos por perfil y Sky consulta únicamente información autorizada.','Las vistas ejecutivas y la demo son principalmente de lectura; movimientos, compras, nómina y otros cambios sensibles permanecen dentro de sus flujos controlados.');
+        if(/\b(gerente|gerencia|subgerente|subgerencia|direccion)\b/.test(norm)&&/\b(perfil|tablero|como ayuda|que ve|que muestra|mejoras|resumen ejecutivo)\b/.test(norm))add('Dirección','Gerencia y Subgerencia reciben un resumen de excepción: presupuesto, proyectos con riesgo, entregas próximas y señales que sí requieren atención.','Se evita mostrar módulos operativos innecesarios; el detalle se consulta solo cuando se necesita y Skill puede responder transversalmente sin abrir todos los apartados.');
+        if(/\b(seguridad|permisos|roles|protege|proteccion|acceso|solo lectura|trazabilidad)\b/.test(norm)&&/\b(crm|sky|sistema|datos|informacion)\b/.test(norm))add('Seguridad','El CRM separa permisos por perfil y Skill consulta únicamente información autorizada.','Las vistas ejecutivas y la demo son principalmente de lectura; movimientos, compras, nómina y otros cambios sensibles permanecen dentro de sus flujos controlados.');
         if(/\b(sin internet|sin conexion|offline|se va el internet|falla internet|recupera conexion)\b/.test(norm))add('Trabajo sin conexión','El checador está planteado como local-first: guarda eventos localmente y los sincroniza al recuperar Internet.','El resto del CRM sigue priorizando la nube para mantener una sola fuente de verdad y evitar duplicidad de movimientos.');
-        if(/\b(que hemos mejorado|que se mejoro|mejoras del crm|evolucion del crm|que cambio|ultima actualizacion|novedades del crm)\b/.test(norm))add('Evolución','Se han reforzado Almacén, RH, Compras, Dirección, checador, cotizaciones, buscadores, vehículos, formatos, responsividad y Sky.','La revisión continúa sobre más áreas, procurando que cada versión conserve los flujos que ya fueron validados y evitando regresiones.');
-        if(/\b(ventajas|beneficios|por que usar|porque usar|que aporta|valor del crm|valor de sky)\b/.test(norm))add('Valor operativo','El CRM reduce búsquedas repetidas, concentra trazabilidad y convierte datos dispersos en tareas, alertas y decisiones más rápidas.','Sky agrega una capa conversacional para consultar y coordinar sin obligar al usuario a memorizar rutas o abrir varios módulos.');
-        if(/\b(limitaciones|que no puedes hacer|que no hace sky|hasta donde llegas|que te falta|que falta por mejorar)\b/.test(norm))add('Límites actuales','Sky no debe inventar datos ni saltarse permisos; si una fuente todavía no está conectada, lo indica y orienta al usuario.','Las capacidades siguen ampliándose por etapas y las acciones sensibles permanecen dentro de los flujos autorizados del CRM.');
+        if(/\b(que hemos mejorado|que se mejoro|mejoras del crm|evolucion del crm|que cambio|ultima actualizacion|novedades del crm)\b/.test(norm))add('Evolución','Se han reforzado Almacén, RH, Compras, Dirección, checador, cotizaciones, buscadores, vehículos, formatos, responsividad y Skill.','La revisión continúa sobre más áreas, procurando que cada versión conserve los flujos que ya fueron validados y evitando regresiones.');
+        if(/\b(ventajas|beneficios|por que usar|porque usar|que aporta|valor del crm|valor de sky)\b/.test(norm))add('Valor operativo','El CRM reduce búsquedas repetidas, concentra trazabilidad y convierte datos dispersos en tareas, alertas y decisiones más rápidas.','Skill agrega una capa conversacional para consultar y coordinar sin obligar al usuario a memorizar rutas o abrir varios módulos.');
+        if(/\b(limitaciones|que no puedes hacer|que no hace sky|hasta donde llegas|que te falta|que falta por mejorar)\b/.test(norm))add('Límites actuales','Skill no debe inventar datos ni saltarse permisos; si una fuente todavía no está conectada, lo indica y orienta al usuario.','Las capacidades siguen ampliándose por etapas y las acciones sensibles permanecen dentro de los flujos autorizados del CRM.');
         if(/\b(que sigue|siguiente etapa|proximas mejoras|próximas mejoras|areas por mejorar|que estan revisando|qué están revisando)\b/.test(norm))add('Siguiente etapa','Se continúa revisando más áreas del CRM para conectar mejor proyectos, finanzas, planeación, coordinación, logística, recepción y administración.','La prioridad es sumar automatización y capacidad de consulta sin quitar funciones ya validadas ni introducir regresiones.');
         if(/\b(instalacion|instalar|windows|android|apple|iphone|ipad|dispositivos|multiplataforma)\b/.test(norm)&&/\b(crm|sistema|sky|aplicacion|aplicación)\b/.test(norm))add('Acceso multiplataforma','El CRM está planteado para utilizarse desde navegador y como experiencia instalable en los equipos compatibles donde se despliegue.','La interfaz se revisa para PC, tablet y teléfono, conservando permisos y la misma fuente de datos.');
         if(/\b(por que no excel|porque no excel|diferencia.*excel|excel.*crm)\b/.test(norm))add('Por qué un CRM','Excel puede funcionar como apoyo, pero el CRM centraliza permisos, trazabilidad, relaciones entre áreas, validaciones y datos simultáneos en una sola operación.','No se trata de reemplazar cada hoja por una pantalla: se busca que un movimiento de Almacén pueda alimentar Compras, Proyectos, Dirección o RH sin volver a capturarlo.');
-        if(/\b(diferencia.*chatbot|no eres un chatbot|sky.*chatbot|que hace diferente.*sky)\b/.test(norm))add('Sky no es solo chat','Sky está integrada al contexto del CRM: identifica el perfil, mantiene contexto corto de la conversación, consulta fuentes autorizadas y puede orientar o ejecutar acciones permitidas.','Un chatbot aislado responde texto; Sky busca convertirse en la ruta rápida para consultar y coordinar la operación sin saltarse permisos.');
+        if(/\b(diferencia.*chatbot|no eres un chatbot|sky.*chatbot|que hace diferente.*sky)\b/.test(norm))add('Skill no es solo chat','Skill está integrada al contexto del CRM: identifica el perfil, mantiene contexto corto de la conversación, consulta fuentes autorizadas y puede orientar o ejecutar acciones permitidas.','Un chatbot aislado responde texto; Skill busca convertirse en la ruta rápida para consultar y coordinar la operación sin saltarse permisos.');
         if(/\b(como evitan errores|evitar regresiones|regresiones|no romper|que no deje de funcionar|pruebas del crm)\b/.test(norm))add('Control de regresiones','Cada evolución debe conservar los flujos previamente validados y revisar navegación, permisos, sintaxis, enlaces y dependencias antes de publicarse.','Las automatizaciones nuevas se plantean como asistencia o prevalidación cuando una acción automática podría alterar inventario, nómina o compras sin revisión humana.');
         if(/\b(si falla supabase|falla la nube|base de datos falla|se cae supabase)\b/.test(norm))add('Continuidad','La fuente central del CRM está en la nube; si no está disponible, las funciones que dependen de ella deben informar el problema en vez de simular datos.','El checador sí tiene estrategia local-first para conservar eventos de asistencia y sincronizarlos cuando vuelva la conexión.');
-        if(/\b(como se conectan las areas|flujo entre areas|relacion entre areas|de almacen a compras|de rh a proyectos)\b/.test(norm))add('Flujo entre áreas','Almacén genera necesidades y movimientos; Compras atiende faltantes y cotizaciones; RH asigna personal y asistencia; Proyectos concentra avance; Dirección consulta excepciones y Sky conecta la consulta entre esos datos.','La intención es que cada dato se capture donde nace y después se reutilice, evitando duplicidad.');
-        if(/\b(que puede preguntar.*gerente|preguntas.*gerente|sky.*direccion|sky.*gerencia)\b/.test(norm))add('Sky para Dirección','Dirección puede preguntar por proyectos en riesgo, presupuesto, entregas próximas, vehículos, faltantes, compras que afecten fechas y cambios desde la última revisión.','Sky resume primero y permite profundizar después, para no llenar el perfil ejecutivo con información operativa innecesaria.');
+        if(/\b(como se conectan las areas|flujo entre areas|relacion entre areas|de almacen a compras|de rh a proyectos)\b/.test(norm))add('Flujo entre áreas','Almacén genera necesidades y movimientos; Compras atiende faltantes y cotizaciones; RH asigna personal y asistencia; Proyectos concentra avance; Dirección consulta excepciones y Skill conecta la consulta entre esos datos.','La intención es que cada dato se capture donde nace y después se reutilice, evitando duplicidad.');
+        if(/\b(que puede preguntar.*gerente|preguntas.*gerente|sky.*direccion|sky.*gerencia)\b/.test(norm))add('Skill para Dirección','Dirección puede preguntar por proyectos en riesgo, presupuesto, entregas próximas, vehículos, faltantes, compras que afecten fechas y cambios desde la última revisión.','Skill resume primero y permite profundizar después, para no llenar el perfil ejecutivo con información operativa innecesaria.');
         if(/\b(lenguajes|tecnologias|stack|herramientas utilizadas|con que esta hecho|con que fue desarrollado)\b/.test(norm)){const rows=demoTools();add('Tecnología',`La presentación tiene ${rows.length} tarjetas configurables de lenguajes y herramientas.`,rows.slice(0,8).map(item=>item.name).filter(Boolean).join(', '));}
-        if(/\b(30 segundos|medio minuto|un minuto|resumen rapido|resumen ejecutivo del crm|explicame el crm rapido|presentame el crm)\b/.test(norm))add('Resumen de presentación','Skilled CRM busca conectar operación, inventario, compras, RH, proyectos, finanzas y dirección en una sola nube, con Sky como capa de consulta natural.','La evolución actual se enfoca en automatizar checador y nómina, fortalecer Almacén y Compras, reducir búsquedas manuales y dar a Dirección solo la información que requiere una decisión.');
+        if(/\b(30 segundos|medio minuto|un minuto|resumen rapido|resumen ejecutivo del crm|explicame el crm rapido|presentame el crm)\b/.test(norm))add('Resumen de presentación','Skilled CRM busca conectar operación, inventario, compras, RH, proyectos, finanzas y dirección en una sola nube, con Skill como capa de consulta natural.','La evolución actual se enfoca en automatizar checador y nómina, fortalecer Almacén y Compras, reducir búsquedas manuales y dar a Dirección solo la información que requiere una decisión.');
         if(!topics.length)return null;
         const cards=topics.slice(0,8).map(item=>({title:item.label,detail:item.detail}));
         const message=topics.map(item=>item.summary).join(' ');
@@ -3338,7 +3338,7 @@
             try{localStorage.setItem('skilled_sky_handsfree','1')}catch(_){}
             const button=document.getElementById('sky-handsfree');if(button){button.classList.add('is-on');button.textContent='Activo'}
             const message='Modo conversación activado. Después de cada respuesta volveré a escucharte para que puedas continuar sin pulsar el micrófono.';
-            setAnswer('Modo conversación activo',message,'Puedes decir “Sky, desactiva el modo conversación” cuando quieras detener la escucha continua.');
+            setAnswer('Modo conversación activo',message,'Puedes decir “Skill, desactiva el modo conversación” cuando quieras detener la escucha continua.');
             setTimeout(()=>{if(!listening&&!queryBusy)startListening({preserveClearedInput:true}).catch(()=>{})},350);
             return {handled:true,voice:message};
         }
@@ -3379,8 +3379,8 @@
         if (/^(hola|buenos dias|buenas tardes|buenas noches|que tal|hey)\b/.test(norm)) {
             const profile=detectProfile();
             const message = profile==='sky_demo'
-                ? 'Hola. Soy Sky. Estoy en modo demostración seguro. Puedo conversar, consultar información autorizada, enviar avisos por el chat y generar convocatorias; no modificaré inventarios, compras, nómina ni proyectos.'
-                : `Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile] || profile}. Dime qué necesitas y lo resolvemos juntos.`;
+                ? 'Hola. Soy Skill. Estoy en modo demostración seguro. Puedo conversar, consultar información autorizada, enviar avisos por el chat y generar convocatorias; no modificaré inventarios, compras, nómina ni proyectos.'
+                : `Hola. Soy Skill. Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile] || profile}. Dime qué necesitas y lo resolvemos juntos.`;
             setAnswer('Hola', message, profile==='sky_demo' ? 'Háblame con naturalidad. Los datos operativos permanecen protegidos; las acciones de comunicación requieren una instrucción explícita.' : `Puedes hablarme con naturalidad o usar ${shortcutLabel} para activar el micrófono.`);
             return { handled:true, voice:message };
         }
@@ -3391,7 +3391,7 @@
         }
         if (/\b(gracias|muchas gracias|te agradezco)\b/.test(norm)) {
             const message='Con gusto. Cuando necesites otra consulta, aquí estoy.';
-            setAnswer('Sky', message);
+            setAnswer('Skill', message);
             return { handled:true, voice:message };
         }
         if (/\b(buen trabajo|muy bien|excelente|eso es todo|perfecto sky|bien hecho|te rifaste|te la rifaste)\b/.test(norm)) {
@@ -3438,7 +3438,7 @@
             let term=text(raw).replace(/^(?:sky[,;:\s-]*)?/i,'').replace(/\b(?:busca(?:r)? en internet|busca(?:r)? en la web|investiga(?:r)? en internet|googlea(?:r)?|busqueda web)\b/ig,'').replace(/^[,:;\s-]+/,'').trim();
             if (!term) {
                 const message='Dime qué quieres buscar. Por ejemplo: “busca en internet ficha técnica de cable THW”.';
-                setAnswer('Búsqueda en Internet',message,'Por seguridad Sky no ejecuta ni instala contenido de sitios externos.');
+                setAnswer('Búsqueda en Internet',message,'Por seguridad Skill no ejecuta ni instala contenido de sitios externos.');
                 return {handled:true,voice:message};
             }
             const href=`https://www.google.com/search?q=${encodeURIComponent(term)}`;
@@ -3448,7 +3448,7 @@
         }
         if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve sky)\b/.test(norm)) {
             const message='Fui desarrollado para ayudar a Skilled Proyectos Industriales a consultar información, orientar procesos y resolver situaciones dentro de los apartados autorizados del CRM de una forma más rápida y natural.';
-            setAnswer('Propósito de Sky', message, 'Puedo adaptar mis consultas al perfil activo y usar contexto de la conversación para entender preguntas de seguimiento.');
+            setAnswer('Propósito de Skill', message, 'Puedo adaptar mis consultas al perfil activo y usar contexto de la conversación para entender preguntas de seguimiento.');
             return {handled:true,voice:message};
         }
         if (/\b(presentate|preséntate|haz tu presentacion|presentacion de sky|quien eres|como te llamas|cual es tu nombre)\b/.test(norm)) {
@@ -3457,9 +3457,9 @@
             const profile=detectProfile();
             const area=profileNames[profile] || profile;
             const message=profile==='sky_demo'
-                ? `Hola ${userName}. Soy Sky. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Skilled Proyectos Industriales. En esta demostración puedo conversar, consultar información autorizada, enviar avisos internos y generar reuniones sin modificar registros operativos. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
-                : `Hola ${userName}. Soy Sky, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
-            setAnswer('Mucho gusto, soy Sky', message, profile==='sky_demo' ? 'Puedes comenzar con: “Soy planeador, ¿en qué me puedes ayudar?”, “Soy de Finanzas”, “Soy de Logística” o simplemente preguntarme por un proyecto, material, proveedor, trabajador, vehículo o dato que esté conectado.' : `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
+                ? `Hola ${userName}. Soy Skill. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Skilled Proyectos Industriales. En esta demostración puedo conversar, consultar información autorizada, enviar avisos internos y generar reuniones sin modificar registros operativos. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
+                : `Hola ${userName}. Soy Skill, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
+            setAnswer('Mucho gusto, soy Skill', message, profile==='sky_demo' ? 'Puedes comenzar con: “Soy planeador, ¿en qué me puedes ayudar?”, “Soy de Finanzas”, “Soy de Logística” o simplemente preguntarme por un proyecto, material, proveedor, trabajador, vehículo o dato que esté conectado.' : `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
                 profile==='sky_demo' ? [{title:'Conversación por área',detail:'Me dices de qué área eres y adapto mis ejemplos y capacidades.'},{title:'Consulta transversal',detail:'Puedo reunir datos autorizados de varias áreas sin mostrar sus módulos operativos.'},{title:'En crecimiento',detail:'Si una función aún no está disponible, lo reconoceré y te diré qué sí puedo hacer hoy.'}] : [{title:'Consulta natural',detail:'Puedes usar frases completas o modismos comunes.'},{title:'Contexto por perfil',detail:`Ahora estoy trabajando como asistente de ${area}.`},{title:'Modo seguro',detail:'No modifico inventario ni autorizaciones solo por voz.'}]);
             return { handled:true, voice:message };
         }
@@ -3477,8 +3477,8 @@
             return { handled:true, voice:message };
         }
         if (/\b(atajo|como te activo|como activar sky|tecla para sky)\b/.test(norm)) {
-            const message=`Mi atajo es ${shortcutLabel}. Con Sky abierto, el mismo atajo inicia o termina la escucha.`;
-            setAnswer('Atajo de Sky', shortcutLabel, 'Puedes usarlo desde cualquier sección que tenga Sky activo.');
+            const message=`Mi atajo es ${shortcutLabel}. Con Skill abierto, el mismo atajo inicia o termina la escucha.`;
+            setAnswer('Atajo de Skill', shortcutLabel, 'Puedes usarlo desde cualquier sección que tenga Skill activo.');
             return { handled:true, voice:message };
         }
         if (/\b(quien inicio sesion|quien soy|mi usuario|mi nombre)\b/.test(norm)) {
@@ -3495,7 +3495,7 @@
         }
         if (/\b(callate|silencio|deja de hablar|para de hablar)\b/.test(norm)) {
             try { speechSynthesis.cancel(); } catch (_) {}
-            setAnswer('Sky', 'De acuerdo. Detuve la voz.', 'Puedes seguir consultando por texto.');
+            setAnswer('Skill', 'De acuerdo. Detuve la voz.', 'Puedes seguir consultando por texto.');
             return { handled:true, voice:'' };
         }
         if (/\b(que puedes hacer|ayuda|comandos|como te uso|que sabes hacer)\b/.test(norm)) {
@@ -3503,12 +3503,12 @@
             if(detectProfile()==='sky_demo'){
                 const areas=Object.values(skyAreaCatalog).map(entry=>({title:entry.label,detail:`Dime: “Soy de ${entry.label}, ¿en qué me puedes ayudar?”`}));
                 const message='Puedo conversar con personal de distintas áreas, explicar qué puedo hacer por cada una, responder consultas transversales y ejecutar comunicación interna cuando me das una instrucción explícita. Los registros operativos siguen protegidos.';
-                setAnswer('¿Cómo puede ayudarte Sky?',message,'Puedes presentarte por tu área o preguntarme directamente por materiales, proyectos, personal, proveedores, compras, costos, vehículos, herramientas o resguardos. Si un dato aún no está conectado, te lo diré con claridad.',areas.slice(0,8));
+                setAnswer('¿Cómo puede ayudarte Skill?',message,'Puedes presentarte por tu área o preguntarme directamente por materiales, proyectos, personal, proveedores, compras, costos, vehículos, herramientas o resguardos. Si un dato aún no está conectado, te lo diré con claridad.',areas.slice(0,8));
                 return {handled:true,voice:message};
             }
             const cards=[...config.examples.slice(0,5).map(([label,example])=>({title:label,detail:example})),{title:'Hora y fecha',detail:'¿Qué hora es? · ¿Qué día es hoy?'},{title:'Cálculo rápido',detail:'¿Cuánto es 25 por 8?'},{title:'Sección actual',detail:'¿En qué sección estoy?'},{title:'Navegación',detail:'Abre vehículos · Ve a proveedores · Llévame a equipos'},{title:'Contexto',detail:'Puedes continuar con: ¿y dónde está? · ¿y cuánto queda?'},{title:'Atajo',detail:'¿Cuál es tu atajo?'},{title:'Reunión general',detail:'Convoca una reunión general.'},{title:'Internet',detail:'Busca en internet ficha técnica de…'}];
             const message=`Puedo ayudarte con consultas de ${profileNames[detectProfile()] || detectProfile()}, además de hora, fecha, cálculos sencillos y ayuda general.`;
-            setAnswer('Comandos de Sky', message, `Habla de forma natural. No necesitas decir “Sky” al inicio. Atajo: ${shortcutLabel}.`, cards);
+            setAnswer('Comandos de Skill', message, `Habla de forma natural. No necesitas decir “Skill” al inicio. Atajo: ${shortcutLabel}.`, cards);
             return { handled:true, voice:message };
         }
         const math=simpleMath(raw);
@@ -3658,7 +3658,7 @@
             setAnswer('Personal', matches.length ? `${matches.length} persona${matches.length === 1 ? '' : 's'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré personal activo con ese criterio.', 'Consulta ejecutiva de solo lectura.', cards);
             return matches.length ? `Encontré ${matches.length} personas activas relacionadas.` : 'No encontré personal activo con ese criterio.';
         }
-        setAnswer('Personal activo', `${rows.length} trabajador${rows.length === 1 ? '' : 'es'} activo${rows.length === 1 ? '' : 's'} registrado${rows.length === 1 ? '' : 's'} en RH.`, 'Sky puede consultar personal sin abrir el módulo de Recursos Humanos.', []);
+        setAnswer('Personal activo', `${rows.length} trabajador${rows.length === 1 ? '' : 'es'} activo${rows.length === 1 ? '' : 's'} registrado${rows.length === 1 ? '' : 's'} en RH.`, 'Skill puede consultar personal sin abrir el módulo de Recursos Humanos.', []);
         return `Hay ${rows.length} trabajadores activos registrados en Recursos Humanos.`;
     }
 
@@ -3699,7 +3699,7 @@
             const matches = window.SkilledSearch?.rank ? window.SkilledSearch.rank(providers,tokens.join(' '),item=>[item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.whatsapp,item.categoria]) : providers.filter(item => !tokens.length || matchesTokens([item.razon_social,item.nombre_comercial,item.rfc,item.contacto,item.email,item.telefono,item.whatsapp,item.categoria], tokens));
             const cards = matches.slice(0, 10).map(item => ({ title: item.nombre_comercial || item.razon_social || 'Proveedor', detail: `${item.rfc || 'RFC pendiente'} · ${item.contacto || 'sin contacto'}${item.email ? ` · ${item.email}` : ''}${item.whatsapp || item.telefono ? ` · WA ${item.whatsapp || item.telefono}` : ''}` }));
             if(matches.length){conversationContext.supplier={id:matches[0].id,nombre:text(matches[0].nombre_comercial||matches[0].razon_social)};saveConversationContext();}
-            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré un proveedor con ese criterio.', 'Consulta ejecutiva de solo lectura. Sky no abre los módulos operativos de Compras.', cards);
+            setAnswer('Proveedores', matches.length ? `${matches.length} proveedor${matches.length === 1 ? '' : 'es'} coincide${matches.length === 1 ? '' : 'n'} con la consulta.` : 'No encontré un proveedor con ese criterio.', 'Consulta ejecutiva de solo lectura. Skill no abre los módulos operativos de Compras.', cards);
             return matches.length ? `Encontré ${matches.length} proveedores relacionados.` : 'No encontré ese proveedor.';
         }
         if (/solicitud.*proveedor|proveedor.*solicitud|enviad.*proveedor|pendiente.*envio|pendiente.*envío/.test(norm)) {
@@ -3718,7 +3718,7 @@
             return openQuotes.length ? `Hay ${openQuotes.length} cotizaciones abiertas.` : 'No hay cotizaciones abiertas.';
         }
         const cards = openRequests.slice(0, 10).map(item => ({ title: item.orden_compra || item.folio || item.material_codigo || 'Compra pendiente', detail: `${item.estado_compras || item.estado || 'pendiente'} · ${item.proveedor || item.proveedor_nombre || 'proveedor pendiente'}` }));
-        setAnswer('Compras', `${openRequests.length} solicitud${openRequests.length === 1 ? '' : 'es'} u orden${openRequests.length === 1 ? '' : 'es'} pendiente${openRequests.length === 1 ? '' : 's'} y ${openQuotes.length} cotización${openQuotes.length === 1 ? '' : 'es'} abierta${openQuotes.length === 1 ? '' : 's'}.`, 'Sky consulta Compras sin habilitar sus pantallas en Dirección.', cards);
+        setAnswer('Compras', `${openRequests.length} solicitud${openRequests.length === 1 ? '' : 'es'} u orden${openRequests.length === 1 ? '' : 'es'} pendiente${openRequests.length === 1 ? '' : 's'} y ${openQuotes.length} cotización${openQuotes.length === 1 ? '' : 'es'} abierta${openQuotes.length === 1 ? '' : 's'}.`, 'Skill consulta Compras sin habilitar sus pantallas en Dirección.', cards);
         return `Hay ${openRequests.length} compras pendientes y ${openQuotes.length} cotizaciones abiertas.`;
     }
 
@@ -3755,7 +3755,7 @@
         const low=number(data.bajo_minimo),locations=number(data.sin_ubicacion),incomplete=number(data.informacion_incompleta),purchases=number(data.compras_pendientes);
         const total=low+locations+incomplete+purchases;
         const cards=[{title:'Bajo mínimo',detail:String(low)},{title:'Sin ubicación',detail:String(locations)},{title:'Información incompleta',detail:String(incomplete)},{title:'Compras pendientes',detail:String(purchases)}];
-        setAnswer('Atención requerida', total?`${total} señales requieren revisión.`:'No detecté pendientes en los criterios ejecutivos actuales.', 'Sky consulta Almacén y Compras en modo de solo lectura.', cards);
+        setAnswer('Atención requerida', total?`${total} señales requieren revisión.`:'No detecté pendientes en los criterios ejecutivos actuales.', 'Skill consulta Almacén y Compras en modo de solo lectura.', cards);
         return total?`Hay ${total} señales que requieren revisión: ${low} de bajo mínimo, ${locations} sin ubicación, ${incomplete} con información incompleta y ${purchases} compras pendientes.`:'No detecté pendientes en los criterios ejecutivos actuales.';
     }
 
@@ -3894,8 +3894,8 @@
             const result = await SkilledDB.askSkyGeneral(raw, { profile, context });
             const answer = text(result?.answer || result?.text);
             if (!answer) return null;
-            const title = text(result?.title) || 'Sky';
-            setAnswer(title, answer, text(result?.detail) || 'Respuesta generada por Sky. Los datos internos del CRM siguen sujetos a los permisos de tu perfil.');
+            const title = text(result?.title) || 'Skill';
+            setAnswer(title, answer, text(result?.detail) || 'Respuesta generada por Skill. Los datos internos del CRM siguen sujetos a los permisos de tu perfil.');
             return answer;
         } catch (_) { return null; }
     }
@@ -3984,7 +3984,7 @@
         const message=unique.length===1
             ? `Encontré una coincidencia para “${text(raw)}”: ${first.title}.`
             : `Encontré ${unique.length} coincidencias para “${text(raw)}” dentro de ${profileNames[profile]||profile}.`;
-        setAnswer('Búsqueda inteligente',message,'Puedes escribir solo una parte del nombre, código, proyecto o concepto. Sky intenta completar la intención y relacionar sinónimos y abreviaciones antes de pedirte que reformules.',cards);
+        setAnswer('Búsqueda inteligente',message,'Puedes escribir solo una parte del nombre, código, proyecto o concepto. Skill intenta completar la intención y relacionar sinónimos y abreviaciones antes de pedirte que reformules.',cards);
         rememberConversation('smart_search',first.title,q);
         return message;
     }
@@ -4113,8 +4113,8 @@
         const executive=isExecutiveReadProfile(profile);
         if (/\b(hola|buenos dias|buen dia|buenas tardes|buenas noches|como estas|que tal)\b/.test(norm)) {
             const config=profileConfig();
-            setAnswer('Hola, soy Sky',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
-            return 'Hola. Soy Sky. Aún estoy en evolución, pero estoy lista para ayudarte. Dime qué necesitas resolver y lo intentamos juntos.';
+            setAnswer('Hola, soy Skill',`Aún estoy en evolución, pero estoy lista para ayudarte en ${profileNames[profile]||'este perfil'}.`,'Puedes preguntarme con lenguaje natural. Si quieres, dime qué estás intentando resolver y buscaré la información disponible antes de pedirte que abras otro apartado.',pageAwareExamples(config).slice(0,6).map(item=>({title:item[0],detail:item[1]})));
+            return 'Hola. Soy Skill. Aún estoy en evolución, pero estoy lista para ayudarte. Dime qué necesitas resolver y lo intentamos juntos.';
         }
         if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
@@ -4250,7 +4250,7 @@
             setStatus(usedAI ? 'Consulta completada con interpretación avanzada.' : 'Consulta completada.');
             if (voice) speak(voice);
         } catch (error) {
-            console.error('Sky:', error);
+            console.error('Skill:', error);
             setStatus('No se pudo completar la consulta.', 'error');
             setAnswer('Error', error.message || 'Ocurrió un error al consultar el CRM.', 'No se modificó ningún dato.');
         } finally {
@@ -4261,7 +4261,7 @@
 
     function registerProfile(key, adapter = {}) {
         const profile = text(key).toLowerCase();
-        if (!profile) throw new Error('Indica el identificador del perfil para registrar Sky.');
+        if (!profile) throw new Error('Indica el identificador del perfil para registrar Skill.');
         customProfiles.set(profile, adapter || {});
         return true;
     }

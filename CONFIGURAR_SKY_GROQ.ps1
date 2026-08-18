@@ -17,7 +17,7 @@ function Invoke-Supabase {
         throw "Supabase devolvio un error."
     }
 }
-Write-Host "Iniciando configuracion segura de Sky Voz e IA..." -ForegroundColor Cyan
+Write-Host "Iniciando configuracion segura de Skill Voz e IA..." -ForegroundColor Cyan
 Invoke-Supabase @("login")
 $secureKey = Read-Host "Pega una NUEVA API Key de Groq" -AsSecureString
 $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
@@ -35,4 +35,4 @@ Invoke-Supabase @("secrets", "set", "SKY_GROQ_INTENT_MODEL=openai/gpt-oss-20b", 
 $key = $null
 [GC]::Collect()
 Invoke-Supabase @("functions", "deploy", "sky-transcribir", "--project-ref", $projectRef, "--use-api")
-Write-Host "Sky Voz e inteligencia Groq quedaron desplegadas para el proyecto." -ForegroundColor Green
+Write-Host "Skill Voz e inteligencia Groq quedaron desplegadas para el proyecto." -ForegroundColor Green

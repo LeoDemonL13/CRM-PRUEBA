@@ -17,7 +17,7 @@ function Read-Secret {
     $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
     try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 }
-Write-Host "Configuracion de Sky IA V72" -ForegroundColor Cyan
+Write-Host "Configuracion de Skill IA V72" -ForegroundColor Cyan
 Write-Host "Groq es el proveedor principal recomendado para datos internos del CRM." -ForegroundColor Gray
 Write-Host "Gemini y OpenRouter se usan como respaldo para conversacion general, salvo que habilites expresamente el envio de contexto interno." -ForegroundColor Gray
 Invoke-Supabase @("login")
@@ -31,5 +31,5 @@ Invoke-Supabase @("secrets","set","SKY_GROQ_INTENT_MODEL=openai/gpt-oss-20b","SK
 $groq=$null;$gemini=$null;$openrouter=$null
 [GC]::Collect()
 Invoke-Supabase @("functions","deploy","sky-transcribir","--project-ref",$projectRef,"--use-api")
-Write-Host "Sky IA V72 quedo desplegada." -ForegroundColor Green
+Write-Host "Skill IA V72 quedo desplegada." -ForegroundColor Green
 Write-Host "Los datos internos del CRM permanecen restringidos a Groq por defecto." -ForegroundColor Yellow

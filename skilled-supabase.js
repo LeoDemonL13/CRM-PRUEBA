@@ -5050,8 +5050,8 @@
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta', context }
         });
-        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar Sky IA.');
-        if (data?.ok !== true) throw new Error(text(data?.error) || 'Sky IA no devolvió una interpretación válida.');
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar Skill IA.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill IA no devolvió una interpretación válida.');
         return {
             intent: text(data?.intent),
             query: text(data?.query) || input,
@@ -5068,7 +5068,7 @@
 
     async function askSkyGeneral(value, options = {}) {
         const input = text(value).slice(0, 1800);
-        if (!input) throw new Error('Falta la consulta para Sky.');
+        if (!input) throw new Error('Falta la consulta para Skill.');
         const context = options.context && typeof options.context === 'object' ? {
             lastIntent: text(options.context.lastIntent).slice(0, 80),
             lastEntity: text(options.context.lastEntity).slice(0, 240),
@@ -5081,8 +5081,8 @@
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'chat', text: input, profile: text(options.profile) || 'consulta', context }
         });
-        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar la respuesta avanzada de Sky.');
-        if (data?.ok !== true) throw new Error(text(data?.error) || 'Sky no devolvió una respuesta válida.');
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar la respuesta avanzada de Skill.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill no devolvió una respuesta válida.');
         return { answer: text(data?.answer), title: text(data?.title), detail: text(data?.detail), model: text(data?.model), provider: text(data?.provider) };
     }
 
@@ -5904,7 +5904,7 @@
     async function listExecutiveSkyMaterials() {
         let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'materiales', p_filtro: null });
         if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_materiales'));
-        assertNoError(error, 'No se pudo consultar Materiales para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudo consultar Materiales para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
         const rows = Array.isArray(data) ? data : [];
         return rows.map(row => ({
             codigo: text(row.codigo),
@@ -5948,7 +5948,7 @@
 
     async function listExecutiveSkyCategories() {
         const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'categorias', p_filtro: null });
-        assertNoError(error, 'No se pudieron consultar las categorías para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudieron consultar las categorías para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
@@ -5957,7 +5957,7 @@
         if (!value) return [];
         const { data, error } = await client.rpc('crm_sky_direccion_buscar', { p_consulta:value });
         if (error && ['PGRST202','42883'].includes(String(error.code||''))) return [];
-        assertNoError(error, 'No se pudo realizar la búsqueda transversal de Sky. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudo realizar la búsqueda transversal de Skill. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
@@ -5965,26 +5965,26 @@
         const project = text(projectNumber);
         let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'personal', p_filtro: project || null });
         if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_personal', { p_proyecto: project || null }));
-        assertNoError(error, 'No se pudo consultar Recursos Humanos para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudo consultar Recursos Humanos para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
     async function getExecutiveSkyPurchasing() {
         let { data, error } = await client.rpc('crm_sky_direccion_compras');
         if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'compras', p_filtro: null }));
-        assertNoError(error, 'No se pudo consultar Compras para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudo consultar Compras para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
         return data && typeof data === 'object' ? data : { proveedores: [], solicitudes: [], cotizaciones: [], solicitudes_proveedor: [], comunicaciones: [], material_proveedores: [] };
     }
 
     async function getExecutiveSkyTools() {
         const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'herramientas', p_filtro:null });
-        assertNoError(error, 'No se pudieron consultar Herramientas para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudieron consultar Herramientas para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
     async function getExecutiveSkyWarehouses() {
         const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'almacenes', p_filtro:null });
-        assertNoError(error, 'No se pudieron consultar Almacenes para Sky Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudieron consultar Almacenes para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
@@ -6085,19 +6085,19 @@
     }
 
     async function getExecutiveRHOfficeAssets() {
-        const {data,error}=await client.rpc('crm_sky_direccion_activos_oficina');assertNoError(error,'Sky no pudo consultar los resguardos de RH.');return data||{activos:[],asignaciones:[]};
+        const {data,error}=await client.rpc('crm_sky_direccion_activos_oficina');assertNoError(error,'Skill no pudo consultar los resguardos de RH.');return data||{activos:[],asignaciones:[]};
     }
 
     async function getReceptionPresenceV100(filter = '') {
         const {data,error}=await client.rpc('crm_sky_recepcion_presencia_v100',{p_filtro:text(filter)||null});
-        assertNoError(error,'Sky Recepción no pudo consultar la presencia actual. Ejecuta SQL_MAESTRO_CRM.sql V100.');
+        assertNoError(error,'Skill Recepción no pudo consultar la presencia actual. Ejecuta SQL_MAESTRO_CRM.sql V100.');
         return Array.isArray(data)?data:[];
     }
 
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
         const { data, error } = await client.rpc('crm_sky_perfil_consultar', { p_fuente: sourceKey, p_filtro: text(filter) || null });
-        assertNoError(error, 'Sky no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql V63.');
+        assertNoError(error, 'Skill no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql V63.');
         const rows = Array.isArray(data) ? data : [];
         if (sourceKey === 'materiales') {
             return rows.map(row => ({
@@ -6356,7 +6356,7 @@
 
     async function getSkyAttendanceV81(filter = '') {
         const { data, error } = await client.rpc('crm_sky_asistencia_v81', { p_filtro: text(filter) || null });
-        assertNoError(error, 'Sky no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql V81.');
+        assertNoError(error, 'Skill no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql V81.');
         return Array.isArray(data) ? data : [];
     }
 
