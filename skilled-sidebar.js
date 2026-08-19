@@ -120,7 +120,7 @@
             {title:'Operación de compras',items:[['CO.inicio.html','Inicio','home'],['CO.cotizaciones.html','Cotizaciones','request'],['CO.requisiciones.html','Requisiciones','clipboard'],['CO.ordenes-compra.html','Órdenes de compra','cart'],['CO.hacer-compra.html','Hacer compra','cart'],['CO.recepciones.html','Recepciones','delivery']]},
             {title:'Red de suministro',items:[['CO.proveedores.html','Proveedores y materiales','folder'],['CO.entregas.html','Información de entrega','delivery'],['AL.catalogo.html?perfil=compras','Consulta de catálogo','box']]},
             {title:'Proyectos',items:[['AL.proyectos.html?perfil=compras','Proyectos','folder']]},
-            {title:'Compras generales',items:[['PAQ.paquetes-materiales.html?perfil=compras','Paquetes de materiales','box'],['CO.tienda.html','Tienda','box'],['CO.servicios.html','Servicios','clipboard']]},
+            {title:'Compras generales',items:[['PAQ.paquetes-materiales.html?perfil=compras','Paquetes de materiales','box'],['CO.servicios.html','Servicios','clipboard']]},
             {title:'Consulta',items:[['AL.historial-movimientos.html?perfil=compras','Historial de movimientos','history']]},
             {title:'Cuenta',items:[['perfil.html?perfil=compras','Mi perfil','user']]}
         ],
@@ -134,10 +134,10 @@
         planeacion:[{title:'Planeación',items:[['PL.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=planeacion','Proyectos','folder'],['PROY.importar.html?perfil=planeacion','Importar proyectos','delivery'],['AL.solicitudes-material.html?perfil=planeacion','Solicitudes','request'],['AL.reportes.html?perfil=planeacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=planeacion','Mi perfil','user']]}],
         coordinacion:[{title:'Coordinación',items:[['CR.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=coordinacion','Proyectos','folder'],['AL.solicitudes-material.html?perfil=coordinacion','Solicitudes','request'],['AL.vehiculos.html?perfil=coordinacion','Vehículos','vehicle'],['AL.reportes.html?perfil=coordinacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=coordinacion','Mi perfil','user']]}],
         logistica:[{title:'Logística',items:[['LG.inicio.html','Inicio','home'],['AL.vehiculos.html?perfil=logistica','Vehículos','vehicle'],['CO.entregas.html?perfil=logistica','Entregas','delivery'],['AL.proyectos.html?perfil=logistica','Proyectos','folder'],['AL.catalogo.html?perfil=logistica','Materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=logistica','Mi perfil','user']]}],
-        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.sky-porteria.html','Skill Portería','shield'],['CO.entregas.html?perfil=recepcion','Entregas','delivery'],['AL.vehiculos.html?perfil=recepcion','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
+        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.suministros.html','Suministros','box'],['RE.tienda.html','Tienda','cart']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
-        sky_demo:[{title:'Skill',items:[['SKILL.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
+        sky_demo:[{title:'Skill',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
         tsi:[{title:'TSI',items:[['TSI.inicio.html','Inicio','home'],['TSI.solicitudes-epp.html','Solicitar EPP','request'],['PAQ.paquetes-materiales.html?perfil=tsi','Paquetes de materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=tsi','Mi perfil','user']]}],
         proyectos:[{title:'Proyectos',items:[['AL.proyectos.html','Proyectos','folder'],['PROY.importar.html?perfil=proyectos','Importar proyectos','delivery'],['PAQ.paquetes-materiales.html?perfil=proyectos','Paquetes de materiales','box'],['AL.solicitudes-material.html','Solicitudes','request'],['AL.reportes.html','Reportes','report'],['AL.historial-movimientos.html','Movimientos','history']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}],
         consulta:[{title:'Consulta',items:[['AL.inicio.html','Inicio','home'],['PAQ.paquetes-materiales.html','Paquetes de materiales','box'],['AL.catalogo.html','Catálogo','box'],['AL.reportes.html','Reportes','report'],['AL.manual-usuario.html','Manual','manual']]},{title:'Cuenta',items:[['perfil.html','Mi perfil','user']]}]
@@ -160,12 +160,12 @@
         const classes = isActive
             ? 'flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#141d34] border-l-2 border-blue-500 text-white font-semibold'
             : 'flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white';
-        const iconMarkup = icons[icon].replace('class="w-4 h-4 shrink-0"', `class="w-4 h-4 shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-500'}"`);
+        const iconMarkup = (icons[icon] || icons.folder).replace('class="w-4 h-4 shrink-0"', `class="w-4 h-4 shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-500'}"`);
         return `<li><a href="${href}" title="${label}" data-sidebar-link class="${classes}">${iconMarkup}<span class="skilled-sidebar-label">${label}</span></a></li>`;
     }
 
     function scheduleSidebarPrefetch(aside) {
-        if (!aside || typeof window.SkilledNavigationPrefetch !== 'function') return;
+        if (!aside || typeof window.SkilledNavigationPrefetch !== 'function' || sidebarProfileKey() === 'sky_demo') return;
         const run = () => {
             const links = [...aside.querySelectorAll('a[data-sidebar-link][href]')]
                 .filter(link => !link.classList.contains('border-blue-500'))
@@ -238,6 +238,20 @@
         }
         setupSidebarControls(aside);
         scheduleSidebarPrefetch(aside);
+    }
+
+    function safeRenderSidebar() {
+        try { return renderSidebar(); }
+        catch (error) {
+            console.error('No se pudo construir el menú lateral:', error);
+            let aside = document.querySelector('body > aside') || document.querySelector('aside');
+            if (!aside) { aside = document.createElement('aside'); document.body.prepend(aside); }
+            aside.id = 'skilled-sidebar';
+            aside.className = 'skilled-sidebar skilled-sidebar-shell h-screen bg-[#090d1a] border-r border-[#161f38] flex flex-col shrink-0';
+            aside.innerHTML = `<div style="padding:18px"><img src="logo-reporte.png" alt="Skilled" style="max-width:145px;height:auto"><div style="margin-top:22px;padding:14px;border:1px solid #4b2940;border-radius:10px;color:#fda4af;font:600 11px/1.55 Inter,system-ui,sans-serif">No se pudo cargar el menú.<br><a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar CRM</a></div></div>`;
+            applySidebarWidth(aside, false);
+            return aside;
+        }
     }
 
     function setupSidebarControls(aside) {
@@ -399,7 +413,7 @@
         administrador:['*'],
         jefe_almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
         almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
-        compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','paq.paquetes-materiales.html'],
+        compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','paq.paquetes-materiales.html'],
         rh:['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         finanzas:['fi.inicio.html','fi.activos-rentas.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html','paq.paquetes-materiales.html'],
         gerente_general:['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
@@ -410,7 +424,7 @@
         planeacion:['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
         coordinacion:['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
         logistica:['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
-        recepcion:['re.inicio.html','re.sky-porteria.html','co.entregas.html','al.vehiculos.html','perfil.html'],
+        recepcion:['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.tienda.html','perfil.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html','paq.paquetes-materiales.html']
     };
 
@@ -765,7 +779,8 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         addTask('coProviderMaterials', 'CO.proveedores.html', () => typeof db.listProviderMaterials === 'function' ? db.listProviderMaterials({ activeOnly: true }) : []);
         addTask('coQuotations', 'CO.cotizaciones.html', () => typeof db.listQuotationRequests === 'function' ? db.listQuotationRequests({}) : []);
         addTask('coDeliveries', 'CO.entregas.html', () => typeof db.listDeliveryInfos === 'function' ? db.listDeliveryInfos() : []);
-        addTask('coStore', 'CO.tienda.html', () => typeof db.listStoreRequests === 'function' ? db.listStoreRequests() : []);
+        addTask('reSupplies', 'RE.suministros.html', () => typeof db.listReceptionSupplies === 'function' ? db.listReceptionSupplies() : []);
+        addTask('coStore', 'RE.tienda.html', () => typeof db.listStoreRequests === 'function' ? db.listStoreRequests() : []);
         addTask('coServices', 'CO.servicios.html', () => typeof db.listServices === 'function' ? db.listServices() : []);
         addTask('coSupplierRequests', 'CO.hacer-compra.html', () => typeof db.listSupplierRequests === 'function' ? db.listSupplierRequests() : []);
         const results = await Promise.allSettled(tasks);
@@ -876,10 +891,16 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
                 url: `CO.entregas.html?q=${encodeURIComponent(item.nombre || item.direccion || '')}`,
                 terms: [item.nombre,item.empresa,item.direccion,item.referencias,item.horarioRecepcion,item.responsablePrincipal,item.telefono,item.email,...(item.receptoresAutorizados||[])].join(' ')
             }));
+            if (name === 'reSupplies') rows.forEach(item => addEntry(entries, {
+                type: 'Suministro', symbol: 'SU', title: item.descripcion || item.codigo,
+                subtitle: `${item.codigo || 'Sin código'} · ${item.categoria || 'General'} · Stock ${Number(item.stock || 0)}`,
+                url: `RE.suministros.html?q=${encodeURIComponent(item.codigo || item.descripcion || '')}`,
+                terms: [item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,item.unidad,...(item.modismos||[])].join(' ')
+            }));
             if (name === 'coStore') rows.forEach(item => addEntry(entries, {
                 type: 'Tienda', symbol: 'TI', title: item.producto,
                 subtitle: `${item.negocio || 'Sin negocio'} · ${item.estado || 'no revisada'} · ${item.cantidad || 0} ${item.unidad || ''}`,
-                url: `CO.tienda.html?q=${encodeURIComponent(item.folio || item.producto || '')}`,
+                url: `RE.tienda.html?q=${encodeURIComponent(item.folio || item.producto || '')}`,
                 terms: [item.folio,item.negocio,item.producto,item.marcaEspecifica,item.presentacion,item.estado,item.solicitadoPor,item.responsableCompra].join(' ')
             }));
             if (name === 'coServices') rows.forEach(item => addEntry(entries, {
@@ -1215,7 +1236,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=102.1');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=104');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1264,7 +1285,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=89');
+                await loadOptionalScript('skilled-chat.js?v=104');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1286,7 +1307,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         bindSkyTriggers();
         if (window.SkilledSky) {if(!document.getElementById('sky-open'))createLazySkyButton();return;}
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=102.1').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
+            createLazySkyButton();
             return;
         }
         if (!document.querySelector('script[src*="skilled-sky.js"]')) createLazySkyButton();
@@ -1300,7 +1321,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=89'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=104'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
@@ -1324,10 +1345,12 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         syncMobileDock();
     }
 
+    window.SkilledOpenSky = openSkyFromUi;
+
     window.addEventListener('skilled:sessionready', () => {
         const role = currentRole();
         if (!document.getElementById('skilled-sidebar') || renderedRole !== role) {
-            renderSidebar();
+            safeRenderSidebar();
             scheduleRequestBadgeUpdate();
         } else {
             const aside = document.getElementById('skilled-sidebar');
@@ -1348,7 +1371,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     });
 
     function initialize() {
-        renderSidebar();
+        safeRenderSidebar();
         normalizeBreadcrumbHome();
         scheduleRequestBadgeUpdate();
         normalizeSharedHeader();

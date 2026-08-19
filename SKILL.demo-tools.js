@@ -21,9 +21,24 @@ function html(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function render(){const grid=document.getElementById('sky-tools-grid'),empty=document.getElementById('sky-tools-empty');if(!grid)return;const rows=read();grid.innerHTML=rows.map((item,index)=>`<article class="sky-tool-card"><button type="button" data-remove-tool="${index}">Borrar</button>${item.image?`<img src="${html(item.image)}" alt="${html(item.name)}" loading="lazy" onerror="this.style.display='none'">`:''}<span>${html(item.category||'Herramienta')}</span><strong>${html(item.name||'Sin nombre')}</strong><p>${html(item.description||'Sin descripción')}</p></article>`).join('');if(empty)empty.style.display=rows.length?'none':'block';grid.querySelectorAll('[data-remove-tool]').forEach(button=>button.addEventListener('click',()=>{const next=read();next.splice(Number(button.dataset.removeTool),1);save(next);render()}));}
 function add(){const name=document.getElementById('tool-name'),category=document.getElementById('tool-category'),image=document.getElementById('tool-image'),description=document.getElementById('tool-description');const item={name:name?.value.trim()||'',category:category?.value.trim()||'Herramienta',image:image?.value.trim()||'',description:description?.value.trim()||''};if(!item.name)return;const rows=read();rows.push(item);save(rows);[name,category,image,description].forEach(node=>{if(node)node.value=''});render();}
 function expose(){window.SkyDemoTools={list:read,save,reset:()=>{save(defaults.slice());render()},storageKey:key};}
-function openSky(question=''){if(!window.SkilledSky)return;window.SkilledSky.open();if(question)setTimeout(()=>window.SkilledSky.query(question),130)}
-let ready=false;window.addEventListener('skilled:skyready',()=>{ready=true;setTimeout(()=>openSky(),420)},{once:true});
-window.addEventListener('DOMContentLoaded',()=>{expose();render();document.getElementById('tool-add')?.addEventListener('click',add);document.getElementById('sky-demo-open')?.addEventListener('click',()=>openSky());document.querySelectorAll('[data-sky-question]').forEach(button=>button.addEventListener('click',()=>{const question=button.dataset.skyQuestion||'';if(ready||window.SkilledSky)openSky(question)}));document.querySelectorAll('#tool-name,#tool-category,#tool-image,#tool-description').forEach(node=>node.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();add()}}));});
-async function loadDemo(){const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=Number.isFinite(value)?String(value):'—'};try{const [materials,projects,people,purchasing,vehicles]=await Promise.allSettled([SkilledDB.listExecutiveSkyMaterials?.(),SkilledDB.getExecutiveProjectSummary?.(),SkilledDB.listExecutiveSkyPeople?.(),SkilledDB.getExecutiveSkyPurchasing?.(),SkilledDB.listExecutiveVehicles?.()]);set('demo-materiales',Array.isArray(materials.value)?materials.value.length:NaN);set('demo-proyectos',Array.isArray(projects.value)?projects.value.length:NaN);set('demo-personal',Array.isArray(people.value)?people.value.length:NaN);const compras=(purchasing.value&&typeof purchasing.value==='object')?((purchasing.value.solicitudes||[]).length+(purchasing.value.cotizaciones||[]).length):NaN;set('demo-compras',compras);set('demo-vehiculos',Array.isArray(vehicles.value)?vehicles.value.length:NaN)}catch(_){}}
-window.addEventListener('skilled:ready',loadDemo,{once:true});setTimeout(loadDemo,1000);
+function openSky(question=''){if(window.SkilledSky){window.SkilledSky.open();if(question)setTimeout(()=>window.SkilledSky.query(question),130);return}if(typeof window.SkilledOpenSky==='function'){window.SkilledOpenSky(question)}}
+let ready=false;window.addEventListener('skilled:skyready',()=>{ready=true},{once:true});
+window.addEventListener('DOMContentLoaded',()=>{expose();render();document.getElementById('tool-add')?.addEventListener('click',add);document.getElementById('sky-demo-open')?.addEventListener('click',()=>openSky());document.querySelectorAll('[data-sky-question]').forEach(button=>button.addEventListener('click',()=>openSky(button.dataset.skyQuestion||'')));document.querySelectorAll('#tool-name,#tool-category,#tool-image,#tool-description').forEach(node=>node.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();add()}}));});
+let demoLoadPromise=null;
+function timeout(value,ms=7000){return Promise.race([Promise.resolve(value),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tiempo de espera agotado.')),ms))])}
+async function loadDemo(){
+ if(demoLoadPromise)return demoLoadPromise;
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=Number.isFinite(value)?String(value):'—'};
+ const jobs=[
+  ['demo-materiales',()=>SkilledDB.listExecutiveSkyMaterials?.(),value=>Array.isArray(value)?value.length:NaN],
+  ['demo-proyectos',()=>SkilledDB.getExecutiveProjectSummary?.(),value=>Array.isArray(value)?value.length:NaN],
+  ['demo-personal',()=>SkilledDB.listExecutiveSkyPeople?.(),value=>Array.isArray(value)?value.length:NaN],
+  ['demo-compras',()=>SkilledDB.getExecutiveSkyPurchasing?.(),value=>value&&typeof value==='object'?((value.solicitudes||[]).length+(value.cotizaciones||[]).length):NaN],
+  ['demo-vehiculos',()=>SkilledDB.listExecutiveVehicles?.(),value=>Array.isArray(value)?value.length:NaN]
+ ];
+ demoLoadPromise=(async()=>{for(const [id,run,count] of jobs){try{const value=await timeout(run(),7000);set(id,count(value))}catch(_){set(id,NaN)}await new Promise(resolve=>setTimeout(resolve,80))}})().finally(()=>{demoLoadPromise=null});
+ return demoLoadPromise;
+}
+function scheduleDemoLoad(){const run=()=>loadDemo();if('requestIdleCallback'in window)requestIdleCallback(run,{timeout:4500});else setTimeout(run,1800)}
+window.addEventListener('skilled:sessionready',scheduleDemoLoad,{once:true});if(window.SkilledSession)scheduleDemoLoad();
 })();

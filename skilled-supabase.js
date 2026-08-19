@@ -5,6 +5,37 @@
     const SUPABASE_URL = 'https://cuxnzqbszzrfnrinxbdp.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF';
     const MAX_MATERIALS_PER_WAREHOUSE_POSITION = 7;
+    const DEFAULT_FETCH_TIMEOUT_MS = 18000;
+    const LONG_FETCH_TIMEOUT_MS = 35000;
+
+    async function skilledFetch(input, init = {}) {
+        const url = typeof input === 'string' ? input : String(input?.url || input || '');
+        const timeoutMs = /\/(functions|storage)\/v1\//i.test(url) ? LONG_FETCH_TIMEOUT_MS : DEFAULT_FETCH_TIMEOUT_MS;
+        const controller = new AbortController();
+        const externalSignal = init?.signal;
+        let externalAbort = null;
+        if (externalSignal) {
+            if (externalSignal.aborted) controller.abort(externalSignal.reason);
+            else {
+                externalAbort = () => controller.abort(externalSignal.reason);
+                externalSignal.addEventListener('abort', externalAbort, { once:true });
+            }
+        }
+        const timer = window.setTimeout(() => {
+            try { controller.abort(new DOMException('Tiempo de espera agotado.', 'TimeoutError')); } catch (_) { controller.abort(); }
+        }, timeoutMs);
+        try {
+            return await window.fetch(input, { ...init, signal: controller.signal });
+        } catch (error) {
+            if (controller.signal.aborted && !(externalSignal && externalSignal.aborted)) {
+                throw new Error('La consulta con Supabase excedió el tiempo de espera. Revisa la conexión y vuelve a intentarlo.');
+            }
+            throw error;
+        } finally {
+            window.clearTimeout(timer);
+            if (externalSignal && externalAbort) externalSignal.removeEventListener('abort', externalAbort);
+        }
+    }
 
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         throw new Error('No se pudo cargar la librería de Supabase.');
@@ -18,6 +49,9 @@
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true
+            },
+            global: {
+                fetch: skilledFetch
             }
         }
     );
@@ -130,20 +164,29 @@
         if (error) throw new Error(errorMessage(error) || fallback);
     }
 
+    function withOperationTimeout(value, milliseconds = 15000, message = 'La operación excedió el tiempo de espera.') {
+        let timer = 0;
+        const timeout = new Promise((_, reject) => {
+            timer = window.setTimeout(() => reject(new Error(message)), milliseconds);
+        });
+        return Promise.race([Promise.resolve(value), timeout]).finally(() => window.clearTimeout(timer));
+    }
+
     async function collectRows(builderFactory, pageSize = 1000) {
         const rows = [];
         let from = 0;
+        const maxPages = 50;
 
-        while (true) {
+        for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
             const { data, error } = await builderFactory().range(from, from + pageSize - 1);
             assertNoError(error);
             const page = Array.isArray(data) ? data : [];
             rows.push(...page);
-            if (page.length < pageSize) break;
+            if (page.length < pageSize) return rows;
             from += pageSize;
         }
 
-        return rows;
+        throw new Error('La consulta devolvió demasiados bloques de datos y fue detenida para evitar una carga infinita.');
     }
 
     function warehouseFromDb(row) {
@@ -5546,6 +5589,144 @@
         return data;
     }
 
+
+    function receptionSupplyFromDb(row) {
+        return {
+            id: Number(row.id || 0),
+            codigo: text(row.codigo),
+            descripcion: text(row.descripcion),
+            desc: text(row.descripcion),
+            modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : text(row.modismos).split(/[,;\n]+/).map(text).filter(Boolean),
+            categoria: text(row.categoria) || 'General',
+            marca: text(row.marca),
+            codigoMarca: text(row.codigo_marca),
+            codigo_marca: text(row.codigo_marca),
+            proveedor: text(row.proveedor),
+            contactoProveedor: text(row.contacto_proveedor),
+            contacto_proveedor: text(row.contacto_proveedor),
+            unidad: text(row.unidad) || 'PIEZA',
+            stock: number(row.stock),
+            stockMinimo: number(row.stock_minimo),
+            stock_minimo: number(row.stock_minimo),
+            stockMedio: number(row.stock_medio),
+            stock_medio: number(row.stock_medio),
+            stockMaximo: number(row.stock_maximo),
+            stock_maximo: number(row.stock_maximo),
+            precio: number(row.precio),
+            monedaCosto: normalizeCurrencyCode(row.moneda_costo),
+            moneda_costo: normalizeCurrencyCode(row.moneda_costo),
+            imagen: text(row.imagen_url),
+            imagenUrl: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            activo: row.activo !== false,
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function receptionSupplyToDb(payload = {}) {
+        const minimum = Math.max(0, number(payload.stockMinimo ?? payload.stock_minimo));
+        const mediumInput = Math.max(0, number(payload.stockMedio ?? payload.stock_medio));
+        const maximumInput = Math.max(0, number(payload.stockMaximo ?? payload.stock_maximo));
+        const maximum = maximumInput > 0 ? Math.max(minimum, maximumInput) : (minimum > 0 ? minimum * 2 : 0);
+        const medium = mediumInput > 0 ? Math.min(maximum || mediumInput, Math.max(minimum, mediumInput)) : (maximum > 0 ? (minimum + maximum) / 2 : minimum);
+        return {
+            codigo: text(payload.codigo),
+            descripcion: text(payload.descripcion ?? payload.desc),
+            modismos: Array.isArray(payload.modismos) ? payload.modismos.map(text).filter(Boolean) : text(payload.modismos ?? payload.modismosTexto).split(/[,;\n]+/).map(text).filter(Boolean),
+            categoria: text(payload.categoria) || 'General',
+            marca: text(payload.marca) || null,
+            codigo_marca: text(payload.codigoMarca ?? payload.codigo_marca) || null,
+            proveedor: text(payload.proveedor) || null,
+            contacto_proveedor: text(payload.contactoProveedor ?? payload.contacto_proveedor) || null,
+            unidad: text(payload.unidad) || 'PIEZA',
+            stock: Math.max(0, number(payload.stock)),
+            stock_minimo: minimum,
+            stock_medio: medium,
+            stock_maximo: maximum,
+            precio: Math.max(0, number(payload.precio)),
+            moneda_costo: normalizeCurrencyCode(payload.monedaCosto ?? payload.moneda_costo ?? payload.moneda),
+            imagen_url: text(payload.imagen ?? payload.imagenUrl ?? payload.imagen_url) || null,
+            activo: payload.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+    }
+
+    async function listReceptionSupplies(options = {}) {
+        let query = client.from('re_suministros').select('*').order('descripcion', { ascending: true });
+        if (options.includeInactive !== true) query = query.eq('activo', true);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar los suministros de Recepción. Ejecuta SQL_ACTUALIZACION_V103_RECEPCION_SUMINISTROS.sql.');
+        let rows = (data || []).map(receptionSupplyFromDb);
+        const q = text(options.search ?? options.q);
+        if (q) {
+            rows = rows.filter(item => {
+                const values = [item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,item.unidad,...item.modismos];
+                return window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, q) : values.some(value => lower(value).includes(lower(q)));
+            });
+        }
+        return rows;
+    }
+
+    async function saveReceptionSupply(payload = {}, originalCode = '') {
+        const row = receptionSupplyToDb(payload);
+        if (!row.codigo || !row.descripcion || !row.categoria || !row.unidad) throw new Error('Código, descripción, categoría y unidad son obligatorios.');
+        const original = text(originalCode);
+        const query = original && lower(original) !== lower(row.codigo)
+            ? client.from('re_suministros').update(row).eq('codigo', original)
+            : client.from('re_suministros').upsert(row, { onConflict: 'codigo' });
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar el suministro de Recepción. Ejecuta SQL_ACTUALIZACION_V103_RECEPCION_SUMINISTROS.sql.');
+        return receptionSupplyFromDb(data);
+    }
+
+    async function deleteReceptionSupply(code) {
+        const value = text(code);
+        if (!value) throw new Error('Falta el código del suministro.');
+        const { error } = await client.from('re_suministros').update({ activo:false, updated_at:new Date().toISOString() }).eq('codigo', value);
+        assertNoError(error, 'No se pudo retirar el suministro.');
+        return { ok:true, codigo:value };
+    }
+
+    async function importReceptionSupplies(products, onProgress) {
+        const input = Array.isArray(products) ? products : [];
+        const progress = typeof onProgress === 'function' ? onProgress : function(){};
+        const valid = [];
+        const errors = [];
+        const seen = new Set();
+        input.forEach((source, index) => {
+            const row = receptionSupplyToDb(source);
+            const fileRow = Number(source.filaArchivo || 0) || index + 1;
+            if (!row.codigo || !row.descripcion || !row.categoria || !row.unidad) {
+                errors.push({ fila:fileRow, codigo:row.codigo, error:'Código, descripción, categoría y unidad son obligatorios.' });
+                return;
+            }
+            const key = lower(row.codigo);
+            if (seen.has(key)) {
+                errors.push({ fila:fileRow, codigo:row.codigo, error:'Código duplicado dentro del archivo.' });
+                return;
+            }
+            seen.add(key);
+            valid.push(row);
+        });
+        if (!valid.length) return { total:input.length, importados:0, omitidos:input.length, errores:errors };
+        progress(12, 'Validando suministros...');
+        const chunkSize = 180;
+        let saved = 0;
+        for (let offset = 0; offset < valid.length; offset += chunkSize) {
+            const chunk = valid.slice(offset, offset + chunkSize);
+            const { error } = await client.from('re_suministros').upsert(chunk, { onConflict:'codigo' });
+            if (error) {
+                chunk.forEach((row, index) => errors.push({ fila:offset + index + 1, codigo:row.codigo, error:errorMessage(error) }));
+            } else {
+                saved += chunk.length;
+            }
+            progress(Math.min(98, 15 + Math.round(((offset + chunk.length) / valid.length) * 80)), `Guardando ${Math.min(offset + chunk.length, valid.length)} de ${valid.length} suministros...`);
+        }
+        progress(100, 'Importación terminada.');
+        return { total:input.length, importados:saved, omitidos:input.length - saved, errores:errors };
+    }
+
     function storeRequestFromDb(row) {
         return {
             id: Number(row.id), folio: text(row.folio), negocio: text(row.negocio), producto: text(row.producto),
@@ -5903,9 +6084,29 @@
 
 
     async function listExecutiveVehicles(options = {}) {
-        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'vehiculos', p_filtro: null });
-        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_direccion_vehiculos'));
-        assertNoError(error, 'No se pudo consultar Vehículos para Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        let data = null;
+        let error = null;
+        try {
+            ({ data, error } = await withOperationTimeout(
+                client.rpc('crm_sky_direccion_consultar', { p_fuente: 'vehiculos', p_filtro: null }),
+                7000,
+                'La consulta principal de Vehículos tardó demasiado.'
+            ));
+        } catch (timeoutError) {
+            error = { code: 'TIMEOUT', message: timeoutError.message };
+        }
+        if (error && ['PGRST202','42883','TIMEOUT'].includes(String(error.code || ''))) {
+            try {
+                ({ data, error } = await withOperationTimeout(
+                    client.rpc('crm_direccion_vehiculos'),
+                    7000,
+                    'La consulta alternativa de Vehículos tardó demasiado.'
+                ));
+            } catch (timeoutError) {
+                error = { code: 'TIMEOUT', message: timeoutError.message };
+            }
+        }
+        assertNoError(error, 'No se pudo consultar Vehículos para Dirección. Revisa la conexión y las funciones SQL de Dirección.');
         let vehicles = (Array.isArray(data) ? data : []).map(row => vehicleFromDb(row));
         if (options.includeInactive !== true) vehicles = vehicles.filter(item => item.activo !== false);
         const status = lower(options.estado ?? options.status);
@@ -6117,8 +6318,12 @@
 
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
-        const { data, error } = await client.rpc('crm_sky_perfil_consultar', { p_fuente: sourceKey, p_filtro: text(filter) || null });
-        assertNoError(error, 'Skill no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql V63.');
+        const payload = { p_fuente: sourceKey, p_filtro: text(filter) || null };
+        let { data, error } = await client.rpc('crm_sky_perfil_consultar_v103', payload);
+        if (error && /crm_sky_perfil_consultar_v103|function|schema cache|PGRST202/i.test(errorMessage(error))) {
+            ({ data, error } = await client.rpc('crm_sky_perfil_consultar', payload));
+        }
+        assertNoError(error, 'Skill no pudo consultar la información autorizada para este perfil. Ejecuta SQL_ACTUALIZACION_V103_RECEPCION_SUMINISTROS.sql.');
         const rows = Array.isArray(data) ? data : [];
         if (sourceKey === 'materiales') {
             return rows.map(row => ({
@@ -6157,6 +6362,17 @@
         }
         if (sourceKey === 'cotizaciones' || sourceKey === 'quotations') {
             return rows.map(row => ({ ...row, id: text(row.id), folio: text(row.folio), origen: text(row.origen), estado: text(row.estado), prioridad: text(row.prioridad), fechaRequerida: text(row.fechaRequerida), solicitadoPor: text(row.solicitadoPor), referencia: text(row.referencia), notas: text(row.notas), items: Array.isArray(row.items) ? row.items : [] }));
+        }
+        if (sourceKey === 'suministros') {
+            return rows.map(row => ({
+                id:Number(row.id||0),codigo:text(row.codigo),descripcion:text(row.descripcion),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],categoria:text(row.categoria),
+                marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),proveedor:text(row.proveedor),contactoProveedor:text(row.contacto_proveedor),contacto_proveedor:text(row.contacto_proveedor),
+                unidad:text(row.unidad)||'PIEZA',stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),stockMedio:number(row.stock_medio),stock_medio:number(row.stock_medio),stockMaximo:number(row.stock_maximo),stock_maximo:number(row.stock_maximo),
+                precio:number(row.precio),monedaCosto:text(row.moneda_costo)||'MXN',moneda_costo:text(row.moneda_costo)||'MXN',imagen:text(row.imagen_url),imagen_url:text(row.imagen_url),activo:row.activo!==false
+            }));
+        }
+        if (sourceKey === 'tienda') {
+            return rows.map(row => ({...row,id:Number(row.id||0),folio:text(row.folio),negocio:text(row.negocio),producto:text(row.producto),marcaEspecifica:text(row.marcaEspecifica),presentacion:text(row.presentacion),cantidad:number(row.cantidad),unidad:text(row.unidad)||'pieza',costoEstimado:number(row.costoEstimado),moneda:text(row.moneda)||'MXN',fechaRequerida:text(row.fechaRequerida),prioridad:text(row.prioridad),estado:text(row.estado),solicitadoPor:text(row.solicitadoPor),responsableCompra:text(row.responsableCompra),motivoNoViable:text(row.motivoNoViable),notas:text(row.notas),createdAt:text(row.createdAt)}));
         }
         return rows;
     }
@@ -6294,8 +6510,10 @@
 
     async function createDirectPurchaseOrderFromQuotationV96(payload = {}) {
         const items = Array.isArray(payload.items) ? payload.items : [];
-        if (!text(payload.cotizacionId)) throw new Error('Falta la solicitud de cotización.');
-        if (!Number(payload.proveedorId || 0)) throw new Error('Selecciona el proveedor.');
+        const cotizacionId = text(payload.cotizacionId);
+        const proveedorId = Number(payload.proveedorId || 0);
+        if (!cotizacionId) throw new Error('Falta la solicitud de cotización.');
+        if (!proveedorId) throw new Error('Selecciona el proveedor.');
         if (!items.length) throw new Error('La orden directa no contiene partidas.');
         const rows = items.map(item => ({
             cotizacion_item_id: Number(item.cotizacionItemId || item.id || 0),
@@ -6304,17 +6522,117 @@
             plazo_entrega_dias: Math.max(0, Math.round(number(item.plazoEntregaDias)))
         }));
         if (rows.some(row => !row.cotizacion_item_id)) throw new Error('Hay partidas de la cotización sin identificador.');
-        const { data, error } = await client.rpc('co_crear_orden_directa_cotizacion_v96', {
-            p_cotizacion_id: text(payload.cotizacionId),
+
+        const rpcPayload = {
+            p_cotizacion_id: cotizacionId,
             p_orden: text(payload.ordenCompra) || null,
-            p_proveedor_id: Number(payload.proveedorId),
+            p_proveedor_id: proveedorId,
             p_referencia: text(payload.referencia) || null,
             p_solicitado_por: text(payload.solicitadoPor) || null,
             p_notas: text(payload.notas) || null,
             p_items: rows
+        };
+        const missingRpc = error => {
+            const code = text(error?.code);
+            const message = errorMessage(error);
+            return ['PGRST202','42883'].includes(code) || /could not find the function|schema cache|does not exist/i.test(message);
+        };
+
+        let result = await client.rpc('co_crear_orden_directa_cotizacion_v103', rpcPayload);
+        if (!result.error) return result.data || {};
+        if (!missingRpc(result.error)) assertNoError(result.error, 'No se pudo crear la orden directa desde la solicitud.');
+
+        result = await client.rpc('co_crear_orden_directa_cotizacion_v96', rpcPayload);
+        if (!result.error) return result.data || {};
+        if (!missingRpc(result.error)) assertNoError(result.error, 'No se pudo crear la orden directa desde la solicitud.');
+
+        const quotation = await getQuotationRequest(cotizacionId);
+        const selectedIds = new Set(rows.map(row => Number(row.cotizacion_item_id)));
+        const selectedItems = (quotation.items || []).filter(item => selectedIds.has(Number(item.id)));
+        if (selectedItems.length !== selectedIds.size) throw new Error('Una o más partidas de la cotización ya no están disponibles.');
+
+        const { data: provider, error: providerError } = await client.from('co_proveedores').select('id,razon_social,nombre_comercial,contacto').eq('id', proveedorId).maybeSingle();
+        assertNoError(providerError, 'No se pudo consultar el proveedor seleccionado.');
+        if (!provider) throw new Error('El proveedor seleccionado ya no está disponible.');
+        const providerName = text(provider.nombre_comercial || provider.razon_social);
+        const order = text(payload.ordenCompra) || `OC-DIR-${new Date().toISOString().replace(/\D/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
+        const selectedIdList = [...selectedIds];
+        const { data: alreadyLinked, error: linkedError } = await client.from('solicitudes_compra').select('cotizacion_item_id,estado').eq('cotizacion_id', cotizacionId).in('cotizacion_item_id', selectedIdList);
+        assertNoError(linkedError, 'No se pudo comprobar si las partidas ya tenían una orden.');
+        const activeLinked = new Set((alreadyLinked || []).filter(row => !['cancelada','recibida'].includes(lower(row.estado))).map(row => Number(row.cotizacion_item_id)));
+        if (activeLinked.size) throw new Error('Una o más partidas seleccionadas ya tienen una orden de compra activa.');
+
+        const quoteById = new Map(selectedItems.map(item => [Number(item.id), item]));
+        const priceById = new Map(rows.map(row => [Number(row.cotizacion_item_id), row]));
+        const priority = ['critica','urgente','alta'].includes(lower(quotation.prioridad)) ? 'urgente' : 'normal';
+        const now = new Date().toISOString();
+        const requestRows = selectedIdList.map((id, index) => {
+            const item = quoteById.get(id);
+            const price = priceById.get(id);
+            return {
+                folio: `SC-DIR-${Date.now()}-${String(index + 1).padStart(3,'0')}-${Math.random().toString(36).slice(2,4).toUpperCase()}`,
+                material_codigo: item.materialCodigo,
+                descripcion: item.descripcion,
+                categoria: null,
+                unidad: item.unidad || null,
+                almacen_id: item.almacenId || null,
+                almacen_nombre: item.almacenNombre || null,
+                existencia_actual: number(item.existenciaActual),
+                stock_minimo: number(item.stockMinimo),
+                stock_medio: number(item.stockMedio),
+                stock_maximo: number(item.stockMaximo),
+                cantidad_solicitada: number(item.cantidad),
+                cantidad_recibida: 0,
+                prioridad: priority,
+                estado: 'pendiente',
+                proveedor: providerName,
+                contacto_proveedor: text(provider.contacto) || null,
+                orden_compra: order,
+                grupo_orden: order,
+                motivo: `Orden directa desde solicitud de cotización ${quotation.folio}${text(payload.notas) ? `: ${text(payload.notas)}` : ''}`,
+                solicitado_por: text(payload.solicitadoPor) || quotation.solicitadoPor || null,
+                fecha_requerida: quotation.fechaRequerida || null,
+                fecha_orden_compra: new Date().toISOString().slice(0,10),
+                referencia: text(payload.referencia) || quotation.referencia || null,
+                estado_compras: 'en_revision',
+                cotizacion_id: cotizacionId,
+                cotizacion_item_id: id,
+                proveedor_id: proveedorId,
+                precio_cotizado: Math.max(0, number(price.precio_unitario)),
+                moneda: normalizeCurrencyCode(price.moneda),
+                plazo_entrega_dias: Math.max(0, Math.round(number(price.plazo_entrega_dias))),
+                origen_solicitud: 'cotizacion_directa',
+                justificacion_excepcion: 'Orden directa desde cotización',
+                created_at: now,
+                updated_at: now
+            };
         });
-        assertNoError(error, 'No se pudo crear la orden directa desde la solicitud. Ejecuta SQL_MAESTRO_CRM.sql V96.');
-        return data || {};
+        const { error: insertError } = await client.from('solicitudes_compra').insert(requestRows);
+        assertNoError(insertError, 'No se pudieron crear las partidas de la orden directa.');
+
+        const { error: itemUpdateError } = await client.from('co_cotizacion_items').update({ estado:'cerrado', proveedor_seleccionado_id:proveedorId, updated_at:now }).in('id', selectedIdList).eq('cotizacion_id', cotizacionId);
+        assertNoError(itemUpdateError, 'La orden se creó, pero no se pudo cerrar la selección de cotización.');
+
+        try {
+            await client.from('co_cotizacion_ofertas').update({ estado:'descartada', updated_at:now }).in('cotizacion_item_id', selectedIdList);
+            await client.from('co_cotizacion_ofertas').update({ estado:'seleccionada', updated_at:now }).in('cotizacion_item_id', selectedIdList).eq('proveedor_id', proveedorId);
+        } catch (_) {}
+
+        const { data: remainingRows, error: remainingError } = await client.from('co_cotizacion_items').select('id,estado').eq('cotizacion_id', cotizacionId).neq('estado','cerrado');
+        assertNoError(remainingError, 'No se pudo actualizar el estado final de la cotización.');
+        const complete = !(remainingRows || []).length;
+        const headerChanges = complete
+            ? { estado:'aprobada', aprobada_at:now, revisada_at:quotation.revisadaAt || now, updated_at:now }
+            : { estado:'comparada', revisada_at:quotation.revisadaAt || now, updated_at:now };
+        const user = (await client.auth.getUser()).data?.user;
+        if (user?.id) {
+            if (complete) headerChanges.aprobada_por = user.id;
+            headerChanges.revisada_por = user.id;
+        }
+        const { error: headerError } = await client.from('co_cotizaciones').update(headerChanges).eq('id', cotizacionId);
+        assertNoError(headerError, 'La orden se creó, pero no se pudo actualizar la cotización.');
+
+        return { ok:true, orden:order, materiales:requestRows.length, cotizacion_id:cotizacionId, pendientes:(remainingRows || []).length, origen:'cotizacion_directa_compatibilidad' };
     }
 
     async function listPurchaseOrderSignatures(order = '') {
@@ -6395,6 +6713,7 @@
 
     window.SkilledDB = Object.freeze({
         client,
+        withOperationTimeout,
         healthCheck,
         listWarehouses,
         listWarehouseInventory,
@@ -6582,6 +6901,10 @@
         deleteEmailTemplate,
         approveQuotation,
         listQuotationPurchaseOrders,
+        listReceptionSupplies,
+        saveReceptionSupply,
+        deleteReceptionSupply,
+        importReceptionSupplies,
         listStoreRequests,
         saveStoreRequest,
         deleteStoreRequest,

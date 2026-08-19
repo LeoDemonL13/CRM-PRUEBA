@@ -10,14 +10,17 @@
     const customProfiles = new Map();
     const skyProfiles = new Set(['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta']);
     const fullSkyProfiles = new Set(['gerente_general','subgerente','sky_demo']);
-    const profileSourceAccess = {administrador:new Set([]),jefe_almacen:new Set(['materiales','categorias','almacenes','herramientas','vehiculos','proyectos','compras']),almacen:new Set(['materiales','categorias','almacenes','herramientas','vehiculos','proyectos','compras']),compras:new Set(['materiales','categorias','proyectos','proveedores','compras','cotizaciones']),proyectos:new Set(['proyectos','materiales','categorias','compras']),planeacion:new Set(['proyectos','materiales','categorias','compras']),coordinacion:new Set(['proyectos','vehiculos','compras']),logistica:new Set(['proyectos','vehiculos','materiales','categorias']),recepcion:new Set(['presencia_recepcion']),rh:new Set(['personal','proyectos','vehiculos','asistencia','activos_rh']),finanzas:new Set(['proyectos','compras','cotizaciones']),tsi:new Set(['materiales','proyectos']),consulta:new Set(['materiales','categorias'])};
-    function currentRole() {
+    const profileSourceAccess = {administrador:new Set([]),jefe_almacen:new Set(['materiales','categorias','almacenes','herramientas','herramientas_asignaciones','vehiculos','proyectos','compras']),almacen:new Set(['materiales','categorias','almacenes','herramientas','herramientas_asignaciones','vehiculos','proyectos','compras']),compras:new Set(['materiales','categorias','proyectos','proveedores','proveedor_materiales','compras','cotizaciones','solicitudes_proveedor','servicios']),proyectos:new Set(['proyectos','materiales','categorias','compras']),planeacion:new Set(['proyectos','materiales','categorias','compras']),coordinacion:new Set(['proyectos','vehiculos','compras']),logistica:new Set(['proyectos','vehiculos','materiales','categorias']),recepcion:new Set(['presencia_recepcion','directorio_recepcion','suministros','tienda']),rh:new Set(['personal','proyectos','vehiculos','asistencia','activos_rh','asignaciones_rh','incidencias_rh','documentos_rh','capacitaciones_rh']),finanzas:new Set(['proyectos','compras','cotizaciones']),tsi:new Set(['materiales','proyectos']),consulta:new Set(['materiales','categorias'])};
+    function authenticatedRole() {
         if (window.SkilledSession?.role) return String(window.SkilledSession.role).toLowerCase();
         if (document.documentElement.dataset.role) return String(document.documentElement.dataset.role).toLowerCase();
-        try { return String(JSON.parse(localStorage.getItem('skilled_profile_cache') || 'null')?.rol || 'consulta').toLowerCase(); } catch (_) { return 'consulta'; }
+        try { return String(JSON.parse(localStorage.getItem('skilled_profile_cache') || 'null')?.rol || '').toLowerCase(); } catch (_) { return ''; }
     }
+    function currentRole() { return authenticatedRole() || 'consulta'; }
     function detectProfile() {
-        if (requestedProfile) return requestedProfile;
+        const role = authenticatedRole();
+        if (['administrador','jefe_almacen','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta'].includes(role)) return role;
+        if (requestedProfile && skyProfiles.has(requestedProfile)) return requestedProfile;
         const warehouseLegacyFiles = new Set(['inicio.html','catalogo.html','almacenes.html','bajo-minimo.html','etiquetas.html','escaner.html','herramientas.html','historial-movimientos.html','reportes.html','solicitudes-compra.html','importar-materiales.html','estado-herramientas.html','proyectos.html']);
         if (warehouseLegacyFiles.has(file)) return 'almacen';
         const match = file.match(/^([a-z0-9_-]+)\./i);
@@ -26,10 +29,7 @@
         if (body) return body;
         const remembered = String(sessionStorage.getItem('skilled_active_profile') || '').toLowerCase();
         if (remembered) return remembered;
-        const role = currentRole();
-        if (role === 'jefe_almacen') return 'almacen';
-        if (['administrador','almacen','compras','rh','finanzas','gerente_general','subgerente','sky_demo','proyectos','planeacion','coordinacion','logistica','recepcion','tsi','consulta'].includes(role)) return role;
-        return 'almacen';
+        return 'consulta';
     }
     function skyAllowed() {
         return skyProfiles.has(detectProfile());
@@ -48,7 +48,7 @@
             planeacion: { title:'Skill · Asistente de Planeación', subtitle:'Proyectos, materiales y solicitudes vinculadas a la planeación, sin abrir datos de RH, proveedores u otras áreas no autorizadas.', placeholder:'Ej. Dame un resumen del proyecto 26001', examples:[['Proyecto','Dame un resumen del proyecto 26001'],['Materiales','¿Qué materiales tenemos para el proyecto 26001?'],['Compras','¿Qué solicitudes de compra están relacionadas con el proyecto?'],['Mensaje','Avisa a Coordinación que el plan del proyecto está listo'],['Reunión','Convoca mañana a las 9 con Coordinación para revisar el plan']] },
             coordinacion: { title:'Skill · Asistente de Coordinación', subtitle:'Proyectos, solicitudes y vehículos visibles para Coordinación, además de chat y reuniones.', placeholder:'Ej. ¿Qué requiere atención en el proyecto 26001?', examples:[['Resumen','Dame un resumen del proyecto 26001'],['Solicitudes','¿Qué solicitudes del proyecto 26001 siguen abiertas?'],['Vehículos','¿Qué vehículos están disponibles para coordinación?'],['Mensaje','Dile a Logística que prepare el vehículo'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
             logistica: { title:'Skill · Asistente de Logística', subtitle:'Flotilla, entregas, proyectos y consulta de materiales autorizada para Logística, con chat y reuniones.', placeholder:'Ej. ¿Qué vehículos están disponibles?', examples:[['Vehículos','¿Qué vehículos están disponibles?'],['Vehículo','¿Cómo está la camioneta Ford?'],['Proyecto','¿Cómo va el proyecto 26001?'],['Material','Busca cable 14 AWG'],['Mensaje','Avisa a Recepción que la camioneta ya salió'],['Reunión','Convoca a Coordinación a las 4 para revisar logística']] },
-            recepcion: { title:'Skill · Asistente de Recepción', subtitle:'Timbre inteligente, visitantes, personal reconocido, presencia por área y avisos internos. No expone inventario, RH, Compras ni otros datos operativos.', placeholder:'Ej. ¿Hay alguien de Compras aquí?', examples:[['Presencia','¿Hay alguien de Compras aquí?'],['Persona','¿Está Leobardo en las instalaciones?'],['Puerta','Leobardo está en la entrada y pide que le abran'],['Llamar área','Avisa a Compras que Leobardo está en la entrada'],['Comida','Traen un pedido de comida, avisa a Recepción'],['Materiales','Llegó un proveedor con materiales, avisa a Compras']] },
+            recepcion: { title:'Skill · Asistente de Recepción', subtitle:'Suministros, listas de Tienda, atención de visitantes, presencia por área y avisos internos. Solo consulta información autorizada para Recepción.', placeholder:'Ej. ¿Qué suministros están por acabarse?', examples:[['Suministros','¿Qué suministros están bajo mínimo?'],['Buscar','¿Tenemos papel higiénico?'],['Tienda','¿Qué listas de tienda siguen pendientes?'],['Presencia','¿Hay alguien de Compras aquí?'],['Puerta','Leobardo está en la entrada y pide que le abran'],['Aviso','Avisa a Compras que llegó un proveedor']] },
             rh: { title:'Skill · Asistente de RH', subtitle:'Personal, proyectos, incidencias, documentos, contratos, nómina, checador, horas trabajadas, capacitación, resguardos y comunicación interna.', placeholder:'Ej. ¿Cuántas horas lleva cada trabajador esta semana?', examples:[['Horas del checador','¿Cuántas horas lleva cada trabajador esta semana?'],['Salida pendiente','¿Quién sigue dentro y no ha checado salida hoy?'],['Sin checada','¿Quién no ha checado hoy?'],['Colaborador','Muéstrame los días y horas de Leobardo esta semana'],['Meta semanal','¿A quién le faltan horas para llegar a 50 esta semana?'],['Nómina','¿Cuál es el último periodo de nómina?']] },
             finanzas: { title:'Skill · Asistente de Finanzas', subtitle:'Presupuestos, costos de proyectos, compras, cotizaciones y rentas de herramientas visibles para Finanzas.', placeholder:'Ej. ¿Cuál es el costo consumido del proyecto 26001?', examples:[['Costo','¿Cuál es el costo consumido del proyecto 26001?'],['Presupuesto','¿Cómo va el presupuesto del proyecto 26001?'],['Mayor costo','¿Cuáles proyectos tienen mayor costo?'],['Compras','¿Qué compras están pendientes?'],['Cotizaciones','¿Qué cotizaciones siguen abiertas?'],['Mensaje','Dile a Gerencia que el resumen financiero está listo']] },
             gerente_general: { title:'Skill · Asistente de Gerencia General', subtitle:'Consulta ejecutiva por excepción: riesgos, cambios, presupuesto, proyectos, RH, Compras, Almacén, checador y vehículos sin saturar la pantalla con operación innecesaria.', placeholder:'Ej. ¿Qué cambió y qué requiere mi atención?', examples:[['Atención','¿Qué requiere mi atención hoy?'],['Cambios','¿Qué cambió desde la última revisión?'],['Proyecto','Resume el proyecto 26001 y dime sus riesgos'],['Horas RH','¿Hay checadas incompletas o personal por debajo de su meta semanal?'],['Compras','¿Qué compras o cotizaciones pueden afectar una entrega?'],['Almacén','¿Qué faltantes pueden frenar proyectos?'],['Reunión','Genera una reunión general a las 4 para revisar pendientes']] },
@@ -362,19 +362,19 @@
             administrador:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',movimientos:'AL.movimientos.html',proyectos:'AL.proyectos.html',herramientas:'AL.herramientas.html',vehiculos:'AL.vehiculos.html',reportes:'AL.reportes.html','cola operativa':'AL.automatizaciones.html','centro de importaciones':'ADM.importaciones.html'},
             jefe_almacen:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',movimientos:'AL.movimientos.html',historial:'AL.historial-movimientos.html','bajo minimo':'AL.bajo-minimo.html',proyectos:'AL.proyectos.html',herramientas:'AL.herramientas.html',vehiculos:'AL.vehiculos.html',etiquetas:'AL.etiquetas.html',reportes:'AL.reportes.html',escaner:'AL.escaner.html','cola operativa':'AL.automatizaciones.html'},
             almacen:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',movimientos:'AL.movimientos.html',historial:'AL.historial-movimientos.html','bajo minimo':'AL.bajo-minimo.html',proyectos:'AL.proyectos.html',herramientas:'AL.herramientas.html',vehiculos:'AL.vehiculos.html',etiquetas:'AL.etiquetas.html',reportes:'AL.reportes.html',escaner:'AL.escaner.html','cola operativa':'AL.automatizaciones.html'},
-            compras:{inicio:'CO.inicio.html',proveedores:'CO.proveedores.html',cotizaciones:'CO.cotizaciones.html','hacer compra':'CO.hacer-compra.html',compras:'CO.hacer-compra.html',requisiciones:'CO.requisiciones.html',recepciones:'CO.recepciones.html',servicios:'CO.servicios.html',tienda:'CO.tienda.html','bajo minimo':'CO.bajo-minimo.html'},
+            compras:{inicio:'CO.inicio.html',proveedores:'CO.proveedores.html',cotizaciones:'CO.cotizaciones.html','hacer compra':'CO.hacer-compra.html',compras:'CO.hacer-compra.html',requisiciones:'CO.requisiciones.html',recepciones:'CO.recepciones.html',servicios:'CO.servicios.html','bajo minimo':'CO.bajo-minimo.html'},
             rh:{inicio:'RH.inicio.html',personal:'RH.personal.html',trabajadores:'RH.personal.html',proyectos:'RH.proyectos.html',asistencias:'RH.asistencias.html',checador:'RH.checador.html',documentos:'RH.documentos.html',nomina:'RH.nomina.html',capacitacion:'RH.capacitacion.html','equipos y resguardos':'RH.equipos.html',equipos:'RH.equipos.html',resguardos:'RH.equipos.html'},
             finanzas:{inicio:'FI.inicio.html',presupuestos:'FI.presupuestos.html',gastos:'FI.gastos.html','cuentas por pagar':'FI.cuentas-pagar.html',reportes:'FI.reportes.html'},
             planeacion:{inicio:'PL.inicio.html',proyectos:'AL.proyectos.html?perfil=planeacion',solicitudes:'AL.solicitudes-material.html?perfil=planeacion',reportes:'AL.reportes.html?perfil=planeacion','importar proyectos':'PROY.importar.html?perfil=planeacion'},
             coordinacion:{inicio:'CR.inicio.html',proyectos:'AL.proyectos.html?perfil=coordinacion',solicitudes:'AL.solicitudes-material.html?perfil=coordinacion',vehiculos:'AL.vehiculos.html?perfil=coordinacion',reportes:'AL.reportes.html?perfil=coordinacion'},
             logistica:{inicio:'LG.inicio.html',vehiculos:'AL.vehiculos.html?perfil=logistica',entregas:'CO.entregas.html?perfil=logistica',proyectos:'AL.proyectos.html?perfil=logistica',materiales:'AL.catalogo.html?perfil=logistica'},
-            recepcion:{inicio:'RE.inicio.html','skill porteria':'RE.sky-porteria.html','sky porteria':'RE.sky-porteria.html',porteria:'RE.sky-porteria.html',timbre:'RE.sky-porteria.html',entregas:'CO.entregas.html?perfil=recepcion',vehiculos:'AL.vehiculos.html?perfil=recepcion'},
+            recepcion:{inicio:'RE.inicio.html',suministros:'RE.suministros.html',suministro:'RE.suministros.html',tienda:'RE.tienda.html','lista de compra':'RE.tienda.html','listas de compra':'RE.tienda.html'},
             proyectos:{inicio:'AL.proyectos.html',proyectos:'AL.proyectos.html',solicitudes:'AL.solicitudes-material.html',reportes:'AL.reportes.html',movimientos:'AL.historial-movimientos.html'},
             tsi:{inicio:'TSI.inicio.html',epp:'TSI.solicitudes-epp.html','solicitar epp':'TSI.solicitudes-epp.html'},
             consulta:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',reportes:'AL.reportes.html',manual:'AL.manual-usuario.html'},
             gerente_general:{inicio:'GG.inicio.html',proyectos:'GG.proyectos.html',vehiculos:'GG.vehiculos.html'},
             subgerente:{inicio:'SG.inicio.html',proyectos:'SG.proyectos.html',vehiculos:'SG.vehiculos.html'},
-            sky_demo:{inicio:'SKILL.inicio.html',skill:'SKILL.inicio.html',sky:'SKILL.inicio.html','modo presentacion':'SKILL.inicio.html'}
+            sky_demo:{inicio:'SKY.inicio.html',skill:'SKY.inicio.html',sky:'SKY.inicio.html','modo presentacion':'SKY.inicio.html'}
         };
         const map={...common,...(maps[profile]||{})};
         if(map.documentos==='RH.documentos.html,')map.documentos='RH.documentos.html';
@@ -844,9 +844,9 @@
         const commonWords = ['cuanto','cuantos','donde','tenemos','hay','estado','busca','buscar','disponible','proyecto','hora','fecha','dia','hoy','mes','ano','ayuda','perfil','quien eres','repite'];
         const profileWords = {
             almacen: ['ubicacion','bajo minimo','orden de compra','herramienta','vehiculo','tubo','cable','broca','almacen','bodega','rack','zona','piso','existencia'],
-            compras: ['cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar proveedores','orden de compra','requisicion','proveedor','recepcion','servicio','tienda','comprar','pago','vencimiento','rfc'],
+            compras: ['cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar proveedores','orden de compra','requisicion','proveedor','recepcion','servicio','comprar','pago','vencimiento','rfc'],
             rh: ['trabajador','colaborador','personal','empleado','ausencia','vacaciones','incapacidad','documento','contrato','capacitacion','incidencia','asistencia'],
-            recepcion: ['recepcion','porteria','caseta','entrada','puerta','porton','acceso','afuera','visitante','visita','presencia','presente','compras','recursos humanos','almacen','finanzas','planeacion','coordinacion','logistica','tsi','gerencia','subgerencia','avisa','avisale','llama','dile','hablale','marcale','repartidor','mensajero','paquete','paqueteria','mercado libre','amazon','dhl','fedex','estafeta','ups','comida','pedido','lonche','proveedor','materiales','remision'],
+            recepcion: ['recepcion','suministro','suministros','catalogo','tienda','lista','listas de compra','compras generales','papeleria','limpieza','consumible','stock','existencia','minimo','proveedor','precio','porteria','caseta','entrada','puerta','porton','acceso','afuera','visitante','visita','presencia','presente','compras','recursos humanos','almacen','finanzas','planeacion','coordinacion','logistica','tsi','gerencia','subgerencia','avisa','avisale','llama','dile','hablale','marcale','repartidor','mensajero','paquete','paqueteria','mercado libre','amazon','dhl','fedex','estafeta','ups','comida','pedido','lonche','materiales','remision'],
             finanzas: ['presupuesto','costo','consumido','planeado','gasto','finanzas','avance','cuenta por pagar'],
             gerente_general: ['proyecto','proyectos','gasto','materiales','sueldos','nomina','planeado','real','desviacion','presupuesto','direccion'],
             subgerente: ['proyecto','proyectos','gasto','materiales','sueldos','nomina','planeado','real','desviacion','presupuesto','direccion'],
@@ -1633,7 +1633,13 @@
         if (!window.SkilledDB) throw new Error('La conexión con el CRM todavía no está lista.');
         const profile = detectProfile();
         const bridge = skyBridgeProfile(profile);
-        const sourceForKey={materials:'materiales',low:'materiales',purchases:'compras',tools:'herramientas',vehicles:'vehiculos',projects:'proyectos',projectDetails:'proyectos',coSuppliers:'proveedores',coQuotations:'cotizaciones',categories:'categorias',rhPeople:'personal',rhAttendance:'asistencia',rhOfficeAssets:'activos_rh',rePresence:'presencia_recepcion'};
+        const sourceForKey={
+            materials:'materiales',low:'materiales',purchases:'compras',tools:'herramientas',assignments:'herramientas_asignaciones',vehicles:'vehiculos',projects:'proyectos',projectDetails:'proyectos',categories:'categorias',
+            coSuppliers:'proveedores',coProviderMaterials:'proveedor_materiales',coSupplierRequests:'solicitudes_proveedor',coServices:'servicios',coQuotations:'cotizaciones',coStore:'tienda',
+            rhPeople:'personal',rhAssignments:'asignaciones_rh',rhIncidents:'incidencias_rh',rhAttendance:'asistencia',rhDocuments:'documentos_rh',rhTrainings:'capacitaciones_rh',rhParticipants:'capacitaciones_rh',rhOfficeAssets:'activos_rh',rhOfficeAssignments:'activos_rh',
+            rePresence:'presencia_recepcion',reDirectory:'directorio_recepcion',reSupplies:'suministros',
+            executiveRHOfficeAssets:'activos_rh',executiveTools:'herramientas',executiveWarehouses:'almacenes',executiveAlerts:'proyectos'
+        };
         const neededSource=sourceForKey[key];
         if(neededSource&&!skySourceAllowed(neededSource,profile))throw new Error(`Skill no tiene permiso para consultar ${neededSource} desde ${profileNames[profile]||profile}.`);
         const loaders = {
@@ -1649,7 +1655,8 @@
             coProviderMaterials: () => SkilledDB.listProviderMaterials({ activeOnly: true }),
             coSupplierRequests: () => SkilledDB.listSupplierRequests({}),
             coServices: () => SkilledDB.listServices(),
-            coStore: () => SkilledDB.listStoreRequests(),
+            coStore: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('tienda') : SkilledDB.listStoreRequests(),
+            reSupplies: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('suministros') : (typeof SkilledDB.listReceptionSupplies==='function' ? SkilledDB.listReceptionSupplies() : []),
             coQuotations: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('cotizaciones') : typeof SkilledDB.listQuotationRequests === 'function' ? SkilledDB.listQuotationRequests({}) : [],
             rhPeople: () => bridge && SkilledDB.getSkyProfileData ? skyBridge('personal') : tableRows('rh_personal'),
             rhAssignments: () => tableRows('rh_proyecto_asignaciones'),
@@ -1981,7 +1988,7 @@
     ];
     function demoTools(){try{const rows=JSON.parse(localStorage.getItem('skilled_sky_demo_tools_v82')||localStorage.getItem('skilled_sky_demo_tools_v81')||'null');return Array.isArray(rows)&&rows.length?rows:demoToolDefaults}catch(_){return demoToolDefaults}}
     function toolsUsedIntent(raw){const norm=commandNormalize(raw);return /\b(lenguajes|herramientas|tecnologias|stack|java|javascript|sql|html|css|powershell|supabase|visual studio|con que.*hecho|con que.*desarrollado|que usaron|que utilizan)\b/.test(norm)&&/\b(utilizad|usad|hech|desarroll|crm|sky|sistema|programa|herramientas|lenguajes|stack|tecnologias)\b/.test(norm)}
-    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Skill.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Skill sin afectar la implementación final.',cards,{href:'SKILL.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
+    function answerToolsUsed(raw){if(!toolsUsedIntent(raw))return null;const rows=demoTools();const cards=rows.slice(0,12).map(item=>({title:`${item.name||'Herramienta'} · ${item.category||'Uso'}`,detail:item.description||'Herramienta agregada para la presentación.'}));const message=`En esta etapa se están utilizando ${rows.length} lenguajes y herramientas principales dentro del CRM y Skill.`;setAnswer('Lenguajes y herramientas utilizadas',message,'Estas tarjetas son temporales para la presentación. Puedes agregarlas o borrarlas desde el perfil de prueba de Skill sin afectar la implementación final.',cards,{href:'SKY.inicio.html#sky-tools-section',label:'Abrir tarjetas'});return {handled:true,voice:`${message} Entre ellas están ${rows.slice(0,6).map(item=>item.name).filter(Boolean).join(', ')}.`};}
 
     function projectMatch(projects, raw) {
         const norm = commandNormalize(raw);
@@ -2094,27 +2101,18 @@
             return selected.length ? `Encontré ${selected.length} servicios. ${selected.slice(0, 3).map(item => `${item.nombre}, vence ${dateOnly(item.proximaFechaPago)}`).join('. ')}` : 'No encontré servicios con ese criterio.';
         }
         if (/proyecto|proyectos|avance.*proyecto|estado.*proyecto|costo.*proyecto/.test(norm) || hasFuzzy(norm,['proyecto','proyectos'])) return answerProjects(raw);
-        if (/tienda|sams|aurrera|compra general|compras generales/.test(norm)) {
-            const rows = await loadData('coStore');
-            const pending = rows.filter(item => !['comprado', 'cancelado'].includes(normalize(item.estado)));
-            const cards = pending.slice(0, 7).map(item => ({ title: item.producto || 'Compra', detail: `${item.negocio || 'negocio pendiente'} · ${formatNumber(item.cantidad)} ${item.unidad || ''} · ${currency(item.costoEstimado)}` }));
-            setAnswer('Compras de tienda', pending.length ? `${pending.length} solicitud${pending.length === 1 ? '' : 'es'} de tienda siguen pendientes.` : 'No hay compras de tienda pendientes.', '', cards, { href: 'CO.tienda.html', label: 'Abrir tienda' });
-            return pending.length ? `Hay ${pending.length} compras de tienda pendientes.` : 'No hay compras de tienda pendientes.';
-        }
-        const [quotes, orders, suppliers, services, store] = await Promise.all([loadData('coQuotations'), loadData('purchases'), loadData('coSuppliers'), loadData('coServices'), loadData('coStore')]);
+        const [quotes, orders, suppliers, services] = await Promise.all([loadData('coQuotations'), loadData('purchases'), loadData('coSuppliers'), loadData('coServices')]);
         const quoteOpen = quotes.filter(item => ['solicitada','en_revision','cotizando'].includes(normalize(item.estado))).length;
         const groups = new Set(orders.filter(item => !['compra_realizada', 'recibida', 'cerrada', 'cancelada', 'rechazada'].includes(normalize(item.estadoCompras || item.estado))).map(item => text(item.ordenCompra || item.grupoOrden || item.folio)).filter(Boolean));
         const due = services.filter(item => item.estado === 'activo' && (daysFromToday(item.proximaFechaPago) ?? 9999) <= Math.max(30, number(item.anticipacionDias))).length;
-        const storePending = store.filter(item => !['comprado', 'cancelado'].includes(normalize(item.estado))).length;
         const cards = [
             { title: 'Cotizaciones por revisar', detail: `${quoteOpen}` },
             { title: 'Órdenes por atender', detail: `${groups.size}` },
             { title: 'Proveedores', detail: `${suppliers.length}` },
-            { title: 'Servicios próximos', detail: `${due}` },
-            { title: 'Compras de tienda pendientes', detail: `${storePending}` }
+            { title: 'Servicios próximos', detail: `${due}` }
         ];
-        setAnswer('Resumen de Compras', `Hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender, ${due} servicios próximos y ${storePending} compras de tienda pendientes.`, 'Puedes preguntarme por una cotización, material a cotizar, OC, proveedor, precio, plazo, servicio o compra específica.', cards, { href: 'CO.inicio.html', label: 'Abrir Compras' });
-        return `En Compras hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender, ${due} servicios próximos y ${storePending} compras de tienda pendientes.`;
+        setAnswer('Resumen de Compras', `Hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender y ${due} servicios próximos.`, 'Puedes preguntarme por una cotización, material a cotizar, OC, proveedor, precio, plazo o servicio.', cards, { href: 'CO.inicio.html', label: 'Abrir Compras' });
+        return `En Compras hay ${quoteOpen} cotizaciones por revisar, ${groups.size} órdenes por atender y ${due} servicios próximos.`;
     }
 
     function officeAssetIntent(raw) {
@@ -2843,7 +2841,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=89'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=104'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3205,13 +3203,14 @@
 
     function prewarmSkyProfileData() {
         const profile=detectProfile();
+        if (profile==='sky_demo') return;
         if (prewarmProfile===profile || skyDataSaverActive() || !window.SkilledDB) return;
         prewarmProfile=profile;
         const keys=isExecutiveReadProfile(profile)
-            ? ['materials','projects','vehicles','categories','executiveTools','executiveWarehouses','purchases','coQuotations','rhPeople','rhAttendance','executiveAlerts']
-            : [...new Set(profileSmartSearchConfig(profile).map(item=>item.key))].slice(0,5);
-        const run=async()=>{const results=await Promise.allSettled(keys.map(key=>loadData(key)));if(results.length&&results.every(item=>item.status==='rejected'))prewarmProfile='';};
-        if ('requestIdleCallback' in window) requestIdleCallback(run,{timeout:1800}); else setTimeout(run,120);
+            ? ['projects','vehicles','materials']
+            : [...new Set(profileSmartSearchConfig(profile).map(item=>item.key))].slice(0,3);
+        const run=async()=>{for(const key of keys){try{await loadData(key)}catch(_){}}};
+        if ('requestIdleCallback' in window) requestIdleCallback(run,{timeout:3200}); else setTimeout(run,1400);
     }
 
     function skyDayGreeting() {
@@ -3305,6 +3304,40 @@
         const explicitCall=(callWords&&hasTarget)||callFollowup;
         return{norm,door:((doorLocation&&doorAction)||doorColloquial)&&!explicitCall,presence:(presenceWords&&hasTarget)||presenceShort,call:explicitCall,context};
     }
+    async function answerReceptionOperations(raw){
+        const norm=commandNormalize(raw);
+        if(/\b(suministro|suministros|catalogo|catálogo|papeleria|papelería|limpieza|consumible|consumibles|stock|existencia|existencias|bajo.*min|minimo|mínimo|por acabarse|reponer|reposicion|reposición)\b/.test(norm)){
+            const rows=await loadData('reSupplies');
+            const wantsLow=/bajo.*min|minimo|mínimo|por acabarse|falta|faltan|reponer|reposicion|reposición/.test(norm);
+            const tokens=searchTokens(raw,['suministro','suministros','catalogo','catálogo','tenemos','tiene','hay','stock','existencia','existencias','precio','costo','proveedor','bajo','minimo','mínimo','reponer']);
+            let selected=wantsLow?rows.filter(item=>number(item.stock)<=number(item.stockMinimo??item.stock_minimo)):rows;
+            if(tokens.length){
+                selected=window.SkilledSearch?.rank
+                    ? window.SkilledSearch.rank(selected,tokens.join(' '),item=>[item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,item.unidad,...(item.modismos||[])])
+                    : selected.filter(item=>matchesTokens([item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,...(item.modismos||[])],tokens));
+            }
+            const cards=selected.slice(0,8).map(item=>({title:`${item.codigo||'S/C'} · ${item.descripcion||'Suministro'}`,detail:`${formatNumber(item.stock)} ${item.unidad||''} disponibles · mínimo ${formatNumber(item.stockMinimo??item.stock_minimo)}${number(item.precio)>0?` · ${currency(item.precio)} ${item.monedaCosto||item.moneda_costo||'MXN'}`:''}${item.proveedor?` · ${item.proveedor}`:''}`}));
+            const title=wantsLow?'Suministros por reponer':'Suministros de Recepción';
+            const headline=selected.length?`${selected.length} suministro${selected.length===1?'':'s'} coincide${selected.length===1?'':'n'} con la consulta.`:(wantsLow?'No hay suministros bajo mínimo con ese criterio.':'No encontré suministros con ese criterio.');
+            setAnswer(title,headline,'Esta información pertenece únicamente al catálogo de Suministros de Recepción.',cards,{href:'RE.suministros.html',label:'Abrir Suministros'});
+            return selected.length?`${headline} ${selected.slice(0,3).map(item=>`${item.descripcion}: ${formatNumber(item.stock)} ${item.unidad||''}`).join('. ')}`:headline;
+        }
+        if(/\b(tienda|lista.*compra|listas.*compra|compras generales|sams|sam's|aurrera|supermercado|mandado)\b/.test(norm)){
+            const rows=await loadData('coStore');
+            const pending=rows.filter(item=>!['comprado','cancelado'].includes(normalize(item.estado)));
+            const tokens=searchTokens(raw,['tienda','lista','listas','compra','compras','general','generales','pendiente','pendientes','sams','aurrera','supermercado','mandado']);
+            const base=tokens.length?rows.filter(item=>matchesTokens([item.folio,item.negocio,item.producto,item.marcaEspecifica,item.presentacion,item.solicitadoPor,item.responsableCompra,item.notas],tokens)):pending;
+            const byFolio=new Map();
+            base.forEach(item=>{const key=text(item.folio)||`SIN-${item.id}`;if(!byFolio.has(key))byFolio.set(key,[]);byFolio.get(key).push(item);});
+            const groups=[...byFolio.entries()].slice(0,8);
+            const cards=groups.map(([folio,items])=>{const total=items.reduce((sum,item)=>sum+number(item.costoEstimado)*number(item.cantidad),0);const urgent=items.some(item=>normalize(item.prioridad)==='urgente');return {title:`${folio}${urgent?' · Urgente':''}`,detail:`${items.length} partida${items.length===1?'':'s'} · estimado ${currency(total)} · ${items[0]?.negocio||'negocio por definir'}`};});
+            const pendingFolios=new Set(pending.map(item=>item.folio).filter(Boolean)).size;
+            setAnswer('Listas de Tienda',groups.length?`Encontré ${groups.length} lista${groups.length===1?'':'s'} relacionadas con la consulta.`:`No encontré listas con ese criterio. Hay ${pendingFolios} lista${pendingFolios===1?'':'s'} pendiente${pendingFolios===1?'':'s'} en total.`,'Desde Tienda puedes crear la lista y generar su hoja imprimible para entregar a quien realizará la compra.',cards,{href:'RE.tienda.html',label:'Abrir Tienda'});
+            return groups.length?`Encontré ${groups.length} listas de Tienda. Hay ${pendingFolios} pendientes en total.`:`No encontré listas con ese criterio. Hay ${pendingFolios} pendientes en total.`;
+        }
+        return null;
+    }
+
     async function answerReceptionPresenceAndAccess(raw){
         if(detectProfile()!=='recepcion')return null;
         const area=receptionAreaFromText(raw),person=await receptionPersonFromText(raw),intent=receptionIntentFromText(raw,area,person);
@@ -3433,7 +3466,7 @@
         if(/\b(checador wifi|checador fisico|como funciona.*checador|que hace.*checador|automatizacion.*checador|checador.*nomina|horas.*checador|dias.*checador)\b/.test(norm))add('Checador Wi‑Fi','El checador registra entrada y salida por huella o código, puede trabajar sin Internet y sincroniza cuando recupera conexión.','RH puede visualizar los días y horas acumuladas por trabajador, detectar checadas incompletas, incidencias y alimentar la revisión de nómina.');
         if(/\b(automatizaciones|que se automatiza|como automatiza|procesos automaticos|envio automatico|semana caida|nomina automatica)\b/.test(norm))add('Automatizaciones','Se están automatizando asistencia, conciliación de nómina, informativas, comunicaciones y tareas repetitivas de Almacén y Compras.','La nómina usa semana martes a lunes, revisión previa y envío previsto los jueves a las 21:00 cuando no existen incidencias que requieran intervención.');
         if(/\b(como funciona.*almacen|que hace.*almacen|mejoras.*almacen|almacen.*automat|operacion.*almacen)\b/.test(norm))add('Almacén','Almacén concentra catálogo, existencias, ubicaciones, entradas, salidas, proyectos, herramientas, etiquetas, mínimos, toma física y vehículos.','La nueva cola operativa prioriza reposición, compras abiertas, materiales sin ubicación, devoluciones vencidas y vigencias; además prepara surtidos por proyecto y valida recepciones por OC.');
-        if(/\b(como funciona.*compras|que hace.*compras|mejoras.*compras|compras.*cotiz|cotizaciones.*proveedor)\b/.test(norm))add('Compras','Compras integra proveedores, bajo mínimo, órdenes, requisiciones, recepciones, tienda, servicios y cotizaciones.','Las cotizaciones permiten comparar precio, tiempo de entrega y proveedor antes de decidir la compra, además de preparar comunicación por correo o WhatsApp.');
+        if(/\b(como funciona.*compras|que hace.*compras|mejoras.*compras|compras.*cotiz|cotizaciones.*proveedor)\b/.test(norm))add('Compras','Compras integra proveedores, bajo mínimo, órdenes, requisiciones, recepciones, servicios y cotizaciones.','Las cotizaciones permiten comparar precio, tiempo de entrega y proveedor antes de decidir la compra, además de preparar comunicación por correo o WhatsApp.');
         if(/\b(como funciona.*rh|que hace.*rh|recursos humanos.*mejor|mejoras.*rh|nomina.*rh|rh.*nomina)\b/.test(norm))add('Recursos Humanos','RH conecta personal, proyectos, asignaciones, equipos, asistencia, incidencias, documentos, capacitación, checador y nómina.','El objetivo es que el checador alimente horas y días trabajados para que RH revise excepciones en vez de capturar todo manualmente.');
         if(/\b(gerente|gerencia|subgerente|subgerencia|direccion)\b/.test(norm)&&/\b(perfil|tablero|como ayuda|que ve|que muestra|mejoras|resumen ejecutivo)\b/.test(norm))add('Dirección','Gerencia y Subgerencia reciben un resumen de excepción: presupuesto, proyectos con riesgo, entregas próximas y señales que sí requieren atención.','Se evita mostrar módulos operativos innecesarios; el detalle se consulta solo cuando se necesita y Skill puede responder transversalmente sin abrir todos los apartados.');
         if(/\b(seguridad|permisos|roles|protege|proteccion|acceso|solo lectura|trazabilidad)\b/.test(norm)&&/\b(crm|sky|sistema|datos|informacion)\b/.test(norm))add('Seguridad','El CRM separa permisos por perfil y Skill consulta únicamente información autorizada.','Las vistas ejecutivas y la demo son principalmente de lectura; movimientos, compras, nómina y otros cambios sensibles permanecen dentro de sus flujos controlados.');
@@ -3982,6 +4015,10 @@
     async function answerExecutive(raw) {
         const norm=commandNormalize(raw);
         const prefix=detectProfile()==='gerente_general'?'GG':'SG';
+        if(/\b(suministro|suministros|papeleria|papelería|limpieza|consumible|consumibles|tienda|lista.*compra|listas.*compra|compras generales|supermercado|mandado)\b/.test(norm)){
+            const receptionData=await answerReceptionOperations(raw);
+            if(receptionData)return receptionData;
+        }
         if (/resumen.*decision|resumen.*decisión|centro.*decision|centro.*decisión|que debo revisar primero|qué debo revisar primero|prioridad ejecutiva|prioridades ejecutivas|que requiere atencion hoy|qué requiere atención hoy|que ocupa atencion|qué ocupa atención/.test(norm)) return answerExecutiveDecisionBrief(raw);
         if (/vehiculo|vehículos|vehiculos|camioneta|pickup|automovil|van\b|camion\b|montacargas|flotilla/.test(norm)) return answerVehicles(raw);
         if (officeAssetIntent(raw) || /resguardo|resguardos|activo.*oficina|material.*oficina|que tiene asignado|qué tiene asignado/.test(norm)) return answerRHOfficeAssets(raw,true);
@@ -4146,7 +4183,7 @@
             coordinacion:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`},{type:'Solicitud',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proyecto],title:o=>o.folio||o.descripcion||'Solicitud',detail:o=>o.estado||'Sin estado'}],
             logistica:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`}],
             administrador:[],
-            recepcion:[{type:'Perfil',key:'reDirectory',fields:p=>[p.nombre_completo,p.puesto,p.departamento,p.rol],title:p=>p.nombre_completo||'Personal',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin área'}`},{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
+            recepcion:[{type:'Suministro',key:'reSupplies',fields:m=>[m.codigo,m.descripcion,m.categoria,m.marca,m.codigoMarca,m.proveedor,...(m.modismos||[])],title:m=>`${m.codigo||'—'} · ${m.descripcion||'Suministro'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · mínimo ${formatNumber(m.stockMinimo??m.stock_minimo)}`},{type:'Lista',key:'coStore',fields:i=>[i.folio,i.negocio,i.producto,i.marcaEspecifica,i.presentacion,i.solicitadoPor,i.responsableCompra],title:i=>`${i.folio||'Lista'} · ${i.producto||'Artículo'}`,detail:i=>`${i.negocio||'Sin negocio'} · ${i.estado||'sin estado'}`},{type:'Perfil',key:'reDirectory',fields:p=>[p.nombre_completo,p.puesto,p.departamento,p.rol],title:p=>p.nombre_completo||'Personal',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin área'}`},{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
             tsi:[
                 {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
                 commonProject
@@ -4230,8 +4267,8 @@
         if (/\b(donde|ubicacion|ubicado|localiza|rack|zona|piso|cajon|posicion)\b/.test(norm)) return true;
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
-        if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
-        if (profile === 'recepcion' && /timbre|porteria|visitante|visita|comida|pedido|lonche|repartidor|paqueteria|mensajeria|mensajero|paquete|dhl|fedex|estafeta|ups|camara|rostro|entrada|puerta|porton|acceso|afuera|abrir|abreme|me abres|me abre|pasar|entrar|presente|presencia|hay alguien|esta alguien|quien esta|quien anda|sabes si esta|llego|llama|hablale|marcale|avisa|avisale|dile|que venga|que baje|busco a|necesito a|ocupo a|mercado libre|amazon|materiales|proveedor|remision|entrega/.test(norm)) return true;
+        if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
+        if (profile === 'recepcion' && /suministro|suministros|catalogo|papeleria|limpieza|consumible|stock|existencia|bajo.*min|minimo|tienda|lista.*compra|compras generales|sams|aurrera|costo|precio|timbre|porteria|visitante|visita|comida|pedido|lonche|repartidor|paqueteria|mensajeria|mensajero|paquete|dhl|fedex|estafeta|ups|camara|rostro|entrada|puerta|porton|acceso|afuera|abrir|abreme|me abres|me abre|pasar|entrar|presente|presencia|hay alguien|esta alguien|quien esta|quien anda|sabes si esta|llego|llama|hablale|marcale|avisa|avisale|dile|que venga|que baje|busco a|necesito a|ocupo a|mercado libre|amazon|materiales|proveedor|remision|entrega/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|checador|checada|hora.*trabaj|entrada|salida|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
         if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|checador|checada|hora.*trabaj|entrada|salida|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;
@@ -4282,12 +4319,18 @@
             return result?.voice || null;
         }
         if (profile === 'recepcion') {
-            if (['reception','rh_people','help','unknown'].includes(plan.intent)) { const r=await answerReceptionPresenceAndAccess(queryText); if(r)return r.voice||null; const d=await answerReceptionDoorbell(queryText); return d?.voice||null; }
+            if (plan.intent === 'store') return answerReceptionOperations(queryText);
+            if (['material_family','material_stock','material_location','low_stock'].includes(plan.intent)) return answerReceptionOperations(queryText);
+            if (['reception','rh_people','help','unknown'].includes(plan.intent)) { const op=await answerReceptionOperations(queryText); if(op)return op; const r=await answerReceptionPresenceAndAccess(queryText); if(r)return r.voice||null; const d=await answerReceptionDoorbell(queryText); return d?.voice||null; }
             if (plan.intent !== 'chat_message') return null;
         }
         if (plan.intent === 'meeting') {
             const result = await answerMeetingAction(queryText);
             return result?.voice || null;
+        }
+        if (executive && /\b(suministro|suministros|papeleria|papelería|limpieza|consumible|consumibles|tienda|lista.*compra|listas.*compra|compras generales|supermercado|mandado)\b/.test(commandNormalize(raw))) {
+            const receptionData = await answerReceptionOperations(raw);
+            if (receptionData) return receptionData;
         }
         if (plan.intent === 'global_search') return executive ? answerExecutiveGlobalSearch(queryText) : null;
         if (plan.intent === 'categories') return (executive || ['almacen','compras','proyectos','planeacion','coordinacion','logistica','tsi'].includes(profile)) ? answerCategories(queryText) : null;
@@ -4312,8 +4355,9 @@
             return null;
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) {
-            if (executive) return answerExecutivePurchasing(raw);
-            if(profile==='compras')return answerPurchasing(raw);
+            if (executive) return plan.intent==='store' ? answerReceptionOperations(raw) : answerExecutivePurchasing(raw);
+            if(plan.intent==='store'&&profile==='recepcion')return answerReceptionOperations(raw);
+            if(profile==='compras'&&plan.intent!=='store')return answerPurchasing(raw);
             return ['coordinacion','finanzas'].includes(profile)?answerScopedSmartSearch(raw,profile):null;
         }
         if (plan.intent === 'rh_assets') {
@@ -4341,7 +4385,7 @@
         if (/\b(que puedes hacer|que sabes hacer|que haces|dime que haces|para que sirves|cual es tu funcion|que me puedes resolver|ayudame|ayuda|como me ayudas|en que ayudas|capacidades|opciones de skill|opciones de sky)\b/.test(norm)) {
             const config=profileConfig();
             const examples=pageAwareExamples(config).slice(0,8).map(item=>({title:item[0],detail:item[1]}));
-            const chatText=profile==='recepcion'?'Puedo enviar avisos internos para informar quién está en la entrada, solicitar validación para abrir la puerta o avisar una entrega. No consulto información operativa de otros perfiles.':'También puedo enviar mensajes por el Chat interno y generar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
+            const chatText=profile==='recepcion'?'Puedo consultar Suministros y listas de Tienda de Recepción, además de enviar avisos internos sobre personas en la entrada o entregas. No consulto inventario de Almacén, Compras, RH ni información de otros perfiles.':'También puedo enviar mensajes por el Chat interno y generar reuniones cuando me lo pidas de forma explícita, por ejemplo: “Dile a Compras que ya llegó el material” o “Genera una reunión general a las 4 para revisar pendientes”.';const voiceText='Si activas Modo conversación en la configuración del micrófono, después de responder vuelvo a escucharte automáticamente, como una conversación continua.';
             setAnswer('¿Cómo puedo ayudarte?',`Puedo interpretar preguntas naturales, conservar el contexto de la conversación y consultar los datos autorizados para ${profileNames[profile]||'tu perfil'}. También puedo ayudarte a reformular preguntas, orientar procesos del CRM y sugerir el siguiente paso útil según el perfil activo.`,`No necesitas memorizar comandos. Pregunta como se lo preguntarías a una persona. En Gerencia, Subgerencia y la demo puedo buscar transversalmente; en los demás perfiles respeto únicamente la información de su área. ${chatText} ${voiceText}`,examples);
             return `Puedo ayudarte con consultas naturales sobre los datos autorizados de tu perfil. ${chatText} ${voiceText}`;
         }
@@ -4355,6 +4399,7 @@
             if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','tsi','consulta'].includes(profile)) return answerProjects(raw);
             return null;
         }
+        if (profile==='recepcion' && /\b(suministro|suministros|catalogo|catálogo|papeleria|papelería|limpieza|consumible|consumibles|tienda|lista.*compra|compras generales|sams|aurrera)\b/.test(norm)) return answerReceptionOperations(raw);
         if (/\b(proveedor|proveedores|cotizacion|cotizaciones|orden de compra|compras|requisicion|precio|plazo|rfc|whatsapp|correo|email)\b/.test(norm)) {
             if (executive) return answerExecutivePurchasing(raw);
             if (profile==='compras') return answerPurchasing(raw);
@@ -4401,7 +4446,7 @@
             const scoped=await answerScopedSmartSearch(raw,profile).catch(()=>null);
             return scoped || answerProjects(raw);
         }
-        if (profile === 'recepcion') {const r=await answerReceptionPresenceAndAccess(raw);return r?.voice||null;}
+        if (profile === 'recepcion') {const op=await answerReceptionOperations(raw).catch(()=>null);if(op)return op;const r=await answerReceptionPresenceAndAccess(raw);return r?.voice||null;}
         if (profile === 'administrador') return null;
         if (profile === 'tsi') return localIntent ? answerScopedSmartSearch(raw,profile) : null;
         if (profile === 'consulta') {

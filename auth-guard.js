@@ -18,7 +18,7 @@
         administrador: ['*'],
         jefe_almacen: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.etiqueta.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.solicitudes-epp-tsi.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','proy.importar.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','al.prueba-ticket.html','paq.paquetes-materiales.html'],
         almacen: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.etiqueta.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.solicitudes-epp-tsi.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','proy.importar.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
-        compras: ['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.tienda.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','al.ordenes-compra.html','al.reportes.html','paq.paquetes-materiales.html'],
+        compras: ['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','al.ordenes-compra.html','al.reportes.html','paq.paquetes-materiales.html'],
         rh: ['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','proy.importar.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
         finanzas: ['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.reportes.html','al.proyectos.html','paq.paquetes-materiales.html'],
         gerente_general: ['gg.inicio.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
@@ -29,7 +29,7 @@
         planeacion: ['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
         coordinacion: ['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
         logistica: ['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
-        recepcion: ['re.inicio.html','co.entregas.html','al.vehiculos.html','perfil.html'],
+        recepcion: ['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.tienda.html','perfil.html'],
         consulta: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','paq.paquetes-materiales.html']
     };
 
@@ -42,7 +42,7 @@
         finanzas: 'FI.inicio.html',
         gerente_general: 'GG.inicio.html',
         subgerente: 'SG.inicio.html',
-        sky_demo: 'SKILL.inicio.html',
+        sky_demo: 'SKY.inicio.html',
         tsi: 'TSI.inicio.html',
         proyectos: 'AL.proyectos.html',
         planeacion: 'PL.inicio.html',
@@ -120,17 +120,47 @@
     }
 
     let redirecting = false;
-    function redirectToLogin(state = '') {
-        if (redirecting) return;
+    const REDIRECT_GUARD_KEY = 'skilled_auth_redirect_guard_v104';
+
+    function stopRedirectLoop(message) {
         redirecting = true;
+        root.classList.remove('auth-pending');
+        root.classList.add('auth-ready');
+        const show = () => {
+            if (document.getElementById('skilled-auth-loop-warning')) return;
+            const box = document.createElement('div');
+            box.id = 'skilled-auth-loop-warning';
+            box.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:20px;background:#060814;color:#e5edf8;font-family:Inter,system-ui,sans-serif';
+            box.innerHTML = `<section style="width:min(520px,100%);padding:24px;border:1px solid #30466d;border-radius:16px;background:#0a1120;box-shadow:0 24px 70px rgba(0,0,0,.45)"><strong style="display:block;color:#fff;font-size:15px">Se detuvo una redirección repetida</strong><p style="margin:10px 0 0;color:#9aaac2;font-size:12px;line-height:1.65">${message}</p><div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:16px"><a href="login.html" style="padding:9px 12px;border-radius:9px;background:#145ea8;color:#fff;text-decoration:none;font-size:11px;font-weight:800">Volver a iniciar sesión</a><a href="recuperar-crm.html" style="padding:9px 12px;border:1px solid #30466d;border-radius:9px;color:#bfdbfe;text-decoration:none;font-size:11px;font-weight:800">Recuperar CRM</a></div></section>`;
+            document.body.appendChild(box);
+        };
+        if (document.body) show(); else document.addEventListener('DOMContentLoaded', show, { once:true });
+    }
+
+    function guardedReplace(target, kind) {
+        if (redirecting) return;
+        try {
+            const now = Date.now();
+            const current = JSON.parse(sessionStorage.getItem(REDIRECT_GUARD_KEY) || 'null');
+            const same = current && current.target === target && current.kind === kind && now - Number(current.at || 0) < 10000;
+            const count = same ? Number(current.count || 0) + 1 : 1;
+            sessionStorage.setItem(REDIRECT_GUARD_KEY, JSON.stringify({ target, kind, at: now, count }));
+            if (count > 2) {
+                stopRedirectLoop('El CRM intentó cambiar de pantalla varias veces en pocos segundos. Esto evita que el navegador entre en un ciclo y consuma el equipo.');
+                return;
+            }
+        } catch (_) {}
+        redirecting = true;
+        location.replace(target);
+    }
+
+    function redirectToLogin(state = '') {
         const next = encodeURIComponent(location.href);
-        location.replace(`login.html?next=${next}${state ? `&estado=${encodeURIComponent(state)}` : ''}`);
+        guardedReplace(`login.html?next=${next}${state ? `&estado=${encodeURIComponent(state)}` : ''}`, 'login');
     }
 
     function redirectHome(role) {
-        if (redirecting) return;
-        redirecting = true;
-        location.replace(homeByRole[role] || homeByRole.consulta);
+        guardedReplace(homeByRole[role] || homeByRole.consulta, 'home');
     }
 
     const cached = readCachedProfile();
@@ -257,6 +287,7 @@
                 localStorage.setItem('skilled_profile_cache', JSON.stringify({ ...profile, email: session.user.email, fotoUrl: profile.foto_url }));
             } catch (_) {}
             markProfileValidated();
+            try { sessionStorage.removeItem(REDIRECT_GUARD_KEY); } catch (_) {}
 
             exposeSession(session.user, profile, role, false, false);
             applyNavigation(client, access[role] || access.consulta);
