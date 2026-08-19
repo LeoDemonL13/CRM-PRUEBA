@@ -135,7 +135,7 @@
         planeacion:[{title:'Planeación',items:[['PL.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=planeacion','Proyectos','folder'],['PROY.importar.html?perfil=planeacion','Importar proyectos','delivery'],['AL.solicitudes-material.html?perfil=planeacion','Solicitudes','request'],['AL.reportes.html?perfil=planeacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=planeacion','Mi perfil','user']]}],
         coordinacion:[{title:'Coordinación',items:[['CR.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=coordinacion','Proyectos','folder'],['AL.solicitudes-material.html?perfil=coordinacion','Solicitudes','request'],['AL.vehiculos.html?perfil=coordinacion','Vehículos','vehicle'],['AL.reportes.html?perfil=coordinacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=coordinacion','Mi perfil','user']]}],
         logistica:[{title:'Logística',items:[['LG.inicio.html','Inicio','home'],['AL.vehiculos.html?perfil=logistica','Vehículos','vehicle'],['CO.entregas.html?perfil=logistica','Entregas','delivery'],['AL.proyectos.html?perfil=logistica','Proyectos','folder'],['AL.catalogo.html?perfil=logistica','Materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=logistica','Mi perfil','user']]}],
-        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.suministros.html','Suministros','box'],['RE.tienda.html','Tienda','cart']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
+        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.suministros.html','Suministros','box'],['RE.bodeguita.html','Bodeguita','warehouse'],['RE.tienda.html','Tienda','cart']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         sky_demo:[{title:'Skill',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
@@ -435,7 +435,7 @@
         planeacion:['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
         coordinacion:['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
         logistica:['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
-        recepcion:['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.tienda.html','perfil.html'],
+        recepcion:['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.bodeguita.html','re.tienda.html','perfil.html'],
         consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html','paq.paquetes-materiales.html']
     };
 

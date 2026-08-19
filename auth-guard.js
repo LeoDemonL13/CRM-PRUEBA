@@ -29,7 +29,7 @@
         planeacion: ['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
         coordinacion: ['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
         logistica: ['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
-        recepcion: ['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.tienda.html','perfil.html'],
+        recepcion: ['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.bodeguita.html','re.tienda.html','perfil.html'],
         consulta: ['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','paq.paquetes-materiales.html']
     };
 

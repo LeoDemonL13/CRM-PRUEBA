@@ -6,27 +6,27 @@
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=88" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=88">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=88">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=88">
-<link rel="manifest" href="/site.webmanifest?v=88">
+<link rel="icon" href="/favicon.ico?v=107" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=107">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=107">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=107">
+<link rel="manifest" href="/site.webmanifest?v=107">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Operación automática de almacén</title>
-<link rel="stylesheet" href="interfaz.css?v=106">
-<script src="skilled-theme.js?v=106"></script>
-<script src="navegacion-suave.js?v=106"></script>
+<link rel="stylesheet" href="interfaz.css?v=107">
+<script src="skilled-theme.js?v=107"></script>
+<script src="navegacion-suave.js?v=107"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=106"></script>
-<script src="auth-guard.js?v=106"></script>
-<link rel="stylesheet" href="tailwind-local.css?v=106">
+<script src="skilled-supabase.js?v=107"></script>
+<script src="auth-guard.js?v=107"></script>
+<link rel="stylesheet" href="tailwind-local.css?v=107">
 <style>
 .ops-hero{position:relative;overflow:hidden;border:1px solid #1b3154;border-radius:18px;background:linear-gradient(135deg,rgba(0,65,107,.23),rgba(7,12,24,.97) 54%,rgba(234,0,41,.05));padding:22px}.ops-hero:after{content:"";position:absolute;width:340px;height:340px;border:1px solid rgba(96,165,250,.11);border-radius:50%;right:-125px;top:-205px}.ops-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#66b5e7}.ops-title{margin-top:5px;color:#f8fafc;font-size:25px;font-weight:900;letter-spacing:-.02em}.ops-copy{margin-top:6px;max-width:860px;color:#8191aa;font-size:11px;line-height:1.65}.ops-flow{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}.ops-step{display:inline-flex;align-items:center;gap:7px;border:1px solid #1e3355;border-radius:999px;background:#091526;padding:6px 9px;color:#91a7c6;font-size:8px;font-weight:850}.ops-step b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:rgba(59,130,246,.16);color:#8bc5ff}.ops-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.ops-card{min-width:0;border:1px solid #1b2947;border-radius:15px;background:#090f1d;overflow:hidden;box-shadow:0 12px 34px rgba(0,0,0,.08)}.ops-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #172540;background:linear-gradient(110deg,rgba(0,65,107,.11),transparent 58%)}.ops-head h2{color:#f8fafc;font-size:13px;font-weight:900}.ops-head p{margin-top:3px;color:#6e7f99;font-size:9px;line-height:1.5}.ops-body{padding:15px 16px}.ops-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.ops-kpi{border:1px solid #223454;border-radius:12px;background:#0a1324;padding:11px 12px;min-width:0}.ops-kpi span{display:block;color:#687994;font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.ops-kpi b{display:block;margin-top:6px;color:#f8fafc;font-size:20px;font-weight:950}.ops-queue{display:flex;flex-direction:column;gap:8px}.ops-task{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;border:1px solid #1b2d4d;border-radius:12px;background:#0a1425;padding:11px 12px;text-decoration:none;transition:.15s}.ops-task:hover{border-color:#31598d;background:#0d1a30}.ops-rank{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;border:1px solid #28446c;background:#0b1a30;color:#8fc5ff;font-size:9px;font-weight:950}.ops-task[data-level="high"]{border-color:rgba(245,158,11,.3)}.ops-task[data-level="critical"]{border-color:rgba(244,63,94,.35)}.ops-task strong{display:block;color:#f8fafc;font-size:10px;font-weight:850}.ops-task p{margin-top:3px;color:#6f819a;font-size:8px;line-height:1.45}.ops-task em{font-style:normal;color:#7ba7da;font-size:9px;font-weight:850}.ops-checks{display:flex;flex-direction:column;gap:8px}.ops-check{display:flex;align-items:flex-start;gap:9px;border:1px solid #1a2946;border-radius:11px;background:#0a1323;padding:10px 11px}.ops-check-dot{margin-top:2px;width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 12px rgba(52,211,153,.28)}.ops-check[data-state="warn"] .ops-check-dot{background:#f59e0b}.ops-check[data-state="critical"] .ops-check-dot{background:#fb7185}.ops-check strong{display:block;color:#eaf1fb;font-size:9px}.ops-check span{display:block;margin-top:2px;color:#6f8098;font-size:8px;line-height:1.4}.ops-result{border:1px solid #203858;border-radius:12px;background:#07101f;padding:13px;color:#71829b;font-size:10px}.ops-route{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:11px;align-items:center;border-bottom:1px solid #17233a;padding:10px 0}.ops-route:last-child{border-bottom:0}.ops-location{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;font-weight:900;color:#67b3ff}.ops-badge{display:inline-flex;align-items:center;gap:5px;border:1px solid #274168;border-radius:999px;padding:4px 8px;font-size:8px;font-weight:850;color:#8cb7f7;background:#0b172d}.ops-row{border:1px solid #1d2c48;border-radius:11px;background:#0b1425;padding:10px 11px}.ops-scan-good{border-color:rgba(52,211,153,.42)!important;background:rgba(6,78,59,.12)!important}.ops-scan-over{border-color:rgba(251,113,133,.45)!important;background:rgba(127,29,29,.13)!important}.ops-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.ops-shortcut{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #1f3352;border-radius:10px;background:#0b1425;padding:9px 10px;color:#b8c5d8;text-decoration:none;font-size:9px;font-weight:800}.ops-shortcut:hover{border-color:#3a6395;color:#fff}.tema-claro .ops-hero,.tema-claro .ops-card,.tema-claro .ops-kpi,.tema-claro .ops-task,.tema-claro .ops-check,.tema-claro .ops-result,.tema-claro .ops-row,.tema-claro .ops-shortcut{background:#fff!important;border-color:#d9e2ef!important}.tema-claro .ops-title,.tema-claro .ops-head h2,.tema-claro .ops-kpi b,.tema-claro .ops-task strong,.tema-claro .ops-check strong{color:#0f172a!important}.tema-claro .ops-copy,.tema-claro .ops-head p,.tema-claro .ops-task p,.tema-claro .ops-check span{color:#64748b!important}@media(max-width:1100px){.ops-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.ops-grid{display:block}.ops-card{margin-bottom:14px}.ops-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.ops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ops-route{grid-template-columns:68px minmax(0,1fr)}.ops-shortcuts{grid-template-columns:1fr}.ops-hero{padding:17px}.ops-title{font-size:21px}}
 </style>
-<script src="skilled-search.js?v=106"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='106',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();})();</script>
-<link rel="stylesheet" href="crm-v83-design.css?v=106"></head>
+<script src="skilled-search.js?v=107"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='107',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();})();</script>
+<link rel="stylesheet" href="crm-v83-design.css?v=107"></head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
 <aside></aside>
@@ -45,9 +45,9 @@
 </section>
 </main>
 </div>
-<script src="skilled-sidebar.js?v=106" defer></script>
-<script src="AL.automatizaciones.js?v=106" defer></script>
-<script src="crm-v78-fixes.js?v=106" defer></script>
-<script src="skilled-performance.js?v=106" defer></script>
-<script src="crm-v83-shell.js?v=106" defer></script></body>
+<script src="skilled-sidebar.js?v=107" defer></script>
+<script src="AL.automatizaciones.js?v=107" defer></script>
+<script src="crm-v78-fixes.js?v=107" defer></script>
+<script src="skilled-performance.js?v=107" defer></script>
+<script src="crm-v83-shell.js?v=107" defer></script></body>
 </html>

@@ -5621,7 +5621,7 @@
     function receptionSupplyInternalCode(payload = {}) {
         const existing = text(payload.codigo);
         if (existing) return existing;
-        const seed = [payload.descripcion ?? payload.desc, payload.marca, payload.codigoMarca ?? payload.codigo_marca, payload.ubicacion].map(value => lower(value)).join('|');
+        const seed = [payload.descripcion ?? payload.desc, payload.marca, payload.categoria, payload.unidad].map(value => lower(value)).join('|');
         let hash = 2166136261;
         for (let i = 0; i < seed.length; i++) { hash ^= seed.charCodeAt(i); hash = Math.imul(hash, 16777619); }
         const token = (hash >>> 0).toString(36).toUpperCase().padStart(7, '0').slice(-7);
@@ -5638,7 +5638,7 @@
             modismos: Array.isArray(payload.modismos) ? payload.modismos.map(text).filter(Boolean) : text(payload.modismos ?? payload.modismosTexto).split(/[,;\n]+/).map(text).filter(Boolean),
             categoria: text(payload.categoria) || 'General',
             marca: text(payload.marca) || null,
-            codigo_marca: text(payload.codigoMarca ?? payload.codigo_marca) || null,
+            codigo_marca: null,
             ubicacion: text(payload.ubicacion) || null,
             proveedor: null,
             contacto_proveedor: null,
@@ -5664,7 +5664,7 @@
         const q = text(options.search ?? options.q);
         if (q) {
             rows = rows.filter(item => {
-                const values = [item.descripcion,item.categoria,item.marca,item.codigoMarca,item.ubicacion,item.unidad,...item.modismos];
+                const values = [item.descripcion,item.categoria,item.marca,item.ubicacion,item.unidad,...item.modismos];
                 return window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, q) : values.some(value => lower(value).includes(lower(q)));
             });
         }
@@ -5728,6 +5728,57 @@
         }
         progress(100, 'Importación terminada.');
         return { total:input.length, importados:saved, omitidos:input.length - saved, errores:errors };
+    }
+
+
+    async function listReceptionPantryV107() {
+        const [rackResult, levelResult, assignmentResult, supplyRows] = await Promise.all([
+            client.from('re_bodeguita_racks').select('*').eq('activo', true).order('orden', { ascending:true }).order('id', { ascending:true }),
+            client.from('re_bodeguita_niveles').select('*').order('orden', { ascending:true }).order('id', { ascending:true }),
+            client.from('re_bodeguita_asignaciones').select('*').order('id', { ascending:true }),
+            listReceptionSupplies()
+        ]);
+        assertNoError(rackResult.error, 'No se pudieron consultar los racks de Bodeguita. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(levelResult.error, 'No se pudieron consultar los niveles de Bodeguita. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(assignmentResult.error, 'No se pudieron consultar las ubicaciones de Bodeguita. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return {
+            racks:(rackResult.data || []).map(row => ({ id:Number(row.id), nombre:text(row.nombre), orden:number(row.orden)||1, notas:text(row.notas), activo:row.activo !== false })),
+            levels:(levelResult.data || []).map(row => ({ id:Number(row.id), rackId:Number(row.rack_id), nombre:text(row.nombre), orden:number(row.orden)||1, cajones:number(row.cajones)||1 })),
+            assignments:(assignmentResult.data || []).map(row => ({ id:Number(row.id), suministroId:Number(row.suministro_id), nivelId:Number(row.nivel_id), cajon:Number(row.cajon) })),
+            supplies:supplyRows
+        };
+    }
+
+    async function saveReceptionPantryRackV107(payload = {}) {
+        const id = Number(payload.id || 0) || null;
+        const row = { nombre:text(payload.nombre), orden:Math.max(1, Math.round(number(payload.orden)||1)), notas:text(payload.notas)||null, activo:payload.activo !== false, updated_at:new Date().toISOString() };
+        if (!row.nombre) throw new Error('El nombre del rack es obligatorio.');
+        const request = id ? client.from('re_bodeguita_racks').update(row).eq('id', id) : client.from('re_bodeguita_racks').insert(row);
+        const { data, error } = await request.select('*').single();
+        assertNoError(error, 'No se pudo guardar el rack de Bodeguita.');
+        return { id:Number(data.id), nombre:text(data.nombre), orden:number(data.orden)||1, notas:text(data.notas), activo:data.activo !== false };
+    }
+
+    async function saveReceptionPantryLevelV107(payload = {}) {
+        const id = Number(payload.id || 0) || null;
+        const row = { rack_id:Number(payload.rackId || payload.rack_id), nombre:text(payload.nombre), orden:Math.max(1, Math.round(number(payload.orden)||1)), cajones:Math.max(1, Math.min(200, Math.round(number(payload.cajones)||1))), updated_at:new Date().toISOString() };
+        if (!row.rack_id || !row.nombre) throw new Error('Rack y nombre del nivel son obligatorios.');
+        const request = id ? client.from('re_bodeguita_niveles').update(row).eq('id', id) : client.from('re_bodeguita_niveles').insert(row);
+        const { data, error } = await request.select('*').single();
+        assertNoError(error, 'No se pudo guardar el nivel de Bodeguita. Revisa que no existan suministros en cajones que quedarían fuera del nuevo límite.');
+        return { id:Number(data.id), rackId:Number(data.rack_id), nombre:text(data.nombre), orden:number(data.orden)||1, cajones:number(data.cajones)||1 };
+    }
+
+    async function assignReceptionPantrySupplyV107(supplyId, levelId = null, drawer = null) {
+        const sid = Number(supplyId || 0);
+        if (!sid) throw new Error('Suministro no válido.');
+        const { data, error } = await client.rpc('re_bodeguita_asignar_suministro_v107', {
+            p_suministro_id:sid,
+            p_nivel_id:Number(levelId || 0) || null,
+            p_cajon:Number(drawer || 0) || null
+        });
+        assertNoError(error, 'No se pudo acomodar el suministro en Bodeguita.');
+        return data || { ok:true };
     }
 
     function storeRequestFromDb(row) {
@@ -6511,6 +6562,35 @@
         return data || {};
     }
 
+    async function createFreePurchaseOrderV107(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) throw new Error('Agrega al menos una partida a la orden libre.');
+        const rows = items.map(item => ({
+            material_codigo: text(item.materialCodigo ?? item.codigo) || null,
+            descripcion: text(item.descripcion ?? item.desc),
+            categoria: text(item.categoria) || null,
+            unidad: text(item.unidad) || 'PIEZA',
+            cantidad: number(item.cantidad),
+            precio_unitario: Math.max(number(item.precioUnitario ?? item.precio), 0),
+            moneda: normalizeCurrencyCode(item.moneda ?? item.monedaCosto ?? item.moneda_costo)
+        }));
+        if (rows.some(row => !row.descripcion || row.cantidad <= 0)) throw new Error('Hay partidas incompletas o con cantidad inválida.');
+        const { data, error } = await client.rpc('co_crear_orden_libre_v107', {
+            p_orden: text(payload.ordenCompra ?? payload.orden) || null,
+            p_proveedor_id: Number(payload.proveedorId || 0) || null,
+            p_almacen_id: Number(payload.almacenId || 0) || null,
+            p_proyecto: text(payload.proyecto) || null,
+            p_prioridad: text(payload.prioridad) || 'normal',
+            p_fecha_requerida: text(payload.fechaRequerida) || null,
+            p_referencia: text(payload.referencia) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_justificacion: text(payload.justificacion) || null,
+            p_items: rows
+        });
+        assertNoError(error, 'No se pudo crear la orden libre. Ejecuta el SQL_MAESTRO_CRM.sql V107.');
+        return data || {};
+    }
+
     async function createDirectPurchaseOrderFromQuotationV96(payload = {}) {
         const items = Array.isArray(payload.items) ? payload.items : [];
         const cotizacionId = text(payload.cotizacionId);
@@ -6775,6 +6855,7 @@
         fulfillMaterialPackageRequest,
         countMaterialPackageRequests,
         createManualPurchaseOrderV73,
+        createFreePurchaseOrderV107,
         createDirectPurchaseOrderFromQuotationV96,
         listPurchaseOrderSignatures,
         savePurchaseOrderSignature,
@@ -6928,6 +7009,10 @@
         saveReceptionSupply,
         deleteReceptionSupply,
         importReceptionSupplies,
+        listReceptionPantryV107,
+        saveReceptionPantryRackV107,
+        saveReceptionPantryLevelV107,
+        assignReceptionPantrySupplyV107,
         listStoreRequests,
         saveStoreRequest,
         deleteStoreRequest,

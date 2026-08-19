@@ -5,59 +5,51 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <title>Skilled - Recepción - Suministros</title>
-<link rel="stylesheet" href="interfaz.css?v=106">
-<link rel="stylesheet" href="tailwind-local.css?v=106">
-<link rel="stylesheet" href="crm-v83-design.css?v=106">
-<script src="skilled-theme.js?v=106"></script>
-<script src="navegacion-suave.js?v=106"></script>
+<link rel="stylesheet" href="interfaz.css?v=107">
+<link rel="stylesheet" href="tailwind-local.css?v=107">
+<link rel="stylesheet" href="crm-v83-design.css?v=107">
+<script src="skilled-theme.js?v=107"></script>
+<script src="navegacion-suave.js?v=107"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=106"></script>
-<script src="auth-guard.js?v=106"></script>
-<script src="skilled-search.js?v=106"></script>
-<script src="skilled-sidebar.js?v=106" defer></script>
+<script src="skilled-supabase.js?v=107"></script>
+<script src="auth-guard.js?v=107"></script>
+<script src="skilled-search.js?v=107"></script>
+<script src="skilled-sidebar.js?v=107" defer></script>
 <style>
-.supply-card{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:15px;border:1px solid #1a2944;border-radius:15px;background:#0b1222}
-.supply-thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#101a2d;border:1px solid #243554}
-.supply-stock{min-width:92px;text-align:right}
-.supply-level{height:5px;border-radius:999px;background:#17233a;overflow:hidden;margin-top:7px}.supply-level>i{display:block;height:100%;background:#38bdf8}
-@media(max-width:620px){.supply-card{grid-template-columns:54px minmax(0,1fr)}.supply-thumb{width:54px;height:54px}.supply-stock{grid-column:1/-1;text-align:left;display:flex;align-items:center;justify-content:space-between}}
+.supply-card{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:15px;border:1px solid #1a2944;border-radius:15px;background:#0b1222}.supply-thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#101a2d;border:1px solid #243554}.supply-stock{min-width:92px;text-align:right}.supply-level{height:5px;border-radius:999px;background:#17233a;overflow:hidden;margin-top:7px}.supply-level>i{display:block;height:100%;background:#38bdf8}@media(max-width:620px){.supply-card{grid-template-columns:54px minmax(0,1fr)}.supply-thumb{width:54px;height:54px}.supply-stock{grid-column:1/-1;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}}
 </style>
 </head>
 <body class="crm-v83-page area-re profile-page min-h-screen flex overflow-x-hidden" data-profile="recepcion">
 <aside class="crm-sidebar-slot" aria-label="Navegación del perfil"></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
 <header class="skilled-app-header h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30">
-<div class="relative w-full max-w-lg"><input id="global-search" class="field pl-4" placeholder="Buscar suministro, marca, modelo, ubicación o modismo..."></div>
+<div class="relative w-full max-w-lg"><input id="global-search" class="field pl-4" placeholder="Buscar suministro, marca, ubicación o modismo..."></div>
 <div class="flex items-center gap-3"><button id="refresh" class="crm-icon-button" data-skilled-refresh></button><button class="crm-icon-button" data-skilled-theme></button></div>
 </header>
 <main class="profile-shell flex-1">
 <nav class="profile-breadcrumb"><a href="RE.inicio.html">Recepción</a><span>›</span><span class="text-gray-300 font-semibold">Suministros</span></nav>
-<section class="profile-hero"><div class="profile-hero-content"><div class="profile-hero-main"><div class="profile-hero-icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/></svg></div><div><span class="profile-kicker">RE · Catálogo propio</span><h1 class="profile-title">Suministros</h1><p class="profile-subtitle">Catálogo de consumibles y artículos administrados por Recepción. Es independiente del inventario operativo de Almacén.</p></div></div><div class="profile-actions"><a href="RE.importar-suministros.html" class="crm-secondary">Importar Excel</a><button id="new" class="crm-primary">+ Nuevo suministro</button></div></div></section>
-
+<section class="profile-hero"><div class="profile-hero-content"><div class="profile-hero-main"><div class="profile-hero-icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/></svg></div><div><span class="profile-kicker">RE · Catálogo propio</span><h1 class="profile-title">Suministros</h1><p class="profile-subtitle">Recepción administra únicamente descripción, nombres alternos, categoría, marca, ubicación, unidad, existencias, costo e imagen.</p></div></div><div class="profile-actions"><a href="RE.bodeguita.html" class="crm-secondary">Bodeguita</a><a href="RE.importar-suministros.html" class="crm-secondary">Importar Excel</a><button id="new" class="crm-primary">+ Nuevo suministro</button></div></div></section>
 <section class="profile-metrics profile-metrics-compact">
 <article class="profile-metric" data-tone="info"><p class="profile-metric-label">Suministros activos</p><p id="m-total" class="profile-metric-value">0</p><p class="profile-metric-foot">Catálogo de Recepción</p></article>
 <article class="profile-metric" data-tone="warning"><p class="profile-metric-label">Bajo mínimo</p><p id="m-low" class="profile-metric-value">0</p><p class="profile-metric-foot">Requieren reposición</p></article>
 <article class="profile-metric" data-tone="success"><p class="profile-metric-label">Con existencia</p><p id="m-stock" class="profile-metric-value">0</p><p class="profile-metric-foot">Disponibles actualmente</p></article>
 <article class="profile-metric" data-tone="accent"><p class="profile-metric-label">Categorías</p><p id="m-categories" class="profile-metric-value">0</p><p class="profile-metric-foot">Clasificación activa</p></article>
 </section>
-
 <section class="profile-toolbar"><div class="profile-toolbar-fields"><input id="search" class="field" placeholder="Buscar en Suministros..."><select id="category" class="field"><option value="">Todas las categorías</option></select><select id="availability" class="field"><option value="">Toda existencia</option><option value="low">Bajo mínimo</option><option value="available">Con existencia</option><option value="zero">Sin existencia</option></select></div></section>
 <section id="list" class="grid grid-cols-1 xl:grid-cols-2 gap-3 mt-5"><div class="profile-card profile-empty xl:col-span-2"><p class="text-xs text-gray-500">Consultando suministros...</p></div></section>
 </main>
 </div>
-
 <div id="modal" class="crm-workspace-overlay fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
 <section class="crm-workspace-dialog profile-modal max-w-5xl">
-<header class="profile-modal-header"><div><span class="profile-kicker">Recepción · Suministros</span><h2 id="modal-title" class="mt-2 text-lg font-bold text-white">Nuevo suministro</h2><p class="mt-1 text-xs text-gray-500">Captura únicamente información que administra Recepción.</p></div><button id="close" class="crm-icon-button text-xl">×</button></header>
+<header class="profile-modal-header"><div><span class="profile-kicker">Recepción · Suministros</span><h2 id="modal-title" class="mt-2 text-lg font-bold text-white">Nuevo suministro</h2><p class="mt-1 text-xs text-gray-500">El código interno se genera automáticamente y no requiere captura.</p></div><button id="close" class="crm-icon-button text-xl">×</button></header>
 <div class="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-<label class="crm-label md:col-span-2 xl:col-span-3">Descripción *<input id="f-desc" class="field mt-2" placeholder="Papel higiénico, jabón, carpetas..."></label>
+<label class="crm-label md:col-span-2">Descripción *<input id="f-desc" class="field mt-2" placeholder="Papel higiénico, jabón, carpetas..."></label>
 <label class="crm-label">Categoría *<input id="f-category" class="field mt-2" placeholder="Limpieza, Papelería..."></label>
-<label class="crm-label md:col-span-2">Modismos / otros nombres<input id="f-alias" class="field mt-2" placeholder="Ej. papel de baño, rollo, sanitario"></label>
 <label class="crm-label">Marca<input id="f-brand" class="field mt-2"></label>
-<label class="crm-label">Código de marca / modelo<input id="f-model" class="field mt-2"></label>
-<label class="crm-label md:col-span-2">Ubicación<input id="f-location" class="field mt-2" placeholder="Ej. Recepción · Anaquel 2"></label>
+<label class="crm-label md:col-span-2">Modismos / otros nombres<input id="f-alias" class="field mt-2" placeholder="separados por coma"></label>
+<label class="crm-label md:col-span-2">Ubicación<input id="f-location" class="field mt-2" placeholder="Puedes capturarla o acomodar el suministro desde Bodeguita"></label>
 <label class="crm-label">Unidad *<input id="f-unit" class="field mt-2" value="PIEZA"></label>
-<label class="crm-label">Stock inicial<input id="f-stock" type="number" min="0" step="any" class="field mt-2" value="0"></label>
+<label class="crm-label">Stock inicial / actual<input id="f-stock" type="number" min="0" step="any" class="field mt-2" value="0"></label>
 <label class="crm-label">Stock mínimo<input id="f-min" type="number" min="0" step="any" class="field mt-2" value="0"></label>
 <label class="crm-label">Precio unitario<input id="f-price" type="number" min="0" step="0.01" class="field mt-2" value="0"></label>
 <label class="crm-label">Moneda del costo<select id="f-currency" class="field mt-2"><option>MXN</option><option>USD</option><option>EUR</option></select></label>
@@ -66,8 +58,6 @@
 <footer class="profile-modal-footer"><button id="delete" class="crm-secondary text-rose-300 hidden mr-auto">Retirar suministro</button><button id="cancel" class="crm-secondary">Cancelar</button><button id="save" class="crm-primary">Guardar suministro</button></footer>
 </section>
 </div>
-
-
-<script src="RE.suministros.js?v=106"></script>
-<script src="crm-v78-fixes.js?v=106" defer></script><script src="skilled-performance.js?v=106" defer></script><script src="crm-v83-shell.js?v=106" defer></script>
+<script src="RE.suministros.js?v=107"></script>
+<script src="crm-v78-fixes.js?v=107" defer></script><script src="skilled-performance.js?v=107" defer></script><script src="crm-v83-shell.js?v=107" defer></script>
 </body></html>
