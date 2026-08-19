@@ -675,17 +675,23 @@
         'ocden':'orden','horden':'orden','conpra':'compra','combra':'compra','provedor':'proveedor','probedor':'proveedor',
         'requisision':'requisicion','requicision':'requisicion','incapasidad':'incapacidad','capasitacion':'capacitacion',
         'ora':'hora','oras':'horas','feha':'fecha','fesha':'fecha','oy':'hoy','meses':'mes','skai':'sky','skay':'sky','escai':'sky',
-        'checame':'revisa','chekame':'revisa','checame':'revisa','chécame':'revisa','jale':'proyecto','jales':'proyectos','troka':'pickup','troca':'pickup','bodega':'bodega'
+        'checame':'revisa','chekame':'revisa','chécame':'revisa','jale':'proyecto','jales':'proyectos','troka':'pickup','troca':'pickup','bodega':'bodega',
+        'resepcion':'recepcion','recepsion':'recepcion','rececsion':'recepcion','recesion':'recepcion','porterilla':'porteria','porteria':'porteria',
+        'habreme':'abreme','habres':'abres','habran':'abran','abreme':'abreme','abranme':'abranme','abisale':'avisale','avizale':'avisale','abisales':'avisales',
+        'yego':'llego','yegue':'llegue','llege':'llegue','llego':'llego','afuera':'afuera','mensajero':'mensajero','paqueteria':'paqueteria'
     }));
     const BASE_SPEECH_WORDS = [
-        'sky','hora','horas','fecha','dia','hoy','semana','mes','ano','perfil','ayuda','comandos','repite','silencio','calcula',
+        'sky','skill','hora','horas','fecha','dia','hoy','semana','mes','ano','perfil','ayuda','comandos','repite','silencio','calcula',
         'cuanto','cuantos','cuanta','cuantas','donde','ubicacion','existencia','existencias','stock','material','materiales','bodega','almacen','central',
         'tubo','tubos','pulgada','pulgadas','cable','cables','broca','brocas','rack','zona','piso','bajo','minimo','orden','compra','compras','herramienta','herramientas',
-        'vehiculo','vehiculos','proyecto','proyectos','proveedor','proveedores','requisicion','recepcion','servicio','servicios','tienda','rfc','contacto','correo','email','telefono','whatsapp','mensaje','mensajes','cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar','comparador','vende','venden','maneja','manejan','surte','surten',
+        'vehiculo','vehiculos','proyecto','proyectos','proveedor','proveedores','requisicion','recepcion','porteria','caseta','entrada','puerta','porton','acceso','afuera','adentro','abrir','abre','abreme','abran','pasar','entrar',
+        'avisa','avisale','avisales','dile','llama','hablale','marcale','contacta','busco','necesito','ocupo','venga','baje','salga','presente','presencia','anda','llego','llegue',
+        'visitante','visita','repartidor','mensajero','paquete','paqueteria','mensajeria','mercado','libre','amazon','dhl','fedex','estafeta','ups','comida','pedido','lonche','rappi','uber','didi',
+        'servicio','servicios','tienda','rfc','contacto','correo','email','telefono','whatsapp','mensaje','mensajes','cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar','comparador','vende','venden','maneja','manejan','surte','surten',
         'trabajador','trabajadores','personal','empleado','empleados','ausencia','ausencias','vacaciones','incapacidad','documento','documentos','contrato','contratos','capacitacion','incidencia',
         'presupuesto','costo','costos','consumido','planeado','gasto','gastos','finanzas','avance','ruta','picking','solicitud','solicitudes','disponible','disponibles'
     ];
-    const SPEECH_KEEP_WORDS = new Set(['como','cuando','porque','para','pero','esta','estan','este','estos','estas','quiero','necesito','tengo','tenemos','tiene','tienen','hay','dime','busca','buscar','abre','muestra','ver','verifica','revisa','principal','actual','ahora','ahorita','aqui','alla','total','mero','queda','quedan','jale','onda','dato','info']);
+    const SPEECH_KEEP_WORDS = new Set(['como','cuando','porque','para','pero','esta','estan','este','estos','estas','quiero','necesito','ocupo','tengo','tenemos','tiene','tienen','hay','dime','busca','buscar','abre','abreme','abran','avisa','avisale','dile','llama','hablale','marcale','muestra','ver','verifica','revisa','principal','actual','ahora','ahorita','aqui','alla','afuera','adentro','total','mero','queda','quedan','jale','onda','dato','info']);
     function spanishPhonetic(value) {
         let word = normalize(value).replace(/[^a-zñ0-9]/g, '');
         if (!word || /^\d+$/.test(word)) return word;
@@ -712,6 +718,9 @@
             });
         } else if (profile === 'rh') {
             (Array.isArray(cache.rhPeople) ? cache.rhPeople : []).slice(0,900).forEach(item => [item.numero_empleado,item.nombre,item.apellidos,item.puesto,item.departamento].forEach(push));
+        } else if (profile === 'recepcion') {
+            (Array.isArray(cache.reDirectory) ? cache.reDirectory : []).slice(0,700).forEach(item => [item.nombre_completo,item.puesto,item.departamento,item.rol].forEach(push));
+            ['compras','recursos humanos','almacen','finanzas','planeacion','coordinacion','logistica','tsi','administracion','gerencia','subgerencia','recepcion','caseta','porteria','entrada','puerta','porton','acceso','afuera','visitante','repartidor','mensajero','paqueteria','mercado libre','amazon','dhl','fedex','estafeta','ups','comida','pedido','lonche','materiales','proveedor','remision'].forEach(push);
         } else if (isExecutiveReadProfile(profile)) {
             (Array.isArray(cache.materials) ? cache.materials : []).slice(0,1400).forEach(item => [item.codigo,item.descripcion,item.desc,item.categoria,item.marca,item.codigoMarca,item.codigo_marca,item.tipoCable,item.tamano,...(Array.isArray(item.modismos)?item.modismos:[])].forEach(push));
             (Array.isArray(cache.vehicles) ? cache.vehicles : []).slice(0,300).forEach(item => [item.numeroEconomico,item.nombreVehiculo,item.marca,item.modelo,item.placas,item.tipo].forEach(push));
@@ -772,6 +781,14 @@
             [/\bchecame\b/g,'revisa'],[/\bchekame\b/g,'revisa'],[/\ba ver si ay\b/g,'a ver si hay'],[/\bdonde mero\b/g,'donde esta'],
             [/\bcomo va el yale\b/g,'como va el jale'],[/\bcomo va el jale\b/g,'estado de proyecto'],[/\bque onda con el proyecto\b/g,'estado de proyecto']
         ];
+        if (detectProfile() === 'recepcion') phraseCorrections.push(
+            [/\bme habres\b/g,'me abres'],[/\bme habre\b/g,'me abre'],[/\bque me habran\b/g,'que me abran'],[/\bhabreme\b/g,'abreme'],
+            [/\babisale\b/g,'avisale'],[/\bavizale\b/g,'avisale'],[/\babisales\b/g,'avisales'],[/\bechale un grito\b/g,'avisale'],
+            [/\bme echas la mano con la puerta\b/g,'me abres la puerta'],[/\bme haces paro con la puerta\b/g,'me abres la puerta'],
+            [/\bando afuera\b/g,'estoy afuera'],[/\baqui afuera\b/g,'estoy afuera'],[/\baqui ando afuera\b/g,'estoy afuera'],
+            [/\banda alguien\b/g,'hay alguien'],[/\bquien anda\b/g,'quien esta'],[/\bsabes si anda\b/g,'sabes si esta'],
+            [/\brec humanos\b/g,'recursos humanos'],[/\brr hh\b/g,'recursos humanos'],[/\bconta\b/g,'finanzas']
+        );
         phraseCorrections.forEach(([regex,replacement]) => { normalized = normalized.replace(regex,replacement); });
         const lexicon = domainSpeechLexicon();
         const corrected = normalized.split(' ').map(word => bestSpeechWord(word, lexicon)).join(' ').replace(/\s+/g,' ').trim();
@@ -791,6 +808,13 @@
             [/\bcuant[oa]s?\b.*\b(material|tubo|cable|pieza|existencia|stock)\b/,18],[/\bdonde\b.*\b(material|tubo|cable|ubicacion)\b/,18],
             [/\bbajo minimo\b/,18],[/\borden de compra\b/,16],[/\bherramientas?\b/,14],[/\bvehiculos?\b/,14],[/\bproyectos?\b/,12],[/\bproveedores?\b/,12],[/\btrabajadores?\b|\bpersonal\b/,12]
         ];
+        if (detectProfile() === 'recepcion') patterns.push(
+            [/\b(puerta|porton|acceso|entrada|afuera)\b.*\b(abre|abrir|abran|abreme|pasar|entrar)\b|\b(me abres|me abre|me abran|estoy afuera)\b/,30],
+            [/\b(hay alguien|quien esta|esta alguien|anda alguien|se encuentra|sabes si esta|ya llego|esta presente)\b/,28],
+            [/\b(avisa|avisale|avisales|dile|llama|hablale|marcale|contacta|que venga|que baje|busco a|necesito a|ocupo a)\b/,26],
+            [/\b(compras|recursos humanos|rh|almacen|finanzas|planeacion|coordinacion|logistica|tsi|gerencia|subgerencia|recepcion)\b/,16],
+            [/\b(repartidor|mensajero|paquete|paqueteria|mercado libre|amazon|dhl|fedex|estafeta|ups|comida|pedido|lonche|proveedor|materiales|remision)\b/,22]
+        );
         patterns.forEach(([pattern,bonus]) => { if (pattern.test(norm)) score += bonus; });
         return score;
     }
@@ -822,6 +846,7 @@
             almacen: ['ubicacion','bajo minimo','orden de compra','herramienta','vehiculo','tubo','cable','broca','almacen','bodega','rack','zona','piso','existencia'],
             compras: ['cotizacion','cotizaciones','cotizar','oferta','ofertas','precio','precios','plazo','plazos','entrega','comparar proveedores','orden de compra','requisicion','proveedor','recepcion','servicio','tienda','comprar','pago','vencimiento','rfc'],
             rh: ['trabajador','colaborador','personal','empleado','ausencia','vacaciones','incapacidad','documento','contrato','capacitacion','incidencia','asistencia'],
+            recepcion: ['recepcion','porteria','caseta','entrada','puerta','porton','acceso','afuera','visitante','visita','presencia','presente','compras','recursos humanos','almacen','finanzas','planeacion','coordinacion','logistica','tsi','gerencia','subgerencia','avisa','avisale','llama','dile','hablale','marcale','repartidor','mensajero','paquete','paqueteria','mercado libre','amazon','dhl','fedex','estafeta','ups','comida','pedido','lonche','proveedor','materiales','remision'],
             finanzas: ['presupuesto','costo','consumido','planeado','gasto','finanzas','avance','cuenta por pagar'],
             gerente_general: ['proyecto','proyectos','gasto','materiales','sueldos','nomina','planeado','real','desviacion','presupuesto','direccion'],
             subgerente: ['proyecto','proyectos','gasto','materiales','sueldos','nomina','planeado','real','desviacion','presupuesto','direccion'],
@@ -1019,6 +1044,7 @@
             almacen:['cuantos tubos tenemos','donde esta el material','materiales bajo minimo','orden de compra','herramientas disponibles','vehiculos disponibles','prepara la ruta del proyecto'],
             compras:['cotizaciones por revisar','busca cotizacion','comparar proveedores','mejor precio y plazo','ordenes de compra pendientes','busca proveedor','servicios por vencer'],
             rh:['trabajadores activos','busca trabajador','quien esta ausente hoy','documentos por vencer','proyectos sin personal'],
+            recepcion:['me abres la puerta','estoy afuera','que me abran por favor','hay alguien de compras','esta alguien de recursos humanos','esta leobardo aqui','sabes si esta eduardo','quien anda de compras','avisa a compras','avisale que estoy en la entrada','dile que venga a recepcion','echale un grito a compras','llama al gerente','traigo materiales','llego un proveedor','traigo un paquete','vengo de mercado libre','vengo de amazon','traigo comida','llego un repartidor'],
             finanzas:['costo consumido del proyecto','presupuesto del proyecto','proyectos con mayor costo'],
             gerente_general:['cuantos tipos de tubos tengo','cuantas personas tengo en el proyecto','cuantas compras estan pendientes','que vehiculos estan disponibles','cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
             subgerente:['cuantos tipos de tubos tengo','cuantas personas tengo en el proyecto','cuantas compras estan pendientes','que vehiculos estan disponibles','cuanto se gasto en el proyecto','materiales contra sueldos','proyectos sobre lo planeado','resumen ejecutivo'],
@@ -3196,17 +3222,129 @@
     }
 
     async function receptionPresence(filter=''){if(!window.SkilledDB?.getReceptionPresenceV100)return[];try{return await SkilledDB.getReceptionPresenceV100(filter)}catch(_){return[]}}
-    async function receptionDirectory(){if(!window.SkilledDB?.getReceptionRecognitionDirectoryV102)return[];try{return await SkilledDB.getReceptionRecognitionDirectoryV102()}catch(_){return[]}}
-    async function receptionPersonFromText(raw){const rows=await receptionDirectory();if(!rows.length)return null;const q=commandNormalize(raw);const ranked=window.SkilledSearch?.rank?window.SkilledSearch.rank(rows,raw,p=>[p.nombre_completo,p.puesto,p.departamento,p.rol]):rows.filter(p=>q.includes(commandNormalize(p.nombre_completo)));return ranked[0]||null}
-    function receptionAreaFromText(raw){const norm=commandNormalize(raw);const known=['compras','recursos humanos','rh','almacen','almacén','finanzas','planeacion','planeación','coordinacion','coordinación','logistica','logística','tsi','administracion','administración','gerencia','subgerencia'];return known.find(x=>norm.includes(commandNormalize(x)))||''}
+    async function receptionDirectory(){if(!window.SkilledDB?.getReceptionRecognitionDirectoryV102)return[];try{return await loadData('reDirectory')}catch(_){try{return await SkilledDB.getReceptionRecognitionDirectoryV102()}catch(__){return[]}}}
+    function receptionNormalizedText(raw){
+        let norm=commandNormalize(raw);
+        const replacements=[
+            [/\bme haces paro con la puerta\b/g,'me abres la puerta'],[/\bme echas la mano con la puerta\b/g,'me abres la puerta'],[/\bme ayudas con la puerta\b/g,'me abres la puerta'],
+            [/\bme dejan entrar\b/g,'me dejan pasar'],[/\bme dejas entrar\b/g,'me dejas pasar'],[/\bme das chance de pasar\b/g,'me dejas pasar'],[/\bpuedo pasar\b/g,'solicito acceso'],
+            [/\bando afuera\b/g,'estoy afuera'],[/\btoy afuera\b/g,'estoy afuera'],[/\baqui afuera\b/g,'estoy afuera'],[/\bando en la entrada\b/g,'estoy en la entrada'],[/\baqui ando\b/g,'estoy aqui'],[/\bya ando aqui\b/g,'estoy aqui'],
+            [/\bechale un grito a\b/g,'avisa a'],[/\bechales un grito a\b/g,'avisa a'],[/\bpegale un grito a\b/g,'avisa a'],[/\bhazle saber a\b/g,'avisa a'],
+            [/\bocupo ver a\b/g,'necesito a'],[/\bvengo a ver a\b/g,'necesito a'],[/\bvengo a buscar a\b/g,'necesito a'],[/\btengo cita con\b/g,'necesito a'],[/\bquiero ver a\b/g,'necesito a'],[/\bpregunto por\b/g,'necesito a'],[/\bvengo con\b/g,'traigo'],[/\btraigo unas cosas\b/g,'traigo una entrega'],
+            [/\blos de compras\b/g,'compras'],[/\bla gente de compras\b/g,'compras'],[/\blos de recursos\b/g,'recursos humanos'],[/\blos de rh\b/g,'recursos humanos'],
+            [/\blos de almacen\b/g,'almacen'],[/\blos de bodega\b/g,'almacen'],[/\blos de conta\b/g,'finanzas'],[/\bconta\b/g,'finanzas'],[/\bsistemas\b/g,'tsi']
+        ];
+        replacements.forEach(([regex,replacement])=>{norm=norm.replace(regex,replacement)});
+        return norm.replace(/\s+/g,' ').trim();
+    }
+    async function receptionPersonFromText(raw){
+        const rows=await receptionDirectory();
+        if(!rows.length)return null;
+        const expanded=commandNormalize(expandEntityAliases(raw)).replace(/\b(ingeniero|ing|licenciado|lic|senor|senora|sr|sra)\b/g,' ').replace(/\s+/g,' ').trim();
+        if(!expanded)return null;
+        const queryTokens=expanded.split(' ').filter(token=>token.length>=3);
+        let best=null,bestScore=0;
+        for(const person of rows){
+            const full=commandNormalize(person?.nombre_completo);
+            if(!full)continue;
+            const nameTokens=full.split(' ').filter(token=>token.length>=3);
+            let score=0;
+            if(expanded.includes(full))score+=120;
+            for(const token of nameTokens){
+                if(queryTokens.includes(token))score+=18;
+                else if(token.length>=5&&queryTokens.some(q=>Math.abs(q.length-token.length)<=1&&levenshtein(q,token)<=1))score+=7;
+            }
+            if(nameTokens[0]&&queryTokens.includes(nameTokens[0]))score+=8;
+            if(score>bestScore){bestScore=score;best=person}
+        }
+        return bestScore>=18?best:null;
+    }
+    function receptionAreaFromText(raw){
+        const norm=` ${receptionNormalizedText(raw)} `;
+        const aliases=[
+            ['recursos humanos','Recursos Humanos'],['rrhh','Recursos Humanos'],['rh','Recursos Humanos'],['capital humano','Recursos Humanos'],
+            ['gerencia general','Gerencia'],['direccion','Gerencia'],['gerencia','Gerencia'],['gerente','Gerencia'],
+            ['subgerencia','Subgerencia'],['subgerente','Subgerencia'],
+            ['administracion','Administración'],['administrativos','Administración'],
+            ['planeacion','Planeación'],['planeadores','Planeación'],['planeador','Planeación'],
+            ['coordinacion','Coordinación'],['coordinadores','Coordinación'],['coordinador','Coordinación'],
+            ['logistica','Logística'],['trafico','Logística'],
+            ['finanzas','Finanzas'],['contabilidad','Finanzas'],['pagos','Finanzas'],
+            ['almacen','Almacén'],['bodega','Almacén'],['almacenistas','Almacén'],
+            ['compras','Compras'],['compradores','Compras'],['comprador','Compras'],['adquisiciones','Compras'],
+            ['tsi','TSI'],['soporte','TSI'],['tecnologias de la informacion','TSI'],
+            ['recepcion','Recepción'],['porteria','Recepción'],['caseta','Recepción']
+        ].sort((a,b)=>b[0].length-a[0].length);
+        for(const [alias,label] of aliases){
+            const key=commandNormalize(alias);
+            if(norm.includes(` ${key} `))return label;
+        }
+        return '';
+    }
+    function receptionRecentContext(){
+        const recent=Date.now()-Number(conversationContext.updatedAt||0)<5*60*1000&&/^reception_/.test(text(conversationContext.lastIntent));
+        if(!recent)return{person:'',area:''};
+        return{person:text(conversationContext.person?.nombre||conversationContext.person?.nombre_completo),area:text(conversationContext.area)};
+    }
+    function rememberReceptionTarget(person,area,intent,raw){
+        if(person?.nombre_completo)conversationContext.person={nombre:person.nombre_completo,numero:text(person.numero_empleado||person.id)};
+        else if(area)conversationContext.person=null;
+        if(area)conversationContext.area=area;
+        else if(person?.departamento)conversationContext.area=person.departamento;
+        rememberConversation(intent,person?.nombre_completo||area||'',raw);
+    }
+    function receptionIntentFromText(raw,area,person){
+        const norm=receptionNormalizedText(raw),context=receptionRecentContext(),hasTarget=Boolean(area||person||context.person||context.area);
+        const doorLocation=/\b(puerta|porton|acceso|entrada|afuera|pasar|entrar)\b/.test(norm);
+        const doorAction=/\b(abre|abrir|abran|abreme|abranme|pueden abrir|me abre|me abres|me abran|dejan pasar|dejas pasar|solicito acceso|dame acceso|dar acceso)\b/.test(norm);
+        const doorColloquial=/\b(estoy afuera|aqui en la puerta|estoy en la puerta|estoy en la entrada|me abres|me abre|me abran|abreme|abranme)\b/.test(norm);
+        const presenceWords=/\b(hay alguien|esta alguien|quien esta|se encuentra|esta aqui|esta en las instalaciones|vino|ya llego|llego hoy|esta presente|anda por aqui|anda aqui|quien anda|sabes si esta|me dices si esta|estara|sigue aqui|sigue adentro)\b/.test(norm);
+        const presenceShort=hasTarget&&/^(y )?(esta|anda|llego|ya llego|sigue|sigue ahi|sigue aqui|y el|y ella)$/.test(norm);
+        const callWords=/\b(llama|llamar|avisa|avisar|avisale|avisales|dile|diles|manda mensaje|envia mensaje|necesito a|ocupo a|que venga|que vengan|que baje|que bajen|que salga|que salgan|puedes llamar|contacta|contactar|busco a|hablale|hablales|marcale|marcales|mandale|mandales|hazle saber|me espera)\b/.test(norm);
+        const callFollowup=/^(si|por favor|si por favor|avisale|avisales|dile|diles|hazlo|mandale|mandales|llamalo|llamala|que venga|que baje)$/.test(norm)&&/^reception_presence/.test(text(conversationContext.lastIntent));
+        const explicitCall=(callWords&&hasTarget)||callFollowup;
+        return{norm,door:((doorLocation&&doorAction)||doorColloquial)&&!explicitCall,presence:(presenceWords&&hasTarget)||presenceShort,call:explicitCall,context};
+    }
     async function answerReceptionPresenceAndAccess(raw){
         if(detectProfile()!=='recepcion')return null;
-        const norm=commandNormalize(raw),door=/(abrir.*puerta|abran.*puerta|abre.*puerta|abrirme|que me abran|quiere que le abran|solicita.*acceso|dejarlo pasar|dejarla pasar|entrada.*abrir|pueden abrir|me abre)/.test(norm),presence=/(hay alguien|esta alguien|está alguien|quien esta|quién está|se encuentra|esta aqui|está aquí|esta en las instalaciones|está en las instalaciones|vino|ya llego|ya llegó|esta presente|está presente)/.test(norm),call=/(llama|llamar|avisa|avisar|dile|manda mensaje|envia mensaje|envía mensaje|necesito a|que venga|puedes llamar|contacta|contactar|busco a)/.test(norm),area=receptionAreaFromText(raw),person=await receptionPersonFromText(raw);
-        if(door){const who=person?.nombre_completo||text(raw).replace(/.*?(?:puerta|acceso)/i,'').trim()||'un colaborador';const msg=`${who} está en la entrada y solicita que le abran la puerta. Favor de validar identidad y autorizar acceso.`;const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});const response=`Ya envié a Recepción la solicitud de acceso para ${who}. La apertura física permanece bajo validación humana.`;setAnswer('Solicitud de acceso enviada',response,'Skill puede relacionar el rostro con el nombre completo del perfil cuando el motor biométrico esté integrado; por ahora la identidad requiere validación.',[{title:'Persona',detail:who},{title:'Seguridad',detail:'La puerta no se abre automáticamente solo por reconocimiento o voz.'}]);return{handled:true,voice:result?.voice||response}}
-        if(presence||(/(esta|está|vino|llego|llegó)/.test(norm)&&(area||person))){const filter=person?.nombre_completo||area||raw,rows=await receptionPresence(filter),present=rows.filter(x=>x.presente);if(person){const exact=present.find(x=>commandNormalize(x.nombre_completo).includes(commandNormalize(person.nombre_completo))||commandNormalize(person.nombre_completo).includes(commandNormalize(x.nombre_completo)));const response=exact?`${person.nombre_completo} aparece con entrada registrada y sin salida hoy.`:`No encuentro a ${person.nombre_completo} con registro de entrada pendiente de salida en este momento.`;setAnswer('Presencia de personal',response,'Recepción solo ve nombre, puesto, área y presencia. No se exponen datos privados de RH.',exact?[{title:exact.nombre_completo,detail:`${exact.puesto||'Sin puesto'} · ${exact.departamento||'Sin área'} · Presente`}]:[{title:person.nombre_completo,detail:`${person.puesto||'Sin puesto'} · ${person.departamento||'Sin área'}`}]);return{handled:true,voice:response}}
-            if(area){const response=present.length?`Sí. Hay ${present.length} persona${present.length===1?'':'s'} de ${area} con entrada registrada y sin salida hoy.`:`No encuentro personal de ${area} con entrada pendiente de salida en este momento.`;setAnswer('Presencia por área',response,'Recepción solo recibe nombre, puesto, área y estado de presencia.',present.slice(0,8).map(x=>({title:x.nombre_completo||x.departamento,detail:`${x.puesto||'Sin puesto'} · ${x.presente?'Presente':'No presente'}`})));return{handled:true,voice:response}}
+        const area=receptionAreaFromText(raw),person=await receptionPersonFromText(raw),intent=receptionIntentFromText(raw,area,person);
+        const targetPerson=person?.nombre_completo||intent.context.person;
+        const targetArea=area||intent.context.area;
+        if(intent.door){
+            const who=targetPerson||'una persona';
+            const msg=`${who} está en la entrada y solicita acceso. Favor de validar identidad y autorizar la apertura de la puerta.`;
+            const result=await executeChatMessage('Recepción',msg,{allowAmbiguous:true});
+            rememberReceptionTarget(person,targetArea,'reception_door',raw);
+            const response=targetPerson?`Ya avisé a Recepción que ${targetPerson} está en la entrada y solicita acceso. La puerta sigue requiriendo validación humana.`:'Ya envié a Recepción una solicitud de acceso desde la entrada. La puerta sigue requiriendo validación humana.';
+            setAnswer('Solicitud de acceso enviada',response,'Skill entiende expresiones como “me abres”, “ando afuera”, “me dejan pasar” o “échame la mano con la puerta”, pero nunca acciona la cerradura sin validación.',[{title:'Persona',detail:who},{title:'Seguridad',detail:'Apertura sujeta a validación humana.'}]);
+            return{handled:true,voice:result?.voice||response};
         }
-        if(call&&(area||person)){const recipient=person?.nombre_completo||area,msg=`${person?.nombre_completo||area} es requerido en la entrada/Recepción. Motivo comunicado: “${text(raw)}”.`;const result=await executeChatMessage(recipient,msg,{allowAmbiguous:true});const response=`Listo. Preparé el aviso para ${recipient}.`;setAnswer('Aviso interno',response,'Skill Recepción puede avisar a una persona o área sobre quién está en la entrada sin abrir información de otros módulos.',[{title:'Destinatario',detail:recipient},{title:'Mensaje',detail:msg}]);return{handled:true,voice:result?.voice||response}}
+        if(intent.presence){
+            const filter=targetPerson||targetArea||raw,rows=await receptionPresence(filter),present=rows.filter(x=>x.presente);
+            if(targetPerson){
+                const exact=present.find(x=>commandNormalize(x.nombre_completo).includes(commandNormalize(targetPerson))||commandNormalize(targetPerson).includes(commandNormalize(x.nombre_completo)));
+                const directoryPerson=person||{nombre_completo:targetPerson,puesto:'',departamento:targetArea};
+                rememberReceptionTarget(directoryPerson,targetArea||directoryPerson.departamento,'reception_presence_person',raw);
+                const response=exact?`${targetPerson} aparece con entrada registrada y sin salida hoy.`:`No encuentro a ${targetPerson} con entrada pendiente de salida en este momento.`;
+                setAnswer('Presencia de personal',response,'Puedes continuar naturalmente con “avísale”, “dile que estoy afuera” o “que venga a recepción”; Skill conservará a la persona como contexto.',exact?[{title:exact.nombre_completo,detail:`${exact.puesto||'Sin puesto'} · ${exact.departamento||'Sin área'} · Presente`}]:[{title:targetPerson,detail:`${directoryPerson.puesto||'Sin puesto'} · ${directoryPerson.departamento||targetArea||'Sin área'}`}]);
+                return{handled:true,voice:response};
+            }
+            if(targetArea){
+                rememberReceptionTarget(null,targetArea,'reception_presence_area',raw);
+                const response=present.length?`Sí. Hay ${present.length} persona${present.length===1?'':'s'} de ${targetArea} con entrada registrada y sin salida hoy.`:`No encuentro personal de ${targetArea} con entrada pendiente de salida en este momento.`;
+                setAnswer('Presencia por área',response,'Puedes seguir con “avísales”, “que venga alguien” o “diles que estoy en la entrada” sin repetir el área.',present.slice(0,8).map(x=>({title:x.nombre_completo||x.departamento,detail:`${x.puesto||'Sin puesto'} · ${x.presente?'Presente':'No presente'}`})));
+                return{handled:true,voice:response};
+            }
+        }
+        if(intent.call&&(targetArea||targetPerson)){
+            const recipient=targetPerson||targetArea;
+            const msg=targetPerson?`${targetPerson} es requerido en la entrada/Recepción. Mensaje recibido: “${text(raw)}”.`:`Se solicita apoyo de ${targetArea} en la entrada/Recepción. Mensaje recibido: “${text(raw)}”.`;
+            const result=await executeChatMessage(recipient,msg,{allowAmbiguous:true});
+            rememberReceptionTarget(person||(targetPerson?{nombre_completo:targetPerson,departamento:targetArea}:null),targetArea,'reception_notice',raw);
+            const response=`Listo. Envié el aviso para ${recipient}.`;
+            setAnswer('Aviso interno enviado',response,'Skill entiende “avísale”, “échale un grito”, “háblale”, “márcale”, “que venga”, “que baje”, “ocupo a…” y frases de seguimiento.',[{title:'Destinatario',detail:recipient},{title:'Mensaje',detail:msg}]);
+            return{handled:true,voice:result?.voice||response};
+        }
         return null;
     }
 
@@ -3214,59 +3352,64 @@
         const profile=detectProfile();
         if(profile!=='recepcion'&&!isExecutiveReadProfile(profile))return null;
         const access=await answerReceptionPresenceAndAccess(raw);if(access)return access;
-        const norm = commandNormalize(raw);
-        const relevant = /\b(timbre|porteria|porter[ií]a|entrada|visitante|visita|camara|c[aá]mara|reconoce|reconocer|rostro|persona desconocida|llego alguien|lleg[oó] alguien|pedido de comida|comida|uber|didi|rappi|entregar materiales|trae materiales|entrega material|proveedor lleg[oó]|lleg[oó] proveedor|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a)\b/.test(norm);
-        if (!relevant) return null;
-        const greeting = skyDayGreeting();
-        const food = /\b(comida|pedido|uber|didi|rappi|restaurant|restaurante|lonche|desayuno|almuerzo)\b/.test(norm);
-        const carrier = /\b(mercado libre|mercadolibre|amazon|paqueteria|paqueter[ií]a|mensajeria|mensajer[ií]a)\b/.test(norm);
-        const materials = /\b(material|materiales|proveedor|entrega de material|orden de compra|oc|factura|remision|remisión|herramientas|refacciones)\b/.test(norm);
-        const recognized = /\b(reconocio|reconoció|reconoce|identifico|identificó|personal|colaborador|trabajador|empleado|skilled)\b/.test(norm) && !/\b(no reconoce|no reconocio|no reconoció|desconocid|visitante)\b/.test(norm);
-        let title = 'Skill en recepción';
-        let message = `Al presionar el timbre, Skill debe saludar con “Hola, ${greeting}” y preguntar en qué puede ayudar.`;
-        let detail = 'Después clasifica la visita, genera el aviso correcto y deja evidencia para Recepción sin abrir información operativa innecesaria.';
-        const cards = [
-            { title:'1. Timbre', detail:'Activa cámara, micrófono y registro de evento.' },
-            { title:'2. Identificación', detail:'Si reconoce personal de Skilled, registra acceso interno; si no, trata el caso como visitante.' },
-            { title:'3. Pregunta', detail:`“Hola, ${greeting}. ¿En qué puedo ayudarle?”` },
-            { title:'4. Aviso', detail:'Comida → Recepción. Materiales/proveedor → Compras. Visita → responsable.' }
+        const norm=receptionNormalizedText(raw),greeting=skyDayGreeting();
+        const food=/\b(comida|pedido de comida|uber eats|ubereats|didi food|didifood|rappi|restaurante|lonche|desayuno|almuerzo|tacos|pizza|hamburguesa|repartidor de comida)\b/.test(norm);
+        const carrier=/\b(mercado libre|mercadolibre|amazon|paqueteria|mensajeria|mensajero|paquete|dhl|fedex|estafeta|ups|envio|envios)\b/.test(norm);
+        const materials=/\b(material|materiales|proveedor|entrega de material|orden de compra|\boc\b|factura|remision|herramientas|refacciones|tuberia|tubo|cable|charola|conduit|equipo industrial|fierro)\b/.test(norm);
+        const genericDelivery=/\b(entrega|traigo una entrega|vengo a dejar|vengo a entregar|traigo algo|traigo unas cosas|traigo unas cajas)\b/.test(norm);
+        const recognized=/\b(reconocio|reconoce|identifico|personal|colaborador|trabajador|empleado|skilled)\b/.test(norm)&&!/\b(no reconoce|no reconocio|desconocid|visitante)\b/.test(norm);
+        const arrival=/\b(vengo|venimos|traigo|traemos|llego|llegue|estoy en la entrada|estoy afuera|soy de|tengo una entrega|vengo de)\b/.test(norm);
+        const relevant=recognized||food||carrier||materials||genericDelivery||/\b(timbre|porteria|entrada|visitante|visita|camara|rostro|persona desconocida|llego alguien|atender gente|atender visitantes)\b/.test(norm);
+        if(!relevant)return null;
+        let title='Skill en Recepción',message=`Al tocar el timbre, Skill saluda con “Hola, ${greeting}. ¿En qué puedo ayudarte?” y permite que la persona hable de forma natural, sin memorizar comandos.`,detail='Skill relaciona modismos, frases incompletas y palabras clave con el flujo correcto, manteniendo los permisos limitados de Recepción.',notifyTarget='',notifyMessage='';
+        const cards=[
+            {title:'Habla natural',detail:'“Traigo unas cajas de material”, “vengo de Amazon”, “ando afuera”, “busco a Eduardo” o “échale un grito a Compras”.'},
+            {title:'Contexto',detail:'Después de preguntar “¿está Eduardo?”, puedes continuar con “avísale” o “dile que estoy afuera”.'},
+            {title:'Privacidad',detail:'Recepción solo consulta nombre, puesto, área y presencia autorizada; no expone información privada de RH.'},
+            {title:'Seguridad',detail:'La voz o el rostro nunca abren físicamente la puerta sin la validación definida.'}
         ];
-        let notifyTarget = '';
-        let notifyMessage = '';
-        if (recognized) {
-            title = 'Personal reconocido';
-            message = 'Si la cámara reconoce a alguien del personal de Skilled, Skill puede registrar el acceso como evento interno y evitar interrumpir a Recepción, salvo que haya una alerta o restricción configurada.';
-            detail = 'El registro debe guardar hora, cámara, resultado de reconocimiento y confianza; no debe exponer datos personales a visitantes.';
-        } else if (food) {
-            title = 'Pedido de comida detectado';
-            message = 'Si el visitante indica que trae comida, Skill debe avisar a Recepción para confirmar si alguien del personal realizó el pedido antes de permitir el acceso.';
-            detail = 'Mensaje sugerido: “Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien lo espera”.';
-            notifyTarget = 'Recepción';
-            notifyMessage = 'Hay un repartidor con pedido de comida en entrada. Favor de confirmar si alguien del personal lo espera.';
-        } else if (carrier) {
-            title = 'Paquetería detectada';
-            message = 'Si llega una entrega de Mercado Libre, Amazon o mensajería, Skill debe avisar a Recepción para validar quién espera el paquete antes de permitir el acceso.';
-            detail = 'El aviso conserva únicamente empresa de paquetería, hora y mensaje del repartidor.';
-            notifyTarget = 'Recepción';
-            notifyMessage = 'Llegó una entrega de paquetería en la entrada. Favor de validar quién espera el paquete.';
-        } else if (materials) {
-            title = 'Entrega de materiales detectada';
-            message = 'Si el visitante indica que viene a entregar materiales, Skill debe avisar a Compras para que validen proveedor, OC, factura/remisión y puedan recibir el material.';
-            detail = 'Mensaje sugerido: “Llegó proveedor con materiales en entrada. Favor de pasar a validar recepción, OC y documentos”.';
-            notifyTarget = 'Compras';
-            notifyMessage = 'Llegó proveedor con materiales en entrada. Favor de pasar a validar recepción, OC y documentos.';
-        } else {
-            title = 'Visitante no reconocido';
-            message = `Si la cámara no reconoce a la persona, Skill debe saludar con “Hola, ${greeting}”, preguntar el motivo de la visita y canalizarla a Recepción o al área responsable.`;
-            detail = 'La primera versión puede funcionar como triage: registra el motivo, pide nombre/empresa y notifica a la persona o área correspondiente.';
+        if(recognized){
+            title='Personal reconocido';
+            message='Cuando el motor facial confirme a un colaborador, Skill puede usar su nombre completo y entender peticiones naturales de acceso, presencia o avisos internos.';
+            detail='Mientras el reconocimiento biométrico real no esté integrado, la identidad continúa bajo validación humana.';
+        }else if(food){
+            title='Pedido de comida detectado';
+            message='Entendí que se trata de comida o un repartidor. Avisaré a Recepción para validar quién espera el pedido.';
+            detail='También reconoce expresiones como “traigo el lonche”, “soy de Rappi”, “traigo unos tacos” o “vengo con un pedido”.';
+            notifyTarget='Recepción';
+            notifyMessage=`Hay un repartidor o pedido de comida en la entrada. Mensaje recibido: “${text(raw)}”. Favor de validar quién lo espera.`;
+        }else if(materials){
+            title='Entrega de materiales detectada';
+            message='Entendí que vienes con materiales, herramienta, refacciones o documentación de una entrega. Avisaré a Compras para que validen la recepción.';
+            detail='También reconoce “traigo fierro”, “vengo a surtir”, “traigo la remisión”, “vengo con la OC” y descripciones de material.';
+            notifyTarget='Compras';
+            notifyMessage=`Llegó una entrega relacionada con materiales en la entrada. Mensaje recibido: “${text(raw)}”. Favor de validar proveedor, OC y documentos de recepción.`;
+        }else if(carrier){
+            title='Paquetería detectada';
+            message='Entendí que se trata de paquetería o mensajería. Avisaré a Recepción para validar quién espera el envío.';
+            detail='Reconoce Mercado Libre, Amazon, DHL, FedEx, Estafeta, UPS, “mensajero”, “paquete” y expresiones equivalentes.';
+            notifyTarget='Recepción';
+            notifyMessage=`Llegó una entrega de paquetería o mensajería en la entrada. Mensaje recibido: “${text(raw)}”. Favor de validar quién espera el paquete.`;
+        }else if(genericDelivery){
+            title='Necesito identificar la entrega';
+            message='Entendí que traes una entrega. Dime si son materiales para Skilled, paquetería, comida o si vienes a visitar a alguien; puedes decirlo con tus propias palabras.';
+            detail='Skill conservará este contexto para interpretar tu siguiente respuesta sin pedirte que repitas toda la frase.';
+            rememberConversation('reception_delivery_pending','entrega',raw);
+        }else{
+            title='Visitante en entrada';
+            message=`Hola, ${greeting}. Puedo ayudarte a avisar que llegaste, canalizar una visita o identificar una entrega. Dime a quién buscas, de qué empresa vienes o qué traes.`;
+            detail='No es necesario hablar con frases exactas; Skill intenta entender la intención y solo pide un dato adicional cuando realmente hace falta.';
         }
-        const wantsNotify = /\b(notifica|notificar|avisa|avisar|manda|envia|envía|dile|pasale|pásale)\b/.test(norm);
-        if (wantsNotify && notifyTarget && notifyMessage) {
-            const result = await executeChatMessage(notifyTarget, notifyMessage, { allowAmbiguous:true });
-            if (result?.handled && result.voice) return result;
+        const wantsNotify=/\b(notifica|avisa|avisar|manda|envia|dile|pasale|hazles saber)\b/.test(norm);
+        if(notifyTarget&&notifyMessage&&(arrival||wantsNotify)){
+            const result=await executeChatMessage(notifyTarget,notifyMessage,{allowAmbiguous:true});
+            rememberConversation('reception_delivery',notifyTarget,raw);
+            const sent=result?.voice||`Listo. Avisé a ${notifyTarget}.`;
+            setAnswer(title,sent,detail,cards);
+            return{handled:true,voice:sent};
         }
-        setAnswer(title, message, detail, cards);
-        return { handled:true, voice:message };
+        setAnswer(title,message,detail,cards);
+        return{handled:true,voice:message};
     }
 
     function answerCRMObjective(raw) {
@@ -4088,7 +4231,7 @@
         if (/\b(cuanto|cuantos|cuanta|cuantas|existencia|stock|tenemos|queda|quedan|hay)\b/.test(norm) && /\b(material|tubo|tuberia|cable|tornillo|pija|tuerca|rondana|arandela|abrazadera|conector|taquete|conduit|canaleta|pieza|metro|pulgada|mm|awg)\b/.test(norm)) return true;
         if (profile === 'almacen' && /bajo.*min|agotad|urge.*compr|reponer|reposicion|orden.*compra|\boc\b|herramient|vehiculo|pickup|camioneta|montacargas|generador|proyecto|picking|ruta/.test(norm)) return true;
         if (profile === 'compras' && /cotiz|proveedor|orden.*compra|requisicion|recepcion|servicio|tienda|comprar|entrega|precio|plazo|rfc|contacto|correo|email|whatsapp|telefono|quien.*vende|quién.*vende|quien.*surte|quién.*surte/.test(norm)) return true;
-        if (profile === 'recepcion' && /timbre|porteria|portería|visitante|comida|paqueteria|paquetería|camara|cámara|entrada|puerta|abrir|presente|hay alguien|esta alguien|llama|avisar|mercado libre|amazon|materiales/.test(norm)) return true;
+        if (profile === 'recepcion' && /timbre|porteria|visitante|visita|comida|pedido|lonche|repartidor|paqueteria|mensajeria|mensajero|paquete|dhl|fedex|estafeta|ups|camara|rostro|entrada|puerta|porton|acceso|afuera|abrir|abreme|me abres|me abre|pasar|entrar|presente|presencia|hay alguien|esta alguien|quien esta|quien anda|sabes si esta|llego|llama|hablale|marcale|avisa|avisale|dile|que venga|que baje|busco a|necesito a|ocupo a|mercado libre|amazon|materiales|proveedor|remision|entrega/.test(norm)) return true;
         if (profile === 'rh' && /trabajador|colaborador|personal|empleado|ausencia|vacaciones|incapacidad|documento|contrato|capacitacion|incidencia|asistencia|nomina|checador|checada|hora.*trabaj|entrada|salida|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|periferico|accesorio|material.*oficina/.test(norm)) return true;
         if (profile === 'finanzas' && /presupuesto|costo|consumido|planeado|gasto|finanza|cuenta.*pagar|proyecto/.test(norm)) return true;
         if (isExecutiveReadProfile(profile) && /proyecto|gasto|material|tubo|cable|stock|existencia|ubicacion|ubicación|personal|persona|trabajador|empleado|colaborador|recursos humanos|proveedor|cotiz|orden.*compra|compras|rfc|contacto|correo|email|whatsapp|telefono|mensaje|comunicacion|comunicación|quien.*vende|quién.*vende|quien.*surte|quién.*surte|sueldo|nomina|checador|checada|hora.*trabaj|entrada|salida|planeado|real|desviacion|presupuesto|alerta|pendiente|operacion|operación|bajo.*min|flotilla|vehiculo|vehículo|rollo|rollos|herramient|sin.*ubicacion|sin.*ubicación|resguardo|equipo.*comput|computadora|laptop|monitor|mouse|teclado|base.*enfri|material.*oficina/.test(norm)) return true;

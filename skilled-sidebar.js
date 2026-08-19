@@ -1215,7 +1215,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=102');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=102.1');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1286,7 +1286,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         bindSkyTriggers();
         if (window.SkilledSky) {if(!document.getElementById('sky-open'))createLazySkyButton();return;}
         if (sidebarProfileKey() === 'sky_demo') {
-            loadOptionalScript('skilled-sky.js?v=102').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
+            loadOptionalScript('skilled-sky.js?v=102.1').then(()=>bindSkyTriggers()).catch(() => createLazySkyButton());
             return;
         }
         if (!document.querySelector('script[src*="skilled-sky.js"]')) createLazySkyButton();
