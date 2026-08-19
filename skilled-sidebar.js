@@ -1247,7 +1247,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=105');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=106');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1296,7 +1296,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=105');
+                await loadOptionalScript('skilled-chat.js?v=106');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1332,7 +1332,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=105'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=106'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

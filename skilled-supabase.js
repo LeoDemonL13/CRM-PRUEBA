@@ -5081,7 +5081,7 @@
     }
 
     async function interpretSkyQuery(value, options = {}) {
-        const input = text(value).slice(0, 700);
+        const input = text(value).slice(0, 1800);
         if (!input) throw new Error('Falta la consulta a interpretar.');
         const context = options.context && typeof options.context === 'object' ? {
             lastIntent: text(options.context.lastIntent).slice(0, 80),
@@ -5097,7 +5097,7 @@
         if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill IA no devolvió una interpretación válida.');
         return {
             intent: text(data?.intent),
-            query: text(data?.query) || input,
+            query: text(data?.query).slice(0, 1200) || input,
             entity: text(data?.entity),
             recipient: text(data?.recipient),
             message: text(data?.message),
@@ -5601,17 +5601,11 @@
             marca: text(row.marca),
             codigoMarca: text(row.codigo_marca),
             codigo_marca: text(row.codigo_marca),
-            proveedor: text(row.proveedor),
-            contactoProveedor: text(row.contacto_proveedor),
-            contacto_proveedor: text(row.contacto_proveedor),
+            ubicacion: text(row.ubicacion),
             unidad: text(row.unidad) || 'PIEZA',
             stock: number(row.stock),
             stockMinimo: number(row.stock_minimo),
             stock_minimo: number(row.stock_minimo),
-            stockMedio: number(row.stock_medio),
-            stock_medio: number(row.stock_medio),
-            stockMaximo: number(row.stock_maximo),
-            stock_maximo: number(row.stock_maximo),
             precio: number(row.precio),
             monedaCosto: normalizeCurrencyCode(row.moneda_costo),
             moneda_costo: normalizeCurrencyCode(row.moneda_costo),
@@ -5624,21 +5618,30 @@
         };
     }
 
+    function receptionSupplyInternalCode(payload = {}) {
+        const existing = text(payload.codigo);
+        if (existing) return existing;
+        const seed = [payload.descripcion ?? payload.desc, payload.marca, payload.codigoMarca ?? payload.codigo_marca, payload.ubicacion].map(value => lower(value)).join('|');
+        let hash = 2166136261;
+        for (let i = 0; i < seed.length; i++) { hash ^= seed.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+        const token = (hash >>> 0).toString(36).toUpperCase().padStart(7, '0').slice(-7);
+        return `SUM-${token}`;
+    }
+
     function receptionSupplyToDb(payload = {}) {
         const minimum = Math.max(0, number(payload.stockMinimo ?? payload.stock_minimo));
-        const mediumInput = Math.max(0, number(payload.stockMedio ?? payload.stock_medio));
-        const maximumInput = Math.max(0, number(payload.stockMaximo ?? payload.stock_maximo));
-        const maximum = maximumInput > 0 ? Math.max(minimum, maximumInput) : (minimum > 0 ? minimum * 2 : 0);
-        const medium = mediumInput > 0 ? Math.min(maximum || mediumInput, Math.max(minimum, mediumInput)) : (maximum > 0 ? (minimum + maximum) / 2 : minimum);
+        const maximum = minimum > 0 ? minimum * 2 : 0;
+        const medium = maximum > 0 ? (minimum + maximum) / 2 : minimum;
         return {
-            codigo: text(payload.codigo),
+            codigo: receptionSupplyInternalCode(payload),
             descripcion: text(payload.descripcion ?? payload.desc),
             modismos: Array.isArray(payload.modismos) ? payload.modismos.map(text).filter(Boolean) : text(payload.modismos ?? payload.modismosTexto).split(/[,;\n]+/).map(text).filter(Boolean),
             categoria: text(payload.categoria) || 'General',
             marca: text(payload.marca) || null,
             codigo_marca: text(payload.codigoMarca ?? payload.codigo_marca) || null,
-            proveedor: text(payload.proveedor) || null,
-            contacto_proveedor: text(payload.contactoProveedor ?? payload.contacto_proveedor) || null,
+            ubicacion: text(payload.ubicacion) || null,
+            proveedor: null,
+            contacto_proveedor: null,
             unidad: text(payload.unidad) || 'PIEZA',
             stock: Math.max(0, number(payload.stock)),
             stock_minimo: minimum,
@@ -5661,7 +5664,7 @@
         const q = text(options.search ?? options.q);
         if (q) {
             rows = rows.filter(item => {
-                const values = [item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,item.unidad,...item.modismos];
+                const values = [item.descripcion,item.categoria,item.marca,item.codigoMarca,item.ubicacion,item.unidad,...item.modismos];
                 return window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, q) : values.some(value => lower(value).includes(lower(q)));
             });
         }
@@ -5669,9 +5672,9 @@
     }
 
     async function saveReceptionSupply(payload = {}, originalCode = '') {
-        const row = receptionSupplyToDb(payload);
-        if (!row.codigo || !row.descripcion || !row.categoria || !row.unidad) throw new Error('Código, descripción, categoría y unidad son obligatorios.');
         const original = text(originalCode);
+        const row = receptionSupplyToDb({ ...payload, codigo: text(payload.codigo) || original });
+        if (!row.descripcion || !row.categoria || !row.unidad) throw new Error('Descripción, categoría y unidad son obligatorios.');
         const query = original && lower(original) !== lower(row.codigo)
             ? client.from('re_suministros').update(row).eq('codigo', original)
             : client.from('re_suministros').upsert(row, { onConflict: 'codigo' });
@@ -5697,13 +5700,13 @@
         input.forEach((source, index) => {
             const row = receptionSupplyToDb(source);
             const fileRow = Number(source.filaArchivo || 0) || index + 1;
-            if (!row.codigo || !row.descripcion || !row.categoria || !row.unidad) {
-                errors.push({ fila:fileRow, codigo:row.codigo, error:'Código, descripción, categoría y unidad son obligatorios.' });
+            if (!row.descripcion || !row.categoria || !row.unidad) {
+                errors.push({ fila:fileRow, codigo:row.codigo, error:'Descripción, categoría y unidad son obligatorios.' });
                 return;
             }
             const key = lower(row.codigo);
             if (seen.has(key)) {
-                errors.push({ fila:fileRow, codigo:row.codigo, error:'Código duplicado dentro del archivo.' });
+                errors.push({ fila:fileRow, codigo:row.codigo, error:'Suministro duplicado dentro del archivo.' });
                 return;
             }
             seen.add(key);
@@ -6366,8 +6369,8 @@
         if (sourceKey === 'suministros') {
             return rows.map(row => ({
                 id:Number(row.id||0),codigo:text(row.codigo),descripcion:text(row.descripcion),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],categoria:text(row.categoria),
-                marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),proveedor:text(row.proveedor),contactoProveedor:text(row.contacto_proveedor),contacto_proveedor:text(row.contacto_proveedor),
-                unidad:text(row.unidad)||'PIEZA',stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),stockMedio:number(row.stock_medio),stock_medio:number(row.stock_medio),stockMaximo:number(row.stock_maximo),stock_maximo:number(row.stock_maximo),
+                marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),ubicacion:text(row.ubicacion),
+                unidad:text(row.unidad)||'PIEZA',stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),
                 precio:number(row.precio),monedaCosto:text(row.moneda_costo)||'MXN',moneda_costo:text(row.moneda_costo)||'MXN',imagen:text(row.imagen_url),imagen_url:text(row.imagen_url),activo:row.activo!==false
             }));
         }

@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <title>Skilled - Recepción - Suministros</title>
-<link rel="stylesheet" href="interfaz.css?v=105">
-<link rel="stylesheet" href="tailwind-local.css?v=105">
-<link rel="stylesheet" href="crm-v83-design.css?v=105">
-<script src="skilled-theme.js?v=105"></script>
-<script src="navegacion-suave.js?v=105"></script>
+<link rel="stylesheet" href="interfaz.css?v=106">
+<link rel="stylesheet" href="tailwind-local.css?v=106">
+<link rel="stylesheet" href="crm-v83-design.css?v=106">
+<script src="skilled-theme.js?v=106"></script>
+<script src="navegacion-suave.js?v=106"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=105"></script>
-<script src="auth-guard.js?v=105"></script>
-<script src="skilled-search.js?v=105"></script>
-<script src="skilled-sidebar.js?v=105" defer></script>
+<script src="skilled-supabase.js?v=106"></script>
+<script src="auth-guard.js?v=106"></script>
+<script src="skilled-search.js?v=106"></script>
+<script src="skilled-sidebar.js?v=106" defer></script>
 <style>
 .supply-card{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:15px;border:1px solid #1a2944;border-radius:15px;background:#0b1222}
 .supply-thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#101a2d;border:1px solid #243554}
@@ -27,7 +27,7 @@
 <aside class="crm-sidebar-slot" aria-label="Navegación del perfil"></aside>
 <div class="flex-1 min-w-0 flex flex-col min-h-screen">
 <header class="skilled-app-header h-16 bg-[#090d1a] border-b border-[#161f38] flex items-center justify-between px-6 sticky top-0 z-30">
-<div class="relative w-full max-w-lg"><input id="global-search" class="field pl-4" placeholder="Buscar suministro, código, marca, proveedor o modismo..."></div>
+<div class="relative w-full max-w-lg"><input id="global-search" class="field pl-4" placeholder="Buscar suministro, marca, modelo, ubicación o modismo..."></div>
 <div class="flex items-center gap-3"><button id="refresh" class="crm-icon-button" data-skilled-refresh></button><button class="crm-icon-button" data-skilled-theme></button></div>
 </header>
 <main class="profile-shell flex-1">
@@ -50,28 +50,24 @@
 <section class="crm-workspace-dialog profile-modal max-w-5xl">
 <header class="profile-modal-header"><div><span class="profile-kicker">Recepción · Suministros</span><h2 id="modal-title" class="mt-2 text-lg font-bold text-white">Nuevo suministro</h2><p class="mt-1 text-xs text-gray-500">Captura únicamente información que administra Recepción.</p></div><button id="close" class="crm-icon-button text-xl">×</button></header>
 <div class="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-<label class="crm-label">Código *<input id="f-code" class="field mt-2" placeholder="SUM-001"></label>
-<label class="crm-label md:col-span-1 xl:col-span-2">Descripción *<input id="f-desc" class="field mt-2" placeholder="Papel higiénico, jabón, carpetas..."></label>
+<label class="crm-label md:col-span-2 xl:col-span-3">Descripción *<input id="f-desc" class="field mt-2" placeholder="Papel higiénico, jabón, carpetas..."></label>
 <label class="crm-label">Categoría *<input id="f-category" class="field mt-2" placeholder="Limpieza, Papelería..."></label>
-<label class="crm-label md:col-span-2">Modismos / otros nombres<input id="f-alias" class="field mt-2" placeholder="separados por coma"></label>
+<label class="crm-label md:col-span-2">Modismos / otros nombres<input id="f-alias" class="field mt-2" placeholder="Ej. papel de baño, rollo, sanitario"></label>
 <label class="crm-label">Marca<input id="f-brand" class="field mt-2"></label>
-<label class="crm-label">Código marca / modelo<input id="f-model" class="field mt-2"></label>
-<label class="crm-label">Proveedor / negocio<input id="f-provider" class="field mt-2"></label>
-<label class="crm-label md:col-span-2">Contacto proveedor<input id="f-contact" class="field mt-2"></label>
+<label class="crm-label">Código de marca / modelo<input id="f-model" class="field mt-2"></label>
+<label class="crm-label md:col-span-2">Ubicación<input id="f-location" class="field mt-2" placeholder="Ej. Recepción · Anaquel 2"></label>
 <label class="crm-label">Unidad *<input id="f-unit" class="field mt-2" value="PIEZA"></label>
-<label class="crm-label">Existencia<input id="f-stock" type="number" min="0" step="any" class="field mt-2" value="0"></label>
-<label class="crm-label">Mínimo<input id="f-min" type="number" min="0" step="any" class="field mt-2" value="0"></label>
-<label class="crm-label">Medio<input id="f-med" type="number" min="0" step="any" class="field mt-2" value="0"></label>
-<label class="crm-label">Máximo<input id="f-max" type="number" min="0" step="any" class="field mt-2" value="0"></label>
-<label class="crm-label">Precio referencial<input id="f-price" type="number" min="0" step="0.01" class="field mt-2" value="0"></label>
-<label class="crm-label">Moneda<select id="f-currency" class="field mt-2"><option>MXN</option><option>USD</option><option>EUR</option></select></label>
-<label class="crm-label md:col-span-2 xl:col-span-4">URL de imagen<input id="f-image" class="field mt-2" placeholder="https://..."></label>
+<label class="crm-label">Stock inicial<input id="f-stock" type="number" min="0" step="any" class="field mt-2" value="0"></label>
+<label class="crm-label">Stock mínimo<input id="f-min" type="number" min="0" step="any" class="field mt-2" value="0"></label>
+<label class="crm-label">Precio unitario<input id="f-price" type="number" min="0" step="0.01" class="field mt-2" value="0"></label>
+<label class="crm-label">Moneda del costo<select id="f-currency" class="field mt-2"><option>MXN</option><option>USD</option><option>EUR</option></select></label>
+<label class="crm-label md:col-span-2 xl:col-span-4">URL Imagen (opcional)<input id="f-image" class="field mt-2" placeholder="https://..."></label>
 </div>
 <footer class="profile-modal-footer"><button id="delete" class="crm-secondary text-rose-300 hidden mr-auto">Retirar suministro</button><button id="cancel" class="crm-secondary">Cancelar</button><button id="save" class="crm-primary">Guardar suministro</button></footer>
 </section>
 </div>
 
 
-<script src="RE.suministros.js?v=105"></script>
-<script src="crm-v78-fixes.js?v=105" defer></script><script src="skilled-performance.js?v=105" defer></script><script src="crm-v83-shell.js?v=105" defer></script>
+<script src="RE.suministros.js?v=106"></script>
+<script src="crm-v78-fixes.js?v=106" defer></script><script src="skilled-performance.js?v=106" defer></script><script src="crm-v83-shell.js?v=106" defer></script>
 </body></html>

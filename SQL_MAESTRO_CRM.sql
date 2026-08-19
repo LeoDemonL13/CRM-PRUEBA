@@ -9766,6 +9766,7 @@ create table if not exists public.re_suministros (
     categoria text not null default 'General',
     marca text,
     codigo_marca text,
+    ubicacion text,
     proveedor text,
     contacto_proveedor text,
     unidad text not null default 'PIEZA',
@@ -9781,6 +9782,8 @@ create table if not exists public.re_suministros (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table public.re_suministros add column if not exists ubicacion text;
 
 create index if not exists re_suministros_activo_idx on public.re_suministros(activo);
 create index if not exists re_suministros_categoria_idx on public.re_suministros(categoria);
@@ -10034,14 +10037,14 @@ begin
     if v_fuente='suministros' then
         select coalesce(jsonb_agg(jsonb_build_object(
             'id',s.id,'codigo',s.codigo,'descripcion',s.descripcion,'modismos',to_jsonb(s.modismos),'categoria',s.categoria,
-            'marca',s.marca,'codigo_marca',s.codigo_marca,'proveedor',s.proveedor,'contacto_proveedor',s.contacto_proveedor,
-            'unidad',s.unidad,'stock',s.stock,'stock_minimo',s.stock_minimo,'stock_medio',s.stock_medio,'stock_maximo',s.stock_maximo,
+            'marca',s.marca,'codigo_marca',s.codigo_marca,'ubicacion',s.ubicacion,
+            'unidad',s.unidad,'stock',s.stock,'stock_minimo',s.stock_minimo,
             'precio',s.precio,'moneda_costo',s.moneda_costo,'imagen_url',s.imagen_url,'activo',s.activo
         ) order by s.descripcion),'[]'::jsonb)
           into v_result
           from public.re_suministros s
          where s.activo=true
-           and (v_filtro is null or lower(concat_ws(' ',s.codigo,s.descripcion,s.categoria,s.marca,s.codigo_marca,s.proveedor,s.contacto_proveedor,array_to_string(s.modismos,' '))) like '%'||lower(v_filtro)||'%');
+           and (v_filtro is null or lower(concat_ws(' ',s.descripcion,s.categoria,s.marca,s.codigo_marca,s.ubicacion,s.unidad,array_to_string(s.modismos,' '))) like '%'||lower(v_filtro)||'%');
         return coalesce(v_result,'[]'::jsonb);
     end if;
 

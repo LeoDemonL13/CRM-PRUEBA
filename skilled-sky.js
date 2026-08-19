@@ -263,7 +263,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=105'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=106'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -2973,7 +2973,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=105'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=106'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3451,14 +3451,14 @@
         if(/\b(suministro|suministros|catalogo|catálogo|papeleria|papelería|limpieza|consumible|consumibles|stock|existencia|existencias|bajo.*min|minimo|mínimo|por acabarse|reponer|reposicion|reposición)\b/.test(norm)){
             const rows=await loadData('reSupplies');
             const wantsLow=/bajo.*min|minimo|mínimo|por acabarse|falta|faltan|reponer|reposicion|reposición/.test(norm);
-            const tokens=searchTokens(raw,['suministro','suministros','catalogo','catálogo','tenemos','tiene','hay','stock','existencia','existencias','precio','costo','proveedor','bajo','minimo','mínimo','reponer']);
+            const tokens=searchTokens(raw,['suministro','suministros','catalogo','catálogo','tenemos','tiene','hay','stock','existencia','existencias','precio','costo','ubicacion','ubicación','bajo','minimo','mínimo','reponer']);
             let selected=wantsLow?rows.filter(item=>number(item.stock)<=number(item.stockMinimo??item.stock_minimo)):rows;
             if(tokens.length){
                 selected=window.SkilledSearch?.rank
-                    ? window.SkilledSearch.rank(selected,tokens.join(' '),item=>[item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,item.unidad,...(item.modismos||[])])
-                    : selected.filter(item=>matchesTokens([item.codigo,item.descripcion,item.categoria,item.marca,item.codigoMarca,item.proveedor,item.contactoProveedor,...(item.modismos||[])],tokens));
+                    ? window.SkilledSearch.rank(selected,tokens.join(' '),item=>[item.descripcion,item.categoria,item.marca,item.codigoMarca,item.ubicacion,item.unidad,...(item.modismos||[])])
+                    : selected.filter(item=>matchesTokens([item.descripcion,item.categoria,item.marca,item.codigoMarca,item.ubicacion,item.unidad,...(item.modismos||[])],tokens));
             }
-            const cards=selected.slice(0,8).map(item=>({title:`${item.codigo||'S/C'} · ${item.descripcion||'Suministro'}`,detail:`${formatNumber(item.stock)} ${item.unidad||''} disponibles · mínimo ${formatNumber(item.stockMinimo??item.stock_minimo)}${number(item.precio)>0?` · ${currency(item.precio)} ${item.monedaCosto||item.moneda_costo||'MXN'}`:''}${item.proveedor?` · ${item.proveedor}`:''}`}));
+            const cards=selected.slice(0,8).map(item=>({title:item.descripcion||'Suministro',detail:`${formatNumber(item.stock)} ${item.unidad||''} disponibles · mínimo ${formatNumber(item.stockMinimo??item.stock_minimo)}${item.ubicacion?` · ${item.ubicacion}`:''}${number(item.precio)>0?` · ${currency(item.precio)} ${item.monedaCosto||item.moneda_costo||'MXN'}`:''}`}));
             const title=wantsLow?'Suministros por reponer':'Suministros de Recepción';
             const headline=selected.length?`${selected.length} suministro${selected.length===1?'':'s'} coincide${selected.length===1?'':'n'} con la consulta.`:(wantsLow?'No hay suministros bajo mínimo con ese criterio.':'No encontré suministros con ese criterio.');
             setAnswer(title,headline,'Esta información pertenece únicamente al catálogo de Suministros de Recepción.',cards,{href:'RE.suministros.html',label:'Abrir Suministros'});
@@ -4328,7 +4328,7 @@
             coordinacion:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'}`},{type:'Solicitud',key:'purchases',fields:o=>[o.folio,o.materialCodigo,o.descripcion,o.estado,o.proyecto],title:o=>o.folio||o.descripcion||'Solicitud',detail:o=>o.estado||'Sin estado'}],
             logistica:[commonProject,{type:'Vehículo',key:'vehicles',fields:v=>[v.nombre,v.nombreVehiculo,v.numeroEconomico,v.placas,v.tipo,v.marca,v.modelo,v.proyecto,v.responsable],title:v=>v.nombre||v.nombreVehiculo||v.numeroEconomico||v.placas||'Vehículo',detail:v=>`${v.tipo||''} · ${v.estado||'sin estado'} · ${v.proyecto||'sin proyecto'}`},{type:'Material',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca],title:m=>`${m.codigo||'—'} · ${m.descripcion||m.desc||'Material'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · ${m.categoria||'Sin categoría'}`}],
             administrador:[],
-            recepcion:[{type:'Suministro',key:'reSupplies',fields:m=>[m.codigo,m.descripcion,m.categoria,m.marca,m.codigoMarca,m.proveedor,...(m.modismos||[])],title:m=>`${m.codigo||'—'} · ${m.descripcion||'Suministro'}`,detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · mínimo ${formatNumber(m.stockMinimo??m.stock_minimo)}`},{type:'Lista',key:'coStore',fields:i=>[i.folio,i.negocio,i.producto,i.marcaEspecifica,i.presentacion,i.solicitadoPor,i.responsableCompra],title:i=>`${i.folio||'Lista'} · ${i.producto||'Artículo'}`,detail:i=>`${i.negocio||'Sin negocio'} · ${i.estado||'sin estado'}`},{type:'Perfil',key:'reDirectory',fields:p=>[p.nombre_completo,p.puesto,p.departamento,p.rol],title:p=>p.nombre_completo||'Personal',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin área'}`},{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
+            recepcion:[{type:'Suministro',key:'reSupplies',fields:m=>[m.descripcion,m.categoria,m.marca,m.codigoMarca,m.ubicacion,m.unidad,...(m.modismos||[])],title:m=>m.descripcion||'Suministro',detail:m=>`${formatNumber(m.stock)} ${m.unidad||''} · mínimo ${formatNumber(m.stockMinimo??m.stock_minimo)}${m.ubicacion?` · ${m.ubicacion}`:''}`},{type:'Lista',key:'coStore',fields:i=>[i.folio,i.negocio,i.producto,i.marcaEspecifica,i.presentacion,i.solicitadoPor,i.responsableCompra],title:i=>`${i.folio||'Lista'} · ${i.producto||'Artículo'}`,detail:i=>`${i.negocio||'Sin negocio'} · ${i.estado||'sin estado'}`},{type:'Perfil',key:'reDirectory',fields:p=>[p.nombre_completo,p.puesto,p.departamento,p.rol],title:p=>p.nombre_completo||'Personal',detail:p=>`${p.puesto||'Sin puesto'} · ${p.departamento||'Sin área'}`},{type:'Presencia',key:'rePresence',fields:p=>[p.nombre_completo,p.nombre,p.apellidos,p.puesto,p.departamento],title:p=>p.nombre_completo||`${p.nombre||''} ${p.apellidos||''}`.trim()||p.departamento||'Personal',detail:p=>`${p.departamento||'Sin área'} · ${p.presente?'presente':'sin registro de presencia'}`}],
             tsi:[
                 {type:'EPP',key:'materials',fields:m=>[m.codigo,m.descripcion,m.desc,m.categoria,m.marca,m.codigoMarca,m.codigo_marca].filter(Boolean),title:m=>`${m.descripcion||m.desc||m.codigo||'EPP'}`,detail:m=>`${m.marca||'Sin marca'} · ${m.categoria||'Sin categoría'}`},
                 commonProject
@@ -4422,6 +4422,23 @@
         return false;
     }
 
+    function simplifyLocalRequest(raw) {
+        let value=text(raw);
+        value=value.replace(/^\s*(?:oye|oiga|mira|mire|skill|skil|sky)[,:;\-\s]*/i,'');
+        value=value.replace(/^\s*(?:te\s+queria\s+preguntar\s+si|te\s+quería\s+preguntar\s+si|queria\s+saber\s+si|quería\s+saber\s+si|me\s+puedes\s+decir\s+si|me\s+podrias\s+decir\s+si|me\s+podrías\s+decir\s+si|me\s+puedes\s+ayudar\s+a|me\s+podrias\s+ayudar\s+a|me\s+podrías\s+ayudar\s+a|lo\s+que\s+quiero\s+saber\s+es|lo\s+que\s+necesito\s+es|lo\s+que\s+quiero\s+es)\s+/i,'');
+        return value.trim()||text(raw);
+    }
+
+    function isComplexSkillQuery(raw) {
+        const norm=commandNormalize(raw);
+        const words=norm.split(' ').filter(Boolean);
+        if(words.length>=16)return true;
+        const connectors=(norm.match(/\b(y|pero|ademas|además|tambien|también|aunque|excepto|solo|solamente|mientras|entonces|porque|por que|para que|con|sin)\b/g)||[]).length;
+        const narrative=/\b(mira|te explico|lo que pasa|lo que quiero|lo que necesito|queria preguntarte|quería preguntarte|me puedes ayudar|me podrias ayudar|me podrías ayudar|por ejemplo|en este caso|resulta que|necesito saber si|quisiera saber)\b/.test(norm);
+        const constraints=(norm.match(/\b(proyecto|folio|proveedor|persona|vehiculo|vehículo|material|suministro|ubicacion|ubicación|fecha|estado|cantidad|marca|modelo|precio|costo|stock|existencia|departamento|area|área|hoy|mañana|semana|mes)\b/g)||[]).length;
+        return (words.length>=10&&connectors>=2)||(words.length>=9&&narrative)||(words.length>=11&&constraints>=3);
+    }
+
     function shouldUseSkyAI(raw, profile = detectProfile()) {
         if (!window.SkilledDB?.interpretSkyQuery || Date.now() < aiRetryAfter) return false;
         const norm=commandNormalize(raw);
@@ -4488,35 +4505,35 @@
         }
         if (plan.intent === 'low_stock') return (executive || ['compras','almacen','proyectos','planeacion','coordinacion','logistica'].includes(profile)) ? answerLowStock() : null;
         if (plan.intent === 'purchase_order') {
-            if (executive) return answerExecutivePurchasing(raw);
-            if (profile === 'compras') return answerPurchasing(raw);
-            if (profile === 'almacen') return answerPurchase(raw);
+            if (executive) return answerExecutivePurchasing(queryText);
+            if (profile === 'compras') return answerPurchasing(queryText);
+            if (profile === 'almacen') return answerPurchase(queryText);
             return null;
         }
-        if (plan.intent === 'tools') return (executive || ['almacen','proyectos','planeacion','coordinacion'].includes(profile)) ? answerTools(raw) : null;
-        if (plan.intent === 'vehicles') return (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','finanzas'].includes(profile)) ? answerVehicles(raw) : null;
+        if (plan.intent === 'tools') return (executive || ['almacen','proyectos','planeacion','coordinacion'].includes(profile)) ? answerTools(queryText) : null;
+        if (plan.intent === 'vehicles') return (executive || ['rh','almacen','proyectos','planeacion','coordinacion','logistica','finanzas'].includes(profile)) ? answerVehicles(queryText) : null;
         if (plan.intent === 'project') {
-            if (executive) return answerExecutive(raw);
-            if (profile === 'finanzas') return answerFinance(raw);
-            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','tsi','consulta'].includes(profile)) return answerProjects(raw);
+            if (executive) return answerExecutive(queryText);
+            if (profile === 'finanzas') return answerFinance(queryText);
+            if (['rh','compras','proyectos','planeacion','coordinacion','logistica','almacen','tsi','consulta'].includes(profile)) return answerProjects(queryText);
             return null;
         }
         if (['supplier','quotation','store','service'].includes(plan.intent)) {
-            if (executive) return plan.intent==='store' ? answerReceptionOperations(raw) : answerExecutivePurchasing(raw);
-            if(plan.intent==='store'&&profile==='recepcion')return answerReceptionOperations(raw);
-            if(profile==='compras'&&plan.intent!=='store')return answerPurchasing(raw);
-            return ['coordinacion','finanzas'].includes(profile)?answerScopedSmartSearch(raw,profile):null;
+            if (executive) return plan.intent==='store' ? answerReceptionOperations(queryText) : answerExecutivePurchasing(queryText);
+            if(plan.intent==='store'&&profile==='recepcion')return answerReceptionOperations(queryText);
+            if(profile==='compras'&&plan.intent!=='store')return answerPurchasing(queryText);
+            return ['coordinacion','finanzas'].includes(profile)?answerScopedSmartSearch(queryText,profile):null;
         }
         if (plan.intent === 'rh_assets') {
-            if (executive) return answerRHOfficeAssets(raw,true);
-            return profile === 'rh' ? answerRHOfficeAssets(raw,false) : null;
+            if (executive) return answerRHOfficeAssets(queryText,true);
+            return profile === 'rh' ? answerRHOfficeAssets(queryText,false) : null;
         }
         if (['rh_people','rh_documents','rh_incidents'].includes(plan.intent)) {
-            if (executive) return answerExecutivePeople(raw, []);
-            return ['rh','proyectos','planeacion','coordinacion','logistica'].includes(profile) ? (profile==='rh'?answerRH(raw):answerScopedSmartSearch(raw,profile)) : null;
+            if (executive) return answerExecutivePeople(queryText, []);
+            return ['rh','proyectos','planeacion','coordinacion','logistica'].includes(profile) ? (profile==='rh'?answerRH(queryText):answerScopedSmartSearch(queryText,profile)) : null;
         }
-        if (plan.intent === 'finance') return (executive || profile === 'finanzas') ? (executive ? answerExecutive(raw) : answerFinance(raw)) : null;
-        if (plan.intent === 'executive') return executive ? answerExecutive(raw) : null;
+        if (plan.intent === 'finance') return (executive || profile === 'finanzas') ? (executive ? answerExecutive(queryText) : answerFinance(queryText)) : null;
+        if (plan.intent === 'executive') return executive ? answerExecutive(queryText) : null;
         return null;
     }
 
@@ -4642,20 +4659,31 @@
         setAnswer('Consultando', `Estoy interpretando tu solicitud en ${profileNames[detectProfile()] || detectProfile()}…`);
         try {
             const cleanRaw = expandEntityAliases(stripWakeWord(raw));
+            const localRaw = simplifyLocalRequest(cleanRaw);
             const simple = await answerSimple(cleanRaw);
             let voice = simple.handled ? simple.voice : '';
             let usedAI = false;
             if (!simple.handled) {
-                voice = await dispatchByProfile(cleanRaw);
-                if (!voice) {
+                const complex = isComplexSkillQuery(cleanRaw);
+                if (complex) {
                     const plan = await interpretWithSkyAI(cleanRaw);
                     if (plan) {
+                        setInterpreted(plan.query || cleanRaw,'interpretada');
                         voice = await dispatchSkyAIPlan(plan, cleanRaw);
                         usedAI = Boolean(voice);
                     }
                 }
-                if (!voice && shouldRunSmartSearch(cleanRaw, detectProfile())) voice = await answerScopedSmartSearch(cleanRaw, detectProfile());
-                if (!voice && isExecutiveReadProfile() && shouldRunSmartSearch(cleanRaw, detectProfile())) voice = await answerExecutiveGlobalSearch(cleanRaw);
+                if (!voice) voice = await dispatchByProfile(localRaw);
+                if (!voice && !complex) {
+                    const plan = await interpretWithSkyAI(cleanRaw);
+                    if (plan) {
+                        setInterpreted(plan.query || cleanRaw,'interpretada');
+                        voice = await dispatchSkyAIPlan(plan, cleanRaw);
+                        usedAI = Boolean(voice);
+                    }
+                }
+                if (!voice && shouldRunSmartSearch(localRaw, detectProfile())) voice = await answerScopedSmartSearch(localRaw, detectProfile());
+                if (!voice && isExecutiveReadProfile() && shouldRunSmartSearch(localRaw, detectProfile())) voice = await answerExecutiveGlobalSearch(localRaw);
                 if (!voice) {voice = await answerGeneralAI(cleanRaw, detectProfile());usedAI=Boolean(voice);}
                 if (!voice) voice = await answerGeneric(cleanRaw, detectProfile());
             }
