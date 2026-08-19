@@ -56,20 +56,21 @@
         return ['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(remembered) ? remembered : '';
     }
     function sidebarProfileKey(role = currentRole()) {
+        const value = String(role || 'consulta').toLowerCase();
+        const normalizedRole = value === 'jefe_almacen' ? 'almacen' : value;
         const pageProfile = pageProfileKey();
-        if (pageProfile) {
+        if (pageProfile && (pageProfile === normalizedRole || value === 'administrador')) {
             sessionStorage.setItem('skilled_active_profile', pageProfile);
             return pageProfile;
         }
-        const value = String(role || 'consulta').toLowerCase();
         if (value === 'jefe_almacen') return 'almacen';
         if (['administrador','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta'].includes(value)) return value;
         return 'almacen';
     }
     const skyProfiles = new Set(['administrador','jefe_almacen','almacen','compras','proyectos','planeacion','coordinacion','logistica','recepcion','rh','finanzas','gerente_general','subgerente','tsi','sky_demo','consulta']);
     function skyAllowed() {
-        const profile=pageProfileKey() || sidebarProfileKey();
-        const allowed=skyProfiles.has(profile);
+        const role=currentRole();
+        const allowed=skyProfiles.has(role);
         document.documentElement.dataset.skyAllowed=allowed?'1':'0';
         return allowed;
     }
@@ -176,9 +177,19 @@
         else setTimeout(run, 900);
     }
 
+    function applyAreaClass(role=currentRole()) {
+        const classes=['area-rh','area-co','area-re','area-fi','area-gg','area-sg','area-tsi'];
+        document.body.classList.remove(...classes);
+        const key=searchText(role);
+        const areaClass={rh:'area-rh',compras:'area-co',recepcion:'area-re',finanzas:'area-fi',gerente_general:'area-gg',subgerente:'area-sg',tsi:'area-tsi'}[key];
+        if(areaClass)document.body.classList.add(areaClass);
+        document.body.dataset.authProfile=key||'consulta';
+    }
+
     function renderSidebar() {
         const activeFile = currentFile();
         const role = currentRole();
+        applyAreaClass(role);
         const sections = sectionsForRole();
         const homeHref = sections[0]?.items?.[0]?.[0] || 'inicio.html';
         const aside = document.createElement('aside');
@@ -1236,7 +1247,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=104');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=105');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1285,7 +1296,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=104');
+                await loadOptionalScript('skilled-chat.js?v=105');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1321,7 +1332,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=104'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=105'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

@@ -120,7 +120,7 @@
     }
 
     let redirecting = false;
-    const REDIRECT_GUARD_KEY = 'skilled_auth_redirect_guard_v104';
+    const REDIRECT_GUARD_KEY = 'skilled_auth_redirect_guard_v105';
 
     function stopRedirectLoop(message) {
         redirecting = true;

@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const root=document.documentElement;
-const RELEASE='104';
+const RELEASE='105';
 const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
 function addConnectionHints(){
  const hints=[['preconnect','https://cdn.jsdelivr.net','anonymous'],['dns-prefetch','https://cdn.jsdelivr.net',''],['preconnect','https://cuxnzqbszzrfnrinxbdp.supabase.co','anonymous'],['dns-prefetch','https://cuxnzqbszzrfnrinxbdp.supabase.co','']];

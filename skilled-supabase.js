@@ -2326,7 +2326,7 @@
         }
         if (error?.code === '42501') throw new Error(error.message || 'Tu perfil no tiene permiso para eliminar registros de prueba.');
         if (error && /DELETE requires a WHERE clause/i.test(String(error.message || ''))) {
-            throw new Error('La base de datos todavía tiene la versión anterior de la limpieza. Ejecuta SQL_MAESTRO_CRM.sql V27 y vuelve a intentarlo.');
+            throw new Error('La base de datos todavía tiene la versión anterior de la limpieza. Ejecuta SQL_MAESTRO_CRM.sql y vuelve a intentarlo.');
         }
         assertNoError(error, errorMessage);
         return data && typeof data === 'object' ? data : { ok: true };
@@ -3531,7 +3531,7 @@
         const lastMessage = lower(lastError?.message || '');
         if (lastCode === '42501' || lastMessage.includes('permission denied for function')) {
             try { return await saveDirect(existing); }
-            catch (_) { throw new Error('Supabase no autorizó el material incompleto. Ejecuta SQL_MAESTRO_CRM.sql V78 para reparar permisos de plan de materiales.'); }
+            catch (_) { throw new Error('Supabase no autorizó el material incompleto. Ejecuta SQL_MAESTRO_CRM.sql para reparar permisos de plan de materiales.'); }
         }
         if (['PGRST202','42883','PGRST204','42703'].includes(lastCode)) throw new Error('Falta aplicar la actualización SQL V78 para registrar materiales incompletos.');
         assertNoError(lastError, 'No se pudo crear el material incompleto.');
@@ -5656,7 +5656,7 @@
         let query = client.from('re_suministros').select('*').order('descripcion', { ascending: true });
         if (options.includeInactive !== true) query = query.eq('activo', true);
         const { data, error } = await query;
-        assertNoError(error, 'No se pudieron consultar los suministros de Recepción. Ejecuta SQL_ACTUALIZACION_V103_RECEPCION_SUMINISTROS.sql.');
+        assertNoError(error, 'No se pudieron consultar los suministros de Recepción. Ejecuta SQL_MAESTRO_CRM.sql.');
         let rows = (data || []).map(receptionSupplyFromDb);
         const q = text(options.search ?? options.q);
         if (q) {
@@ -5676,7 +5676,7 @@
             ? client.from('re_suministros').update(row).eq('codigo', original)
             : client.from('re_suministros').upsert(row, { onConflict: 'codigo' });
         const { data, error } = await query.select('*').single();
-        assertNoError(error, 'No se pudo guardar el suministro de Recepción. Ejecuta SQL_ACTUALIZACION_V103_RECEPCION_SUMINISTROS.sql.');
+        assertNoError(error, 'No se pudo guardar el suministro de Recepción. Ejecuta SQL_MAESTRO_CRM.sql.');
         return receptionSupplyFromDb(data);
     }
 
@@ -6305,14 +6305,14 @@
 
     async function getReceptionPresenceV100(filter = '') {
         const {data,error}=await client.rpc('crm_sky_recepcion_presencia_v100',{p_filtro:text(filter)||null});
-        assertNoError(error,'Skill Recepción no pudo consultar la presencia actual. Ejecuta SQL_MAESTRO_CRM.sql V100.');
+        assertNoError(error,'Skill Recepción no pudo consultar la presencia actual. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data)?data:[];
     }
 
 
     async function getReceptionRecognitionDirectoryV102() {
         const {data,error}=await client.rpc('crm_skill_recepcion_directorio_v102');
-        assertNoError(error,'Skill Recepción no pudo consultar los nombres de perfil. Ejecuta SQL_MAESTRO_CRM.sql V102.');
+        assertNoError(error,'Skill Recepción no pudo consultar los nombres de perfil. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data)?data:[];
     }
 
@@ -6323,7 +6323,7 @@
         if (error && /crm_sky_perfil_consultar_v103|function|schema cache|PGRST202/i.test(errorMessage(error))) {
             ({ data, error } = await client.rpc('crm_sky_perfil_consultar', payload));
         }
-        assertNoError(error, 'Skill no pudo consultar la información autorizada para este perfil. Ejecuta SQL_ACTUALIZACION_V103_RECEPCION_SUMINISTROS.sql.');
+        assertNoError(error, 'Skill no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql.');
         const rows = Array.isArray(data) ? data : [];
         if (sourceKey === 'materiales') {
             return rows.map(row => ({
@@ -6382,7 +6382,7 @@
         const { data, error } = await client.rpc('crm_listar_paquetes_materiales', { p_incluir_inactivos: includeInactive });
         if (error) {
             const code = text(error.code);
-            if (['PGRST202','42883','PGRST204','42P01'].includes(code)) throw new Error('Falta ejecutar SQL_MAESTRO_CRM.sql V70 para habilitar Paquetes de materiales predeterminados.');
+            if (['PGRST202','42883','PGRST204','42P01'].includes(code)) throw new Error('Falta ejecutar SQL_MAESTRO_CRM.sql para habilitar Paquetes de materiales predeterminados.');
             assertNoError(error, 'No se pudieron consultar los paquetes de materiales.');
         }
         return Array.isArray(data) ? data : [];
@@ -6404,7 +6404,7 @@
         };
         if (!datos.nombre) throw new Error('Captura el nombre del paquete.');
         const { data, error } = await client.rpc('crm_guardar_paquete_materiales', { p_paquete_id: id, p_datos: datos, p_items: items });
-        assertNoError(error, 'No se pudo guardar el paquete de materiales. Ejecuta SQL_MAESTRO_CRM.sql V70.');
+        assertNoError(error, 'No se pudo guardar el paquete de materiales. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Number(data) || data;
     }
 
@@ -6433,7 +6433,7 @@
             p_prioridad: text(payload.prioridad) || 'normal',
             p_notas: text(payload.notas) || null
         });
-        assertNoError(error, 'No se pudo enviar la solicitud del paquete. Ejecuta SQL_MAESTRO_CRM.sql V70.');
+        assertNoError(error, 'No se pudo enviar la solicitud del paquete. Ejecuta SQL_MAESTRO_CRM.sql.');
         return data || {};
     }
 
@@ -6504,7 +6504,7 @@
             p_justificacion: text(payload.justificacion) || null,
             p_items: rows
         });
-        assertNoError(error, 'No se pudo crear la orden extraordinaria. Ejecuta SQL_MAESTRO_CRM.sql V73.');
+        assertNoError(error, 'No se pudo crear la orden extraordinaria. Ejecuta SQL_MAESTRO_CRM.sql.');
         return data || {};
     }
 
@@ -6640,7 +6640,7 @@
         if (!value) return [];
         const { data, error } = await client.from('co_orden_firmas').select('*').eq('orden_compra', value).order('id');
         if (error && ['42P01','PGRST205'].includes(text(error.code))) return [];
-        assertNoError(error, 'No se pudieron consultar las firmas de la orden. Ejecuta SQL_MAESTRO_CRM.sql V96.');
+        assertNoError(error, 'No se pudieron consultar las firmas de la orden. Ejecuta SQL_MAESTRO_CRM.sql.');
         return (data || []).map(row => ({ id:Number(row.id),ordenCompra:text(row.orden_compra),tipo:text(row.tipo),nombre:text(row.nombre),firmaDataUrl:text(row.firma_data_url),userId:text(row.user_id),firmadoAt:text(row.firmado_at),updatedAt:text(row.updated_at) }));
     }
 
@@ -6654,7 +6654,7 @@
         if (!user?.id) throw new Error('La sesión no está activa.');
         const row = { orden_compra:order,tipo:type,nombre:name,firma_data_url:signature,user_id:user.id,firmado_at:new Date().toISOString(),updated_at:new Date().toISOString() };
         const { data, error } = await client.from('co_orden_firmas').upsert(row,{onConflict:'orden_compra,tipo'}).select('*').single();
-        assertNoError(error, 'No se pudo guardar la firma. Ejecuta SQL_MAESTRO_CRM.sql V96.');
+        assertNoError(error, 'No se pudo guardar la firma. Ejecuta SQL_MAESTRO_CRM.sql.');
         return { id:Number(data.id),ordenCompra:text(data.orden_compra),tipo:text(data.tipo),nombre:text(data.nombre),firmaDataUrl:text(data.firma_data_url),userId:text(data.user_id),firmadoAt:text(data.firmado_at),updatedAt:text(data.updated_at) };
     }
 
@@ -6672,7 +6672,7 @@
         if (personalId) query = query.eq('personal_id', personalId);
         if (Number(options.limit || 0) > 0) query = query.limit(Number(options.limit));
         const { data, error } = await query;
-        assertNoError(error, 'No se pudieron consultar las checadas. Ejecuta SQL_MAESTRO_CRM.sql V73.');
+        assertNoError(error, 'No se pudieron consultar las checadas. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
@@ -6683,7 +6683,7 @@
             p_dispositivo: text(payload.dispositivo) || null,
             p_notas: text(payload.notas) || null
         });
-        assertNoError(error, 'No se pudo registrar la checada. Ejecuta SQL_MAESTRO_CRM.sql V73.');
+        assertNoError(error, 'No se pudo registrar la checada. Ejecuta SQL_MAESTRO_CRM.sql.');
         return data || {};
     }
 
@@ -6695,7 +6695,7 @@
 
     async function getSkyAttendanceV81(filter = '') {
         const { data, error } = await client.rpc('crm_sky_asistencia_v81', { p_filtro: text(filter) || null });
-        assertNoError(error, 'Skill no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql V81.');
+        assertNoError(error, 'Skill no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql.');
         return Array.isArray(data) ? data : [];
     }
 
@@ -6703,6 +6703,24 @@
         const { data, error } = await client.rpc('rh_recalcular_nomina_v73', { p_periodo_id: Number(periodId || 0) });
         assertNoError(error, 'No se pudo recalcular la nómina desde el checador.');
         return data || {};
+    }
+
+    async function saveSkillMeetingV105(meeting = {}, interventions = []) {
+        const payload = meeting && typeof meeting === 'object' ? meeting : {};
+        const rows = Array.isArray(interventions) ? interventions : [];
+        const { data, error } = await client.rpc('crm_skill_reunion_guardar_v105', {
+            p_reunion: payload,
+            p_intervenciones: rows
+        });
+        assertNoError(error, 'No se pudo guardar la minuta de SKILL. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data || {};
+    }
+
+    async function listSkillMeetingsV105(limit = 20) {
+        const safeLimit = Math.min(100, Math.max(1, Math.round(number(limit) || 20)));
+        const { data, error } = await client.rpc('crm_skill_reuniones_listar_v105', { p_limite: safeLimit });
+        assertNoError(error, 'No se pudieron consultar las minutas de SKILL. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
     }
 
     async function healthCheck() {
@@ -6714,6 +6732,8 @@
     window.SkilledDB = Object.freeze({
         client,
         withOperationTimeout,
+        saveSkillMeetingV105,
+        listSkillMeetingsV105,
         healthCheck,
         listWarehouses,
         listWarehouseInventory,
