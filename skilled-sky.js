@@ -263,15 +263,15 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=109'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=110'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
     }
-    async function openMeetingAssistant() {
+    async function openMeetingAssistant(options={}) {
         try {
             const module = await loadMeetingModule();
-            module.open();
+            module.open(options);
             setStatus('Modo reunión abierto. Puedes volver a Skill cuando quieras.');
             return true;
         } catch (error) {
@@ -2974,7 +2974,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=109'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=110'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3290,10 +3290,12 @@
     async function answerMeetingCaptureAction(raw) {
         const norm = commandNormalize(raw);
         if (!/\b(modo reunion|modo reunión|inicia(?:r)? reunion|inicia(?:r)? reunión|comienza(?:r)? reunion|comienza(?:r)? reunión|empieza(?:r)? reunion|empieza(?:r)? reunión|arranca(?:r)? reunion|arranca(?:r)? reunión|tomar minuta|toma minuta|levantar minuta|transcribir reunion|transcribir reunión|escuchar reunion|escuchar reunión|registrar reunion|registrar reunión|reunion en curso|reunión en curso|diferenciar voces|separar voces|quien esta hablando|quién está hablando)\b/.test(norm)) return null;
-        const opened = await openMeetingAssistant();
+        const wantsStart=/\b(?:inicia(?:r)?|comienza(?:r)?|empieza(?:r)?|arranca(?:r)?|vamos a iniciar|vamos a empezar)\b.*\b(?:reunion|reunión)\b/.test(norm);
+        const opened = await openMeetingAssistant({autoStart:wantsStart});
         if (!opened) return { handled:true, voice:'No pude abrir el modo reunión en este momento.' };
-        const message='Abrí SKILL Reuniones. Puede separar turnos por voz de forma temporal, transcribir la conversación y preparar una minuta. Las voces se etiquetan como Voz 1, Voz 2 y puedes renombrarlas; no se guarda una huella de voz ni el audio.';
-        setAnswer('SKILL · Modo reunión',message,'Esta primera versión diferencia hablantes dentro de la sesión, pero no afirma la identidad biométrica de una persona.');
+        if(wantsStart){setAnswer('SKILL · Reunión','Preparando la captura.','SKILL confirmará “Empezando grabación”, hará la cuenta regresiva y comenzará a escuchar.');return {handled:true,voice:''}}
+        const message='Abrí SKILL Reuniones. Puede separar turnos por voz, transcribir la conversación y preparar una minuta. También puedes descargarla en Word o PDF y enviarla por correo.';
+        setAnswer('SKILL · Modo reunión',message,'Las voces se diferencian durante la sesión; no se guarda una huella biométrica de voz.');
         return { handled:true, voice:message };
     }
 
