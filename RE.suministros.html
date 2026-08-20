@@ -5,18 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <title>Skilled - Recepción - Suministros</title>
-<link rel="stylesheet" href="interfaz.css?v=107">
-<link rel="stylesheet" href="tailwind-local.css?v=107">
-<link rel="stylesheet" href="crm-v83-design.css?v=107">
-<script src="skilled-theme.js?v=107"></script>
-<script src="navegacion-suave.js?v=107"></script>
+<link rel="stylesheet" href="interfaz.css?v=108">
+<link rel="stylesheet" href="tailwind-local.css?v=108">
+<link rel="stylesheet" href="crm-v83-design.css?v=108">
+<script src="skilled-theme.js?v=108"></script>
+<script src="navegacion-suave.js?v=108"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=107"></script>
-<script src="auth-guard.js?v=107"></script>
-<script src="skilled-search.js?v=107"></script>
-<script src="skilled-sidebar.js?v=107" defer></script>
+<script src="skilled-supabase.js?v=108"></script>
+<script src="auth-guard.js?v=108"></script>
+<script src="skilled-search.js?v=108"></script>
+<script src="skilled-sidebar.js?v=108" defer></script>
 <style>
 .supply-card{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;padding:15px;border:1px solid #1a2944;border-radius:15px;background:#0b1222}.supply-thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#101a2d;border:1px solid #243554}.supply-stock{min-width:92px;text-align:right}.supply-level{height:5px;border-radius:999px;background:#17233a;overflow:hidden;margin-top:7px}.supply-level>i{display:block;height:100%;background:#38bdf8}@media(max-width:620px){.supply-card{grid-template-columns:54px minmax(0,1fr)}.supply-thumb{width:54px;height:54px}.supply-stock{grid-column:1/-1;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}}
+
+.supply-category-pills{display:flex;gap:8px;overflow-x:auto;padding:4px 0 2px;scrollbar-width:thin}.supply-category-pill{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;border:1px solid #1a2944;background:#0b1222;color:#94a3b8;border-radius:999px;padding:8px 12px;font-size:10px;font-weight:700}.supply-category-pill span{display:grid;place-items:center;min-width:20px;height:20px;border-radius:999px;background:#121d33;color:#7dd3fc;font-size:9px}.supply-category-pill.active{border-color:#0ea5e9;background:#08243a;color:#e0f2fe}.supply-category-section{border:1px solid #1a2944;border-radius:16px;background:#080f1e;overflow:hidden}.supply-category-head{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0b1426;border-bottom:1px solid #17233a;text-align:left}.supply-category-head>div{display:flex;align-items:center;gap:12px}.supply-category-head h2{font-size:14px;font-weight:800;color:#f8fafc}.supply-category-head p{margin-top:2px;font-size:9px;color:#64748b}.supply-category-icon{display:grid;place-items:center;width:34px;height:34px;border:1px solid #164e73;border-radius:10px;background:#082f49;color:#7dd3fc;font-size:12px;font-weight:900}.supply-category-chevron{color:#7dd3fc;font-size:18px;transition:.2s}.supply-category-chevron.collapsed{transform:rotate(-90deg)}.supply-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}@media(max-width:1100px){.supply-category-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body class="crm-v83-page area-re profile-page min-h-screen flex overflow-x-hidden" data-profile="recepcion">
@@ -35,8 +37,9 @@
 <article class="profile-metric" data-tone="success"><p class="profile-metric-label">Con existencia</p><p id="m-stock" class="profile-metric-value">0</p><p class="profile-metric-foot">Disponibles actualmente</p></article>
 <article class="profile-metric" data-tone="accent"><p class="profile-metric-label">Categorías</p><p id="m-categories" class="profile-metric-value">0</p><p class="profile-metric-foot">Clasificación activa</p></article>
 </section>
-<section class="profile-toolbar"><div class="profile-toolbar-fields"><input id="search" class="field" placeholder="Buscar en Suministros..."><select id="category" class="field"><option value="">Todas las categorías</option></select><select id="availability" class="field"><option value="">Toda existencia</option><option value="low">Bajo mínimo</option><option value="available">Con existencia</option><option value="zero">Sin existencia</option></select></div></section>
-<section id="list" class="grid grid-cols-1 xl:grid-cols-2 gap-3 mt-5"><div class="profile-card profile-empty xl:col-span-2"><p class="text-xs text-gray-500">Consultando suministros...</p></div></section>
+<section id="category-pills" class="supply-category-pills mt-5"></section>
+<section class="profile-toolbar mt-3"><div class="profile-toolbar-fields"><input id="search" class="field" placeholder="Buscar en Suministros..."><select id="category" class="field"><option value="">Todas las categorías</option></select><select id="availability" class="field"><option value="">Toda existencia</option><option value="low">Bajo mínimo</option><option value="available">Con existencia</option><option value="zero">Sin existencia</option></select></div></section>
+<section id="list" class="space-y-4 mt-5"><div class="profile-card profile-empty xl:col-span-2"><p class="text-xs text-gray-500">Consultando suministros...</p></div></section>
 </main>
 </div>
 <div id="modal" class="crm-workspace-overlay fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
@@ -58,6 +61,6 @@
 <footer class="profile-modal-footer"><button id="delete" class="crm-secondary text-rose-300 hidden mr-auto">Retirar suministro</button><button id="cancel" class="crm-secondary">Cancelar</button><button id="save" class="crm-primary">Guardar suministro</button></footer>
 </section>
 </div>
-<script src="RE.suministros.js?v=107"></script>
-<script src="crm-v78-fixes.js?v=107" defer></script><script src="skilled-performance.js?v=107" defer></script><script src="crm-v83-shell.js?v=107" defer></script>
+<script src="RE.suministros.js?v=108"></script>
+<script src="crm-v78-fixes.js?v=108" defer></script><script src="skilled-performance.js?v=108" defer></script><script src="crm-v83-shell.js?v=108" defer></script>
 </body></html>

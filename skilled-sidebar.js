@@ -135,7 +135,7 @@
         planeacion:[{title:'Planeación',items:[['PL.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=planeacion','Proyectos','folder'],['PROY.importar.html?perfil=planeacion','Importar proyectos','delivery'],['AL.solicitudes-material.html?perfil=planeacion','Solicitudes','request'],['AL.reportes.html?perfil=planeacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=planeacion','Mi perfil','user']]}],
         coordinacion:[{title:'Coordinación',items:[['CR.inicio.html','Inicio','home'],['AL.proyectos.html?perfil=coordinacion','Proyectos','folder'],['AL.solicitudes-material.html?perfil=coordinacion','Solicitudes','request'],['AL.vehiculos.html?perfil=coordinacion','Vehículos','vehicle'],['AL.reportes.html?perfil=coordinacion','Reportes','report']]},{title:'Cuenta',items:[['perfil.html?perfil=coordinacion','Mi perfil','user']]}],
         logistica:[{title:'Logística',items:[['LG.inicio.html','Inicio','home'],['AL.vehiculos.html?perfil=logistica','Vehículos','vehicle'],['CO.entregas.html?perfil=logistica','Entregas','delivery'],['AL.proyectos.html?perfil=logistica','Proyectos','folder'],['AL.catalogo.html?perfil=logistica','Materiales','box']]},{title:'Cuenta',items:[['perfil.html?perfil=logistica','Mi perfil','user']]}],
-        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.suministros.html','Suministros','box'],['RE.bodeguita.html','Bodeguita','warehouse'],['RE.tienda.html','Tienda','cart']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
+        recepcion:[{title:'Recepción',items:[['RE.inicio.html','Inicio','home'],['RE.suministros.html','Suministros','box'],['RE.bodeguita.html','Bodeguita','warehouse'],['RE.tienda.html','Tienda','cart'],['RE.entregas.html','Entregas','delivery']]},{title:'Cuenta',items:[['perfil.html?perfil=recepcion','Mi perfil','user']]}],
         gerente_general:[{title:'Dirección',items:[['GG.inicio.html','Resumen ejecutivo','home'],['GG.proyectos.html','Proyectos','report'],['GG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=gerente_general','Mi perfil','user']]}],
         subgerente:[{title:'Dirección',items:[['SG.inicio.html','Resumen ejecutivo','home'],['SG.proyectos.html','Proyectos','report'],['SG.vehiculos.html','Vehículos','vehicle']]},{title:'Cuenta',items:[['perfil.html?perfil=subgerente','Mi perfil','user']]}],
         sky_demo:[{title:'Skill',items:[['SKY.inicio.html','Modo presentación','home']]},{title:'Cuenta',items:[['perfil.html?perfil=sky_demo','Mi perfil','user']]}],
@@ -1247,7 +1247,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=106');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=108');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1296,7 +1296,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=106');
+                await loadOptionalScript('skilled-chat.js?v=108');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1332,7 +1332,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=106'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=108'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

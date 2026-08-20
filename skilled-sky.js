@@ -263,7 +263,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=106'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=108'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -404,7 +404,7 @@
             planeacion:{inicio:'PL.inicio.html',proyectos:'AL.proyectos.html?perfil=planeacion',solicitudes:'AL.solicitudes-material.html?perfil=planeacion',reportes:'AL.reportes.html?perfil=planeacion','importar proyectos':'PROY.importar.html?perfil=planeacion'},
             coordinacion:{inicio:'CR.inicio.html',proyectos:'AL.proyectos.html?perfil=coordinacion',solicitudes:'AL.solicitudes-material.html?perfil=coordinacion',vehiculos:'AL.vehiculos.html?perfil=coordinacion',reportes:'AL.reportes.html?perfil=coordinacion'},
             logistica:{inicio:'LG.inicio.html',vehiculos:'AL.vehiculos.html?perfil=logistica',entregas:'CO.entregas.html?perfil=logistica',proyectos:'AL.proyectos.html?perfil=logistica',materiales:'AL.catalogo.html?perfil=logistica'},
-            recepcion:{inicio:'RE.inicio.html',suministros:'RE.suministros.html',suministro:'RE.suministros.html',tienda:'RE.tienda.html','lista de compra':'RE.tienda.html','listas de compra':'RE.tienda.html'},
+            recepcion:{inicio:'RE.inicio.html',suministros:'RE.suministros.html',suministro:'RE.suministros.html',tienda:'RE.tienda.html','lista de compra':'RE.tienda.html','listas de compra':'RE.tienda.html',entregas:'RE.entregas.html','entregas de suministros':'RE.entregas.html'},
             proyectos:{inicio:'AL.proyectos.html',proyectos:'AL.proyectos.html',solicitudes:'AL.solicitudes-material.html',reportes:'AL.reportes.html',movimientos:'AL.historial-movimientos.html'},
             tsi:{inicio:'TSI.inicio.html',epp:'TSI.solicitudes-epp.html','solicitar epp':'TSI.solicitudes-epp.html'},
             consulta:{inicio:'AL.inicio.html',catalogo:'AL.catalogo.html',reportes:'AL.reportes.html',manual:'AL.manual-usuario.html'},
@@ -440,7 +440,8 @@
             recepcion: [
                 [/\b(nuevo|agregar|registrar|alta|meter)\b.*\b(suministro|insumo|consumible)\b/i,'RE.suministros.html','Abrir Suministros'],
                 [/\b(hacer|crear|armar|preparar|nueva)\b.*\b(lista|mandado|compra|tienda)\b/i,'RE.tienda.html','Crear lista de compra'],
-                [/\b(importar|cargar)\b.*\b(suministro|excel|plantilla)\b/i,'RE.importar-suministros.html','Importar Suministros']
+                [/\b(importar|cargar)\b.*\b(suministro|excel|plantilla)\b/i,'RE.importar-suministros.html','Importar Suministros'],
+                [/\b(entrega|entregar|salida)\b.*\b(suministro|suministros|insumo|insumos|consumible|consumibles)\b/i,'RE.entregas.html','Registrar entrega de Suministros']
             ],
             finanzas: [
                 [/\b(registrar|capturar|nuevo)\b.*\b(gasto)\b/i,'FI.gastos.html','Abrir Gastos'],
@@ -2973,7 +2974,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=106'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=108'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;

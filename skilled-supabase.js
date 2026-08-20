@@ -5785,6 +5785,8 @@
         return {
             id: Number(row.id), folio: text(row.folio), negocio: text(row.negocio), producto: text(row.producto),
             marcaEspecifica: text(row.marca_especifica), presentacion: text(row.presentacion), cantidad: number(row.cantidad),
+            suministroId: Number(row.suministro_id || 0) || null, cantidadRecibida: number(row.cantidad_recibida),
+            precioUltimo: number(row.precio_ultimo), fechaUltimaRecepcion: text(row.fecha_ultima_recepcion), recibidoPor: text(row.recibido_por),
             unidad: text(row.unidad), costoEstimado: number(row.costo_estimado), moneda: text(row.moneda),
             fechaRequerida: text(row.fecha_requerida), prioridad: text(row.prioridad), estado: text(row.estado),
             solicitadoPor: text(row.solicitado_por), responsableCompra: text(row.responsable_compra),
@@ -5809,6 +5811,7 @@
             folio: text(payload.folio) || nextStoreFolio(),
             negocio: text(payload.negocio), producto: text(payload.producto),
             marca_especifica: text(payload.marcaEspecifica) || null, presentacion: text(payload.presentacion) || null,
+            suministro_id: Number(payload.suministroId || payload.suministro_id || 0) || null,
             cantidad: number(payload.cantidad) || 1, unidad: text(payload.unidad) || 'pieza',
             costo_estimado: number(payload.costoEstimado), moneda: text(payload.moneda) || 'MXN',
             fecha_requerida: text(payload.fechaRequerida) || null, prioridad: text(payload.prioridad) || 'normal',
@@ -5830,6 +5833,37 @@
         const { error } = await client.from('co_tienda_solicitudes').delete().eq('id', Number(id));
         assertNoError(error, 'No se pudo eliminar la solicitud de tienda.');
         return { ok: true };
+    }
+
+    async function receiveReceptionStoreListV108(folio, items = [], receivedBy = '') {
+        const payload = (Array.isArray(items) ? items : []).map(item => ({
+            item_id:Number(item.itemId || item.id || 0),
+            cantidad:Math.max(0, number(item.cantidad)),
+            precio_unitario:Math.max(0, number(item.precioUnitario ?? item.precio ?? 0))
+        })).filter(item => item.item_id && item.cantidad > 0);
+        if (!text(folio) || !payload.length) throw new Error('Selecciona al menos una cantidad para recibir.');
+        const { data, error } = await client.rpc('re_recibir_lista_compra_v108', { p_folio:text(folio), p_items:payload, p_recibido_por:text(receivedBy) || null });
+        assertNoError(error, 'No se pudo registrar la recepción de la lista. Ejecuta SQL_MAESTRO_CRM.sql V108.');
+        return data || { ok:true };
+    }
+
+    function receptionDeliveryFromDb(row) {
+        return { id:Number(row.id), folio:text(row.folio), fecha:text(row.fecha), entregadoA:text(row.entregado_a), area:text(row.area), notas:text(row.notas), firmaData:text(row.firma_data), createdAt:text(row.created_at), items:(row.re_entrega_suministro_items || []).map(i=>({id:Number(i.id),suministroId:Number(i.suministro_id),descripcion:text(i.descripcion),cantidad:number(i.cantidad),unidad:text(i.unidad)})) };
+    }
+
+    async function listReceptionSupplyDeliveriesV108() {
+        const { data, error } = await client.from('re_entregas_suministros').select('*,re_entrega_suministro_items(*)').order('created_at',{ascending:false}).limit(300);
+        assertNoError(error, 'No se pudieron consultar las entregas de Suministros. Ejecuta SQL_MAESTRO_CRM.sql V108.');
+        return (data || []).map(receptionDeliveryFromDb);
+    }
+
+    async function createReceptionSupplyDeliveryV108(payload = {}) {
+        const items=(Array.isArray(payload.items)?payload.items:[]).map(item=>({suministro_id:Number(item.suministroId||0),cantidad:Math.max(0,number(item.cantidad))})).filter(item=>item.suministro_id&&item.cantidad>0);
+        if(!text(payload.entregadoA)) throw new Error('Escribe el nombre de quien recibe.');
+        if(!items.length) throw new Error('Agrega al menos un suministro a la entrega.');
+        const { data, error } = await client.rpc('re_registrar_entrega_suministros_v108',{p_entregado_a:text(payload.entregadoA),p_area:text(payload.area)||null,p_notas:text(payload.notas)||null,p_firma_data:text(payload.firmaData)||null,p_items:items});
+        assertNoError(error,'No se pudo registrar la entrega. Revisa existencias y ejecuta SQL_MAESTRO_CRM.sql V108.');
+        return data || {ok:true};
     }
 
     function serviceFromDb(row) {
@@ -7016,6 +7050,9 @@
         listStoreRequests,
         saveStoreRequest,
         deleteStoreRequest,
+        receiveReceptionStoreListV108,
+        listReceptionSupplyDeliveriesV108,
+        createReceptionSupplyDeliveryV108,
         listServices,
         saveService,
         deleteService,
