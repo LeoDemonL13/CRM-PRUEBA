@@ -5691,6 +5691,62 @@
         return { ok:true, codigo:value };
     }
 
+    function receptionSupplyCategoryFromDb(row = {}) {
+        return {
+            nombre: text(row.nombre),
+            imagen: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            descripcion: text(row.descripcion),
+            activo: row.activo !== false
+        };
+    }
+
+    async function listReceptionSupplyCategoriesV109(options = {}) {
+        const { data, error } = await client.from('re_suministro_categorias').select('*').order('nombre', { ascending:true });
+        if (error) {
+            const supplies = await listReceptionSupplies({ includeInactive: options.includeInactive === true });
+            const names = [...new Set(supplies.map(item => text(item.categoria) || 'General'))].sort((a,b)=>a.localeCompare(b,'es-MX'));
+            return names.map(nombre => ({ nombre, imagen:'', imagen_url:'', descripcion:'', activo:true }));
+        }
+        const categories = (data || []).map(receptionSupplyCategoryFromDb);
+        return options.includeInactive === true ? categories : categories.filter(item => item.activo !== false);
+    }
+
+    async function saveReceptionSupplyCategoryV109(category = {}, originalName = '') {
+        const row = {
+            nombre: text(category.nombre),
+            imagen_url: text(category.imagen ?? category.imagen_url) || null,
+            descripcion: text(category.descripcion) || null,
+            activo: category.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.nombre) throw new Error('El nombre de la categoría es obligatorio.');
+        const original = text(originalName);
+        if (original && lower(original) !== lower(row.nombre)) {
+            const { error: insertError } = await client.from('re_suministro_categorias').insert(row);
+            assertNoError(insertError, 'No se pudo crear el nuevo nombre de la categoría.');
+            const { error: suppliesError } = await client.from('re_suministros').update({ categoria:row.nombre, updated_at:new Date().toISOString() }).eq('categoria', original);
+            assertNoError(suppliesError, 'La categoría se creó, pero no se pudieron mover sus suministros.');
+            const { error: deleteError } = await client.from('re_suministro_categorias').delete().eq('nombre', original);
+            assertNoError(deleteError, 'La categoría se renombró, pero no se pudo retirar el nombre anterior.');
+        } else {
+            const { error } = await client.from('re_suministro_categorias').upsert(row, { onConflict:'nombre' });
+            assertNoError(error, 'No se pudo guardar la categoría de Suministros. Ejecuta SQL_MAESTRO_CRM.sql V109.');
+        }
+        return receptionSupplyCategoryFromDb(row);
+    }
+
+    async function deleteReceptionSupplyCategoryV109(name) {
+        const nombre = text(name);
+        if (!nombre) throw new Error('Falta el nombre de la categoría.');
+        const { count, error: countError } = await client.from('re_suministros').select('id', { count:'exact', head:true }).eq('categoria', nombre).eq('activo', true);
+        assertNoError(countError, 'No se pudo comprobar la categoría.');
+        if ((count || 0) > 0) throw new Error('Esta categoría todavía contiene suministros. Muévelos a otra categoría antes de eliminarla.');
+        const { error } = await client.from('re_suministro_categorias').delete().eq('nombre', nombre);
+        assertNoError(error, 'No se pudo eliminar la categoría.');
+        return { ok:true, nombre };
+    }
+
     async function importReceptionSupplies(products, onProgress) {
         const input = Array.isArray(products) ? products : [];
         const progress = typeof onProgress === 'function' ? onProgress : function(){};
@@ -5843,7 +5899,7 @@
         })).filter(item => item.item_id && item.cantidad > 0);
         if (!text(folio) || !payload.length) throw new Error('Selecciona al menos una cantidad para recibir.');
         const { data, error } = await client.rpc('re_recibir_lista_compra_v108', { p_folio:text(folio), p_items:payload, p_recibido_por:text(receivedBy) || null });
-        assertNoError(error, 'No se pudo registrar la recepción de la lista. Ejecuta SQL_MAESTRO_CRM.sql V108.');
+        assertNoError(error, 'No se pudo registrar la recepción de la lista. Ejecuta SQL_MAESTRO_CRM.sql V109.');
         return data || { ok:true };
     }
 
@@ -5853,7 +5909,7 @@
 
     async function listReceptionSupplyDeliveriesV108() {
         const { data, error } = await client.from('re_entregas_suministros').select('*,re_entrega_suministro_items(*)').order('created_at',{ascending:false}).limit(300);
-        assertNoError(error, 'No se pudieron consultar las entregas de Suministros. Ejecuta SQL_MAESTRO_CRM.sql V108.');
+        assertNoError(error, 'No se pudieron consultar las entregas de Suministros. Ejecuta SQL_MAESTRO_CRM.sql V109.');
         return (data || []).map(receptionDeliveryFromDb);
     }
 
@@ -7040,6 +7096,9 @@
         approveQuotation,
         listQuotationPurchaseOrders,
         listReceptionSupplies,
+        listReceptionSupplyCategoriesV109,
+        saveReceptionSupplyCategoryV109,
+        deleteReceptionSupplyCategoryV109,
         saveReceptionSupply,
         deleteReceptionSupply,
         importReceptionSupplies,

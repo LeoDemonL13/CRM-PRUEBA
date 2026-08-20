@@ -6740,6 +6740,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_fuente text:=lower(btrim(coalesce(p_fuente,'')));
     v_filtro text:=nullif(btrim(coalesce(p_filtro,'')),'');
     v_result jsonb:='[]'::jsonb;
@@ -8413,6 +8414,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_result jsonb;
 begin
     select rol into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
@@ -8853,6 +8855,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_result jsonb;
 begin
     select rol into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
@@ -9401,6 +9404,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_result jsonb;
 begin
     select lower(btrim(rol)) into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
@@ -9657,6 +9661,7 @@ security definer
 set search_path=public,auth
 as $$
 declare
+    v_role text;
       v_filter text:=nullif(lower(btrim(coalesce(p_filtro,''))),'');
     v_today date:=(now() at time zone 'America/Mexico_City')::date;
     v_result jsonb;
@@ -9709,6 +9714,7 @@ security definer
 set search_path=public,auth
 as $$
 declare
+    v_role text;
       v_result jsonb;
 begin
     select lower(btrim(rol)) into v_role from public.perfiles_usuario where id=auth.uid() and activo=true;
@@ -10000,6 +10006,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_fuente text:=lower(btrim(coalesce(p_fuente,'')));
     v_filtro text:=nullif(btrim(coalesce(p_filtro,'')),'');
     v_result jsonb:='[]'::jsonb;
@@ -10212,6 +10219,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_id uuid;
     v_titulo text;
     v_participantes jsonb;
@@ -10305,6 +10313,7 @@ security definer
 set search_path=public
 as $$
 declare
+    v_role text;
       v_limit integer:=least(100,greatest(1,coalesce(p_limite,20)));
     v_result jsonb:='[]'::jsonb;
 begin
@@ -10872,3 +10881,56 @@ select 'OK' as estado,
        case when to_regprocedure('public.re_recibir_lista_compra_v108(text,jsonb,text)') is not null then 'OK' else 'FALTA' end as recibir_lista,
        case when to_regclass('public.re_entregas_suministros') is not null then 'OK' else 'FALTA' end as entregas,
        case when to_regprocedure('public.re_registrar_entrega_suministros_v108(text,text,text,text,jsonb)') is not null then 'OK' else 'FALTA' end as registrar_entrega;
+
+-- CRM V109 · CATEGORÍAS VISUALES DE SUMINISTROS DE RECEPCIÓN
+begin;
+
+create table if not exists public.re_suministro_categorias (
+    nombre text primary key,
+    imagen_url text,
+    descripcion text,
+    activo boolean not null default true,
+    creado_por uuid references auth.users(id) on delete set null default auth.uid(),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+insert into public.re_suministro_categorias(nombre,activo)
+select distinct btrim(coalesce(s.categoria,'General')),true
+from public.re_suministros s
+where nullif(btrim(coalesce(s.categoria,'')),'') is not null
+on conflict(nombre) do nothing;
+
+create index if not exists re_suministro_categorias_activo_idx on public.re_suministro_categorias(activo,nombre);
+
+drop trigger if exists trg_re_suministro_categorias_fecha on public.re_suministro_categorias;
+create trigger trg_re_suministro_categorias_fecha
+before update on public.re_suministro_categorias
+for each row execute function public.co_actualizar_fecha();
+
+alter table public.re_suministro_categorias enable row level security;
+drop policy if exists "Recepción consulta re_suministro_categorias" on public.re_suministro_categorias;
+create policy "Recepción consulta re_suministro_categorias" on public.re_suministro_categorias
+for select to authenticated
+using (public.crm_usuario_tiene_rol(array['administrador','recepcion']));
+
+drop policy if exists "Recepción administra re_suministro_categorias" on public.re_suministro_categorias;
+create policy "Recepción administra re_suministro_categorias" on public.re_suministro_categorias
+for all to authenticated
+using (public.crm_usuario_tiene_rol(array['administrador','recepcion']))
+with check (public.crm_usuario_tiene_rol(array['administrador','recepcion']));
+
+grant select,insert,update,delete on public.re_suministro_categorias to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V109-RECEPCION-CATEGORIAS-VISUALES-2026-08-20',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V109-RECEPCION-CATEGORIAS-VISUALES-2026-08-20' as revision,
+       case when to_regclass('public.re_suministro_categorias') is not null then 'OK' else 'FALTA' end as categorias_recepcion,
+       case when to_regclass('public.re_suministros') is not null then 'OK' else 'FALTA' end as suministros_recepcion;
+
