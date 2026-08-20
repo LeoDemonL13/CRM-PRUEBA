@@ -22,7 +22,83 @@ function openReceive(group){receiving=group;$('receive-title').textContent=`Reci
 function closeReceive(){$('receive-modal').classList.add('hidden');$('receive-modal').classList.remove('flex');receiving=null}
 function receiveAll(){if(!receiving)return;[...$('receive-items').querySelectorAll('[data-receive-row]')].forEach(row=>{const item=receiving.items.find(i=>Number(i.id)===Number(row.dataset.receiveRow)),input=row.querySelector('[data-receive-qty]');if(item&&input)input.value=Math.max(0,num(item.cantidad)-num(item.cantidadRecibida))})}
 async function saveReceive(){if(!receiving)return;const items=[...$('receive-items').querySelectorAll('[data-receive-row]')].map(row=>({itemId:Number(row.dataset.receiveRow),cantidad:num(row.querySelector('[data-receive-qty]').value),precioUnitario:num(row.querySelector('[data-receive-price]').value)})).filter(x=>x.cantidad>0);if(!items.length)return alert('Captura al menos una cantidad recibida.');$('save-receive').disabled=true;try{await SkilledDB.receiveReceptionStoreListV108(receiving.folio,items,$('received-by').value);closeReceive();await load();alert('Recepción registrada. Las existencias vinculadas fueron actualizadas.') }catch(e){alert(e.message)}finally{$('save-receive').disabled=false}}
-function printGroup(group){if(!group)return;const total=group.items.reduce((s,i)=>s+num(i.costoEstimado)*num(i.cantidad),0),w=window.open('','_blank','width=1100,height=800');if(!w)return alert('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio.');const rowsHtml=group.items.map((i,index)=>`<tr><td class="n">${String(index+1).padStart(2,'0')}</td><td><b>${esc(i.producto)}</b>${i.marcaEspecifica?`<small>${esc(i.marcaEspecifica)}</small>`:''}</td><td>${esc(i.negocio||'Por definir')}</td><td class="center">${num(i.cantidad).toLocaleString('es-MX')} ${esc(i.unidad)}</td><td class="money">${money(i.costoEstimado,i.moneda)}</td><td class="money">${money(num(i.costoEstimado)*num(i.cantidad),i.moneda)}</td><td class="check">□</td></tr>`).join('');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(group.folio)}</title><style>@page{size:letter portrait;margin:11mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#172033;margin:0;background:#fff}.top{display:grid;grid-template-columns:170px 1fr;align-items:center;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden}.brand{padding:16px;border-right:1px solid #cbd5e1}.brand img{width:138px}.doc{padding:14px 18px;text-align:right;background:#f8fafc}.doc h1{margin:0;color:#00416b;font-size:22px;letter-spacing:.02em}.doc p{margin:5px 0 0;font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.13em}.stripe{height:5px;background:linear-gradient(90deg,#00416b 0 72%,#ea0029 72%)}.meta{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:7px;margin:10px 0}.meta div{border:1px solid #dbe3ec;border-radius:7px;padding:8px 9px;min-height:45px}.meta label{display:block;font-size:7px;color:#64748b;text-transform:uppercase;letter-spacing:.1em;font-weight:bold}.meta strong{display:block;margin-top:5px;font-size:10px;color:#111827}.summary{display:flex;justify-content:space-between;align-items:center;margin:10px 0 7px;padding:8px 10px;border-left:4px solid #00416b;background:#f1f5f9}.summary strong{font-size:11px}.summary span{font-size:9px;color:#64748b}table{width:100%;border-collapse:separate;border-spacing:0;font-size:9px;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}thead th{background:#00416b;color:white;text-transform:uppercase;letter-spacing:.06em;font-size:7px;padding:8px 6px;text-align:left}td{border-top:1px solid #e2e8f0;padding:8px 6px;vertical-align:middle}tbody tr:nth-child(even){background:#f8fafc}td small{display:block;margin-top:3px;color:#64748b;font-size:7px}.n{width:30px;color:#64748b;text-align:center}.center{text-align:center;white-space:nowrap}.money{text-align:right;white-space:nowrap}.check{text-align:center;width:42px;font-size:15px}.total{display:flex;justify-content:flex-end;margin-top:8px}.total div{min-width:210px;border:1px solid #cbd5e1;border-radius:8px;padding:9px 12px;text-align:right}.total small{display:block;color:#64748b;font-size:7px;text-transform:uppercase}.total strong{display:block;color:#00416b;font-size:14px;margin-top:3px}.notes{margin-top:10px;border:1px solid #dbe3ec;border-radius:8px;padding:9px 10px;min-height:58px}.notes label{font-size:7px;font-weight:bold;text-transform:uppercase;color:#64748b}.notes p{font-size:9px;margin:6px 0;white-space:pre-wrap}.sign{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:35px;text-align:center}.sign div{border-top:1px solid #64748b;padding-top:5px;font-size:8px}.foot{display:flex;justify-content:space-between;margin-top:14px;padding-top:7px;border-top:1px solid #e2e8f0;font-size:7px;color:#94a3b8}</style></head><body><div class="top"><div class="brand"><img src="logo-reporte.png"></div><div class="doc"><h1>HOJA DE COMPRA</h1><p>Recepción · Skilled Proyectos Industriales</p></div></div><div class="stripe"></div><div class="meta"><div><label>Folio</label><strong>${esc(group.folio)}</strong></div><div><label>Fecha requerida</label><strong>${date(group.fechaRequerida)}</strong></div><div><label>Solicitado por</label><strong>${esc(group.solicitadoPor||'—')}</strong></div><div><label>Responsable</label><strong>${esc(group.responsableCompra||'—')}</strong></div></div><div class="summary"><strong>Lista de adquisición · ${group.items.length} partida${group.items.length===1?'':'s'}</strong><span>Verificar cantidad y precio antes de recibir</span></div><table><thead><tr><th>#</th><th>Producto / especificación</th><th>Negocio</th><th>Cantidad</th><th>P. unitario</th><th>Importe</th><th>✓</th></tr></thead><tbody>${rowsHtml}</tbody></table><div class="total"><div><small>Total estimado</small><strong>${money(total)}</strong></div></div><div class="notes"><label>Notas / observaciones de compra</label><p>${esc(group.notas||'')}</p></div><div class="sign"><div>Solicitó</div><div>Responsable de compra</div><div>Entrega a Recepción</div></div><div class="foot"><span>Documento regenerado desde el CRM · No se almacena PDF</span><span>${esc(group.folio)}</span></div><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);w.document.close()}
+function printGroup(group){
+if(!group)return;
+const total=group.items.reduce((s,i)=>s+num(i.costoEstimado)*num(i.cantidad),0),w=window.open('','_blank','width=1100,height=850');
+if(!w)return alert('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio.');
+const PAGE_ROWS=12,items=[...group.items],chunks=[];
+for(let i=0;i<items.length;i+=PAGE_ROWS)chunks.push(items.slice(i,i+PAGE_ROWS));
+if(!chunks.length)chunks.push([]);
+const pageCount=chunks.length;
+const pagesHtml=chunks.map((chunk,pageIndex)=>{
+const rowsHtml=chunk.map((i,index)=>{
+const absoluteIndex=pageIndex*PAGE_ROWS+index;
+return `<tr><td class="n">${String(absoluteIndex+1).padStart(2,'0')}</td><td class="product"><b>${esc(i.producto)}</b>${i.marcaEspecifica?`<small>${esc(i.marcaEspecifica)}</small>`:''}</td><td class="business">${esc(i.negocio||'Por definir')}</td><td class="center">${num(i.cantidad).toLocaleString('es-MX')} ${esc(i.unidad)}</td><td class="money">${money(i.costoEstimado,i.moneda)}</td><td class="money">${money(num(i.costoEstimado)*num(i.cantidad),i.moneda)}</td><td class="check">□</td></tr>`;
+}).join('');
+const isLast=pageIndex===pageCount-1;
+return `<section class="sheet">
+<div class="top"><div class="brand"><img src="logo-reporte.png" alt="Skilled"></div><div class="doc"><h1>HOJA DE COMPRA</h1><p>Recepción · Skilled Proyectos Industriales</p></div></div>
+<div class="stripe"></div>
+<div class="meta"><div><label>Folio</label><strong>${esc(group.folio)}</strong></div><div><label>Fecha requerida</label><strong>${date(group.fechaRequerida)}</strong></div><div><label>Solicitado por</label><strong>${esc(group.solicitadoPor||'—')}</strong></div><div><label>Responsable</label><strong>${esc(group.responsableCompra||'—')}</strong></div></div>
+<div class="summary"><strong>Lista de adquisición · ${group.items.length} partida${group.items.length===1?'':'s'}</strong><span>${pageCount>1?`Página ${pageIndex+1} de ${pageCount} · `:''}Verificar cantidad y precio antes de recibir</span></div>
+<table><colgroup><col class="c-num"><col class="c-product"><col class="c-business"><col class="c-qty"><col class="c-price"><col class="c-total"><col class="c-check"></colgroup><thead><tr><th>#</th><th>Producto / especificación</th><th>Negocio</th><th>Cantidad</th><th>P. unitario</th><th>Importe</th><th>✓</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+${isLast?`<div class="total"><div><small>Total estimado</small><strong>${money(total)}</strong></div></div><div class="notes"><label>Notas / observaciones de compra</label><p>${esc(group.notas||'')}</p></div><div class="sign"><div>Solicitó</div><div>Responsable de compra</div><div>Entrega a Recepción</div></div>`:`<div class="continuation">Continúa en la página ${pageIndex+2}</div>`}
+<div class="foot"><span>Documento regenerado desde el CRM · No se almacena PDF</span><span>${esc(group.folio)}${pageCount>1?` · ${pageIndex+1}/${pageCount}`:''}</span></div>
+</section>`;
+}).join('');
+w.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(group.folio)}</title><style>
+@page{size:215.9mm 279.4mm;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#d9dde3}
+body{font-family:Arial,Helvetica,sans-serif;color:#172033}
+.sheet{width:215.9mm;min-height:279.4mm;margin:0 auto 8mm;background:#fff;padding:12mm 13mm 11mm;display:flex;flex-direction:column;overflow:hidden}
+.top{display:grid;grid-template-columns:42mm 1fr;align-items:center;border:1px solid #cbd5e1;border-radius:3mm;overflow:hidden;flex:0 0 auto}
+.brand{height:24mm;padding:4mm 5mm;display:flex;align-items:center;border-right:1px solid #cbd5e1;background:#fff}
+.brand img{display:block;width:31mm;max-height:15mm;object-fit:contain}
+.doc{min-height:24mm;padding:4mm 5mm;text-align:right;background:#f8fafc;display:flex;flex-direction:column;justify-content:center}
+.doc h1{margin:0;color:#00416b;font-size:18pt;line-height:1.05;letter-spacing:.02em}
+.doc p{margin:1.5mm 0 0;font-size:7pt;color:#64748b;text-transform:uppercase;letter-spacing:.11em}
+.stripe{height:1.6mm;background:linear-gradient(90deg,#00416b 0 72%,#ea0029 72%);flex:0 0 auto}
+.meta{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:2mm;margin:3mm 0}
+.meta div{border:1px solid #dbe3ec;border-radius:2mm;padding:2.4mm 2.7mm;min-height:13mm}
+.meta label{display:block;font-size:5.8pt;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.meta strong{display:block;margin-top:1.3mm;font-size:8.2pt;line-height:1.15;color:#111827;overflow-wrap:anywhere}
+.summary{display:flex;justify-content:space-between;align-items:center;gap:4mm;margin:1.5mm 0 2.2mm;padding:2.2mm 2.7mm;border-left:1.2mm solid #00416b;background:#f1f5f9}
+.summary strong{font-size:8.2pt}
+.summary span{font-size:6.5pt;color:#64748b;text-align:right}
+table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:7.1pt;border:1px solid #cbd5e1;border-radius:2mm;overflow:hidden}
+col.c-num{width:5%}col.c-product{width:34%}col.c-business{width:14%}col.c-qty{width:13%}col.c-price{width:12%}col.c-total{width:14%}col.c-check{width:8%}
+thead{display:table-header-group}
+thead th{background:#00416b;color:#fff;text-transform:uppercase;letter-spacing:.045em;font-size:5.8pt;padding:2.2mm 1.5mm;text-align:left;line-height:1.12}
+td{border-top:1px solid #e2e8f0;padding:2.3mm 1.5mm;vertical-align:middle;line-height:1.18;overflow-wrap:anywhere}
+tbody tr{break-inside:avoid;page-break-inside:avoid}
+tbody tr:nth-child(even){background:#f8fafc}
+td b{font-size:7.2pt}
+td small{display:block;margin-top:1mm;color:#64748b;font-size:5.9pt}
+.n{color:#64748b;text-align:center}
+.center{text-align:center}
+.money{text-align:right;white-space:nowrap;font-size:6.8pt}
+.check{text-align:center;font-size:12pt}
+.business{font-size:6.6pt}
+.total{display:flex;justify-content:flex-end;margin-top:2.4mm}
+.total div{min-width:48mm;border:1px solid #cbd5e1;border-radius:2mm;padding:2.4mm 3mm;text-align:right;background:#fbfdff}
+.total small{display:block;color:#64748b;font-size:5.8pt;text-transform:uppercase;letter-spacing:.07em}
+.total strong{display:block;color:#00416b;font-size:12pt;margin-top:.8mm}
+.notes{margin-top:2.8mm;border:1px solid #dbe3ec;border-radius:2mm;padding:2.5mm 3mm;min-height:17mm}
+.notes label{font-size:5.8pt;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.06em}
+.notes p{font-size:7pt;margin:1.5mm 0 0;white-space:pre-wrap;line-height:1.3}
+.sign{display:grid;grid-template-columns:repeat(3,1fr);gap:9mm;margin-top:auto;padding-top:12mm;text-align:center}
+.sign div{border-top:1px solid #64748b;padding-top:1.7mm;font-size:6.5pt}
+.continuation{margin-top:auto;padding-top:8mm;text-align:right;color:#64748b;font-size:6.4pt}
+.foot{display:flex;justify-content:space-between;gap:4mm;margin-top:4mm;padding-top:2mm;border-top:1px solid #e2e8f0;font-size:5.6pt;color:#94a3b8}
+@media print{
+html,body{width:215.9mm;background:#fff!important}
+.sheet{margin:0;width:215.9mm;height:279.4mm;min-height:279.4mm;page-break-after:always;break-after:page}
+.sheet:last-child{page-break-after:auto;break-after:auto}
+}
+</style></head><body>${pagesHtml}<script>window.onload=()=>setTimeout(()=>window.print(),350)<\/script></body></html>`);
+w.document.close()
+}
 async function load(){try{const [store,supplyRows]=await Promise.all([SkilledDB.listStoreRequests(),SkilledDB.listReceptionSupplies()]);rows=store;supplies=supplyRows;$('supplies-options').innerHTML=supplies.map(s=>`<option value="${esc(s.descripcion)}">${esc(s.marca||'Sin marca')} · ${esc(s.ubicacion||'Sin ubicación')}</option>`).join('');render()}catch(e){$('lists').innerHTML=`<div class="profile-card profile-empty xl:col-span-2"><p class="text-rose-300">${esc(e.message)}</p></div>`}}
 $('new').addEventListener('click',()=>open());$('refresh').addEventListener('click',load);$('lists').addEventListener('click',e=>{const edit=e.target.closest('[data-edit-list]'),print=e.target.closest('[data-print-list]'),receive=e.target.closest('[data-receive-list]');if(edit)open(groups.find(g=>g.folio===edit.dataset.editList));if(print)printGroup(groups.find(g=>g.folio===print.dataset.printList));if(receive)openReceive(groups.find(g=>g.folio===receive.dataset.receiveList))});$('product').addEventListener('change',applySupply);$('product').addEventListener('blur',applySupply);$('add-item').addEventListener('click',addItem);[$('items-body'),$('items-cards')].forEach(node=>node.addEventListener('click',e=>{const b=e.target.closest('[data-remove-item]');if(b){const item=draft[Number(b.dataset.removeItem)];if(num(item?.cantidadRecibida)>0)return alert('No puedes retirar una partida que ya tiene recepción física registrada.');draft.splice(Number(b.dataset.removeItem),1);renderDraft()}}));['search','state','priority'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));$('global-search').addEventListener('input',e=>{$('search').value=e.target.value;render()});$('close').addEventListener('click',close);$('cancel').addEventListener('click',close);$('save').addEventListener('click',save);$('delete-list').addEventListener('click',removeList);$('print-modal').addEventListener('click',()=>editing&&printGroup(editing));$('modal').addEventListener('click',e=>{if(e.target===$('modal'))close()});$('receive-close').addEventListener('click',closeReceive);$('receive-cancel').addEventListener('click',closeReceive);$('receive-all').addEventListener('click',receiveAll);$('save-receive').addEventListener('click',saveReceive);$('receive-modal').addEventListener('click',e=>{if(e.target===$('receive-modal'))closeReceive()});const initialQ=text(new URLSearchParams(location.search).get('q'));if(initialQ){$('search').value=initialQ;$('global-search').value=initialQ}load();
 })();

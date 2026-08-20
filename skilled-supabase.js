@@ -5080,6 +5080,18 @@
         return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model), proveedor: text(data?.provider) };
     }
 
+    async function synthesizeSkillSpeech(value, options = {}) {
+        const input = text(value).slice(0, 2600);
+        if (!input) throw new Error('Falta el texto de la voz.');
+        const alias = text(options.voice || options.alias || 'Sarah').slice(0, 40) || 'Sarah';
+        const { data, error } = await client.functions.invoke('skill-voz', { body: { text: input, voice: alias } });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo generar la voz personalizada.');
+        if (data instanceof Blob) return data;
+        if (data instanceof ArrayBuffer) return new Blob([data], { type: 'audio/mpeg' });
+        if (ArrayBuffer.isView(data)) return new Blob([data.buffer], { type: 'audio/mpeg' });
+        throw new Error(text(data?.error) || 'El servicio de voz no devolvió audio.');
+    }
+
     async function interpretSkyQuery(value, options = {}) {
         const input = text(value).slice(0, 1800);
         if (!input) throw new Error('Falta la consulta a interpretar.');
@@ -5101,6 +5113,7 @@
             entity: text(data?.entity),
             recipient: text(data?.recipient),
             message: text(data?.message),
+            clarification: text(data?.clarification),
             confidence: Number(data?.confidence) || 0,
             locationOnly: data?.locationOnly === true,
             duracionMs: Number(data?.durationMs) || 0,
@@ -7075,6 +7088,7 @@
         invokeEdgeFunction,
         skyTranscriptionStatus,
         transcribeSkyAudio,
+        synthesizeSkillSpeech,
         interpretSkyQuery,
         askSkyGeneral,
         parseSupplierQuotationDocumentV102,

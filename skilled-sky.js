@@ -200,6 +200,9 @@
     let selectedMicId = localStorage.getItem('skilled_sky_mic_id') || '';
     let speechVoices = [];
     let lastSpokenText = '';
+    let customTtsAvailable = null;
+    let customTtsAudio = null;
+    let customTtsUrl = '';
     let vocabularyPriming = false;
     let vocabularyPrimedProfile = '';
     let speechLexiconCache = { profile: '', sourceAt: -1, words: [], set: new Set(), buckets: new Map() };
@@ -263,7 +266,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=110'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=112'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -664,7 +667,7 @@
         return true;
     }
     function getVoicePreferences() {
-        const defaults = { voiceURI: '', voiceName: '', lang: 'es-MX', rate: .96, pitch: 1, volume: 1 };
+        const defaults = { voiceURI: '', voiceName: '', presetAlias: 'Sarah', lang: 'es-MX', rate: .96, pitch: 1.03, volume: 1 };
         try {
             const parsed = JSON.parse(localStorage.getItem(voiceStorageKey()) || 'null');
             return parsed && typeof parsed === 'object' ? { ...defaults, ...parsed } : defaults;
@@ -713,27 +716,33 @@
     }
     function voiceChoices() {
         const voices = sortedVoices();
-        if (!voices.length) return [];
         const spanish = voices.filter(voice => /^es(?:-|_)/i.test(voice.lang));
         const pool = spanish.length ? spanish : voices;
-        const selected = [];
+        const presets = [
+            { alias:'Sarah', gender:'female', presetRate:.96, presetPitch:1.03 },
+            { alias:'Elena', gender:'female', presetRate:.93, presetPitch:.98 },
+            { alias:'Daniel', gender:'male', presetRate:.95, presetPitch:.92 }
+        ];
         const used = new Set();
-        const pick = predicate => {
-            const voice = pool.find(item => !used.has(item.voiceURI) && predicate(item)) || pool.find(item => !used.has(item.voiceURI));
-            if (voice) { used.add(voice.voiceURI); selected.push(voice); }
+        const choose = gender => {
+            let voice = pool.find(item => !used.has(item.voiceURI) && inferVoiceGender(item) === gender);
+            if (!voice) voice = pool.find(item => !used.has(item.voiceURI));
+            if (!voice && pool.length) voice = pool.find(item => inferVoiceGender(item) === gender) || pool[0];
+            if (voice?.voiceURI && !used.has(voice.voiceURI)) used.add(voice.voiceURI);
+            return voice || null;
         };
-        pick(voice => inferVoiceGender(voice) === 'female');
-        pick(voice => inferVoiceGender(voice) === 'female');
-        pick(voice => inferVoiceGender(voice) === 'male');
-        while (selected.length < Math.min(3, pool.length)) pick(() => true);
-        const aliases = ['Sarah','Elena','Daniel'];
-        return selected.slice(0,3).map((voice,index) => ({
-            voiceURI: voice.voiceURI,
-            voiceName: voice.name,
-            lang: voice.lang,
-            alias: aliases[index],
-            gender: inferVoiceGender(voice)
-        }));
+        return presets.map(preset => {
+            const voice = choose(preset.gender);
+            return {
+                voiceURI: voice?.voiceURI || '',
+                voiceName: voice?.name || '',
+                lang: voice?.lang || 'es-MX',
+                alias: preset.alias,
+                gender: voice ? inferVoiceGender(voice) : preset.gender,
+                presetRate: preset.presetRate,
+                presetPitch: preset.presetPitch
+            };
+        });
     }
     function selectedVoice(preferences = getVoicePreferences()) {
         const voices = sortedVoices();
@@ -759,11 +768,9 @@
         },delay);
     }
 
-    function speak(value, options = {}) {
-        if (!value) return;
+    function speakBrowser(value, options = {}) {
         if (!('speechSynthesis' in window)) { scheduleHandsFreeListening(250); return; }
         try {
-            lastSpokenText = text(value);
             speechSynthesis.cancel();
             const preferences = { ...getVoicePreferences(), ...options };
             const utterance = new SpeechSynthesisUtterance(value);
@@ -777,6 +784,34 @@
             utterance.onerror=()=>scheduleHandsFreeListening(250);
             speechSynthesis.speak(utterance);
         } catch (_) { scheduleHandsFreeListening(250); }
+    }
+    async function speakCustom(value, preferences = {}) {
+        if(customTtsAvailable===false||navigator.onLine===false||!window.SkilledDB?.synthesizeSkillSpeech)return false;
+        try{
+            const alias=text(preferences.presetAlias||getVoicePreferences().presetAlias||'Sarah')||'Sarah';
+            const blob=await window.SkilledDB.synthesizeSkillSpeech(value,{voice:alias});
+            if(!(blob instanceof Blob)||blob.size<100)return false;
+            try{customTtsAudio?.pause()}catch(_){}
+            if(customTtsUrl){try{URL.revokeObjectURL(customTtsUrl)}catch(_){}}
+            customTtsUrl=URL.createObjectURL(blob);
+            customTtsAudio=new Audio(customTtsUrl);
+            customTtsAudio.volume=Math.max(0,Math.min(1,Number(preferences.volume??getVoicePreferences().volume??1)));
+            customTtsAvailable=true;
+            await new Promise((resolve,reject)=>{customTtsAudio.onended=resolve;customTtsAudio.onerror=reject;customTtsAudio.play().catch(reject)});
+            scheduleHandsFreeListening(320);
+            return true;
+        }catch(error){
+            const msg=text(error?.message).toLowerCase();
+            if(/no configurada|missing|not found|404|503|elevenlabs_api_key|voice.*id/.test(msg))customTtsAvailable=false;
+            return false;
+        }
+    }
+    function speak(value, options = {}) {
+        if (!value) return;
+        lastSpokenText = text(value);
+        const preferences = { ...getVoicePreferences(), ...options };
+        try { speechSynthesis?.cancel?.(); } catch (_) {}
+        Promise.resolve(speakCustom(value,preferences)).then(ok=>{if(!ok)speakBrowser(value,preferences)}).catch(()=>speakBrowser(value,preferences));
     }
     function previewVoice(preferences = {}) {
         const config = profileConfig();
@@ -2974,7 +3009,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=110'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=112'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -4436,11 +4471,13 @@
     function isComplexSkillQuery(raw) {
         const norm=commandNormalize(raw);
         const words=norm.split(' ').filter(Boolean);
-        if(words.length>=16)return true;
-        const connectors=(norm.match(/\b(y|pero|ademas|además|tambien|también|aunque|excepto|solo|solamente|mientras|entonces|porque|por que|para que|con|sin)\b/g)||[]).length;
-        const narrative=/\b(mira|te explico|lo que pasa|lo que quiero|lo que necesito|queria preguntarte|quería preguntarte|me puedes ayudar|me podrias ayudar|me podrías ayudar|por ejemplo|en este caso|resulta que|necesito saber si|quisiera saber)\b/.test(norm);
-        const constraints=(norm.match(/\b(proyecto|folio|proveedor|persona|vehiculo|vehículo|material|suministro|ubicacion|ubicación|fecha|estado|cantidad|marca|modelo|precio|costo|stock|existencia|departamento|area|área|hoy|mañana|semana|mes)\b/g)||[]).length;
-        return (words.length>=10&&connectors>=2)||(words.length>=9&&narrative)||(words.length>=11&&constraints>=3);
+        if(words.length>=14)return true;
+        const connectors=(norm.match(/\b(y|pero|ademas|además|tambien|también|aunque|excepto|solo|solamente|mientras|entonces|porque|por que|para que|con|sin|luego|despues|después|de paso|aparte)\b/g)||[]).length;
+        const narrative=/\b(mira|te explico|lo que pasa|lo que quiero|lo que necesito|queria preguntarte|quería preguntarte|me puedes ayudar|me podrias ayudar|me podrías ayudar|por ejemplo|en este caso|resulta que|necesito saber si|quisiera saber|a ver si|fijate|fíjate|oye una cosa|tengo una duda|la cosa es que)\b/.test(norm);
+        const constraints=(norm.match(/\b(proyecto|folio|proveedor|persona|vehiculo|vehículo|material|suministro|ubicacion|ubicación|fecha|estado|cantidad|marca|modelo|precio|costo|stock|existencia|departamento|area|área|hoy|mañana|semana|mes|antes|despues|después|mayor|menor|solo|excepto|sin)\b/g)||[]).length;
+        const multiQuestion=(norm.match(/(?:\?|\b(?:y|ademas|además|tambien|también|de paso)\b)/g)||[]).length>=2;
+        const correction=/\b(no[, ]+mejor|mejor dicho|mas bien|más bien|bueno no|perdon|perdón|quise decir|me refiero a)\b/.test(norm);
+        return (words.length>=9&&connectors>=2)||(words.length>=8&&narrative)||(words.length>=10&&constraints>=3)||multiQuestion||correction;
     }
 
     function shouldUseSkyAI(raw, profile = detectProfile()) {
@@ -4463,7 +4500,8 @@
         if (aiQueryCache.has(key)) return aiQueryCache.get(key);
         try {
             const plan = await SkilledDB.interpretSkyQuery(raw, { profile, context });
-            if (!plan?.intent || Number(plan.confidence || 0) < .5 || plan.intent === 'unknown') return null;
+            if (!plan?.intent) return null;
+            if ((Number(plan.confidence || 0) < .5 || plan.intent === 'unknown') && !text(plan.clarification)) return null;
             aiQueryCache.set(key, plan);
             if (aiQueryCache.size > 48) aiQueryCache.delete(aiQueryCache.keys().next().value);
             return plan;
@@ -4479,6 +4517,11 @@
         const executive = isExecutiveReadProfile(profile);
         const queryText = text(plan.query || plan.entity || raw) || raw;
         rememberConversation(plan.intent, plan.entity || queryText, queryText);
+        if (plan.intent === 'unknown' && text(plan.clarification)) {
+            const message=text(plan.clarification);
+            setAnswer('Solo necesito confirmar',message,'No tienes que repetir toda la explicación; responde únicamente el dato que falta y conservaré el contexto de tu solicitud.');
+            return message;
+        }
 
         if (plan.intent === 'chat_message') {
             const result = await answerChatAction(raw, plan);
@@ -4664,20 +4707,27 @@
         try {
             const cleanRaw = expandEntityAliases(stripWakeWord(raw));
             const localRaw = simplifyLocalRequest(cleanRaw);
-            const simple = await answerSimple(cleanRaw);
-            let voice = simple.handled ? simple.voice : '';
+            const complex = isComplexSkillQuery(cleanRaw);
+            let voice = '';
             let usedAI = false;
-            if (!simple.handled) {
-                const complex = isComplexSkillQuery(cleanRaw);
-                if (complex) {
-                    const plan = await interpretWithSkyAI(cleanRaw);
-                    if (plan) {
-                        setInterpreted(plan.query || cleanRaw,'interpretada');
-                        voice = await dispatchSkyAIPlan(plan, cleanRaw);
-                        usedAI = Boolean(voice);
-                    }
+            let simple = {handled:false,voice:''};
+            if (complex) {
+                const plan = await interpretWithSkyAI(cleanRaw);
+                if (plan) {
+                    setInterpreted(plan.query || cleanRaw,'interpretada');
+                    voice = await dispatchSkyAIPlan(plan, cleanRaw);
+                    usedAI = Boolean(voice);
                 }
-                if (!voice) voice = await dispatchByProfile(localRaw);
+                if (!voice) {
+                    simple = await answerSimple(cleanRaw);
+                    voice = simple.handled ? simple.voice : '';
+                }
+            } else {
+                simple = await answerSimple(cleanRaw);
+                voice = simple.handled ? simple.voice : '';
+            }
+            if (!voice) {
+                voice = await dispatchByProfile(localRaw);
                 if (!voice && !complex) {
                     const plan = await interpretWithSkyAI(cleanRaw);
                     if (plan) {
