@@ -2,23 +2,23 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<script src="skilled-config.js?v=113"></script>
+<script src="skilled-config.js?v=114"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=113" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=113">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=113">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=113">
-<link rel="manifest" href="/site.webmanifest?v=113">
+<link rel="icon" href="/favicon.ico?v=114" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=114">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=114">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=114">
+<link rel="manifest" href="/site.webmanifest?v=114">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="interfaz.css?v=113">
+<link rel="stylesheet" href="interfaz.css?v=114">
 <script>document.documentElement.classList.remove('tema-claro');document.documentElement.dataset.crmTheme='oscuro';document.documentElement.style.colorScheme='dark';</script>
 <title>Skilled CRM — Iniciar sesión</title>
-<link rel="stylesheet" href="tailwind-local.css?v=113">
+<link rel="stylesheet" href="tailwind-local.css?v=114">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -54,9 +54,9 @@
 @media(max-width:700px){body{overflow:auto}.login-stage{padding:18px}.login-orbit{padding:22px 0}.orbit-ring{display:none}.login-card{border-radius:21px}.login-header,.login-form{padding-left:23px;padding-right:23px}.logo-shell{width:min(210px,88%);height:82px;margin:0 auto 3px}.login-logo{width:154px;max-height:60px}}
 @media(prefers-reduced-motion:reduce){.login-scene::before,.scene-grid,.glow,.particle,.orbit-ring,.logo-shell::before,.login-card::after,.security-pill i{animation:none!important}.login-orbit{animation:none}}
 </style>
-<script src="skilled-search.js?v=113"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='113',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
-<link rel="stylesheet" href="crm-v83-design.css?v=113"></head>
+<script src="skilled-search.js?v=114"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='114',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v83-design.css?v=114"></head>
 <body class="login-dark crm-v83-no-sidebar">
 <div class="login-scene" aria-hidden="true">
 <div class="scene-grid"></div><div class="scanline"></div><div class="glow blue"></div><div class="glow red"></div><div id="particles"></div>
@@ -80,7 +80,7 @@
 </section>
 </div>
 </main>
-<script src="skilled-supabase.js?v=113"></script>
+<script src="skilled-supabase.js?v=114"></script>
 <script>
 (function(){
 const form=document.getElementById('login-form');
@@ -139,6 +139,6 @@ location.replace(target);
 validateExistingSession();
 })();
 </script>
-<script src="crm-v78-fixes.js?v=113" defer></script><script src="skilled-performance.js?v=113" defer></script>
-<script src="crm-v83-shell.js?v=113" defer></script></body>
+<script src="crm-v78-fixes.js?v=114" defer></script><script src="skilled-performance.js?v=114" defer></script>
+<script src="crm-v83-shell.js?v=114" defer></script></body>
 </html>

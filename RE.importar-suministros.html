@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<script src="skilled-config.js?v=113"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#060814">
+<script src="skilled-config.js?v=114"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#060814">
 <title>Skilled - Recepción - Importar suministros</title>
-<link rel="stylesheet" href="interfaz.css?v=113"><link rel="stylesheet" href="tailwind-local.css?v=113"><link rel="stylesheet" href="crm-v83-design.css?v=113">
-<script src="skilled-theme.js?v=113"></script><script src="navegacion-suave.js?v=113"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script><script src="skilled-supabase.js?v=113"></script><script src="auth-guard.js?v=113"></script><script src="skilled-search.js?v=113"></script><script src="skilled-sidebar.js?v=113" defer></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="interfaz.css?v=114"><link rel="stylesheet" href="tailwind-local.css?v=114"><link rel="stylesheet" href="crm-v83-design.css?v=114">
+<script src="skilled-theme.js?v=114"></script><script src="navegacion-suave.js?v=114"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script><script src="skilled-supabase.js?v=114"></script><script src="auth-guard.js?v=114"></script><script src="skilled-search.js?v=114"></script><script src="skilled-sidebar.js?v=114" defer></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>.import-drop{transition:border-color .16s ease,background .16s ease}.import-drop.is-drag{border-color:#38bdf8;background:#081a31}.mini-table th,.mini-table td{white-space:nowrap}</style>
 </head>
 <body class="crm-v83-page area-re profile-page min-h-screen flex overflow-x-hidden" data-profile="recepcion">
@@ -34,4 +34,4 @@ function render(){const badRows=new Set(problems.map(x=>x.fila));$('summary').cl
 $('import').onclick=async()=>{const bad=new Set(problems.map(x=>x.fila));const valid=parsed.filter(x=>!bad.has(x.filaArchivo));if(!valid.length)return alert('No hay filas válidas para importar.');$('import').disabled=true;$('progress-wrap').classList.remove('hidden');$('result').classList.add('hidden');try{const result=await SkilledDB.importReceptionSupplies(valid,(pct,msg)=>{$('progress-pct').textContent=`${pct}%`;$('progress-bar').style.width=`${pct}%`;$('progress-text').textContent=msg});$('result').classList.remove('hidden');$('result').innerHTML=`<strong class="text-white">Importación terminada.</strong><div class="mt-2">${result.importados} suministros guardados · ${result.omitidos} omitidos.</div>${result.errores?.length?`<div class="mt-2 text-amber-300">${result.errores.slice(0,8).map(e=>`Fila ${e.fila}: ${e.error}`).join('<br>')}</div>`:''}`}catch(e){$('result').classList.remove('hidden');$('result').innerHTML=`<span class="text-rose-300">${e.message}</span>`}finally{$('import').disabled=false}};
 })();
 </script>
-<script src="crm-v78-fixes.js?v=113" defer></script><script src="skilled-performance.js?v=113" defer></script><script src="crm-v83-shell.js?v=113" defer></script></body></html>
+<script src="crm-v78-fixes.js?v=114" defer></script><script src="skilled-performance.js?v=114" defer></script><script src="crm-v83-shell.js?v=114" defer></script></body></html>
