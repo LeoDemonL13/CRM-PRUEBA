@@ -2,8 +2,12 @@
 (function () {
     'use strict';
 
-    const SUPABASE_URL = 'https://cuxnzqbszzrfnrinxbdp.supabase.co';
-    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF';
+    const runtimeConfig = window.SKILLED_CONFIG && typeof window.SKILLED_CONFIG === 'object' ? window.SKILLED_CONFIG : {};
+    const SUPABASE_URL = textConfig(runtimeConfig.supabaseUrl) || 'https://cuxnzqbszzrfnrinxbdp.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = textConfig(runtimeConfig.supabasePublishableKey) || 'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF';
+    const SKILL_LOCAL_AI_URL = textConfig(runtimeConfig.skillLocalAiUrl).replace(/\/$/, '');
+    const SKILL_LOCAL_TTS_URL = textConfig(runtimeConfig.skillLocalTtsUrl);
+    function textConfig(value) { return String(value ?? '').trim(); }
     const MAX_MATERIALS_PER_WAREHOUSE_POSITION = 7;
     const DEFAULT_FETCH_TIMEOUT_MS = 18000;
     const LONG_FETCH_TIMEOUT_MS = 35000;
@@ -5080,10 +5084,41 @@
         return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model), proveedor: text(data?.provider) };
     }
 
+    async function callLocalSkillService(url, body, options = {}) {
+        const target = text(url);
+        if (!target) throw new Error('Servicio local no configurado.');
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), Math.max(2000, Number(options.timeoutMs) || 12000));
+        try {
+            const response = await window.fetch(target, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body || {}),
+                signal: controller.signal
+            });
+            if (!response.ok) {
+                const detail = await response.text().catch(() => '');
+                throw new Error(text(detail) || `Servicio local respondió HTTP ${response.status}.`);
+            }
+            return response;
+        } finally {
+            window.clearTimeout(timer);
+        }
+    }
+
     async function synthesizeSkillSpeech(value, options = {}) {
         const input = text(value).slice(0, 2600);
         if (!input) throw new Error('Falta el texto de la voz.');
         const alias = text(options.voice || options.alias || 'Sarah').slice(0, 40) || 'Sarah';
+        if (SKILL_LOCAL_TTS_URL) {
+            try {
+                const response = await callLocalSkillService(SKILL_LOCAL_TTS_URL, { text: input, voice: alias }, { timeoutMs: 18000 });
+                const blob = await response.blob();
+                if (blob.size) return blob;
+            } catch (error) {
+                console.warn('SKILL TTS local:', error);
+            }
+        }
         const { data, error } = await client.functions.invoke('skill-voz', { body: { text: input, voice: alias } });
         if (error) throw await edgeFunctionFailure(error, 'No se pudo generar la voz personalizada.');
         if (data instanceof Blob) return data;
@@ -5102,6 +5137,17 @@
             area: text(options.context.area).slice(0, 120),
             turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-8).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : []
         } : {};
+        if (SKILL_LOCAL_AI_URL) {
+            try {
+                const response = await callLocalSkillService(`${SKILL_LOCAL_AI_URL}/interpret`, { text: input, profile: text(options.profile) || 'consulta', context }, { timeoutMs: 14000 });
+                const local = await response.json();
+                if (local?.intent) return {
+                    intent: text(local.intent), query: text(local.query).slice(0, 1200) || input, entity: text(local.entity), recipient: text(local.recipient),
+                    message: text(local.message), clarification: text(local.clarification), confidence: Number(local.confidence) || 0,
+                    locationOnly: local.locationOnly === true, duracionMs: Number(local.durationMs) || 0, modelo: text(local.model), proveedor: text(local.provider || 'ollama-local')
+                };
+            } catch (error) { console.warn('SKILL IA local:', error); }
+        }
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta', context }
         });
@@ -5148,6 +5194,13 @@
             page: text(options.context.page).slice(0, 120),
             crmContext: text(options.context.crmContext).slice(0, 5000)
         } : {};
+        if (SKILL_LOCAL_AI_URL) {
+            try {
+                const response = await callLocalSkillService(`${SKILL_LOCAL_AI_URL}/chat`, { text: input, profile: text(options.profile) || 'consulta', context }, { timeoutMs: 22000 });
+                const local = await response.json();
+                if (text(local?.answer)) return { answer: text(local.answer), title: text(local.title) || 'Skill', detail: text(local.detail), model: text(local.model), provider: text(local.provider || 'ollama-local') };
+            } catch (error) { console.warn('SKILL chat local:', error); }
+        }
         const { data, error } = await client.functions.invoke('sky-transcribir', {
             body: { mode: 'chat', text: input, profile: text(options.profile) || 'consulta', context }
         });

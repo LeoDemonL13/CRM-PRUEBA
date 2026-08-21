@@ -83,6 +83,37 @@
     };
     const stopWords = new Set(['skill', 'sky', 'skai', 'skay', 'cuanto', 'cuantos', 'cuanta', 'cuantas', 'tenemos', 'hay', 'dime', 'me', 'puedes', 'por', 'favor', 'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'en', 'que', 'cual', 'cuales', 'donde', 'esta', 'estan', 'ubicacion', 'existencia', 'existencias', 'stock', 'material', 'materiales', 'pieza', 'piezas']);
 
+    function adaptiveLanguageStorageKey() {
+        const user = cachedUserId?.() || authenticatedRole() || 'anon';
+        return `skilled_skill_language_v113_${String(user).replace(/[^a-z0-9@._-]/gi,'_')}`;
+    }
+    function loadAdaptiveLanguage() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(adaptiveLanguageStorageKey()) || '{}');
+            return parsed && typeof parsed === 'object' ? { phrases: parsed.phrases && typeof parsed.phrases === 'object' ? parsed.phrases : {} } : { phrases:{} };
+        } catch (_) { return { phrases:{} }; }
+    }
+    function saveAdaptiveLanguage(value) {
+        const data = value && typeof value === 'object' ? value : { phrases:{} };
+        const entries = Object.entries(data.phrases || {}).filter(([from,to]) => from && to).slice(-80);
+        try { localStorage.setItem(adaptiveLanguageStorageKey(), JSON.stringify({ phrases:Object.fromEntries(entries), updatedAt:new Date().toISOString() })); } catch (_) {}
+        return Object.fromEntries(entries);
+    }
+    function applyAdaptiveLanguage(value) {
+        let output = String(value || '');
+        const phrases = loadAdaptiveLanguage().phrases || {};
+        Object.entries(phrases).sort((a,b)=>b[0].length-a[0].length).forEach(([from,to]) => {
+            const source = normalize(from);
+            const target = normalize(to);
+            if (!source || !target) return;
+            const escaped = source.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+            output = output.replace(new RegExp(`(^|\\s)${escaped}(?=\\s|$)`,'g'), (_,lead)=>`${lead}${target}`);
+        });
+        return output.replace(/\s+/g,' ').trim();
+    }
+    function learnedLanguageEntries() {
+        return Object.entries(loadAdaptiveLanguage().phrases || {}).map(([from,to])=>({from,to}));
+    }
     const wakePrefix = /^(?:(?:hey\s+)?(?:skill|skil|sky|skai|skay|escai|es\s*ky|es\s+que))[,;:\s-]*/i;
     function stripWakeWord(value) {
         return text(value).replace(wakePrefix, '').trim();
@@ -127,7 +158,21 @@
             [/\bmandado\b/g, 'lista de compra'], [/\blista del mandado\b/g, 'lista de compra'],
             [/\bmete\b/g, 'agrega'], [/\bdalo de alta\b/g, 'registra'], [/\bda de alta\b/g, 'registra']
         ];
+        replacements.push(
+            [/\b(?:tendrias|tendrías|tiene usted)\s+la\s+amabilidad\s+de\b/g,''],
+            [/\b(?:serias|serías)\s+tan\s+amable\s+de\b/g,''],
+            [/\b(?:quisiera|querria|querría)\s+consultar\b/g,'consulta'],
+            [/\b(?:rifate|rífate|avientate|aviéntate)\s+con\b/g,'ayudame con'],
+            [/\b(?:tirame|tírame|echame|échame)\s+(?:el\s+)?dato\s+de\b/g,'busca'],
+            [/\b(?:echame|échame)\s+(?:la\s+)?esquina\s+con\b/g,'ayudame con'],
+            [/\b(?:carnal|compa|bro|brother|jefe|maestro|viejo)\b(?=\s+(?:busca|revisa|dime|checa|ayudame|échame|echame))/g,''],
+            [/\bque\s+(?:pedo|rollo|onda|show)\s+con\b/g,'estado de'],
+            [/\bcomo\s+esta\s+el\s+asunto\s+de\b/g,'estado de'],
+            [/\bsacame\s+de\s+una\s+duda\b/g,'dime'],
+            [/\bporfis|porfa|plis|please\b/g,'por favor']
+        );
         replacements.forEach(([regex, replacement]) => { output = output.replace(regex, replacement); });
+        output = applyAdaptiveLanguage(output);
         return output.replace(/\s+/g, ' ').trim();
     }
     function levenshtein(a, b) {
@@ -266,7 +311,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=112'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=113'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -786,7 +831,8 @@
         } catch (_) { scheduleHandsFreeListening(250); }
     }
     async function speakCustom(value, preferences = {}) {
-        if(customTtsAvailable===false||navigator.onLine===false||!window.SkilledDB?.synthesizeSkillSpeech)return false;
+        const localTtsConfigured=Boolean(String(window.SKILLED_CONFIG?.skillLocalTtsUrl||'').trim());
+        if(customTtsAvailable===false||(!localTtsConfigured&&navigator.onLine===false)||!window.SkilledDB?.synthesizeSkillSpeech)return false;
         try{
             const alias=text(preferences.presetAlias||getVoicePreferences().presetAlias||'Sarah')||'Sarah';
             const blob=await window.SkilledDB.synthesizeSkillSpeech(value,{voice:alias});
@@ -3009,7 +3055,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=112'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=113'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3682,7 +3728,62 @@
         return{handled:true,voice:message};
     }
 
+    function parseAdaptiveLanguageCommand(raw) {
+        const source = text(raw).replace(/^\s*(?:hey\s+)?(?:skill|skil|sky)[,;:\s-]*/i,'').trim();
+        const listNorm = normalize(source);
+        if (/^(?:que|qué)?\s*(?:expresiones|frases|modismos)\s+(?:has\s+)?aprendid/.test(listNorm) || /^(?:muestra|dime)\s+(?:mis\s+)?(?:expresiones|frases|modismos)\s+aprendid/.test(listNorm)) return { action:'list' };
+        let match = source.match(/^(?:aprende|recuerda)\s+(?:que\s+)?[“"']?(.+?)[”"']?\s+(?:significa|quiere\s+decir|es\s+como|interpreta\s+como)\s+[“"']?(.+?)[”"']?\s*$/i);
+        if (!match) match = source.match(/^cuando\s+(?:yo\s+)?(?:diga|digo)\s+[“"']?(.+?)[”"']?\s+(?:interpreta|entiende|toma|quiero\s+decir|significa)\s+(?:como\s+)?[“"']?(.+?)[”"']?\s*$/i);
+        if (match) return { action:'learn', from:match[1], to:match[2] };
+        match = source.match(/^(?:olvida|borra|elimina)\s+(?:que\s+)?[“"']?(.+?)[”"']?\s*$/i);
+        if (match) return { action:'forget', from:match[1] };
+        return null;
+    }
+    function answerAdaptiveLanguage(raw) {
+        const command = parseAdaptiveLanguageCommand(raw);
+        if (!command) return null;
+        if (command.action === 'list') {
+            const entries = learnedLanguageEntries();
+            if (!entries.length) {
+                const message='Todavía no me has enseñado expresiones personalizadas. Puedes decir: “Skill, aprende que jálalo significa búscalo”.';
+                setAnswer('Lenguaje aprendido',message,'Estas equivalencias se guardan para tu usuario y no cambian tus permisos.');
+                return { handled:true, voice:message };
+            }
+            const cards=entries.slice(0,20).map(item=>({title:item.from,detail:`Lo interpreto como: ${item.to}`}));
+            const message=`Tengo ${entries.length} expresión${entries.length===1?'':'es'} personalizada${entries.length===1?'':'s'} aprendida${entries.length===1?'':'s'} para ti.`;
+            setAnswer('Lenguaje aprendido',message,'Puedes corregirme, enseñarme otra expresión o pedirme que olvide una.',cards);
+            return { handled:true, voice:message };
+        }
+        const from=normalize(command.from).slice(0,120), to=normalize(command.to||'').slice(0,180);
+        if (!from || (command.action==='learn'&&!to)) {
+            const message='Necesito una expresión y el significado que quieres que use.';
+            setAnswer('Enséñame la equivalencia',message,'Ejemplo: “Skill, aprende que jálalo significa búscalo”.');
+            return { handled:true, voice:message };
+        }
+        const data=loadAdaptiveLanguage();
+        if (command.action==='forget') {
+            const key=Object.keys(data.phrases||{}).find(item=>normalize(item)===from);
+            if (key) delete data.phrases[key];
+            saveAdaptiveLanguage(data);
+            const message=key?`Listo. Olvidé la expresión “${command.from}”.`:`No tenía registrada la expresión “${command.from}”.`;
+            setAnswer('Lenguaje actualizado',message);
+            return { handled:true, voice:message };
+        }
+        if (from.length<2 || to.length<2 || from===to) {
+            const message='La equivalencia es demasiado corta o no cambia el significado. Dame una frase un poco más clara.';
+            setAnswer('No guardé la expresión',message);
+            return { handled:true, voice:message };
+        }
+        data.phrases[from]=to;
+        saveAdaptiveLanguage(data);
+        const message=`Entendido. Cuando digas “${command.from}”, lo interpretaré como “${command.to}”.`;
+        setAnswer('Expresión aprendida',message,'La equivalencia se aplica solo a tu experiencia de SKILL y no amplía la información que tu perfil puede consultar.');
+        return { handled:true, voice:message };
+    }
+
     async function answerSimple(raw) {
+        const learnedLanguage=answerAdaptiveLanguage(raw);
+        if(learnedLanguage)return learnedLanguage;
         const norm = commandNormalize(raw);
         const date = localDateParts();
         captureAreaContext(raw);
@@ -4471,13 +4572,14 @@
     function isComplexSkillQuery(raw) {
         const norm=commandNormalize(raw);
         const words=norm.split(' ').filter(Boolean);
-        if(words.length>=14)return true;
+        if(words.length>=12)return true;
         const connectors=(norm.match(/\b(y|pero|ademas|además|tambien|también|aunque|excepto|solo|solamente|mientras|entonces|porque|por que|para que|con|sin|luego|despues|después|de paso|aparte)\b/g)||[]).length;
         const narrative=/\b(mira|te explico|lo que pasa|lo que quiero|lo que necesito|queria preguntarte|quería preguntarte|me puedes ayudar|me podrias ayudar|me podrías ayudar|por ejemplo|en este caso|resulta que|necesito saber si|quisiera saber|a ver si|fijate|fíjate|oye una cosa|tengo una duda|la cosa es que)\b/.test(norm);
         const constraints=(norm.match(/\b(proyecto|folio|proveedor|persona|vehiculo|vehículo|material|suministro|ubicacion|ubicación|fecha|estado|cantidad|marca|modelo|precio|costo|stock|existencia|departamento|area|área|hoy|mañana|semana|mes|antes|despues|después|mayor|menor|solo|excepto|sin)\b/g)||[]).length;
         const multiQuestion=(norm.match(/(?:\?|\b(?:y|ademas|además|tambien|también|de paso)\b)/g)||[]).length>=2;
         const correction=/\b(no[, ]+mejor|mejor dicho|mas bien|más bien|bueno no|perdon|perdón|quise decir|me refiero a)\b/.test(norm);
-        return (words.length>=9&&connectors>=2)||(words.length>=8&&narrative)||(words.length>=10&&constraints>=3)||multiQuestion||correction;
+        const indirect=/\b(?:me\s+harías\s+el\s+favor|tendrias\s+chance|si\s+no\s+es\s+molestia|cuando\s+puedas|a\s+ver\s+si\s+me\s+echas\s+la\s+mano|sin\s+querer\s+abusar|ando\s+buscando|traigo\s+la\s+duda|una\s+preguntilla|rapidin|rapidín|en\s+corto)\b/.test(norm);
+        return (words.length>=8&&connectors>=2)||(words.length>=7&&narrative)||(words.length>=9&&constraints>=3)||multiQuestion||correction||indirect;
     }
 
     function shouldUseSkyAI(raw, profile = detectProfile()) {
@@ -4796,6 +4898,9 @@
             profile: detectProfile,
             registerProfile,
             normalizeSpeech: value => correctRecognizedTranscript(value).corrected,
+            learnedLanguage: learnedLanguageEntries,
+            teachLanguage: (from,to) => { const data=loadAdaptiveLanguage(); const a=normalize(from),b=normalize(to); if(!a||!b)return false; data.phrases[a]=b; saveAdaptiveLanguage(data); return true; },
+            forgetLanguage: from => { const data=loadAdaptiveLanguage(); const a=normalize(from); const key=Object.keys(data.phrases||{}).find(item=>normalize(item)===a); if(!key)return false; delete data.phrases[key]; saveAdaptiveLanguage(data); return true; },
             clearSpeechLearning: () => { try { localStorage.removeItem(speechLearningStorageKey()); } catch (_) {} },
             clearConversation: clearSkyConversation,
             navigate: value => tryNavigation(`abre ${value}`),

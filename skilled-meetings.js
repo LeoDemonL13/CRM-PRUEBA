@@ -22,6 +22,7 @@ let transcript=[];
 let segmentSequence=0;
 let lastSpeakerKey='';
 let currentSpeakerKey='';
+let segmentSpeakerVotes=[];
 let countdownBusy=false;
 let emailBusy=false;
 let saveBusy=false;
@@ -148,7 +149,7 @@ async function start(){
         analyser.fftSize=2048;
         analyser.smoothingTimeConstant=.65;
         sourceNode.connect(analyser);
-        active=true;paused=false;startedAt=Date.now();speechActive=false;featureFrames=[];speakerTimeline=[];lastSpeakerKey='';currentSpeakerKey='';pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;
+        active=true;paused=false;startedAt=Date.now();speechActive=false;featureFrames=[];speakerTimeline=[];lastSpeakerKey='';currentSpeakerKey='';segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;
         setState('Calibrando ambiente','Habla con normalidad; SKILL ajustará el ruido base durante los primeros segundos.');
         document.getElementById('skill-meeting-mic-state').textContent='Micrófono activo';
         document.getElementById('skill-meeting-engine').textContent='Voz · diferenciación local';
@@ -223,9 +224,9 @@ function analyseFrame(){
     const isVoice=rms>threshold;
     if(!speechActive&&!isVoice){noiseFloor=noiseFloor*.94+rms*.06}
     if(isVoice){
-        if(!speechActive){speechActive=true;speechStartedAt=Date.now();featureFrames=[];silenceStartedAt=0;currentSpeakerKey=''}
+        if(!speechActive){speechActive=true;speechStartedAt=Date.now();featureFrames=[];silenceStartedAt=0;currentSpeakerKey='';segmentSpeakerVotes=[]}
         featureFrames.push(features);
-        if(!currentSpeakerKey&&featureFrames.length>=4){const current=clusterSpeaker(aggregateFeatures(featureFrames));currentSpeakerKey=current?.key||''}
+        if(featureFrames.length>=4&&featureFrames.length%4===0){const candidate=classifySpeakerCheckpoint(aggregateFeatures(featureFrames.slice(-8)));if(candidate){segmentSpeakerVotes.push(candidate.key);if(segmentSpeakerVotes.length>18)segmentSpeakerVotes=segmentSpeakerVotes.slice(-18);currentSpeakerKey=majoritySpeakerKey(segmentSpeakerVotes)||candidate.key}}
         silenceStartedAt=0;
     }else if(speechActive){
         if(!silenceStartedAt)silenceStartedAt=Date.now();
@@ -273,6 +274,23 @@ function featureDistance(a,b){
     return Math.sqrt(sum/Math.max(1,weight));
 }
 
+function majoritySpeakerKey(votes){
+    if(!Array.isArray(votes)||!votes.length)return '';
+    const counts=new Map();
+    votes.forEach(key=>{if(key)counts.set(key,(counts.get(key)||0)+1)});
+    return [...counts.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+}
+
+function classifySpeakerCheckpoint(signature){
+    if(!signature)return null;
+    if(!speakers.length)return ensureSpeaker('Voz 1',signature);
+    const ranked=speakers.map(speaker=>({speaker,distance:featureDistance(signature,speaker.signature)})).sort((a,b)=>a.distance-b.distance);
+    const best=ranked[0];
+    const threshold=best?.speaker?.samples>=8?.17:.205;
+    if(best&&best.distance<=threshold)return best.speaker;
+    return null;
+}
+
 function clusterSpeaker(signature){
     if(!signature){return ensureSpeaker('Voz 1',signature)}
     if(!speakers.length)return ensureSpeaker('Voz 1',signature);
@@ -299,13 +317,17 @@ function ensureSpeaker(label,signature){
 function finalizeSpeakerSegment(endAt){
     if(!speechActive)return;
     const signature=aggregateFeatures(featureFrames);
-    let speaker=currentSpeakerKey?speakers.find(item=>item.key===currentSpeakerKey):null;
-    if(!speaker)speaker=clusterSpeaker(signature);
-    else if(signature){speaker.samples+=1;speaker.signature=speaker.signature?speaker.signature.map((value,index)=>value*.9+signature[index]*.1):signature.slice()}
-    speakerTimeline.push({speakerKey:speaker.key,start:speechStartedAt,end:endAt});
-    if(speakerTimeline.length>40)speakerTimeline=speakerTimeline.slice(-40);
+    const finalCandidate=clusterSpeaker(signature);
+    if(finalCandidate)segmentSpeakerVotes.push(finalCandidate.key);
+    const winnerKey=majoritySpeakerKey(segmentSpeakerVotes)||currentSpeakerKey||finalCandidate?.key||'';
+    let speaker=speakers.find(item=>item.key===winnerKey)||finalCandidate||speakers[0]||ensureSpeaker('Voz 1',signature);
+    if(signature&&speaker!==finalCandidate){speaker.samples+=1;speaker.signature=speaker.signature?speaker.signature.map((value,index)=>value*.92+signature[index]*.08):signature.slice()}
+    const votes=segmentSpeakerVotes.filter(Boolean);const winnerVotes=votes.filter(key=>key===speaker.key).length;
+    const speakerConfidence=votes.length?winnerVotes/votes.length:0;
+    speakerTimeline.push({speakerKey:speaker.key,start:speechStartedAt,end:endAt,confidence:speakerConfidence});
+    if(speakerTimeline.length>60)speakerTimeline=speakerTimeline.slice(-60);
     lastSpeakerKey=speaker.key;
-    speechActive=false;featureFrames=[];silenceStartedAt=0;speechStartedAt=0;currentSpeakerKey='';
+    speechActive=false;featureFrames=[];segmentSpeakerVotes=[];silenceStartedAt=0;speechStartedAt=0;currentSpeakerKey='';
 }
 
 function startRecognition(){
@@ -326,7 +348,7 @@ function startRecognition(){
     };
     recognition.onerror=event=>{if(['no-speech','aborted'].includes(event.error))return;document.getElementById('skill-meeting-engine').textContent=`Texto · ${event.error||'error'}`};
     recognition.onend=()=>{if(active&&!paused)window.setTimeout(()=>{try{recognition?.start()}catch(_){}},250)};
-    try{recognition.start();document.getElementById('skill-meeting-engine').textContent='Voz · sincronización de hablante V112'}catch(_){}
+    try{recognition.start();document.getElementById('skill-meeting-engine').textContent='Voz · votación de hablante V113'}catch(_){}
 }
 
 function speakerForTimestamp(at,tentativeKey=''){
@@ -446,7 +468,7 @@ async function saveMinutes(){
     }catch(error){setState('No se pudo guardar',error?.message||'Revisa la conexión y SQL_MAESTRO_CRM.sql.')}finally{saveBusy=false;if(button){button.disabled=false;button.textContent='Guardar minuta'}}
 }
 
-function reset(){if(active)return false;speakers=[];transcript=[];speakerTimeline=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;segmentSequence=0;lastSpeakerKey='';currentSpeakerKey='';startedAt=0;renderSpeakers();renderTranscript();refreshSummary();setState('Reunión detenida','Pulsa Iniciar para calibrar el micrófono.');document.getElementById('skill-meeting-clock').textContent='00:00';return true}
+function reset(){if(active)return false;speakers=[];transcript=[];speakerTimeline=[];segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;segmentSequence=0;lastSpeakerKey='';currentSpeakerKey='';startedAt=0;renderSpeakers();renderTranscript();refreshSummary();setState('Reunión detenida','Pulsa Iniciar para calibrar el micrófono.');document.getElementById('skill-meeting-clock').textContent='00:00';return true}
 
 window.SkilledMeetings=Object.freeze({open,close,start,startWithCountdown,stop,reset,isActive:()=>active,getTranscript:()=>transcript.map(row=>({...row})),getSpeakers:()=>speakers.map(({signature,...speaker})=>({...speaker}))});
 })();
