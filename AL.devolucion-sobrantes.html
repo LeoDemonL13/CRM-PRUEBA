@@ -2,32 +2,32 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<script src="skilled-config.js?v=115"></script>
+<script src="skilled-config.js?v=116"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=115" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=115">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=115">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=115">
-<link rel="manifest" href="/site.webmanifest?v=115">
+<link rel="icon" href="/favicon.ico?v=116" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=116">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=116">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=116">
+<link rel="manifest" href="/site.webmanifest?v=116">
 <meta name="application-name" content="Skilled CRM">
 <meta name="apple-mobile-web-app-title" content="Skilled CRM">
 <title>Skilled - Devolución de sobrantes</title>
-<link rel="stylesheet" href="interfaz.css?v=115">
-<script src="skilled-theme.js?v=115"></script>
-<script src="navegacion-suave.js?v=115"></script>
+<link rel="stylesheet" href="interfaz.css?v=116">
+<script src="skilled-theme.js?v=116"></script>
+<script src="navegacion-suave.js?v=116"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-<script src="skilled-supabase.js?v=115"></script>
-<script src="auth-guard.js?v=115"></script>
-<link rel="stylesheet" href="tailwind-local.css?v=115">
+<script src="skilled-supabase.js?v=116"></script>
+<script src="auth-guard.js?v=116"></script>
+<link rel="stylesheet" href="tailwind-local.css?v=116">
 <style>
 .surplus-hero{position:relative;overflow:hidden;border:1px solid #1b3154;border-radius:18px;background:linear-gradient(135deg,rgba(0,65,107,.24),rgba(7,12,24,.98) 58%,rgba(234,0,41,.055));padding:22px}.surplus-hero:after{content:"";position:absolute;width:330px;height:330px;border:1px solid rgba(96,165,250,.11);border-radius:50%;right:-120px;top:-205px}.surplus-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#66b5e7}.surplus-title{margin-top:5px;color:#f8fafc;font-size:25px;font-weight:900;letter-spacing:-.02em}.surplus-copy{margin-top:6px;max-width:900px;color:#8191aa;font-size:11px;line-height:1.65}.surplus-card{border:1px solid #1b2947;border-radius:15px;background:#090f1d;overflow:hidden;box-shadow:0 12px 34px rgba(0,0,0,.08)}.surplus-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #172540;background:linear-gradient(110deg,rgba(0,65,107,.11),transparent 58%)}.surplus-head h2{color:#f8fafc;font-size:13px;font-weight:900}.surplus-head p{margin-top:3px;color:#6e7f99;font-size:9px;line-height:1.5}.surplus-body{padding:15px 16px}.surplus-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.surplus-kpi{border:1px solid #223454;border-radius:12px;background:#0a1324;padding:11px 12px;min-width:0}.surplus-kpi span{display:block;color:#687994;font-size:8px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.surplus-kpi b{display:block;margin-top:6px;color:#f8fafc;font-size:20px;font-weight:950}.surplus-note{border:1px solid rgba(59,130,246,.24);border-radius:12px;background:rgba(30,64,175,.08);padding:11px 12px;color:#91a7c6;font-size:9px;line-height:1.55}.surplus-empty{display:grid;place-items:center;min-height:210px;text-align:center;color:#62718a;padding:28px}.surplus-empty strong{display:block;color:#c9d5e7;font-size:12px}.surplus-empty span{display:block;margin-top:5px;max-width:560px;font-size:9px;line-height:1.55}.surplus-table th{font-size:8px!important;text-transform:uppercase;letter-spacing:.08em;color:#64748b!important}.surplus-row td{vertical-align:middle}.surplus-row[data-disabled="1"]{opacity:.56}.surplus-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#83c7ff;font-size:9px;font-weight:900}.surplus-desc{color:#e5edf9;font-size:10px;font-weight:800}.surplus-meta{margin-top:3px;color:#667792;font-size:8px}.surplus-chip{display:inline-flex;align-items:center;border:1px solid #274168;border-radius:999px;padding:4px 7px;background:#0b172d;color:#8cb7f7;font-size:8px;font-weight:850}.surplus-chip.good{border-color:rgba(52,211,153,.25);background:rgba(6,78,59,.12);color:#6ee7b7}.surplus-chip.warn{border-color:rgba(245,158,11,.28);background:rgba(120,53,15,.12);color:#fbbf24}.surplus-qty{width:120px;min-width:100px;text-align:right}.surplus-summary{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;border-top:1px solid #172540;padding:14px 16px;background:#070d18}.surplus-selected{color:#b8c8dd;font-size:10px}.surplus-selected b{color:#fff;font-size:14px}.surplus-success{border:1px solid rgba(52,211,153,.32);border-radius:13px;background:rgba(6,78,59,.14);padding:13px 14px;color:#a7f3d0;font-size:10px;line-height:1.55}.surplus-error{border:1px solid rgba(244,63,94,.32);border-radius:13px;background:rgba(127,29,29,.14);padding:13px 14px;color:#fecdd3;font-size:10px;line-height:1.55}.tema-claro .surplus-hero,.tema-claro .surplus-card,.tema-claro .surplus-kpi{background:#fff!important;border-color:#d9e2ef!important}.tema-claro .surplus-title,.tema-claro .surplus-head h2,.tema-claro .surplus-kpi b,.tema-claro .surplus-desc{color:#0f172a!important}.tema-claro .surplus-copy,.tema-claro .surplus-head p{color:#64748b!important}@media(max-width:900px){.surplus-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.surplus-kpis{grid-template-columns:1fr 1fr}.surplus-hero{padding:17px}.surplus-title{font-size:21px}.surplus-qty{width:92px}}
 </style>
-<script src="skilled-search.js?v=115"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='115',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();})();</script>
-<link rel="stylesheet" href="crm-v83-design.css?v=115">
+<script src="skilled-search.js?v=116"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='116',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();})();</script>
+<link rel="stylesheet" href="crm-v83-design.css?v=116">
 </head>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
 <script>(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}</script>
@@ -42,11 +42,11 @@
 <section class="surplus-card"><div class="surplus-head"><div><h2>3 · Confirmar devolución</h2><p>El movimiento se registra como devolución/traspaso de sobrante del proyecto hacia el almacén seleccionado.</p></div><a href="AL.historial-movimientos.html" class="crm-secondary py-2">Ver historial</a></div><div class="surplus-body"><label class="crm-label">Motivo / notas<textarea id="reason" rows="3" class="field mt-2" placeholder="Ej. Cierre del proyecto 26041. Regreso de material sobrante sin utilizar."></textarea></label><div id="status" class="mt-3 hidden"></div><div class="mt-4 flex items-center justify-end gap-3"><button id="return" type="button" class="crm-primary" disabled>Registrar devolución de sobrantes</button></div></div></section>
 </main>
 </div>
-<script src="AL.stock-proyectos.js?v=115"></script>
-<script src="skilled-sidebar.js?v=115" defer></script>
-<script src="AL.devolucion-sobrantes.js?v=115" defer></script>
-<script src="crm-v78-fixes.js?v=115" defer></script>
-<script src="skilled-performance.js?v=115" defer></script>
-<script src="crm-v83-shell.js?v=115" defer></script>
+<script src="AL.stock-proyectos.js?v=116"></script>
+<script src="skilled-sidebar.js?v=116" defer></script>
+<script src="AL.devolucion-sobrantes.js?v=116" defer></script>
+<script src="crm-v78-fixes.js?v=116" defer></script>
+<script src="skilled-performance.js?v=116" defer></script>
+<script src="crm-v83-shell.js?v=116" defer></script>
 </body>
 </html>

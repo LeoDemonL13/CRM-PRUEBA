@@ -235,41 +235,8 @@ async function guardarPlanHerramientasProyectoV14(){
 }
 function abrirAsignacionHerramientasProyectoV14(){if(!proyectoActual)return;location.href=`AL.asignaciones-herramientas.html?proyecto=${encodeURIComponent(proyectoActual.proyecto)}&nueva=1`}
 async function descargarReporteAlcancePdfV14(){
-    const preview=document.getElementById('reporte-alcance-preview');
-    if(!preview||preview.classList.contains('hidden'))return alert('No hay materiales visibles para generar el reporte.');
-    if(!window.html2canvas||!window.jspdf?.jsPDF)return alert('No se pudo cargar el generador de PDF. Recarga la página.');
-    const button=[...document.querySelectorAll('button')].find(item=>item.getAttribute('onclick')==='descargarReporteAlcancePdfV14()');
-    const previous=button?.textContent;
-    if(button){button.disabled=true;button.textContent='Generando PDF...'}
-    try{
-        const canvas=await html2canvas(preview,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,windowWidth:preview.scrollWidth,windowHeight:preview.scrollHeight});
-        const {jsPDF}=window.jspdf;
-        const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'letter',compress:true});
-        const pageWidth=215.9;
-        const pageHeight=279.4;
-        const margin=8;
-        const printableWidth=pageWidth-margin*2;
-        const printableHeight=pageHeight-margin*2;
-        const pixelsPerMm=canvas.width/printableWidth;
-        const sliceHeight=Math.floor(printableHeight*pixelsPerMm);
-        let offset=0;
-        let page=0;
-        while(offset<canvas.height){
-            const height=Math.min(sliceHeight,canvas.height-offset);
-            const pageCanvas=document.createElement('canvas');
-            pageCanvas.width=canvas.width;
-            pageCanvas.height=height;
-            pageCanvas.getContext('2d').drawImage(canvas,0,offset,canvas.width,height,0,0,canvas.width,height);
-            if(page>0)doc.addPage();
-            const imageHeight=height/pixelsPerMm;
-            doc.addImage(pageCanvas.toDataURL('image/jpeg',.94),'JPEG',margin,margin,printableWidth,imageHeight,undefined,'FAST');
-            offset+=height;
-            page++;
-            pageCanvas.width=1;pageCanvas.height=1;
-        }
-        const name=`Reporte_Alcance_${textoSeguro(proyectoActual?.proyecto||'proyecto').replace(/[^a-z0-9_-]+/gi,'_')}.pdf`;
-        doc.save(name);
-    }catch(error){console.error(error);alert(`No se pudo generar el PDF: ${error.message}`)}finally{if(button){button.disabled=false;button.textContent=previous||'Descargar PDF'}}
+    if(typeof window.descargarReporteAlcancePdfV16==='function')return window.descargarReporteAlcancePdfV16();
+    alert('El generador de PDF todavía no terminó de cargar. Espera un momento y vuelve a intentar.');
 }
 const abrirProyectoAnteriorV14=abrirProyecto;
 abrirProyecto=async function(){const result=await abrirProyectoAnteriorV14.apply(this,arguments);await cargarHerramientasProyectoV14();return result};
@@ -296,10 +263,11 @@ document.getElementById('modal-plan-herramientas-proyecto-v14')?.addEventListene
 const BRAND={navy:'FF003763',blue:'FF00416B',red:'FFEA0029',slate:'FF7588A5',light:'FFDBE3EF',border:'FF8AA0BF',white:'FFFFFFFF',soft:'FFF5F8FC'};
 const text=value=>String(value??'').trim();
 const safeName=value=>text(value).replace(/[^a-z0-9_-]+/gi,'_')||'proyecto';
-function loadScript(src,test){return new Promise((resolve,reject)=>{if(test())return resolve();const existing=[...document.scripts].find(script=>script.src===src);if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return}const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(new Error(`No se pudo cargar ${src}`));document.head.appendChild(script)})}
-async function ensureExcel(){await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',()=>Boolean(window.ExcelJS))}
-async function ensurePdf(){await Promise.all([loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',()=>Boolean(window.html2canvas)),loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',()=>Boolean(window.jspdf?.jsPDF))])}
-async function logoBase64(){try{const response=await fetch('logo-reporte.png',{cache:'no-store'});if(!response.ok)throw new Error();const blob=await response.blob();return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)})}catch(error){try{const response=await fetch('logo-reporte.png',{mode:'cors'});if(!response.ok)throw new Error();const blob=await response.blob();return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)})}catch(_){return''}}}
+function withTimeout(promise,ms,message){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(message||'La operación tardó demasiado.')),ms))])}
+function loadScript(src,test,timeoutMs=8000){return new Promise((resolve,reject)=>{try{if(test())return resolve();[...document.scripts].filter(script=>script.src===src).forEach(script=>script.remove())}catch(_){}const script=document.createElement('script');let settled=false;const finish=(error)=>{if(settled)return;settled=true;clearTimeout(timer);if(error){script.remove();reject(error)}else resolve()};script.src=src;script.async=true;script.onload=()=>test()?finish():finish(new Error(`El recurso cargó, pero no quedó disponible: ${src}`));script.onerror=()=>finish(new Error(`No se pudo cargar ${src}`));const timer=setTimeout(()=>finish(new Error(`Tiempo agotado al cargar ${src}`)),timeoutMs);document.head.appendChild(script)})}
+async function ensureExcel(){await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',()=>Boolean(window.ExcelJS),9000)}
+async function ensurePdf(){await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',()=>Boolean(window.jspdf?.jsPDF),9000);await loadScript('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js',()=>{try{const Ctor=window.jspdf?.jsPDF;return Boolean(Ctor&&Ctor.API&&typeof Ctor.API.autoTable==='function')}catch(_){return false}},9000)}
+async function logoBase64(){try{const response=await withTimeout(fetch('logo-reporte.png',{cache:'force-cache'}),2500,'El logo tardó demasiado.');if(!response.ok)throw new Error();const blob=await response.blob();return await withTimeout(new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)}),2000,'No se pudo preparar el logo.')}catch(_){return''}}
 function selectedData(){return typeof datosReporteSeleccionados==='function'?datosReporteSeleccionados():[]}
 function selectedColumns(){const preferred=['planeado','entregado','sobrantes'];try{return preferred.filter(column=>reporteColumnasSeleccionadas.has(column))}catch(error){return preferred}}
 function labelColumn(column){return column==='planeado'?'Planeado':column==='entregado'?'Entregado':'Sobrantes'}
@@ -335,17 +303,70 @@ sheet.headerFooter.oddFooter='&LSkilled Proyectos Industriales&CReporte de alcan
 const buffer=await workbook.xlsx.writeBuffer();const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=`Reporte_Alcance_${safeName(projectValue('proyecto','idProyecto'))}.xlsx`;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }catch(error){console.error(error);alert(`No se pudo generar el Excel: ${error.message}`)}finally{if(button){button.disabled=false;button.textContent=previous||'Descargar Excel'}}
 }
-async function waitImages(root){const images=[...root.querySelectorAll('img')];await Promise.all(images.map(image=>image.complete?Promise.resolve():new Promise(resolve=>{image.onload=resolve;image.onerror=resolve})));if(document.fonts?.ready)await document.fonts.ready}
+function metricValue(item,metric){const amount=Number(item?.[metric]||0);const unit=text(item?.unidad);return `${Number.isFinite(amount)?amount.toLocaleString('es-MX',{maximumFractionDigits:2}):'0'}${unit?` ${unit}`:''}`}
+function rgb(hex){const raw=String(hex||'').replace(/^FF/,'').replace('#','').slice(-6);return[parseInt(raw.slice(0,2),16)||0,parseInt(raw.slice(2,4),16)||0,parseInt(raw.slice(4,6),16)||0]}
+function addReportHeader(doc,logo,orientation){
+    const pageWidth=doc.internal.pageSize.getWidth();
+    const navy=rgb(BRAND.navy),blue=rgb(BRAND.blue),red=rgb(BRAND.red),slate=rgb(BRAND.slate);
+    if(logo){try{doc.addImage(logo,'PNG',12,8,42,12,undefined,'FAST')}catch(_){doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...blue);doc.text('SKILLED',12,15)}}else{doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...blue);doc.text('SKILLED PROYECTOS INDUSTRIALES',12,15)}
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(...navy);doc.text('REPORTE DE ALCANCE',pageWidth-12,13,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...slate);doc.text(`Proyecto ${projectValue('proyecto','idProyecto')} · ${projectValue('nombreProyecto','nombre_proyecto')}`,pageWidth-12,18,{align:'right'});
+    doc.setDrawColor(...blue);doc.setLineWidth(.55);doc.line(12,23,pageWidth-12,23);doc.setDrawColor(...red);doc.setLineWidth(.8);doc.line(12,24,pageWidth-12,24);
+}
+function addReportFooter(doc){
+    const pages=doc.getNumberOfPages();const slate=rgb(BRAND.slate),blue=rgb(BRAND.blue);
+    for(let page=1;page<=pages;page+=1){doc.setPage(page);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();doc.setDrawColor(...blue);doc.setLineWidth(.2);doc.line(12,h-10,w-12,h-10);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...slate);doc.text('Skilled Proyectos Industriales · Reporte de alcance',12,h-6);doc.text(`Página ${page} de ${pages}`,w-12,h-6,{align:'right'})}
+}
 async function exportPdf(){
-const preview=document.getElementById('reporte-alcance-preview');if(!preview||preview.classList.contains('hidden'))return alert('No hay materiales visibles para generar el reporte.');
-const button=[...document.querySelectorAll('button')].find(item=>String(item.getAttribute('onclick')||'').includes('descargarReporteAlcancePdf'));
-const previous=button?.textContent;if(button){button.disabled=true;button.textContent='Generando PDF…'}
-let host;
-try{await ensurePdf();const logo=await logoBase64();host=document.createElement('div');host.style.cssText='position:fixed;left:-20000px;top:0;width:1040px;background:#fff;z-index:-1;';const clone=preview.cloneNode(true);clone.id='reporte-alcance-export-v1215';clone.classList.remove('hidden');clone.style.cssText='width:1040px;max-width:none;min-height:0;border:0;border-radius:0;padding:38px;background:#fff;color:#003763;box-shadow:none;';clone.querySelectorAll('.reporte-categorias').forEach(node=>{node.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';node.style.gap='28px'});if(logo)clone.querySelectorAll('img').forEach(image=>{image.src=logo});host.appendChild(clone);document.body.appendChild(host);await waitImages(clone);const canvas=await html2canvas(clone,{scale:2.2,backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,width:1040,height:clone.scrollHeight,windowWidth:1200,windowHeight:clone.scrollHeight+100});const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'letter',compress:true});const pageWidth=215.9,pageHeight=279.4,margin=7,printableWidth=pageWidth-margin*2,printableHeight=pageHeight-margin*2,pixelsPerMm=canvas.width/printableWidth,sliceHeight=Math.floor(printableHeight*pixelsPerMm);let offset=0,page=0;while(offset<canvas.height){const height=Math.min(sliceHeight,canvas.height-offset);const slice=document.createElement('canvas');slice.width=canvas.width;slice.height=height;const ctx=slice.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,offset,canvas.width,height,0,0,canvas.width,height);if(page>0)doc.addPage();doc.addImage(slice.toDataURL('image/jpeg',.96),'JPEG',margin,margin,printableWidth,height/pixelsPerMm,undefined,'FAST');offset+=height;page+=1;slice.width=1;slice.height=1}doc.save(`Reporte_Alcance_${safeName(projectValue('proyecto','idProyecto'))}.pdf`);canvas.width=1;canvas.height=1}catch(error){console.error(error);alert(`No se pudo generar el PDF: ${error.message}`)}finally{host?.remove();if(button){button.disabled=false;button.textContent=previous||'Descargar PDF'}}
+    const data=selectedData();const columns=selectedColumns();
+    if(!data.length||!columns.length)return alert('Selecciona al menos un material y una columna antes de descargar el reporte.');
+    const button=[...document.querySelectorAll('button')].find(item=>String(item.getAttribute('onclick')||'').includes('descargarReporteAlcancePdf'));
+    const previous=button?.textContent;if(button){button.disabled=true;button.textContent='Preparando PDF…'}
+    try{
+        await withTimeout(ensurePdf(),20000,'No se pudo iniciar el generador de PDF. Revisa la conexión y vuelve a intentar.');
+        const {jsPDF}=window.jspdf;
+        const orientation=columns.length>=3?'landscape':'portrait';
+        const doc=new jsPDF({orientation,unit:'mm',format:'letter',compress:true,putOnlyUsedFonts:true});
+        if(typeof doc.autoTable!=='function')throw new Error('El módulo de tablas PDF no quedó disponible.');
+        const logo=await logoBase64();
+        const navy=rgb(BRAND.navy),blue=rgb(BRAND.blue),red=rgb(BRAND.red),slate=rgb(BRAND.slate),light=rgb(BRAND.light),border=rgb(BRAND.border);
+        const pageWidth=doc.internal.pageSize.getWidth(),pageHeight=doc.internal.pageSize.getHeight();
+        addReportHeader(doc,logo,orientation);
+        let y=31;
+        const meta=[
+            ['Proyecto',projectValue('proyecto','idProyecto')],['Nombre',projectValue('nombreProyecto','nombre_proyecto')],
+            ['Cliente',projectValue('cliente')],['Orden de compra',projectValue('ordenCompra','orden_compra')],
+            ['Planta',projectValue('planta')],['Nave',projectValue('nave')],['Responsable',projectValue('responsableSkilled','responsable_skilled')],
+            ['Periodo',`${projectValue('fechaAsignacion','fecha_asignacion')} - ${projectValue('fechaEntrega','fecha_entrega')}`]
+        ];
+        const metaRows=[];for(let i=0;i<meta.length;i+=2){const a=meta[i],b=meta[i+1]||['',''];metaRows.push([a[0],a[1],b[0],b[1]])}
+        doc.autoTable({startY:y,margin:{left:12,right:12,top:29,bottom:15},body:metaRows,theme:'grid',styles:{font:'helvetica',fontSize:7.6,cellPadding:1.7,textColor:navy,lineColor:border,lineWidth:.15,valign:'middle'},columnStyles:{0:{fontStyle:'bold',fillColor:light,cellWidth:24},1:{cellWidth:(pageWidth-24-24-24)/2},2:{fontStyle:'bold',fillColor:light,cellWidth:24},3:{cellWidth:'auto'}},didDrawPage:()=>addReportHeader(doc,logo,orientation)});
+        y=(doc.lastAutoTable?.finalY||y)+5;
+        doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...slate);
+        doc.text(`${data.length} material${data.length===1?'':'es'} · Columnas: ${columns.map(labelColumn).join(', ')} · Generado ${new Date().toLocaleString('es-MX')}`,12,y);
+        y+=5;
+        const groups=new Map();data.forEach(item=>{const category=text(item.categoria)||'SIN CATEGORÍA';if(!groups.has(category))groups.set(category,[]);groups.get(category).push(item)});
+        let categoryIndex=0;
+        for(const [category,items] of groups){
+            if(y>pageHeight-34){doc.addPage();addReportHeader(doc,logo,orientation);y=31}
+            doc.setFillColor(...navy);doc.roundedRect(12,y,pageWidth-24,7,1.2,1.2,'F');doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);doc.text(`${category.toUpperCase()} · ${items.length} material${items.length===1?'':'es'}`,15,y+4.7);y+=9;
+            const head=[['#','Código','Descripción',...columns.map(labelColumn)]];
+            const body=items.map((item,index)=>[index+1,text(item.codigo)||'—',text(item.descripcion)||'—',...columns.map(metric=>metricValue(item,metric))]);
+            const styles={font:'helvetica',fontSize:orientation==='landscape'?7.2:7,cellPadding:1.55,textColor:navy,lineColor:border,lineWidth:.12,valign:'middle',overflow:'linebreak'};
+            const colStyles={0:{halign:'center',cellWidth:8,textColor:slate},1:{cellWidth:orientation==='landscape'?31:27,fontStyle:'bold'},2:{cellWidth:'auto'}};
+            columns.forEach((metric,index)=>{const color=rgb(columnColor(metric));colStyles[index+3]={halign:'center',cellWidth:orientation==='landscape'?31:27,textColor:color,fontStyle:'bold'}});
+            doc.autoTable({startY:y,head,body,theme:'grid',margin:{left:12,right:12,top:29,bottom:15},styles,columnStyles:colStyles,headStyles:{fillColor:light,textColor:navy,fontStyle:'bold',halign:'center',lineColor:border,lineWidth:.15},alternateRowStyles:{fillColor:[247,249,252]},rowPageBreak:'avoid',showHead:'everyPage',didDrawPage:()=>addReportHeader(doc,logo,orientation)});
+            y=(doc.lastAutoTable?.finalY||y)+5;categoryIndex+=1;
+        }
+        addReportFooter(doc);
+        if(button)button.textContent='Descargando…';
+        doc.save(`Reporte_Alcance_${safeName(projectValue('proyecto','idProyecto'))}.pdf`);
+    }catch(error){console.error('PDF alcance V116',error);alert(`No se pudo generar el PDF: ${error.message||error}`)}finally{if(button){button.disabled=false;button.textContent=previous||'Descargar PDF'}}
 }
 window.descargarReporteExcel=exportExcel;
 window.descargarReporteAlcancePdfV14=exportPdf;
 window.descargarReporteAlcancePdfV15=exportPdf;
+window.descargarReporteAlcancePdfV16=exportPdf;
 })();
 
 (function(){
