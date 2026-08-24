@@ -5945,6 +5945,11 @@
         if (!row.negocio || !row.producto) throw new Error('El negocio y el producto son obligatorios.');
         if (row.estado === 'no_viable' && !row.motivo_no_viable) throw new Error('Captura el motivo por el que no se puede realizar la compra.');
         const id = Number(payload.id || 0);
+        if (id) {
+            const { data: current, error: currentError } = await client.from('co_tienda_solicitudes').select('cantidad_recibida,estado').eq('id', id).maybeSingle();
+            assertNoError(currentError, 'No se pudo validar el estado de la lista de tienda.');
+            if (current && (number(current.cantidad_recibida) > 0 || text(current.estado) === 'comprado')) throw new Error('Esta lista ya tiene recepción registrada y no puede editarse. Consulta la hoja de compra o recibe únicamente lo pendiente.');
+        }
         const query = id ? client.from('co_tienda_solicitudes').update(row).eq('id', id) : client.from('co_tienda_solicitudes').insert(row);
         const { data, error } = await query.select('*').single();
         assertNoError(error, 'No se pudo guardar la solicitud de tienda.');

@@ -11382,3 +11382,50 @@ select 'OK' as estado,
        'CRM-V121-RECEPCION-QR-FIRMA-CATALOGO-COMPLETO-2026-08-24' as revision,
        case when to_regclass('public.re_solicitudes_suministros') is not null then 'OK' else 'FALTA' end as solicitudes,
        case when to_regclass('public.re_suministros') is not null then 'OK' else 'FALTA' end as suministros;
+
+
+begin;
+
+create or replace function public.re_tienda_bloquear_edicion_tras_recepcion_v122()
+returns trigger
+language plpgsql
+as $$
+begin
+  if coalesce(old.cantidad_recibida,0)>0 and (
+    new.folio is distinct from old.folio or
+    new.negocio is distinct from old.negocio or
+    new.producto is distinct from old.producto or
+    new.marca_especifica is distinct from old.marca_especifica or
+    new.presentacion is distinct from old.presentacion or
+    (new.suministro_id is distinct from old.suministro_id and not (coalesce(new.cantidad_recibida,0)>coalesce(old.cantidad_recibida,0))) or
+    new.cantidad is distinct from old.cantidad or
+    new.unidad is distinct from old.unidad or
+    new.moneda is distinct from old.moneda or
+    new.fecha_requerida is distinct from old.fecha_requerida or
+    new.prioridad is distinct from old.prioridad or
+    new.solicitado_por is distinct from old.solicitado_por or
+    new.responsable_compra is distinct from old.responsable_compra or
+    new.motivo_no_viable is distinct from old.motivo_no_viable or
+    new.comprobante_url is distinct from old.comprobante_url or
+    new.notas is distinct from old.notas
+  ) then
+    raise exception 'La lista ya tiene recepción física registrada y no puede editarse.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_re_tienda_bloquear_edicion_tras_recepcion_v122 on public.co_tienda_solicitudes;
+create trigger trg_re_tienda_bloquear_edicion_tras_recepcion_v122
+before update on public.co_tienda_solicitudes
+for each row execute function public.re_tienda_bloquear_edicion_tras_recepcion_v122();
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V122-RECEPCION-TIENDA-CIERRE-INMUTABLE-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V122-RECEPCION-TIENDA-CIERRE-INMUTABLE-2026-08-24' as revision;
