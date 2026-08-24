@@ -4840,6 +4840,54 @@
         return data || {};
     }
 
+    async function getMySigningSignature(signatureSlot = null) {
+        const rawSlot = Number(signatureSlot || 0);
+        const selectedSlot = rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null;
+        try {
+            const { data, error } = await client.rpc('crm_mi_firma_para_documento_v130', { p_slot:selectedSlot });
+            if (error) throw error;
+            const options = (Array.isArray(data?.opciones) ? data.opciones : []).map(item => ({
+                slot:Number(item?.slot || 0),
+                nombre:text(item?.nombre) || `Firma ${Number(item?.slot || 0) || ''}`,
+                configurada:Boolean(item?.configurada),
+                predeterminada:Boolean(item?.predeterminada)
+            })).filter(item => item.slot >= 1 && item.slot <= 3);
+            return {
+                configurada:Boolean(data?.configurada || data?.firma_data_url),
+                slot:Number(data?.slot || 0),
+                nombre:text(data?.nombre),
+                firmaDataUrl:text(data?.firma_data_url),
+                actualizadaAt:text(data?.actualizada_at),
+                predeterminadaSlot:Number(data?.predeterminada_slot || 0),
+                predeterminada:Boolean(data?.predeterminada),
+                opciones:options,
+                fuente:'v130'
+            };
+        } catch (_) {
+            const result = await getMySignatures();
+            const options = (result?.firmas || []).map(item => ({
+                slot:Number(item?.slot || 0),
+                nombre:text(item?.nombre) || `Firma ${Number(item?.slot || 0) || ''}`,
+                configurada:Boolean(item?.configurada || item?.firmaDataUrl),
+                predeterminada:Boolean(item?.predeterminada)
+            })).filter(item => item.slot >= 1 && item.slot <= 3);
+            const preferred = Number(result?.predeterminadaSlot || options.find(item => item.predeterminada && item.configurada)?.slot || options.find(item => item.configurada)?.slot || 1);
+            const wanted = selectedSlot || preferred;
+            const row = (result?.firmas || []).find(item => Number(item?.slot) === wanted) || (result?.firmas || []).find(item => item?.configurada || item?.firmaDataUrl) || {};
+            return {
+                configurada:Boolean(row?.configurada || row?.firmaDataUrl),
+                slot:Number(row?.slot || wanted || 1),
+                nombre:text(row?.nombre) || `Firma ${Number(row?.slot || wanted || 1)}`,
+                firmaDataUrl:text(row?.firmaDataUrl),
+                actualizadaAt:text(row?.actualizadaAt),
+                predeterminadaSlot:preferred,
+                predeterminada:Number(row?.slot || 0) === preferred,
+                opciones:options,
+                fuente:'compatibilidad'
+            };
+        }
+    }
+
     async function saveMySignature(signatureDataUrl = '') {
         return saveMySignatureSlot(1, 'Firma 1', signatureDataUrl);
     }
@@ -7432,6 +7480,7 @@
         saveUiPreferences,
         getMySignature,
         getMySignatures,
+        getMySigningSignature,
         saveMySignature,
         saveMySignatureSlot,
         setMyDefaultSignature,

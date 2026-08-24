@@ -12662,3 +12662,86 @@ commit;
 select
   case when to_regprocedure('public.co_estado_firmas_orden_v129(text)') is not null then 'OK' else 'FALTA' end as estado_firmas_v129,
   case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v129(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v129;
+
+
+-- CRM-V130-FIRMA-RAPIDA-PREDETERMINADA-AUTORITATIVA-2026-08-24
+begin;
+
+create or replace function public.crm_mi_firma_para_documento_v130(p_slot integer default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_profile public.perfiles_usuario%rowtype;
+  v_default integer;
+  v_slot integer;
+  v_signature text;
+  v_name text;
+  v_at timestamptz;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'No se encontró un perfil activo para esta cuenta.'; end if;
+
+  v_default:=coalesce(v_profile.firma_predeterminada_slot,1);
+  if (v_default=1 and nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is null)
+     or (v_default=2 and nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'') is null)
+     or (v_default=3 and nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'') is null) then
+    v_default:=case
+      when nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is not null then 1
+      when nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'') is not null then 2
+      when nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'') is not null then 3
+      else 1
+    end;
+  end if;
+
+  v_slot:=coalesce(p_slot,v_default);
+  if v_slot not between 1 and 3 then raise exception 'La firma seleccionada no es válida.'; end if;
+  if v_slot=1 then
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_data_url,'')),'');
+    v_name:=coalesce(nullif(btrim(v_profile.firma_1_nombre),''),'Firma 1');
+    v_at:=v_profile.firma_actualizada_at;
+  elsif v_slot=2 then
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'');
+    v_name:=coalesce(nullif(btrim(v_profile.firma_2_nombre),''),'Firma 2');
+    v_at:=v_profile.firma_2_actualizada_at;
+  else
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'');
+    v_name:=coalesce(nullif(btrim(v_profile.firma_3_nombre),''),'Firma 3');
+    v_at:=v_profile.firma_3_actualizada_at;
+  end if;
+
+  return jsonb_build_object(
+    'configurada',v_signature is not null,
+    'slot',v_slot,
+    'nombre',v_name,
+    'firma_data_url',coalesce(v_signature,''),
+    'actualizada_at',v_at,
+    'predeterminada_slot',v_default,
+    'predeterminada',v_slot=v_default,
+    'opciones',jsonb_build_array(
+      jsonb_build_object('slot',1,'nombre',coalesce(nullif(btrim(v_profile.firma_1_nombre),''),'Firma 1'),'configurada',nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is not null,'predeterminada',v_default=1 and nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is not null),
+      jsonb_build_object('slot',2,'nombre',coalesce(nullif(btrim(v_profile.firma_2_nombre),''),'Firma 2'),'configurada',nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'') is not null,'predeterminada',v_default=2 and nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'') is not null),
+      jsonb_build_object('slot',3,'nombre',coalesce(nullif(btrim(v_profile.firma_3_nombre),''),'Firma 3'),'configurada',nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'') is not null,'predeterminada',v_default=3 and nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'') is not null)
+    )
+  );
+end;
+$$;
+
+revoke all on function public.crm_mi_firma_para_documento_v130(integer) from public,anon;
+grant execute on function public.crm_mi_firma_para_documento_v130(integer) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V130-FIRMA-RAPIDA-PREDETERMINADA-AUTORITATIVA-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+  'OK' as estado,
+  'CRM-V130-FIRMA-RAPIDA-PREDETERMINADA-AUTORITATIVA-2026-08-24' as revision,
+  case when to_regprocedure('public.crm_mi_firma_para_documento_v130(integer)') is not null then 'OK' else 'FALTA' end as firma_rapida_v130;
