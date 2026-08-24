@@ -43,6 +43,8 @@ numero:index+1,
 codigo:text(item.codigo??item.materialCodigo??item.material_codigo??item.producto?.codigo),
 descripcion:text(item.descripcion??item.desc??item.producto?.descripcion??item.producto?.desc),
 marca:text(item.marca??item.producto?.marca),
+codigoMarca:text(item.codigoMarca??item.codigo_marca??item.modelo??item.producto?.codigoMarca??item.producto?.codigo_marca??item.producto?.modelo),
+modelo:text(item.codigoMarca??item.codigo_marca??item.modelo??item.producto?.codigoMarca??item.producto?.codigo_marca??item.producto?.modelo),
 categoria:text(item.categoria??item.producto?.categoria),
 unidad:text(item.unidad??item.producto?.unidad),
 cantidad:number(item.cantidadPendiente??item.pendiente??item.cantidad??item.cantidadSolicitada??item.cantidad_solicitada),
@@ -85,7 +87,7 @@ prioridad:text(data.prioridad)||'normal',
 solicitadoPor:text(data.solicitadoPor),
 notas:text(data.notas),
 destinoTipo:text(data.destinoTipo)||(!text(data.proyecto)?'almacen_general':'proyecto'),
-materiales:items.map(item=>({codigo:item.codigo,descripcion:item.descripcion,marca:item.marca,categoria:item.categoria,unidad:item.unidad,cantidad:item.cantidad,precio:item.precio,moneda:item.moneda,plazoEntregaDias:item.plazoEntregaDias,almacen:item.almacen,almacenId:item.almacenId,existencia:item.existencia,minimo:item.minimo,medio:item.medio,maximo:item.maximo,solicitudCompraId:item.solicitudCompraId,folioSolicitud:item.folioSolicitud,cantidadSolicitada:item.cantidadSolicitada,cantidadRecibida:item.cantidadRecibida,cantidadPendiente:item.cantidadPendiente}))
+materiales:items.map(item=>({codigo:item.codigo,descripcion:item.descripcion,marca:item.marca,codigoMarca:item.codigoMarca,modelo:item.modelo,categoria:item.categoria,unidad:item.unidad,cantidad:item.cantidad,precio:item.precio,moneda:item.moneda,plazoEntregaDias:item.plazoEntregaDias,almacen:item.almacen,almacenId:item.almacenId,existencia:item.existencia,minimo:item.minimo,medio:item.medio,maximo:item.maximo,solicitudCompraId:item.solicitudCompraId,folioSolicitud:item.folioSolicitud,cantidadSolicitada:item.cantidadSolicitada,cantidadRecibida:item.cantidadRecibida,cantidadPendiente:item.cantidadPendiente}))
 };
 const encoded=encodePayload(payload);
 const marker=`SKILLED_OC_JSON_BEGIN ${encoded} SKILLED_OC_JSON_END`;
@@ -103,7 +105,7 @@ const subtotal=items.reduce((sum,item)=>sum+(number(item.precio)*number(item.can
 doc.autoTable({
 startY:69,
 head:[['Pos','Descripción','Modelo','T.E.','Cant.','UM','PU','Total']],
-body:items.map(item=>[String(item.numero).padStart(2,'0'),item.descripcion,item.codigo,item.plazoEntregaDias||'—',number(item.cantidad).toLocaleString('es-MX'),item.unidad||'PIEZA',number(item.precio).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}),number(item.precio*item.cantidad).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})]),
+body:items.map(item=>[String(item.numero).padStart(2,'0'),item.descripcion,item.codigoMarca||item.modelo||'—',item.plazoEntregaDias||'—',number(item.cantidad).toLocaleString('es-MX'),item.unidad||'PIEZA',number(item.precio).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}),number(item.precio*item.cantidad).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})]),
 margin:{left:14,right:14},
 styles:{font:'helvetica',fontSize:6.9,cellPadding:2.1,textColor:[35,66,91],lineColor:[190,198,207],lineWidth:.12,valign:'middle',overflow:'linebreak'},
 headStyles:{fillColor:[239,241,243],textColor:[0,65,107],fontStyle:'bold',fontSize:7},
@@ -114,7 +116,7 @@ didDrawPage:()=>{const page=doc.internal.getNumberOfPages();const height=doc.int
 let y=doc.lastAutoTable.finalY+5;if(y>214){doc.addPage();y=20}
 doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(0,65,107);doc.text(`Moneda: ${currency}`,14,y+4);doc.text('Condiciones de pago:',14,y+11);doc.setFont('helvetica','normal');doc.text(text(data.condicionesPago)||'Por definir',45,y+11);doc.setFont('helvetica','bold');doc.text('Ubicación de entrega:',14,y+18);doc.setFont('helvetica','normal');doc.text(text(data.ubicacionEntrega)||text(items[0]?.almacen)||'Por definir',48,y+18,{maxWidth:100});doc.setFont('helvetica','bold');doc.text('Comentarios y/o observaciones:',14,y+25);doc.setFont('helvetica','normal');doc.text(text(data.notas)||'Ninguna',59,y+25,{maxWidth:91});
 const tx=156,tw=40;doc.setDrawColor(180,190,200);doc.setFillColor(248,249,250);doc.rect(tx,y,tw,28,'FD');[['Sub total:',subtotal],['IVA:',iva],['Total:',total]].forEach((row,index)=>{const yy=y+7+index*8;doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);doc.text(row[0],tx+2,yy);doc.setTextColor(234,0,41);doc.text(`$ ${number(row[1]).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}`,tx+tw-2,yy,{align:'right'})});
-let sy=y+34;if(sy>249){doc.addPage();sy=22}const signatureTypes=['solicito','elaboro','reviso','aprobo'];const signatureLabels={solicito:'Solicitó:',elaboro:'Elaboró:',reviso:'Revisó:',aprobo:'Aprobó:'};const signatures=Array.isArray(data.firmas)?data.firmas:[];const boxW=45.5,boxH=32;signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,sy,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,sy+5);if(row.firmaDataUrl){try{const props=doc.getImageProperties(row.firmaDataUrl),maxW=boxW-8,maxH=14,ratio=Math.max(.1,Number(props?.width||1)/Math.max(1,Number(props?.height||1)));let iw=maxW,ih=iw/ratio;if(ih>maxH){ih=maxH;iw=ih*ratio}doc.addImage(row.firmaDataUrl,'PNG',x+(boxW-iw)/2,sy+7+(maxH-ih)/2,iw,ih,undefined,'FAST')}catch(_){}}doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,sy+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,sy+29,{align:'center'})}});
+let sy=y+34;if(sy>249){doc.addPage();sy=22}const signatureTypes=['solicito','elaboro','reviso','aprobo'];const signatureLabels={solicito:'Solicitó:',elaboro:'Elaboró:',reviso:'Revisó:',aprobo:'Aprobó:'};const signatures=Array.isArray(data.firmas)?data.firmas:[];const boxW=45.5,boxH=32;signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,sy,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,sy+5);if(row.firmaDataUrl){try{const props=doc.getImageProperties(row.firmaDataUrl),maxW=boxW-8,maxH=14,ratio=Math.max(.1,Number(props?.width||1)/Math.max(1,Number(props?.height||1)));let iw=maxW,ih=iw/ratio;if(ih>maxH){ih=maxH;iw=ih*ratio}doc.addImage(row.firmaDataUrl,'PNG',x+(boxW-iw)/2,sy+7+(maxH-ih)/2,iw,ih,undefined,'FAST')}catch(_){}}doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,sy+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,sy+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,sy+29,{align:'center'})}});
 doc.setTextColor(255,255,255);doc.setFontSize(.1);doc.text(`SKILLED_OC_NUMERO:${order}`,1,296,{maxWidth:208});
 const filename=`OC_${safe(order)}.pdf`;
 const blob=doc.output('blob');
@@ -186,6 +188,8 @@ return{
 codigo:text(request.materialCodigo),
 descripcion:text(request.descripcion)||text(original.descripcion),
 marca:text(original.marca),
+codigoMarca:text(request.codigoMarcaModelo??request.codigo_marca_modelo??original.codigoMarca??original.codigo_marca??original.modelo),
+modelo:text(request.codigoMarcaModelo??request.codigo_marca_modelo??original.codigoMarca??original.codigo_marca??original.modelo),
 categoria:text(request.categoria)||text(original.categoria),
 unidad:text(request.unidad)||text(original.unidad),
 cantidad:pending,

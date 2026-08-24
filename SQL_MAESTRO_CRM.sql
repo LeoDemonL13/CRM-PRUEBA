@@ -11650,3 +11650,416 @@ on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 notify pgrst,'reload schema';
 commit;
+
+
+begin;
+
+alter table public.solicitudes_compra
+    add column if not exists codigo_marca_modelo text;
+
+update public.solicitudes_compra s
+   set codigo_marca_modelo=nullif(btrim(m.codigo_marca),'')
+  from public.materiales m
+ where lower(btrim(coalesce(s.material_codigo,'')))=lower(btrim(m.codigo))
+   and coalesce(btrim(s.orden_compra),btrim(s.grupo_orden),'')<>''
+   and nullif(btrim(coalesce(s.codigo_marca_modelo,'')),'') is null;
+
+create or replace function public.co_fijar_codigo_marca_modelo_v124()
+returns trigger
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=coalesce(nullif(btrim(new.orden_compra),''),nullif(btrim(new.grupo_orden),''),'');
+  v_model text;
+begin
+  if v_order='' then
+    new.codigo_marca_modelo:=null;
+    return new;
+  end if;
+
+  if tg_op='UPDATE'
+     and old.material_codigo is not distinct from new.material_codigo
+     and nullif(btrim(coalesce(old.codigo_marca_modelo,'')),'') is not null then
+    new.codigo_marca_modelo:=old.codigo_marca_modelo;
+    return new;
+  end if;
+
+  select nullif(btrim(m.codigo_marca),'')
+    into v_model
+    from public.materiales m
+   where lower(btrim(m.codigo))=lower(btrim(coalesce(new.material_codigo,'')))
+   limit 1;
+
+  new.codigo_marca_modelo:=v_model;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_co_fijar_codigo_marca_modelo_v124 on public.solicitudes_compra;
+create trigger trg_co_fijar_codigo_marca_modelo_v124
+before insert or update on public.solicitudes_compra
+for each row execute function public.co_fijar_codigo_marca_modelo_v124();
+
+create table if not exists public.co_orden_autoria (
+    orden_key text primary key,
+    orden_compra text not null,
+    elaborada_por uuid not null references auth.users(id) on delete restrict,
+    elaborada_por_nombre text not null,
+    elaborada_at timestamptz not null default now(),
+    origen text not null default 'automatico',
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+alter table public.co_orden_autoria add column if not exists origen text not null default 'automatico';
+alter table public.co_orden_autoria enable row level security;
+revoke all on public.co_orden_autoria from public,anon,authenticated;
+
+insert into public.co_orden_autoria(
+    orden_key,orden_compra,elaborada_por,elaborada_por_nombre,elaborada_at,origen,created_at,updated_at
+)
+select distinct on (lower(btrim(f.orden_compra)))
+       lower(btrim(f.orden_compra)),
+       btrim(f.orden_compra),
+       f.user_id,
+       f.nombre,
+       f.firmado_at,
+       'firma_v123',
+       f.firmado_at,
+       now()
+  from public.co_orden_firmas f
+ where f.tipo='elaboro'
+   and nullif(btrim(f.orden_compra),'') is not null
+ order by lower(btrim(f.orden_compra)),f.firmado_at asc
+on conflict(orden_key) do nothing;
+
+create or replace function public.co_registrar_autoria_orden_trigger_v124()
+returns trigger
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_new_order text:=coalesce(nullif(btrim(new.orden_compra),''),nullif(btrim(new.grupo_orden),''),'');
+  v_old_order text:='';
+  v_new_key text;
+  v_old_key text;
+  v_old_auth public.co_orden_autoria%rowtype;
+  v_new_auth public.co_orden_autoria%rowtype;
+  v_profile public.perfiles_usuario%rowtype;
+begin
+  if tg_op='UPDATE' then
+    v_old_order:=coalesce(nullif(btrim(old.orden_compra),''),nullif(btrim(old.grupo_orden),''),'');
+    if lower(v_old_order)=lower(v_new_order) then return new; end if;
+  end if;
+
+  if v_new_order='' then
+    if tg_op='UPDATE' and v_old_order<>'' then
+      v_old_key:=lower(v_old_order);
+      if not exists(
+        select 1 from public.solicitudes_compra s
+         where s.id<>old.id
+           and lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=v_old_key
+      ) then
+        delete from public.co_orden_autoria where orden_key=v_old_key;
+      end if;
+    end if;
+    return new;
+  end if;
+
+  v_new_key:=lower(v_new_order);
+  select * into v_new_auth from public.co_orden_autoria where orden_key=v_new_key;
+
+  if tg_op='UPDATE' and v_old_order<>'' then
+    v_old_key:=lower(v_old_order);
+    select * into v_old_auth from public.co_orden_autoria where orden_key=v_old_key;
+
+    if v_old_auth.orden_key is not null then
+      if v_new_auth.orden_key is null then
+        insert into public.co_orden_autoria(
+          orden_key,orden_compra,elaborada_por,elaborada_por_nombre,elaborada_at,origen,created_at,updated_at
+        ) values(
+          v_new_key,v_new_order,v_old_auth.elaborada_por,v_old_auth.elaborada_por_nombre,
+          v_old_auth.elaborada_at,v_old_auth.origen,now(),now()
+        );
+      elsif v_new_auth.elaborada_por<>v_old_auth.elaborada_por then
+        raise exception 'No se puede combinar la orden % con %, porque pertenecen a elaboradores distintos.',v_old_order,v_new_order;
+      end if;
+
+      if not exists(
+        select 1 from public.solicitudes_compra s
+         where s.id<>old.id
+           and lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=v_old_key
+      ) then
+        delete from public.co_orden_autoria where orden_key=v_old_key;
+      end if;
+      return new;
+    end if;
+  end if;
+
+  if v_new_auth.orden_key is not null then return new; end if;
+  if auth.uid() is null then return new; end if;
+
+  select * into v_profile
+    from public.perfiles_usuario
+   where id=auth.uid()
+     and activo=true
+     and rol in ('administrador','compras')
+   limit 1;
+  if not found then return new; end if;
+
+  insert into public.co_orden_autoria(
+    orden_key,orden_compra,elaborada_por,elaborada_por_nombre,elaborada_at,origen,created_at,updated_at
+  ) values(
+    v_new_key,v_new_order,auth.uid(),
+    coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),
+    now(),'automatico',now(),now()
+  )
+  on conflict(orden_key) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_co_registrar_autoria_orden_v124 on public.solicitudes_compra;
+create trigger trg_co_registrar_autoria_orden_v124
+after insert or update of orden_compra,grupo_orden on public.solicitudes_compra
+for each row execute function public.co_registrar_autoria_orden_trigger_v124();
+
+create or replace function public.co_autoria_orden_v124(p_orden text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_row public.co_orden_autoria%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_order='' then return jsonb_build_object('configurada',false); end if;
+
+  select * into v_row
+    from public.co_orden_autoria
+   where orden_key=lower(v_order);
+
+  if not found then
+    return jsonb_build_object(
+      'configurada',false,
+      'orden_compra',v_order,
+      'es_mia',false
+    );
+  end if;
+
+  return jsonb_build_object(
+    'configurada',true,
+    'orden_compra',v_row.orden_compra,
+    'user_id',v_row.elaborada_por,
+    'nombre',v_row.elaborada_por_nombre,
+    'elaborada_at',v_row.elaborada_at,
+    'origen',v_row.origen,
+    'es_mia',v_row.elaborada_por=auth.uid()
+  );
+end;
+$$;
+
+create or replace function public.co_registrar_elaborador_legacy_v124(p_orden text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_key text:=lower(v_order);
+  v_profile public.perfiles_usuario%rowtype;
+  v_existing public.co_orden_autoria%rowtype;
+  v_signed public.co_orden_firmas%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if not public.crm_usuario_tiene_rol(array['administrador','compras']) then
+    raise exception using errcode='42501',message='Solo Compras o Administrador puede registrar el elaborador de una orden anterior.';
+  end if;
+  if v_order='' then raise exception 'La orden de compra no tiene número.'; end if;
+  if not exists(
+    select 1 from public.solicitudes_compra s
+     where lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=v_key
+  ) then raise exception 'No se encontró la orden de compra %.',v_order; end if;
+
+  select * into v_existing from public.co_orden_autoria where orden_key=v_key;
+  if found then
+    if v_existing.elaborada_por<>auth.uid() then
+      raise exception 'Esta orden ya está asociada a % como elaborador.',v_existing.elaborada_por_nombre;
+    end if;
+    return jsonb_build_object(
+      'ok',true,'orden_compra',v_existing.orden_compra,'user_id',v_existing.elaborada_por,
+      'nombre',v_existing.elaborada_por_nombre,'elaborada_at',v_existing.elaborada_at
+    );
+  end if;
+
+  select * into v_signed
+    from public.co_orden_firmas
+   where lower(btrim(orden_compra))=v_key
+     and tipo='elaboro'
+   limit 1;
+  if found and v_signed.user_id<>auth.uid() then
+    raise exception 'El espacio Elaboró ya fue firmado por %. Esa cuenta debe conservarse como elaborador.',v_signed.nombre;
+  end if;
+
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'Tu perfil no está activo.'; end if;
+
+  insert into public.co_orden_autoria(
+    orden_key,orden_compra,elaborada_por,elaborada_por_nombre,elaborada_at,origen,created_at,updated_at
+  ) values(
+    v_key,v_order,auth.uid(),coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),
+    now(),'legacy_declarado',now(),now()
+  );
+
+  return jsonb_build_object(
+    'ok',true,'orden_compra',v_order,'user_id',auth.uid(),
+    'nombre',coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),
+    'elaborada_at',now()
+  );
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v124(p_orden text,p_tipo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_type text:=lower(btrim(coalesce(p_tipo,'')));
+  v_profile public.perfiles_usuario%rowtype;
+  v_existing public.co_orden_firmas%rowtype;
+  v_row public.co_orden_firmas%rowtype;
+  v_author public.co_orden_autoria%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_order='' then raise exception 'La orden de compra no tiene número.'; end if;
+  if v_type not in ('solicito','elaboro','reviso','aprobo') then raise exception 'El tipo de firma no es válido.'; end if;
+
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'Tu perfil no está activo.'; end if;
+  if nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is null then
+    raise exception 'Primero configura tu firma en Mi perfil > Firma.';
+  end if;
+
+  if not exists(
+    select 1 from public.solicitudes_compra s
+    where lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=lower(v_order)
+  ) then raise exception 'No se encontró la orden de compra %.',v_order; end if;
+
+  if v_type='elaboro' then
+    select * into v_author from public.co_orden_autoria where orden_key=lower(v_order);
+    if not found then
+      raise exception 'Esta orden es anterior a V124 y no tiene elaborador registrado. Compras debe registrar primero quién la elaboró.';
+    end if;
+    if v_author.elaborada_por<>auth.uid() then
+      raise exception 'El recuadro Elaboró pertenece a %. Solo esa cuenta puede aprobarlo y colocar su propia firma.',v_author.elaborada_por_nombre;
+    end if;
+  end if;
+
+  select * into v_existing
+    from public.co_orden_firmas
+   where lower(btrim(orden_compra))=lower(v_order)
+     and tipo=v_type
+   limit 1;
+
+  if found and v_existing.user_id<>auth.uid() then
+    raise exception 'El espacio % ya fue aprobado y firmado por otra cuenta.',v_type;
+  end if;
+
+  insert into public.co_orden_firmas(orden_compra,tipo,nombre,firma_data_url,user_id,firmado_at,updated_at)
+  values(
+    v_order,v_type,coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),
+    v_profile.firma_data_url,auth.uid(),now(),now()
+  )
+  on conflict(orden_compra,tipo) do update
+    set nombre=excluded.nombre,
+        firma_data_url=excluded.firma_data_url,
+        user_id=excluded.user_id,
+        firmado_at=excluded.firmado_at,
+        updated_at=excluded.updated_at
+    where public.co_orden_firmas.user_id=auth.uid()
+  returning * into v_row;
+
+  if v_row.id is null then raise exception 'No se pudo registrar la aprobación.'; end if;
+
+  return jsonb_build_object(
+    'ok',true,'id',v_row.id,'orden_compra',v_row.orden_compra,'tipo',v_row.tipo,
+    'nombre',v_row.nombre,'user_id',v_row.user_id,'firmado_at',v_row.firmado_at
+  );
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v123(p_orden text,p_tipo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+begin
+  return public.co_firmar_orden_con_mi_firma_v124(p_orden,p_tipo);
+end;
+$$;
+
+revoke all on function public.co_autoria_orden_v124(text) from public,anon;
+revoke all on function public.co_registrar_elaborador_legacy_v124(text) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v124(text,text) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v123(text,text) from public,anon;
+
+grant execute on function public.co_autoria_orden_v124(text) to authenticated;
+grant execute on function public.co_registrar_elaborador_legacy_v124(text) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v124(text,text) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v123(text,text) to authenticated;
+
+create or replace function public.co_limpiar_autoria_orden_v124()
+returns trigger
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=coalesce(nullif(btrim(old.orden_compra),''),nullif(btrim(old.grupo_orden),''),'');
+  v_key text:=lower(v_order);
+begin
+  if v_order='' then return old; end if;
+  if not exists(
+    select 1 from public.solicitudes_compra s
+     where lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=v_key
+  ) then
+    delete from public.co_orden_autoria where orden_key=v_key;
+    delete from public.co_orden_firmas where lower(btrim(orden_compra))=v_key;
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists trg_co_limpiar_autoria_orden_v124 on public.solicitudes_compra;
+create trigger trg_co_limpiar_autoria_orden_v124
+after delete on public.solicitudes_compra
+for each row execute function public.co_limpiar_autoria_orden_v124();
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V124-OC-MODELO-CATALOGO-AUTORIA-ELABORO-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select
+  'OK' as estado,
+  'CRM-V124-OC-MODELO-CATALOGO-AUTORIA-ELABORO-2026-08-24' as revision,
+  case when exists(
+    select 1 from information_schema.columns
+     where table_schema='public' and table_name='solicitudes_compra' and column_name='codigo_marca_modelo'
+  ) then 'OK' else 'FALTA' end as modelo_oc,
+  case when to_regclass('public.co_orden_autoria') is not null then 'OK' else 'FALTA' end as autoria_oc,
+  case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v124(text,text)') is not null then 'OK' else 'FALTA' end as firma_elaboro_segura;

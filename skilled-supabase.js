@@ -2563,6 +2563,8 @@
             folio: text(row.folio),
             materialCodigo: text(row.material_codigo),
             codigo: text(row.material_codigo),
+            codigoMarcaModelo: text(row.codigo_marca_modelo),
+            codigo_marca_modelo: text(row.codigo_marca_modelo),
             descripcion: text(row.descripcion),
             categoria: text(row.categoria),
             unidad: text(row.unidad),
@@ -2717,6 +2719,8 @@
                 categoria: text(row.categoria) || text(material.categoria),
                 unidad: text(row.unidad) || text(material.unidad),
                 descripcion: text(row.descripcion) || text(material.descripcion ?? material.desc),
+                codigoMarcaModelo: text(row.codigo_marca_modelo) || text(material.codigoMarca ?? material.codigo_marca),
+                codigo_marca_modelo: text(row.codigo_marca_modelo) || text(material.codigoMarca ?? material.codigo_marca),
                 material
             };
         });
@@ -4717,9 +4721,39 @@
         return data || {};
     }
 
+    async function getPurchaseOrderAuthorship(order) {
+        const value = text(order);
+        if (!value) return { configurada:false, ordenCompra:'', userId:'', nombre:'', elaboradaAt:'', esMia:false };
+        const { data, error } = await client.rpc('co_autoria_orden_v124', { p_orden:value });
+        assertNoError(error, 'No se pudo consultar quién elaboró la orden. Ejecuta SQL_MAESTRO_CRM.sql de V124.');
+        return {
+            configurada: Boolean(data?.configurada),
+            ordenCompra: text(data?.orden_compra || value),
+            userId: text(data?.user_id),
+            nombre: text(data?.nombre),
+            elaboradaAt: text(data?.elaborada_at),
+            origen: text(data?.origen),
+            esMia: Boolean(data?.es_mia)
+        };
+    }
+
+    async function claimLegacyPurchaseOrderAuthorship(order) {
+        const value = text(order);
+        if (!value) throw new Error('La orden de compra no tiene número.');
+        const { data, error } = await client.rpc('co_registrar_elaborador_legacy_v124', { p_orden:value });
+        assertNoError(error, 'No se pudo registrar el elaborador de esta orden anterior.');
+        return {
+            ok: Boolean(data?.ok),
+            ordenCompra: text(data?.orden_compra || value),
+            userId: text(data?.user_id),
+            nombre: text(data?.nombre),
+            elaboradaAt: text(data?.elaborada_at)
+        };
+    }
+
     async function approvePurchaseOrderWithMySignature(order, type) {
-        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v123', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
-        assertNoError(error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V123.');
+        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v124', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
+        assertNoError(error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V124.');
         return data || {};
     }
 
@@ -7219,6 +7253,8 @@
         saveUiPreferences,
         getMySignature,
         saveMySignature,
+        getPurchaseOrderAuthorship,
+        claimLegacyPurchaseOrderAuthorship,
         approvePurchaseOrderWithMySignature,
         removeMyPurchaseOrderSignature,
         reopenPurchaseOrderForChanges,
