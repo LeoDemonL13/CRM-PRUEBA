@@ -227,6 +227,11 @@
     let activeQuestion = '';
     let answerSequence = 0;
     let recognition = null;
+    let BrowserRecognitionCtor = null;
+    let recognitionGeneration = 0;
+    let recognitionStartGuardTimer = null;
+    let browserVoiceFailureStreak = 0;
+    let browserVoiceTurnCount = 0;
     let recognitionPhraseBiasDisabled = true;
     let listening = false;
     let recognitionStarting = false;
@@ -271,6 +276,7 @@
     const aiQueryCache = new Map();
     let aiRetryAfter = 0;
     let queryBusy = false;
+    let queryStartedAt = 0;
     let prewarmProfile = '';
     let handsFreeEnabled = localStorage.getItem('skilled_sky_handsfree') === '1';
     let handsFreeTimer = null;
@@ -280,6 +286,16 @@
     function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
     function rememberTurn(user='',assistant=''){const u=text(user).slice(0,420),a=text(assistant).slice(0,520);if(!u&&!a)return;conversationContext.turns=Array.isArray(conversationContext.turns)?conversationContext.turns:[];conversationContext.turns.push({user:u,assistant:a});if(conversationContext.turns.length>8)conversationContext.turns=conversationContext.turns.slice(-8);saveConversationContext()}
     const ttl = 45000;
+    const SKILL_DATA_TIMEOUT_MS = 12000;
+    const SKILL_AI_TIMEOUT_MS = 14000;
+    const SKILL_TTS_TIMEOUT_MS = 10000;
+    function skillWithTimeout(promise, ms, label='operación') {
+        let timer;
+        const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(Object.assign(new Error(`Skill agotó el tiempo de espera de ${label}.`), { code:'skill_timeout' })), ms);
+        });
+        return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+    }
 
     function styles() {
         if (document.getElementById('sky-style-v72')) return;
@@ -311,7 +327,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=116'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=118'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -581,7 +597,7 @@
                 setVoiceEngine('cloud');
                 setStatus('Listo para consultar. Skill Voz avanzada está disponible.');
                 setHeard('micrófono listo');
-            } else if (desktopBrave && recognition) {
+            } else if (desktopBrave && BrowserRecognitionCtor) {
                 setVoiceEngine('browser', 'Voz · navegador / Groq');
                 setStatus('Skill por texto está listo. En Brave se probará primero la voz avanzada y, si no está disponible, el reconocimiento compatible del navegador.');
                 setHeard('micrófono listo');
@@ -589,7 +605,7 @@
                 setVoiceEngine('automatico', 'Voz · requiere Groq');
                 setStatus(cloudVoiceProblemMessage() || 'Skill por texto está listo. En Brave de escritorio la voz requiere Skill Voz avanzada.', 'error');
                 setHeard('voz avanzada no disponible');
-            } else if (recognition) {
+            } else if (BrowserRecognitionCtor) {
                 setVoiceEngine('browser');
                 setStatus('Listo para consultar. El micrófono usará el reconocimiento del navegador.');
                 setHeard('micrófono listo');
@@ -599,7 +615,7 @@
                 setHeard('consulta por texto disponible');
             }
         }).catch(() => {
-            if (recognition) setVoiceEngine('browser');
+            if (BrowserRecognitionCtor) setVoiceEngine('browser');
         });
         setTimeout(() => transcriptInput?.focus(), 60);
     }
@@ -835,7 +851,7 @@
         if(customTtsAvailable===false||(!localTtsConfigured&&navigator.onLine===false)||!window.SkilledDB?.synthesizeSkillSpeech)return false;
         try{
             const alias=text(preferences.presetAlias||getVoicePreferences().presetAlias||'Sarah')||'Sarah';
-            const blob=await window.SkilledDB.synthesizeSkillSpeech(value,{voice:alias});
+            const blob=await skillWithTimeout(window.SkilledDB.synthesizeSkillSpeech(value,{voice:alias}),SKILL_TTS_TIMEOUT_MS,'la voz personalizada');
             if(!(blob instanceof Blob)||blob.size<100)return false;
             try{customTtsAudio?.pause()}catch(_){}
             if(customTtsUrl){try{URL.revokeObjectURL(customTtsUrl)}catch(_){}}
@@ -1141,8 +1157,10 @@
     function clearVoiceTimers() {
         if (silenceTimer) clearTimeout(silenceTimer);
         if (hardStopTimer) clearTimeout(hardStopTimer);
+        if (recognitionStartGuardTimer) clearTimeout(recognitionStartGuardTimer);
         silenceTimer = null;
         hardStopTimer = null;
+        recognitionStartGuardTimer = null;
     }
 
     function scheduleVoiceStop(delay = 1250) {
@@ -1364,7 +1382,7 @@
     }
 
     function showVoiceSetupState() {
-        if (recognition) {
+        if (BrowserRecognitionCtor) {
             setVoiceEngine('browser');
             setStatus('Usando el reconocimiento de voz del navegador. Skill Voz avanzada queda como respaldo.');
             setHeard('micrófono listo');
@@ -1432,7 +1450,7 @@
                 const wait = Math.max(60000, Number(error?.retryAfterMs) || 0);
                 cloudRetryAfter = Date.now() + wait;
                 try { sessionStorage.setItem('skilled_sky_cloud_retry_after', String(cloudRetryAfter)); } catch (_) {}
-                if (recognition) {
+                if (BrowserRecognitionCtor) {
                     setVoiceEngine('browser');
                     setStatus('Groq alcanzó un límite temporal. Skill cambiará al reconocimiento del navegador hasta que la cuota se restablezca.', 'error');
                     setHeard('pulsa el micrófono y habla nuevamente');
@@ -1581,43 +1599,43 @@
         }
     }
 
-    function setupRecognition() {
-        const BrowserRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const Recognition = BrowserRecognition;
-        if (!Recognition) {
-            recognition = null;
-            micButton.disabled = false;
-            micButton.title = 'Hablar con Skill';
-            setVoiceEngine('automatico');
-            setHeard('voz avanzada disponible si está configurada');
-            micButton.addEventListener('click', () => listening || recognitionStarting ? finishListening() : startListening());
-            return;
-        }
-        recognition = new Recognition();
-        recognition.lang = 'es-MX';
-        recognition.interimResults = true;
-        recognition.continuous = !/iPad|iPhone|iPod/.test(navigator.userAgent);
-        recognition.maxAlternatives = 10;
-        recognition.onstart = () => {
+    function buildBrowserRecognition() {
+        if (!BrowserRecognitionCtor) return null;
+        const engine = new BrowserRecognitionCtor();
+        const generation = ++recognitionGeneration;
+        recognition = engine;
+        engine.lang = 'es-MX';
+        engine.interimResults = true;
+        engine.continuous = !/iPad|iPhone|iPod/.test(navigator.userAgent);
+        engine.maxAlternatives = 10;
+        engine.onstart = () => {
+            if (generation !== recognitionGeneration || recognition !== engine) return;
+            if (recognitionStartGuardTimer) clearTimeout(recognitionStartGuardTimer);
+            recognitionStartGuardTimer = null;
             recognitionStarting = false;
             listening = true;
             voiceHadError = false;
-            setVoiceEngine('browser');
+            browserVoiceFailureStreak = 0;
+            browserVoiceTurnCount += 1;
+            setVoiceEngine('browser', `Voz · navegador · turno ${browserVoiceTurnCount}`);
             setVoiceMeter(true, .35);
             micButton.classList.add('is-listening');
             document.getElementById('sky-open')?.classList.add('is-listening');
-            setStatus('Escuchando. Habla normalmente y haz una pausa al terminar…', 'busy');
+            setStatus('Escuchando. Habla normalmente; Skill renovará el motor de voz en cada pregunta.', 'busy');
             setHeard('escuchando…', 'live');
             setInterpreted('');
             clearVoiceTimers();
             hardStopTimer = setTimeout(() => {
-                if (!listening) return;
+                if (!listening || recognition !== engine) return;
                 voiceShouldSubmit = true;
-                try { recognition.stop(); } catch (_) {}
+                try { engine.stop(); } catch (_) {}
             }, 24000);
         };
-        recognition.onspeechstart = () => setStatus('Te escucho…', 'busy');
-        recognition.onresult = event => {
+        engine.onspeechstart = () => {
+            if (generation === recognitionGeneration) setStatus('Te escucho…', 'busy');
+        };
+        engine.onresult = event => {
+            if (generation !== recognitionGeneration || recognition !== engine) return;
             const chosen = bestTranscriptFromResults(event.results);
             voiceBest = chosen.best;
             voiceAlternatives = chosen.alternatives;
@@ -1638,6 +1656,7 @@
                 if (result?.[0] && Number.isFinite(Number(result[0].confidence)) && Number(result[0].confidence) > 0) { confidenceTotal += Number(result[0].confidence); confidenceCount += 1; }
             }
             voiceConfidence = confidenceCount ? confidenceTotal / confidenceCount : 0;
+            if (combined) browserVoiceFailureStreak = 0;
             setVoiceMeter(true, Math.max(.28, voiceConfidence || .45));
             const correctedBundle = correctRecognizedTranscript(combined);
             voiceInterpretedTranscript = correctedBundle.corrected || combined;
@@ -1645,54 +1664,67 @@
             setHeard(combined || 'escuchando…', hasInterim ? 'live' : 'final');
             if (combined && commandNormalize(combined) !== commandNormalize(voiceInterpretedTranscript)) setInterpreted(voiceInterpretedTranscript, recognitionQualityLabel(recognitionCandidateScore(combined), voiceConfidence, correctedBundle.changeRatio));
             else setInterpreted('');
-            scheduleVoiceStop(hasInterim ? 2450 : 1900);
+            scheduleVoiceStop(hasInterim ? 2600 : 1950);
         };
-        recognition.onspeechend = () => scheduleVoiceStop(1800);
-        recognition.onnomatch = () => {
-            setStatus('No entendí la frase completa. Intenta hablar un poco más cerca del micrófono.', 'error');
+        engine.onspeechend = () => scheduleVoiceStop(1900);
+        engine.onnomatch = () => {
+            if (generation !== recognitionGeneration) return;
+            setStatus('No entendí la frase completa. Puedes repetirla sin cerrar Skill.', 'error');
             setHeard('sin coincidencia clara');
-            if(handsFreeEnabled)scheduleHandsFreeListening(850);
+            if (handsFreeEnabled) scheduleHandsFreeListening(850);
         };
-        recognition.onerror = event => {
+        engine.onerror = event => {
+            if (generation !== recognitionGeneration || recognition !== engine) return;
             voiceHadError = true;
             const error = event.error;
+            if (['network','service-not-allowed','audio-capture'].includes(error)) browserVoiceFailureStreak += 1;
+            else if (error !== 'no-speech' && error !== 'aborted') browserVoiceFailureStreak = Math.max(0, browserVoiceFailureStreak);
             const messages = {
                 'not-allowed': 'El micrófono está bloqueado. Permite el acceso para este sitio.',
                 'service-not-allowed': 'El servicio de reconocimiento de voz está bloqueado por el navegador.',
                 'audio-capture': 'No encontré un micrófono disponible. Revisa el dispositivo de entrada.',
                 'no-speech': 'No detecté voz. Acércate al micrófono y vuelve a intentarlo.',
-                'network': 'El reconocimiento de voz necesita conexión a Internet en este navegador.',
+                'network': 'El reconocimiento de voz del navegador perdió conexión.',
                 'language-not-supported': 'El navegador no admite el idioma configurado para el reconocimiento de voz.',
                 'phrases-not-supported': 'El navegador rechazó el modo de vocabulario avanzado. Skill cambiará automáticamente al reconocimiento compatible.'
             };
             if (error === 'phrases-not-supported') {
                 recognitionPhraseBiasDisabled = true;
                 stopListening(false, false);
+                if (recognition === engine) recognition = null;
                 setStatus('Reintentando con el reconocimiento compatible…', 'busy');
                 setTimeout(() => startListening({ preserveClearedInput: true, forceBrowser: true }), 180);
                 return;
             }
-            if (error === 'network' || error === 'service-not-allowed') {
+            if (error === 'network' || error === 'service-not-allowed' || browserVoiceFailureStreak >= 2) {
                 try { sessionStorage.setItem('skilled_sky_browser_voice_unstable', '1'); } catch (_) {}
                 stopListening(false, false);
+                if (recognition === engine) recognition = null;
                 setVoiceMeter(false);
-                setStatus('El motor de voz del navegador no respondió. Probando Skill Voz avanzada…', 'busy');
+                setStatus('El motor del navegador se volvió inestable. Skill está recuperando la voz sin cerrar la conversación…', 'busy');
                 ensureCloudVoice(true).then(ready => {
                     if (ready) {
                         setVoiceEngine('cloud');
-                        setStatus('Skill Voz avanzada está lista. Habla nuevamente; este modo quedará seleccionado para esta sesión.', 'busy');
-                        setTimeout(() => startCloudListening({ preserveClearedInput: true }), 220);
+                        setStatus('Skill Voz avanzada quedó activa como respaldo. Puedes continuar preguntando.', 'busy');
+                        if (handsFreeEnabled) setTimeout(() => startCloudListening({ preserveClearedInput: true }), 260);
                     } else {
+                        try { sessionStorage.removeItem('skilled_sky_browser_voice_unstable'); } catch (_) {}
+                        browserVoiceFailureStreak = 0;
                         showVoiceSetupState();
+                        if (handsFreeEnabled) scheduleHandsFreeListening(900);
                     }
                 });
                 return;
             }
             if (error !== 'aborted') setStatus(messages[error] || `No pude reconocer la voz (${error || 'error desconocido'}).`, 'error');
             stopListening(false, false);
-            if(handsFreeEnabled&&['no-speech','aborted'].includes(error))scheduleHandsFreeListening(950);
+            if (recognition === engine) recognition = null;
+            if (handsFreeEnabled && ['no-speech','aborted'].includes(error)) scheduleHandsFreeListening(950);
         };
-        recognition.onend = () => {
+        engine.onend = () => {
+            if (generation !== recognitionGeneration) return;
+            if (recognitionStartGuardTimer) clearTimeout(recognitionStartGuardTimer);
+            recognitionStartGuardTimer = null;
             const rawRecognized = text(voiceRawTranscript || voiceBest || voiceFinal || voiceInterim || transcriptInput?.value);
             const pool = [rawRecognized, ...voiceAlternatives].filter(Boolean);
             let bestBundle = null;
@@ -1705,6 +1737,7 @@
             const quality = recognitionQualityLabel(bestBundle?.score || 0, voiceConfidence, bestBundle?.changeRatio || 0);
             const shouldSubmit = voiceShouldSubmit && !voiceHadError && interpreted.length >= 2;
             stopListening(false, false);
+            if (recognition === engine) recognition = null;
             setVoiceMeter(false);
             if (rawRecognized) {
                 transcriptInput.value = interpreted;
@@ -1721,9 +1754,21 @@
                 }
             } else if (!voiceHadError) {
                 setStatus(interpreted ? 'Frase capturada. Puedes corregirla o pulsar Consultar.' : 'No detecté una frase completa. Intenta nuevamente.', interpreted ? '' : 'error');
-                if(!interpreted&&handsFreeEnabled)scheduleHandsFreeListening(950);
+                if (!interpreted && handsFreeEnabled) scheduleHandsFreeListening(950);
             }
         };
+        return engine;
+    }
+
+    function setupRecognition() {
+        BrowserRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+        recognition = null;
+        if (!BrowserRecognitionCtor) {
+            micButton.disabled = false;
+            micButton.title = 'Hablar con Skill';
+            setVoiceEngine('automatico');
+            setHeard('voz avanzada disponible si está configurada');
+        }
         micButton.addEventListener('click', () => listening || recognitionStarting ? finishListening() : startListening());
     }
 
@@ -1749,11 +1794,11 @@
         if (!options.forceBrowser && Date.now() >= cloudRetryAfter && !cloudReady) cloudReady = await ensureCloudVoice(false);
         if (cloudReady) return startCloudListening({ preserveClearedInput: true });
 
-        if (!options.forceBrowser && (desktopBrave || !recognition || browserUnstable) && Date.now() >= cloudRetryAfter) {
+        if (!options.forceBrowser && (desktopBrave || !BrowserRecognitionCtor || browserUnstable) && Date.now() >= cloudRetryAfter) {
             cloudReady = await ensureCloudVoice(true);
             if (cloudReady) return startCloudListening({ preserveClearedInput: true });
         }
-        if (!recognition) {
+        if (!BrowserRecognitionCtor) {
             showVoiceSetupState();
             return;
         }
@@ -1770,17 +1815,34 @@
         setInterpreted('');
         try {
             primeRecognitionVocabulary();
-            recognition.start();
+            const engine = buildBrowserRecognition();
+            if (!engine) throw new Error('Reconocimiento no disponible');
+            engine.start();
+            recognitionStartGuardTimer = setTimeout(async () => {
+                if (!recognitionStarting || recognition !== engine) return;
+                browserVoiceFailureStreak += 1;
+                try { engine.abort(); } catch (_) {}
+                if (recognition === engine) recognition = null;
+                recognitionStarting = false;
+                setStatus('El reconocimiento tardó demasiado. Skill está reiniciando el motor de voz…', 'busy');
+                const ready = await ensureCloudVoice(false).catch(() => false);
+                if (ready) return startCloudListening({ preserveClearedInput: true });
+                setTimeout(() => startListening({ preserveClearedInput: true, forceBrowser: true }).catch(() => {}), 320);
+            }, 4200);
         } catch (error) {
             recognitionStarting = false;
-            if (error?.name === 'InvalidStateError') return;
+            if (recognitionStartGuardTimer) clearTimeout(recognitionStartGuardTimer);
+            recognitionStartGuardTimer = null;
+            recognition = null;
+            browserVoiceFailureStreak += 1;
             if (cloudReady) {
                 try { sessionStorage.setItem('skilled_sky_browser_voice_unstable', '1'); } catch (_) {}
                 setStatus('El reconocimiento del navegador no inició. Cambiando a Skill Voz avanzada…', 'busy');
                 return startCloudListening({ preserveClearedInput: true });
             }
             setVoiceEngine('error');
-            setStatus('No pude iniciar el reconocimiento. Espera un segundo y vuelve a pulsar el micrófono.', 'error');
+            setStatus('No pude iniciar el reconocimiento. Skill liberó el motor; vuelve a intentarlo sin recargar la página.', 'error');
+            if (handsFreeEnabled) scheduleHandsFreeListening(850);
         }
     }
 
@@ -1789,7 +1851,7 @@
             finishCloudListening(true);
             return;
         }
-        if (!recognition) return;
+        if (!recognition) { listening=false; recognitionStarting=false; return; }
         voiceShouldSubmit = true;
         clearVoiceTimers();
         try { recognition.stop(); } catch (_) { stopListening(false, false); }
@@ -1891,7 +1953,7 @@
             executiveSearch: () => []
         };
         if (!loaders[key]) throw new Error(`Skill no tiene un origen de datos registrado para ${key}.`);
-        const promise = Promise.resolve().then(loaders[key]).then(data => {
+        const promise = skillWithTimeout(Promise.resolve().then(loaders[key]), SKILL_DATA_TIMEOUT_MS, `los datos de ${key}`).then(data => {
             cache[key] = data;
             cacheTimes[key] = Date.now();
             cache.at = Date.now();
@@ -3055,7 +3117,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=116'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=118'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -4432,7 +4494,7 @@
             const pageContext=visiblePageContext();
             const crmContext=[recovered,pageContext].filter(Boolean).join('\n');
             const context = { lastIntent:conversationContext.lastIntent, lastEntity:conversationContext.lastEntity, lastQuery:conversationContext.lastQuery, area:conversationContext.area, turns:conversationContext.turns, page:currentPageKey(), crmContext };
-            const result = await SkilledDB.askSkyGeneral(raw, { profile, context });
+            const result = await skillWithTimeout(SkilledDB.askSkyGeneral(raw, { profile, context }), SKILL_AI_TIMEOUT_MS, 'la respuesta inteligente');
             const answer = text(result?.answer || result?.text);
             if (!answer) return null;
             const title = text(result?.title) || 'Skill';
@@ -4601,7 +4663,7 @@
         const key = `${profile}|${commandNormalize(raw)}|${commandNormalize(context.lastEntity)}`;
         if (aiQueryCache.has(key)) return aiQueryCache.get(key);
         try {
-            const plan = await SkilledDB.interpretSkyQuery(raw, { profile, context });
+            const plan = await skillWithTimeout(SkilledDB.interpretSkyQuery(raw, { profile, context }), Math.min(SKILL_AI_TIMEOUT_MS, 10000), 'la interpretación semántica');
             if (!plan?.intent) return null;
             if ((Number(plan.confidence || 0) < .5 || plan.intent === 'unknown') && !text(plan.clarification)) return null;
             aiQueryCache.set(key, plan);
@@ -4796,10 +4858,14 @@
     }
 
     async function query(rawValue) {
-        if(queryBusy){setStatus('Estoy terminando la consulta anterior…','busy');return;}
+        if(queryBusy){
+            if(queryStartedAt && Date.now()-queryStartedAt>30000){queryBusy=false;queryStartedAt=0;}
+            else{setStatus('Estoy terminando la consulta anterior…','busy');return;}
+        }
         const raw = resolveFollowUp(rawValue);
         if (!raw) return;
         queryBusy=true;
+        queryStartedAt=Date.now();
         const sendButton=document.getElementById('sky-send');
         if(sendButton)sendButton.disabled=true;
         activeQuestion = text(raw);
@@ -4853,6 +4919,7 @@
             setAnswer('Error', error.message || 'Ocurrió un error al consultar el CRM.', 'No se modificó ningún dato.');
         } finally {
             queryBusy=false;
+            queryStartedAt=0;
             if(sendButton)sendButton.disabled=false;
         }
     }
