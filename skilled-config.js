@@ -5,5 +5,6 @@ window.SKILLED_CONFIG=Object.assign({
   skillLocalTtsUrl:'',
   skillMeetingBridgeUrl:'',
   skillMeetingBridgeToken:'',
+  skillMeetingEmailMode:'auto',
   deploymentMode:'cloud'
 },window.SKILLED_CONFIG||{});

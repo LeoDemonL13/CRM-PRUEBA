@@ -52,16 +52,23 @@ let liveInterimAt=0;
 let interimCommittedText='';
 let interimCommitTimer=0;
 let interimRenderTimer=0;
+let liveInterimStartedAt=0;
+let lastAudioChunkAt=0;
+let audioChunkSequence=0;
+let recorderWatchdogTimer=0;
 const MAX_SPEAKERS=12;
 const VOICE_THRESHOLD_MIN=0.011;
-const SILENCE_CLOSE_MS=240;
+const SILENCE_CLOSE_MS=320;
 const FEATURE_INTERVAL_MS=55;
-const RECOGNITION_ROTATE_MS=36000;
-const RECOGNITION_VOICE_STALL_MS=5000;
+const RECOGNITION_ROTATE_MS=42000;
+const RECOGNITION_VOICE_STALL_MS=4200;
 const RECOGNITION_WATCHDOG_MS=1000;
-const SPEAKER_SWITCH_CONFIRMATIONS=2;
-const NEW_SPEAKER_CONFIRMATIONS=2;
-const INTERIM_COMMIT_MS=3200;
+const SPEAKER_SWITCH_CONFIRMATIONS=3;
+const NEW_SPEAKER_CONFIRMATIONS=4;
+const NEW_SPEAKER_MIN_VOICE_MS=650;
+const INTERIM_COMMIT_MS=4600;
+const TRANSCRIPT_MERGE_WINDOW_MS=8500;
+const RECENT_TRANSCRIPT_ROWS=8;
 
 const text=v=>String(v??'').trim();
 const html=v=>text(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
@@ -71,6 +78,34 @@ const formatDuration=ms=>{const total=Math.max(0,Math.round(ms/1000));const m=Ma
 
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function meetingNormalize(value){return text(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9ñ\s]/g,' ').replace(/\s+/g,' ').trim()}
+function meetingWords(value){return text(value).replace(/\s+/g,' ').trim().split(' ').filter(Boolean)}
+function normalizedWords(value){return meetingWords(value).map(meetingNormalize).filter(Boolean)}
+function recentTranscriptText(limit=RECENT_TRANSCRIPT_ROWS){return transcript.slice(-limit).map(row=>row.text).join(' ')}
+function overlapWordCount(left,right,maxWords=42){
+    const a=normalizedWords(left),b=normalizedWords(right);if(!a.length||!b.length)return 0;
+    const max=Math.min(maxWords,a.length,b.length);
+    for(let size=max;size>=1;size--){let same=true;for(let i=0;i<size;i++){if(a[a.length-size+i]!==b[i]){same=false;break}}if(same)return size}
+    return 0;
+}
+function stripKnownPrefix(value,context=''){
+    const source=meetingWords(value);if(!source.length)return '';
+    const known=meetingWords(context);if(!known.length)return source.join(' ');
+    const overlap=overlapWordCount(known.join(' '),source.join(' '));
+    if(overlap>=2||overlap===source.length)return source.slice(overlap).join(' ').trim();
+    const nSource=meetingNormalize(source.join(' ')),nKnown=meetingNormalize(known.join(' '));
+    if(nSource&&nKnown.endsWith(nSource))return '';
+    return source.join(' ');
+}
+function mergeTextOverlap(left,right){
+    const a=text(left).replace(/\s+/g,' '),b=text(right).replace(/\s+/g,' ');if(!a)return b;if(!b)return a;
+    const na=meetingNormalize(a),nb=meetingNormalize(b);if(na===nb||na.endsWith(nb))return a;if(nb.includes(na)&&nb.length<=na.length+12)return a;
+    const overlap=overlapWordCount(a,b,48);if(overlap>=1){const words=meetingWords(b);return `${a} ${words.slice(overlap).join(' ')}`.replace(/\s+/g,' ').trim()}
+    return `${a} ${b}`.replace(/\s+/g,' ').trim();
+}
+function transcriptSimilarity(a,b){
+    const aa=new Set(normalizedWords(a)),bb=new Set(normalizedWords(b));if(!aa.size||!bb.size)return 0;
+    let common=0;aa.forEach(word=>{if(bb.has(word))common++});return common/Math.max(aa.size,bb.size);
+}
 function speakMeeting(value){return new Promise(resolve=>{const message=text(value);if(!message||!window.speechSynthesis){resolve();return}try{window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(message);utterance.lang='es-MX';utterance.rate=.96;utterance.pitch=1.03;const voices=window.speechSynthesis.getVoices?.()||[];utterance.voice=voices.find(v=>/^es[-_]/i.test(v.lang)&&/mex|sabina|paulina|dalia|female|mujer/i.test(v.name))||voices.find(v=>/^es[-_]/i.test(v.lang))||null;utterance.onend=resolve;utterance.onerror=resolve;window.speechSynthesis.speak(utterance)}catch(_){resolve()}})}
 function isMeetingEndCommand(value){const n=meetingNormalize(value);if(!n)return false;const wake=/\bskill\b/.test(n);const finish=/\b(?:termina|terminar|terminamos|finaliza|finalizar|finalizamos|acaba|acabamos|cerrar|cierra|ya termino|ya terminamos|ya finalizo|se acabo|hemos terminado)\b/.test(n);const meeting=/\b(?:reunion|junta|minuta|grabacion|grabación)\b/.test(n);const polite=/\bgracias\b/.test(n);return wake&&finish&&(meeting||polite)}
 async function finishByVoice(){if(!active)return;setState('Cerrando reunión','Comando de voz reconocido. Preparando la minuta…');await speakMeeting('Reunión finalizada. Preparando minuta.');await stop({final:true});setState('Reunión finalizada por voz','La minuta está lista. Puedes guardarla, descargarla en Word o PDF, o enviarla por correo.')}
@@ -85,12 +120,45 @@ async function buildPdfBlob(){await loadScriptOnce('https://cdn.jsdelivr.net/npm
 async function downloadWord(){if(!transcript.length)return setState('Sin contenido','Primero registra una reunión.');try{const blob=await buildWordBlob(),name=`${safeFileName(document.getElementById('skill-meeting-name')?.value)}_${new Date().toISOString().slice(0,10)}.docx`;downloadBlob(blob,name);setState('Word generado',name)}catch(error){setState('No se pudo generar Word',error?.message||'Error de exportación.') }}
 async function downloadPdf(){if(!transcript.length)return setState('Sin contenido','Primero registra una reunión.');try{const blob=await buildPdfBlob(),name=`${safeFileName(document.getElementById('skill-meeting-name')?.value)}_${new Date().toISOString().slice(0,10)}.pdf`;downloadBlob(blob,name);setState('PDF generado',name)}catch(error){setState('No se pudo generar PDF',error?.message||'Error de exportación.') }}
 async function blobBase64(blob){const buffer=await blob.arrayBuffer(),bytes=new Uint8Array(buffer);let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));return btoa(binary)}
-async function emailMinutes(){if(emailBusy)return;if(!transcript.length)return setState('Sin contenido','Primero registra una reunión.');const raw=prompt('Escribe uno o varios correos separados por coma:');if(raw===null)return;const recipients=raw.split(/[,;\s]+/).map(text).filter(Boolean);if(!recipients.length||recipients.some(mail=>!/^\S+@\S+\.\S+$/.test(mail)))return alert('Revisa los correos capturados.');if(!window.SkilledDB?.client?.functions)return setState('Correo no disponible','No se encontró la conexión de Supabase.');emailBusy=true;const button=document.getElementById('skill-meeting-email');if(button){button.disabled=true;button.textContent='Enviando…'}try{setState('Preparando correo','Generando Word y PDF…');const [wordBlob,pdfBlob]=await Promise.all([buildWordBlob(),buildPdfBlob()]),base=safeFileName(document.getElementById('skill-meeting-name')?.value),date=new Date().toISOString().slice(0,10),attachments=[{filename:`${base}_${date}.docx`,content:await blobBase64(wordBlob),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},{filename:`${base}_${date}.pdf`,content:await blobBase64(pdfBlob),contentType:'application/pdf'}],{data,error}=await window.SkilledDB.client.functions.invoke('skill-enviar-minuta',{body:{to:recipients,subject:`Minuta SKILL · ${text(document.getElementById('skill-meeting-name')?.value)||'Reunión de trabajo'}`,title:text(document.getElementById('skill-meeting-name')?.value)||'Reunión de trabajo',summary:meetingSummary(),attachments}});if(error)throw error;if(data?.error)throw new Error(data.error);setState('Minuta enviada',`Correo enviado a ${recipients.join(', ')} con Word y PDF adjuntos.`)}catch(error){setState('No se pudo enviar',error?.message||'Configura RESEND_API_KEY y SKILL_MEETING_FROM_EMAIL en Supabase Secrets.')}finally{emailBusy=false;if(button){button.disabled=false;button.textContent='Correo'}}}
+async function sendMinutesViaLocalSmtp(recipients,subject,title,attachments){
+    const base=text(window.SKILLED_CONFIG?.skillMeetingBridgeUrl).replace(/\/+$/,'');
+    if(!base)throw new Error('El bridge local de SKILL no está configurado.');
+    const token=text(window.SKILLED_CONFIG?.skillMeetingBridgeToken);
+    const response=await fetch(`${base}/email-browser`,{method:'POST',headers:{'Content-Type':'application/json',...(token?{'X-Skill-Token':token}:{})},body:JSON.stringify({to:recipients,subject,body:`${title}\n\n${meetingSummary()}`,attachments})});
+    if(!response.ok){let detail='';try{const data=await response.json();detail=text(data?.detail||data?.error)}catch(_){detail=await response.text()}throw new Error(detail||`SMTP local respondió HTTP ${response.status}`)}
+    return response.json();
+}
+
+async function emailMinutes(){
+    if(emailBusy)return;
+    if(!transcript.length)return setState('Sin contenido','Primero registra una reunión.');
+    const raw=prompt('Escribe uno o varios correos separados por coma:');if(raw===null)return;
+    const recipients=raw.split(/[,;\s]+/).map(text).filter(Boolean);
+    if(!recipients.length||recipients.some(mail=>!/^\S+@\S+\.\S+$/.test(mail)))return alert('Revisa los correos capturados.');
+    emailBusy=true;const button=document.getElementById('skill-meeting-email');if(button){button.disabled=true;button.textContent='Enviando…'}
+    try{
+        setState('Preparando correo','Generando Word y PDF…');
+        const [wordBlob,pdfBlob]=await Promise.all([buildWordBlob(),buildPdfBlob()]),base=safeFileName(document.getElementById('skill-meeting-name')?.value),date=new Date().toISOString().slice(0,10),title=text(document.getElementById('skill-meeting-name')?.value)||'Reunión de trabajo',subject=`Minuta SKILL · ${title}`,attachments=[{filename:`${base}_${date}.docx`,content:await blobBase64(wordBlob),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},{filename:`${base}_${date}.pdf`,content:await blobBase64(pdfBlob),contentType:'application/pdf'}];
+        const mode=meetingNormalize(window.SKILLED_CONFIG?.skillMeetingEmailMode||'auto');
+        const localAvailable=Boolean(text(window.SKILLED_CONFIG?.skillMeetingBridgeUrl));
+        let sent=false,localError=null;
+        if(localAvailable&&mode!=='resend'){
+            try{setState('Enviando minuta','Usando el correo local de SKILL sin servicio de pago…');await sendMinutesViaLocalSmtp(recipients,subject,title,attachments);sent=true;setState('Minuta enviada',`Correo enviado a ${recipients.join(', ')} mediante el buzón local de SKILL.`)}catch(error){localError=error;if(mode==='smtp local'||mode==='smtp-local'||mode==='local')throw error}
+        }
+        if(!sent){
+            if(!window.SkilledDB?.client?.functions)throw localError||new Error('No hay correo local configurado ni conexión de Supabase disponible.');
+            setState('Enviando minuta','Usando el servicio transaccional configurado en Supabase…');
+            const {data,error}=await window.SkilledDB.client.functions.invoke('skill-enviar-minuta',{body:{to:recipients,subject,title,summary:meetingSummary(),attachments}});
+            if(error)throw error;if(data?.error)throw new Error(data.error);
+            sent=true;setState('Minuta enviada',`Correo enviado a ${recipients.join(', ')} con Word y PDF adjuntos.`);
+        }
+    }catch(error){setState('No se pudo enviar',error?.message||'Configura el SMTP local de SKILL o un servicio de correo en Supabase.')}finally{emailBusy=false;if(button){button.disabled=false;button.textContent='Correo'}}
+}
 
 function styles(){
-    if(document.getElementById('skill-meeting-style-v110'))return;
+    if(document.getElementById('skill-meeting-style-v119'))return;
     const style=document.createElement('style');
-    style.id='skill-meeting-style-v110';
+    style.id='skill-meeting-style-v119';
     style.textContent=`
 .skill-meeting-overlay{position:fixed;inset:0;z-index:188;background:rgba(2,5,14,.82);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}.skill-meeting-overlay.open{display:flex}.skill-meeting-modal{width:min(1180px,100%);height:min(820px,94vh);border:1px solid #29476f;border-radius:14px;background:#08111f;box-shadow:0 30px 90px rgba(0,0,0,.55);display:grid;grid-template-rows:auto 1fr;overflow:hidden}.skill-meeting-head{min-height:72px;padding:14px 18px;border-bottom:1px solid #1b2b47;display:flex;align-items:center;justify-content:space-between;gap:14px}.skill-meeting-title{font-size:16px;font-weight:900;color:#f8fafc}.skill-meeting-sub{margin-top:4px;color:#71819b;font-size:9px;line-height:1.45}.skill-meeting-head-actions{display:flex;align-items:center;gap:7px}.skill-meeting-head-actions button{height:36px;border:1px solid #2a4168;border-radius:9px;background:#0d1729;color:#9db4d4;padding:0 11px;font-size:9px;font-weight:850}.skill-meeting-head-actions button:hover{color:#fff;border-color:#4d78b5}.skill-meeting-head-actions .danger{color:#fda4af}.skill-meeting-body{min-height:0;display:grid;grid-template-columns:330px minmax(0,1fr)}.skill-meeting-side{min-height:0;border-right:1px solid #1b2b47;background:#070e1b;padding:16px;overflow:auto}.skill-meeting-main{min-height:0;display:grid;grid-template-rows:auto 1fr auto;background:#091220}.skill-meeting-field{display:block;margin-top:12px}.skill-meeting-field:first-child{margin-top:0}.skill-meeting-field span{display:block;color:#70829e;font-size:8px;font-weight:850;text-transform:uppercase;letter-spacing:.09em}.skill-meeting-field input,.skill-meeting-field textarea{width:100%;margin-top:6px;border:1px solid #263d61;border-radius:10px;background:#050b16;color:#eaf2ff;padding:9px 10px;font-size:10px;outline:none}.skill-meeting-field textarea{resize:vertical;min-height:66px}.skill-meeting-field input:focus,.skill-meeting-field textarea:focus{border-color:#4d8fff;box-shadow:0 0 0 3px rgba(59,130,246,.08)}.skill-meeting-note{margin-top:12px;border:1px solid rgba(96,165,250,.18);border-radius:11px;background:rgba(37,99,235,.06);padding:10px;color:#7890b0;font-size:8px;line-height:1.55}.skill-meeting-status{margin-top:12px;border:1px solid #203554;border-radius:11px;background:#081426;padding:11px}.skill-meeting-status-line{display:flex;align-items:center;justify-content:space-between;gap:10px}.skill-meeting-status strong{color:#dbeafe;font-size:10px}.skill-meeting-status span{color:#71819b;font-size:8px}.skill-meeting-meter{height:28px;margin-top:9px;display:flex;align-items:center;gap:3px}.skill-meeting-meter i{display:block;flex:1;height:4px;border-radius:999px;background:#22344f;transition:.08s}.skill-meeting-meter.live i{background:#60a5fa}.skill-meeting-speakers{margin-top:14px}.skill-meeting-speakers-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.skill-meeting-speakers-head strong{font-size:9px;color:#cbd5e1}.skill-meeting-speakers-head span{font-size:8px;color:#64748b}.skill-meeting-speaker-list{display:grid;gap:7px;margin-top:8px}.skill-meeting-speaker{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;border:1px solid #1f3454;border-radius:9px;background:#0a1527;padding:7px}.skill-meeting-speaker-badge{width:28px;height:28px;border-radius:8px;background:#102541;border:1px solid #294d76;color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900}.skill-meeting-speaker input{width:100%;border:0;background:transparent;color:#e5edf9;font-size:9px;outline:none}.skill-meeting-summary{margin-top:14px;border-top:1px solid #172641;padding-top:13px}.skill-meeting-summary strong{font-size:9px;color:#cbd5e1}.skill-meeting-summary pre{white-space:pre-wrap;margin-top:8px;color:#8191a9;font:9px/1.6 Inter,system-ui,sans-serif}.skill-meeting-topbar{padding:12px 14px;border-bottom:1px solid #172641;display:flex;align-items:center;justify-content:space-between;gap:10px}.skill-meeting-topbar-left{display:flex;align-items:center;gap:8px;min-width:0}.skill-meeting-indicator{width:8px;height:8px;border-radius:50%;background:#64748b}.skill-meeting-indicator.live{background:#34d399;box-shadow:0 0 0 5px rgba(52,211,153,.08)}.skill-meeting-topbar strong{font-size:10px;color:#e5edf9}.skill-meeting-topbar span{font-size:8px;color:#64748b}.skill-meeting-controls{display:flex;gap:7px;flex-wrap:wrap}.skill-meeting-controls button{height:34px;border:1px solid #294064;border-radius:9px;background:#0d1729;color:#9db4d4;padding:0 10px;font-size:8px;font-weight:850}.skill-meeting-controls button.primary{background:#2563eb;border-color:#3b82f6;color:#fff}.skill-meeting-controls button.warn{border-color:#7c5b20;color:#fcd34d}.skill-meeting-controls button:disabled{opacity:.45;cursor:not-allowed}.skill-meeting-transcript{min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px}.skill-meeting-empty{margin:auto;text-align:center;color:#64748b;font-size:9px;line-height:1.6}.skill-meeting-turn{border:1px solid #1d3150;border-radius:11px;background:#0b1628;padding:10px 11px}.skill-meeting-turn-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}.skill-meeting-turn-dot{width:8px;height:8px;border-radius:50%;background:#60a5fa}.skill-meeting-turn select{min-width:0;border:1px solid #274365;border-radius:7px;background:#071020;color:#bcd2ed;padding:5px 7px;font-size:8px}.skill-meeting-turn time{color:#5f718d;font-size:7px}.skill-meeting-turn p{margin-top:7px;color:#dbe5f3;font-size:10px;line-height:1.5;white-space:pre-wrap;word-break:break-word}.skill-meeting-turn-live{border-style:dashed;border-color:#2f6da8;background:rgba(37,99,235,.08)}.skill-meeting-turn-live .skill-meeting-turn-dot{background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.08)}.skill-meeting-turn-live strong{font-size:8px;color:#9fc5f2}.skill-meeting-turn-live time{color:#34d399;font-weight:800}.skill-meeting-footer{border-top:1px solid #172641;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#64748b;font-size:8px}.skill-meeting-footer-actions{display:flex;gap:7px}.skill-meeting-footer button{height:34px;border:1px solid #294064;border-radius:9px;background:#0d1729;color:#9db4d4;padding:0 10px;font-size:8px;font-weight:850}.skill-meeting-footer button.primary{background:#0b6ea8;border-color:#1484c0;color:#fff}.skill-meeting-countdown{position:absolute;inset:0;z-index:4;display:none;place-items:center;background:rgba(2,6,15,.86);backdrop-filter:blur(5px)}.skill-meeting-countdown.show{display:grid}.skill-meeting-countdown strong{font-size:clamp(54px,10vw,110px);color:#fff;text-shadow:0 0 35px rgba(59,130,246,.55)}.skill-meeting-countdown span{display:block;margin-top:12px;text-align:center;font-size:11px;color:#93c5fd}.skill-meeting-main{position:relative}body.tema-claro .skill-meeting-modal{background:#fff;border-color:#cbd7e8}body.tema-claro .skill-meeting-side{background:#f7f9fc;border-color:#d9e2ef}body.tema-claro .skill-meeting-main{background:#fff}body.tema-claro .skill-meeting-title,body.tema-claro .skill-meeting-topbar strong,body.tema-claro .skill-meeting-speakers-head strong{color:#111827}body.tema-claro .skill-meeting-field input,body.tema-claro .skill-meeting-field textarea,body.tema-claro .skill-meeting-speaker,body.tema-claro .skill-meeting-turn{background:#fff;color:#111827;border-color:#cbd5e1}body.tema-claro .skill-meeting-turn p{color:#334155}@media(max-width:850px){.skill-meeting-overlay{padding:0;align-items:stretch}.skill-meeting-modal{height:100dvh;max-height:100dvh;width:100%;border:0;border-radius:0}.skill-meeting-body{grid-template-columns:1fr}.skill-meeting-side{display:none}.skill-meeting-head{padding-top:max(12px,env(safe-area-inset-top))}.skill-meeting-topbar{align-items:flex-start;flex-direction:column}.skill-meeting-controls{width:100%}.skill-meeting-controls button{flex:1}.skill-meeting-footer{padding-bottom:calc(10px + env(safe-area-inset-bottom));align-items:stretch;flex-direction:column}.skill-meeting-footer-actions{display:grid;grid-template-columns:1fr 1fr}.skill-meeting-footer button{width:100%}}
 `;
@@ -105,13 +173,13 @@ function create(){
     overlay.className='skill-meeting-overlay';
     overlay.innerHTML=`
 <section class="skill-meeting-modal" role="dialog" aria-modal="true" aria-labelledby="skill-meeting-title">
-<header class="skill-meeting-head"><div><div id="skill-meeting-title" class="skill-meeting-title">SKILL · Modo reunión <span style="color:#60a5fa;font-size:9px">V118</span></div><div class="skill-meeting-sub">Sesión continua V118: escribe mientras hablan, recupera automáticamente el reconocimiento y detecta cambios de hablante sin exigir pausas largas. Si existe motor local, al finalizar hace una segunda pasada de alta precisión.</div></div><div class="skill-meeting-head-actions"><button id="skill-meeting-help" type="button">Cómo funciona</button><button id="skill-meeting-close" type="button">Cerrar</button></div></header>
+<header class="skill-meeting-head"><div><div id="skill-meeting-title" class="skill-meeting-title">SKILL · Modo reunión <span style="color:#60a5fa;font-size:9px">V119</span></div><div class="skill-meeting-sub">Sesión continua V119: conserva el hilo aunque el navegador reinicie el reconocimiento, fusiona solapamientos para evitar texto repetido y estabiliza las voces para no crear duplicados. El audio se captura por bloques de 1 segundo mientras la reunión está activa.</div></div><div class="skill-meeting-head-actions"><button id="skill-meeting-help" type="button">Cómo funciona</button><button id="skill-meeting-close" type="button">Cerrar</button></div></header>
 <div class="skill-meeting-body">
 <aside class="skill-meeting-side">
 <label class="skill-meeting-field"><span>Título</span><input id="skill-meeting-name" value="Reunión de trabajo" maxlength="160"></label>
 <label class="skill-meeting-field"><span>Participantes / referencia</span><textarea id="skill-meeting-participants" placeholder="Ej. Leobardo, Compras, Planeación. Sirve como referencia; SKILL no asume que una voz pertenece a una persona hasta que la etiquetes."></textarea></label>
 <div class="skill-meeting-note"><strong style="color:#9fc5f2">Diferenciación de voces:</strong> SKILL agrupa turnos por características acústicas temporales y crea etiquetas como “Voz 1” y “Voz 2”. Puedes renombrarlas durante la reunión. No es reconocimiento biométrico de identidad y no se conserva una huella de voz.</div>
-<div class="skill-meeting-status"><div class="skill-meeting-status-line"><strong id="skill-meeting-mic-state">Micrófono detenido</strong><span id="skill-meeting-clock">00:00</span></div><div id="skill-meeting-meter" class="skill-meeting-meter">${'<i></i>'.repeat(18)}</div><div class="skill-meeting-status-line" style="margin-top:6px"><span id="skill-meeting-engine">Voz · esperando</span><span id="skill-meeting-noise">Ruido base —</span></div></div>
+<div class="skill-meeting-status"><div class="skill-meeting-status-line"><strong id="skill-meeting-mic-state">Micrófono detenido</strong><span id="skill-meeting-clock">00:00</span></div><div id="skill-meeting-meter" class="skill-meeting-meter">${'<i></i>'.repeat(18)}</div><div class="skill-meeting-status-line" style="margin-top:6px"><span id="skill-meeting-engine">Texto · esperando</span><span id="skill-meeting-noise">Ruido base —</span></div><div class="skill-meeting-status-line" style="margin-top:5px"><span id="skill-meeting-recorder">Audio · esperando</span><span>bloques de 1 s</span></div></div>
 <section class="skill-meeting-speakers"><div class="skill-meeting-speakers-head"><strong>Voces detectadas</strong><span id="skill-meeting-speaker-count">0</span></div><div id="skill-meeting-speaker-list" class="skill-meeting-speaker-list"><span style="font-size:8px;color:#64748b">Aparecerán al comenzar a hablar.</span></div></section>
 <section class="skill-meeting-summary"><strong>Resumen de trabajo</strong><pre id="skill-meeting-summary">Todavía no hay intervenciones.</pre></section>
 </aside>
@@ -119,7 +187,7 @@ function create(){
 </div></section>`;
     document.body.appendChild(overlay);
     document.getElementById('skill-meeting-close').addEventListener('click',close);
-    document.getElementById('skill-meeting-help').addEventListener('click',()=>alert('Modo reunión V118: SKILL reinicia automáticamente el reconocimiento si Chrome lo corta o se queda sin entregar texto. Durante la reunión separa turnos con rasgos acústicos enriquecidos. Si configuras el motor local de reuniones, al finalizar reprocesa temporalmente el audio completo con Whisper + diarización para recuperar cortes y separar mejor a 3, 5 o más participantes. Puedes renombrar voces, guardar, descargar Word/PDF o enviar la minuta. El audio temporal se descarta después del procesamiento según la configuración del motor local. La separación en vivo es provisional; la diarización local al finalizar es la ruta de mayor precisión para grupos grandes.'));
+    document.getElementById('skill-meeting-help').addEventListener('click',()=>alert('Modo reunión V119: el audio se graba de forma continua en bloques de 1 segundo y la transcripción mantiene un contexto de las intervenciones recientes para evitar perder o repetir frases cuando Chrome reinicia el reconocimiento. La detección de hablantes exige más evidencia antes de crear una voz nueva y fusiona duplicados acústicos evidentes. Si configuras el motor local gratuito, al finalizar SKILL reprocesa el audio completo con Whisper y, si Pyannote está disponible, aplica diarización de mayor precisión. Si no hay diarización local, conserva la asignación de voces realizada durante la reunión en lugar de convertir todo en Voz 1.'));
     document.getElementById('skill-meeting-start').addEventListener('click',startWithCountdown);
     document.getElementById('skill-meeting-pause').addEventListener('click',togglePause);
     document.getElementById('skill-meeting-stop').addEventListener('click',()=>stop({final:true}));
@@ -180,7 +248,7 @@ async function start(){
         analyser.smoothingTimeConstant=.55;
         sourceNode.connect(analyser);
         startMeetingRecorder();
-        active=true;paused=false;startedAt=Date.now();speechActive=false;featureFrames=[];speakerTimeline=[];lastSpeakerKey='';currentSpeakerKey='';segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;window.clearTimeout(interimCommitTimer);interimCommitTimer=0;window.clearTimeout(interimRenderTimer);interimRenderTimer=0;liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;interimCommittedText='';recognitionBlocked=false;recognitionRestartCount=0;recognitionStartedAt=0;lastRecognitionActivityAt=Date.now();lastRecognitionTextAt=0;lastVoiceDetectedAt=0;checkpointCandidateKey='';checkpointCandidateCount=0;pendingNewSignature=null;pendingNewCount=0;
+        active=true;paused=false;startedAt=Date.now();speechActive=false;featureFrames=[];speakerTimeline=[];lastSpeakerKey='';currentSpeakerKey='';segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;window.clearTimeout(interimCommitTimer);interimCommitTimer=0;window.clearTimeout(interimRenderTimer);interimRenderTimer=0;liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;interimCommittedText='';recognitionBlocked=false;recognitionRestartCount=0;recognitionStartedAt=0;lastRecognitionActivityAt=Date.now();lastRecognitionTextAt=0;lastVoiceDetectedAt=0;checkpointCandidateKey='';checkpointCandidateCount=0;pendingNewSignature=null;pendingNewCount=0;
         setState('Calibrando ambiente','Habla con normalidad; SKILL ajustará el ruido base durante los primeros segundos.');
         document.getElementById('skill-meeting-mic-state').textContent='Micrófono activo';
         document.getElementById('skill-meeting-engine').textContent='Texto · preparando sesión extendida';
@@ -205,11 +273,13 @@ async function togglePause(){
         stopRecognitionWatchdog();
         clearRecognitionRestart();
         try{recognition?.abort()}catch(_){}
-        setState('Reunión pausada','No se están registrando intervenciones.');
+        try{if(mediaRecorder?.state==='recording')mediaRecorder.pause()}catch(_){}
+        setState('Reunión pausada','La transcripción y la grabación de audio están pausadas.');
         document.getElementById('skill-meeting-mic-state').textContent='Pausado';
     }else{
-        setState('Escuchando reunión','La captura se reanudó.');
+        setState('Escuchando reunión','La captura se reanudó sin borrar el contexto anterior.');
         document.getElementById('skill-meeting-mic-state').textContent='Micrófono activo';
+        try{if(mediaRecorder?.state==='paused')mediaRecorder.resume()}catch(_){}
         recognitionBlocked=false;
         lastRecognitionActivityAt=Date.now();
         startRecognition();
@@ -234,7 +304,8 @@ async function stop(options={}){
     await releaseAudio();
     setState('Reunión finalizada',transcript.length?'Revisa la minuta. Si está configurado el motor local, SKILL hará una segunda pasada de precisión.':'No se registraron intervenciones en vivo.');
     document.getElementById('skill-meeting-mic-state').textContent='Micrófono detenido';
-    document.getElementById('skill-meeting-engine').textContent='Voz · detenido';
+    document.getElementById('skill-meeting-engine').textContent='Texto · detenido';
+    setRecorderStatus(meetingAudio?.size?'Audio · captura completa lista':'Audio · sin captura');
     document.getElementById('skill-meeting-indicator')?.classList.remove('live');
     updateControls();
     refreshSummary();
@@ -242,20 +313,31 @@ async function stop(options={}){
 }
 
 function startMeetingRecorder(){
-    recordedChunks=[];recordedMimeType='';
-    if(!stream||typeof MediaRecorder==='undefined')return;
+    recordedChunks=[];recordedMimeType='';audioChunkSequence=0;lastAudioChunkAt=0;window.clearInterval(recorderWatchdogTimer);recorderWatchdogTimer=0;
+    if(!stream||typeof MediaRecorder==='undefined'){setRecorderStatus('Audio · grabación continua no disponible');return}
     try{
         const candidates=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
         const mime=candidates.find(value=>MediaRecorder.isTypeSupported?.(value))||'';
         mediaRecorder=new MediaRecorder(stream,mime?{mimeType:mime,audioBitsPerSecond:64000}:{audioBitsPerSecond:64000});
         recordedMimeType=mediaRecorder.mimeType||mime||'audio/webm';
-        mediaRecorder.ondataavailable=event=>{if(event.data?.size)recordedChunks.push(event.data)};
-        mediaRecorder.onerror=()=>{};
-        mediaRecorder.start(5000);
-    }catch(_){mediaRecorder=null;recordedChunks=[];recordedMimeType=''}
+        mediaRecorder.ondataavailable=event=>{if(event.data?.size){recordedChunks.push(event.data);audioChunkSequence+=1;lastAudioChunkAt=Date.now();setRecorderStatus(`Audio · continuo · ${audioChunkSequence} bloques`)}};
+        mediaRecorder.onerror=event=>{setRecorderStatus(`Audio · error${event?.error?.name?` · ${event.error.name}`:''}`)};
+        mediaRecorder.onstart=()=>setRecorderStatus('Audio · grabando de forma continua');
+        mediaRecorder.onpause=()=>setRecorderStatus('Audio · pausado');
+        mediaRecorder.onresume=()=>setRecorderStatus('Audio · grabando de forma continua');
+        mediaRecorder.start(1000);
+        recorderWatchdogTimer=window.setInterval(()=>{
+            if(!mediaRecorder||mediaRecorder.state!=='recording')return;
+            const age=lastAudioChunkAt?Date.now()-lastAudioChunkAt:0;
+            if(lastAudioChunkAt&&age>3500){
+                try{mediaRecorder.requestData();setRecorderStatus('Audio · recuperando flujo continuo')}catch(_){}
+            }
+        },2200);
+    }catch(_){mediaRecorder=null;recordedChunks=[];recordedMimeType='';window.clearInterval(recorderWatchdogTimer);recorderWatchdogTimer=0;setRecorderStatus('Audio · grabación continua no disponible')}
 }
 
 function stopMeetingRecorder(){
+    window.clearInterval(recorderWatchdogTimer);recorderWatchdogTimer=0;
     return new Promise(resolve=>{
         if(!mediaRecorder){resolve(null);return}
         const recorder=mediaRecorder;mediaRecorder=null;
@@ -275,8 +357,8 @@ async function processRecordedMeetingWithBridge(blob){
     if(!base||!blob||bridgeProcessBusy)return;
     bridgeProcessBusy=true;
     try{
-        setState('Afinando voces y transcripción','SKILL está reprocesando la reunión completa con el motor local para recuperar cortes y separar mejor a los hablantes.');
-        setRecognitionStatus('Precisión · procesando reunión completa');
+        setState('Afinando voces y transcripción','SKILL está reprocesando el audio completo con el motor local gratuito. La transcripción en vivo se conserva hasta comprobar que el resultado local sea mejor.');
+        setRecognitionStatus('Precisión · verificando reunión completa');
         const form=new FormData();
         const ext=/ogg/i.test(blob.type)?'ogg':'webm';
         form.append('audio',blob,`reunion.${ext}`);
@@ -286,9 +368,14 @@ async function processRecordedMeetingWithBridge(blob){
         const response=await fetch(`${base}/process-browser`,{method:'POST',headers:token?{'X-Skill-Token':token}:{},body:form});
         if(!response.ok)throw new Error(await response.text()||`HTTP ${response.status}`);
         const data=await response.json();
-        applyBridgeMeetingResult(data);
-        setState('Reunión reprocesada','Se aplicó la transcripción completa y la diarización de hablantes del motor local.');
-        setRecognitionStatus(`Precisión · ${speakers.length} voces · motor local`);
+        const applied=applyBridgeMeetingResult(data);
+        if(applied?.applied){
+            setState('Reunión reprocesada',applied.diarization?'Se aplicó Whisper local con diarización de hablantes.':'Se aplicó Whisper local y se conservaron las voces detectadas durante la reunión porque la diarización local no estaba disponible.');
+            setRecognitionStatus(`Precisión · ${speakers.length} voces · motor local`);
+        }else{
+            setState('Reunión finalizada','El resultado local tenía menos contenido que la captura en vivo, por lo que SKILL conservó la minuta más completa.');
+            setRecognitionStatus('Precisión · se conservó captura en vivo');
+        }
     }catch(error){
         setState('Reunión finalizada','La transcripción en vivo quedó disponible. El motor de precisión local no respondió; puedes seguir usando esta minuta.');
         setRecognitionStatus('Precisión local · no disponible');
@@ -297,20 +384,40 @@ async function processRecordedMeetingWithBridge(blob){
 }
 
 function applyBridgeMeetingResult(data){
-    const rows=Array.isArray(data?.transcript)?data.transcript:[];
-    if(!rows.length)return;
-    const labels=[];
-    rows.forEach(row=>{const label=text(row.speaker)||'Voz 1';if(!labels.includes(label))labels.push(label)});
-    speakers=labels.slice(0,MAX_SPEAKERS).map((label,index)=>({key:`voz_${index+1}`,label,samples:1,signature:null,lastDistance:0}));
-    const byLabel=new Map(speakers.map(s=>[s.label,s]));
-    transcript=rows.map((row,index)=>{
-        const label=text(row.speaker)||labels[0]||'Voz 1';
-        const speaker=byLabel.get(label)||speakers[0]||{key:'voz_1'};
-        const seconds=Number(row.start)||0;
-        return {id:index+1,speakerKey:speaker.key,text:text(row.text),at:(startedAt||Date.now())+seconds*1000,elapsed:seconds*1000,confidence:1};
-    }).filter(row=>row.text);
+    const rows=Array.isArray(data?.transcript)?data.transcript.filter(row=>text(row?.text)):[];
+    if(!rows.length)return {applied:false,reason:'empty'};
+    const liveChars=transcript.reduce((sum,row)=>sum+text(row.text).length,0);
+    const bridgeChars=rows.reduce((sum,row)=>sum+text(row.text).length,0);
+    if(liveChars>220&&bridgeChars<liveChars*.58)return {applied:false,reason:'shorter'};
+    const hasDiarization=data?.meta?.diarization===true;
+    if(hasDiarization){
+        const labels=[];
+        rows.forEach(row=>{const label=text(row.speaker)||'Voz 1';if(!labels.includes(label))labels.push(label)});
+        speakers=labels.slice(0,MAX_SPEAKERS).map((label,index)=>({key:`voz_${index+1}`,label,samples:1,signature:null,anchorSignature:null,lastDistance:0}));
+        const byLabel=new Map(speakers.map(s=>[s.label,s]));
+        transcript=rows.map((row,index)=>{
+            const label=text(row.speaker)||labels[0]||'Voz 1';
+            const speaker=byLabel.get(label)||speakers[0]||{key:'voz_1'};
+            const seconds=Math.max(0,Number(row.start)||0);
+            return {id:index+1,speakerKey:speaker.key,text:text(row.text),at:(startedAt||Date.now())+seconds*1000,elapsed:seconds*1000,confidence:1};
+        });
+    }else{
+        if(!speakers.length)ensureSpeaker('Voz 1',null);
+        const mapped=[];
+        rows.forEach(row=>{
+            const start=Math.max(0,Number(row.start)||0),end=Math.max(start,Number(row.end)||start),mid=(start+end)/2;
+            const absolute=(startedAt||Date.now())+mid*1000;
+            const speaker=speakerForTimestamp(absolute)||speakers[0];
+            const clean=text(row.text);if(!clean)return;
+            const last=mapped[mapped.length-1];
+            if(last&&last.speakerKey===speaker.key&&start*1000-last.elapsed<1800){last.text=mergeTextOverlap(last.text,clean);last.at=(startedAt||Date.now())+start*1000;return}
+            mapped.push({id:mapped.length+1,speakerKey:speaker.key,text:clean,at:(startedAt||Date.now())+start*1000,elapsed:start*1000,confidence:.95});
+        });
+        transcript=mapped;
+    }
     segmentSequence=transcript.length;
     renderSpeakers();renderTranscript();refreshSummary();
+    return {applied:true,diarization:hasDiarization};
 }
 
 async function releaseAudio(){
@@ -465,10 +572,10 @@ function classifySpeakerWindow(signature){
     if(!speakers.length)return {speaker:ensureSpeaker('Voz 1',signature),distance:0,newSpeaker:true,strong:true};
     const ranked=speakers.map(speaker=>({speaker,distance:featureDistance(signature,speakerReference(speaker))})).sort((a,b)=>a.distance-b.distance);
     const best=ranked[0],second=ranked[1];
-    const strongLimit=.095;
-    const matchLimit=best?.speaker?.samples>=8?.118:.128;
+    const strongLimit=.105;
+    const matchLimit=best?.speaker?.samples>=8?.145:.155;
     if(best&&best.distance<=matchLimit){
-        const strong=best.distance<=strongLimit||(!second||best.distance+.022<second.distance);
+        const strong=best.distance<=strongLimit||(!second||best.distance+.018<second.distance);
         if(strong&&best.speaker.key===currentSpeakerKey){
             best.speaker.samples+=1;
             best.speaker.signature=best.speaker.signature?best.speaker.signature.map((value,index)=>value*.985+signature[index]*.015):signature.slice();
@@ -476,12 +583,13 @@ function classifySpeakerWindow(signature){
         pendingNewSignature=null;pendingNewCount=0;
         return {...best,newSpeaker:false,strong};
     }
+    if(best&&best.distance<.165){pendingNewSignature=null;pendingNewCount=0;return {...best,newSpeaker:false,provisional:true,strong:false}}
     if(speakers.length>=MAX_SPEAKERS)return {...best,newSpeaker:false,strong:false};
-    if(!pendingNewSignature||featureDistance(signature,pendingNewSignature)>.085){pendingNewSignature=signature.slice();pendingNewCount=1;return best?{...best,provisional:true,strong:false}:null}
+    if(!pendingNewSignature||featureDistance(signature,pendingNewSignature)>.07){pendingNewSignature=signature.slice();pendingNewCount=1;return best?{...best,provisional:true,strong:false}:null}
     pendingNewCount+=1;
-    pendingNewSignature=pendingNewSignature.map((value,index)=>value*.78+signature[index]*.22);
-    if(pendingNewCount>=NEW_SPEAKER_CONFIRMATIONS){
-        const speaker=ensureSpeaker(`Voz ${speakers.length+1}`,pendingNewSignature);
+    pendingNewSignature=pendingNewSignature.map((value,index)=>value*.82+signature[index]*.18);
+    if(pendingNewCount>=NEW_SPEAKER_CONFIRMATIONS&&Date.now()-speechStartedAt>=NEW_SPEAKER_MIN_VOICE_MS){
+        const speaker=ensureSpeaker('',pendingNewSignature);
         pendingNewSignature=null;pendingNewCount=0;
         return {speaker,distance:0,newSpeaker:true,strong:true};
     }
@@ -522,7 +630,7 @@ function classifySpeakerCheckpoint(signature){
     if(!speakers.length)return ensureSpeaker('Voz 1',signature);
     const ranked=speakers.map(speaker=>({speaker,distance:featureDistance(signature,speakerReference(speaker))})).sort((a,b)=>a.distance-b.distance);
     const best=ranked[0];
-    const threshold=best?.speaker?.samples>=8?.115:.125;
+    const threshold=best?.speaker?.samples>=8?.145:.155;
     if(best&&best.distance<=threshold)return best.speaker;
     return null;
 }
@@ -532,23 +640,40 @@ function clusterSpeaker(signature){
     if(!speakers.length)return ensureSpeaker('Voz 1',signature);
     const ranked=speakers.map(speaker=>({speaker,distance:featureDistance(signature,speakerReference(speaker))})).sort((a,b)=>a.distance-b.distance);
     const best=ranked[0];
-    const adaptive=best?.speaker?.samples>=6?.122:.135;
-    if(best&&best.distance<=adaptive){
+    if(best){
         const speaker=best.speaker;
-        speaker.samples+=1;
-        if(best.distance<.09){speaker.signature=speaker.signature?speaker.signature.map((value,index)=>value*.97+signature[index]*.03):signature.slice()}
+        if(best.distance<=.16){speaker.samples+=1;if(best.distance<.1)speaker.signature=speaker.signature?speaker.signature.map((value,index)=>value*.975+signature[index]*.025):signature.slice()}
         speaker.lastDistance=best.distance;
         return speaker;
     }
-    if(speakers.length>=MAX_SPEAKERS)return best.speaker;
-    return ensureSpeaker(`Voz ${speakers.length+1}`,signature);
+    return speakers[0];
 }
 
+function nextSpeakerKey(){let index=1;while(speakers.some(item=>item.key===`voz_${index}`))index+=1;return `voz_${index}`}
+function nextSpeakerLabel(){let index=1;while(speakers.some(item=>meetingNormalize(item.label)===meetingNormalize(`Voz ${index}`)))index+=1;return `Voz ${index}`}
 function ensureSpeaker(label,signature){
-    const key=`voz_${speakers.length+1}`;
+    const key=nextSpeakerKey();
     const seed=signature?signature.slice():null;
-    const speaker={key,label,samples:1,signature:seed,anchorSignature:seed?seed.slice():null,lastDistance:0};
+    const speaker={key,label:text(label)||nextSpeakerLabel(),samples:1,signature:seed,anchorSignature:seed?seed.slice():null,lastDistance:0};
     speakers.push(speaker);renderSpeakers();return speaker;
+}
+
+function mergeSpeakerClones(){
+    if(speakers.length<2)return;
+    let changed=false;
+    for(let i=speakers.length-1;i>=0;i--){
+        const candidate=speakers[i];if(!candidate||candidate.samples>4||!speakerReference(candidate))continue;
+        const matches=speakers.filter(other=>other.key!==candidate.key&&other.samples>=candidate.samples&&speakerReference(other)).map(other=>({other,distance:featureDistance(speakerReference(candidate),speakerReference(other))})).sort((a,b)=>a.distance-b.distance);
+        const best=matches[0];if(!best||best.distance>.048)continue;
+        speakerTimeline.forEach(segment=>{if(segment.speakerKey===candidate.key)segment.speakerKey=best.other.key});
+        transcript.forEach(row=>{if(row.speakerKey===candidate.key)row.speakerKey=best.other.key});
+        if(lastSpeakerKey===candidate.key)lastSpeakerKey=best.other.key;
+        if(currentSpeakerKey===candidate.key)currentSpeakerKey=best.other.key;
+        if(liveInterimSpeakerKey===candidate.key)liveInterimSpeakerKey=best.other.key;
+        segmentSpeakerVotes=segmentSpeakerVotes.map(key=>key===candidate.key?best.other.key:key);
+        speakers.splice(i,1);changed=true;
+    }
+    if(changed){renderSpeakers();renderTranscript();refreshSummary()}
 }
 
 function finalizeSpeakerSegment(endAt){
@@ -565,6 +690,7 @@ function finalizeSpeakerSegment(endAt){
     if(speakerTimeline.length>160)speakerTimeline=speakerTimeline.slice(-160);
     lastSpeakerKey=speaker.key;
     speechActive=false;featureFrames=[];segmentSpeakerVotes=[];silenceStartedAt=0;speechStartedAt=0;currentSpeakerKey='';
+    mergeSpeakerClones();
 }
 
 function clearRecognitionRestart(){
@@ -577,6 +703,11 @@ function stopRecognitionWatchdog(){
 
 function setRecognitionStatus(label){
     const host=document.getElementById('skill-meeting-engine');
+    if(host)host.textContent=label;
+}
+
+function setRecorderStatus(label){
+    const host=document.getElementById('skill-meeting-recorder');
     if(host)host.textContent=label;
 }
 
@@ -624,8 +755,8 @@ function startRecognition(forceNew=false,reason='inicio'){
         recognitionStarting=false;
         recognitionStartedAt=Date.now();
         lastRecognitionActivityAt=Date.now();
-        liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;interimCommittedText='';
-        setRecognitionStatus(`Texto · continuo V118${recognitionRestartCount?` · R${recognitionRestartCount}`:''}`);
+        liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;
+        setRecognitionStatus(`Texto · continuo V119${recognitionRestartCount?` · R${recognitionRestartCount}`:''}`);
     };
     engine.onaudiostart=()=>{if(generation===recognitionGeneration)lastRecognitionActivityAt=Date.now()};
     engine.onspeechstart=()=>{if(generation===recognitionGeneration)lastRecognitionActivityAt=Date.now()};
@@ -644,10 +775,13 @@ function startRecognition(forceNew=false,reason='inicio'){
             if(!result.isFinal){updateLiveInterim(best);continue}
             lastRecognitionTextAt=Date.now();
             if(isMeetingEndCommand(best)){clearLiveInterim();finishByVoice();return}
+            const eventAt=liveInterimStartedAt||liveInterimAt||Date.now();
+            const speakerKey=liveInterimSpeakerKey||currentSpeakerKey||lastSpeakerKey;
+            const resolvedSpeaker=speakerForTimestamp(eventAt,speakerKey)||speakerForTranscript();
             const delta=transcriptDelta(best,interimCommittedText);
             clearLiveInterim();
             interimCommittedText='';
-            if(delta&&!isRecentTranscriptDuplicate(delta))appendTranscript(delta,confidence,speakerForTranscript());
+            if(delta&&!isRecentTranscriptDuplicate(delta))appendTranscript(delta,confidence,resolvedSpeaker,eventAt);
         }
     };
     engine.onerror=event=>{
@@ -676,41 +810,52 @@ function startRecognition(forceNew=false,reason='inicio'){
     };
     try{
         engine.start();
-        setRecognitionStatus(reason==='inicio'?'Texto · iniciando modo continuo V118':'Texto · reiniciando sin perder la reunión');
+        setRecognitionStatus(reason==='inicio'?'Texto · iniciando modo continuo V119':'Texto · reiniciando con contexto conservado');
     }catch(error){
         recognitionStarting=false;
         scheduleRecognitionRestart('start',500);
     }
 }
 
-function transcriptDelta(full,committed){
+function transcriptDelta(full,committed=''){
     const source=text(full).replace(/\s+/g,' ');if(!source)return '';
-    const done=text(committed).replace(/\s+/g,' ');if(!done)return source;
-    const a=source.split(' '),b=done.split(' ');let i=0;
-    while(i<Math.min(a.length,b.length)&&meetingNormalize(a[i])===meetingNormalize(b[i]))i++;
-    if(i>=Math.max(1,Math.floor(b.length*.65)))return a.slice(i).join(' ').trim();
-    const ns=meetingNormalize(source),nd=meetingNormalize(done);
-    if(ns===nd||nd.includes(ns))return '';
-    if(ns.startsWith(nd)){const words=done.split(' ').length;return source.split(' ').slice(words).join(' ').trim()}
-    return source;
+    const localContext=[recentTranscriptText(),text(committed)].filter(Boolean).join(' ');
+    const stripped=stripKnownPrefix(source,localContext);
+    if(!stripped)return '';
+    const n=meetingNormalize(stripped);
+    if(!n)return '';
+    const recent=transcript.slice(-RECENT_TRANSCRIPT_ROWS);
+    if(recent.some(row=>{const r=meetingNormalize(row.text);return r===n||(n.length>22&&(r.endsWith(n)||n===r))}))return '';
+    return stripped;
 }
 
 function isRecentTranscriptDuplicate(value){
     const n=meetingNormalize(value);if(!n)return true;
-    return transcript.slice(-4).some(row=>{const r=meetingNormalize(row.text);return r===n||(n.length>18&&(r.includes(n)||n.includes(r)))})
+    const words=normalizedWords(value);
+    return transcript.slice(-RECENT_TRANSCRIPT_ROWS).some(row=>{
+        const r=meetingNormalize(row.text);if(r===n)return true;
+        if(n.length>22&&(r.includes(n)||n.includes(r)))return true;
+        if(words.length>=4&&transcriptSimilarity(value,row.text)>=.9)return true;
+        return false;
+    });
 }
 
 function clearLiveInterim(){
     window.clearTimeout(interimCommitTimer);interimCommitTimer=0;
-    liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;
+    liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;
     renderTranscript();
 }
 
 function updateLiveInterim(value){
     const clean=text(value).replace(/\s+/g,' ');if(!clean)return;
-    liveInterimText=clean;liveInterimSpeakerKey=currentSpeakerKey||lastSpeakerKey||liveInterimSpeakerKey||'';liveInterimAt=Date.now();
+    const now=Date.now();
+    if(!liveInterimText)liveInterimStartedAt=now;
+    liveInterimText=clean;
+    const stableKey=currentSpeakerKey||lastSpeakerKey||liveInterimSpeakerKey||'';
+    if(stableKey)liveInterimSpeakerKey=stableKey;
+    liveInterimAt=now;
     window.clearTimeout(interimCommitTimer);
-    interimCommitTimer=window.setTimeout(()=>commitLiveInterim('captura continua'),INTERIM_COMMIT_MS);
+    interimCommitTimer=window.setTimeout(()=>commitLiveInterim('respaldo de texto en vivo'),INTERIM_COMMIT_MS);
     window.clearTimeout(interimRenderTimer);
     interimRenderTimer=window.setTimeout(()=>{interimRenderTimer=0;renderTranscript()},70);
 }
@@ -720,9 +865,10 @@ function commitLiveInterim(reason='',speakerKeyOverride=''){
     const delta=transcriptDelta(liveInterimText,interimCommittedText);
     if(!delta||delta.split(/\s+/).filter(Boolean).length<2)return;
     const key=speakerKeyOverride||liveInterimSpeakerKey||currentSpeakerKey||lastSpeakerKey;
-    const speaker=(key&&speakers.find(s=>s.key===key))||speakerForTranscript();
-    interimCommittedText=liveInterimText;
-    if(!isRecentTranscriptDuplicate(delta))appendTranscript(delta,.45,speaker);
+    const at=liveInterimStartedAt||liveInterimAt||Date.now();
+    const speaker=(key&&speakers.find(s=>s.key===key))||speakerForTimestamp(at,key)||speakerForTranscript();
+    interimCommittedText=mergeTextOverlap(interimCommittedText,liveInterimText);
+    if(!isRecentTranscriptDuplicate(delta))appendTranscript(delta,.45,speaker,at);
     else renderTranscript();
     liveInterimSpeakerKey=currentSpeakerKey||speaker?.key||'';
 }
@@ -768,12 +914,20 @@ function speakerForTranscript(){
     return speakers[0]||ensureSpeaker('Voz 1',null);
 }
 
-function appendTranscript(value,confidence=0,resolvedSpeaker=null){
+function appendTranscript(value,confidence=0,resolvedSpeaker=null,eventAt=Date.now()){
     const clean=text(value).replace(/\s+/g,' ');if(!clean)return;
-    const speaker=resolvedSpeaker||speakerForTranscript();
+    const at=Number(eventAt)||Date.now();
+    const speaker=resolvedSpeaker||speakerForTimestamp(at)||speakerForTranscript();
     const last=transcript[transcript.length-1];
-    if(last&&last.speakerKey===speaker.key&&Date.now()-last.at<5000){last.text=`${last.text} ${clean}`.trim();last.confidence=Math.max(last.confidence||0,confidence||0);last.at=Date.now();}
-    else transcript.push({id:++segmentSequence,speakerKey:speaker.key,text:clean,at:Date.now(),elapsed:Math.max(0,Date.now()-startedAt),confidence:Number(confidence)||0});
+    if(last&&last.speakerKey===speaker.key&&at-last.at<TRANSCRIPT_MERGE_WINDOW_MS){
+        const merged=mergeTextOverlap(last.text,clean);
+        if(meetingNormalize(merged)!==meetingNormalize(last.text))last.text=merged;
+        last.confidence=Math.max(last.confidence||0,confidence||0);last.at=Math.max(last.at,at);
+    }else{
+        const duplicate=transcript.slice(-RECENT_TRANSCRIPT_ROWS).find(row=>transcriptSimilarity(row.text,clean)>=.94&&Math.abs(at-row.at)<12000);
+        if(duplicate){duplicate.confidence=Math.max(duplicate.confidence||0,confidence||0);renderTranscript();refreshSummary();return}
+        transcript.push({id:++segmentSequence,speakerKey:speaker.key,text:clean,at,elapsed:Math.max(0,at-startedAt),confidence:Number(confidence)||0});
+    }
     renderTranscript();refreshSummary();
 }
 
@@ -848,7 +1002,7 @@ async function saveMinutes(){
     }catch(error){setState('No se pudo guardar',error?.message||'Revisa la conexión y SQL_MAESTRO_CRM.sql.')}finally{saveBusy=false;if(button){button.disabled=false;button.textContent='Guardar minuta'}}
 }
 
-function reset(){if(active)return false;speakers=[];transcript=[];speakerTimeline=[];segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;window.clearTimeout(interimCommitTimer);interimCommitTimer=0;window.clearTimeout(interimRenderTimer);interimRenderTimer=0;liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;interimCommittedText='';segmentSequence=0;lastSpeakerKey='';currentSpeakerKey='';startedAt=0;renderSpeakers();renderTranscript();refreshSummary();setState('Reunión detenida','Pulsa Iniciar para calibrar el micrófono.');document.getElementById('skill-meeting-clock').textContent='00:00';return true}
+function reset(){if(active)return false;speakers=[];transcript=[];speakerTimeline=[];segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;window.clearTimeout(interimCommitTimer);interimCommitTimer=0;window.clearTimeout(interimRenderTimer);interimRenderTimer=0;liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;interimCommittedText='';segmentSequence=0;lastSpeakerKey='';currentSpeakerKey='';startedAt=0;renderSpeakers();renderTranscript();refreshSummary();setState('Reunión detenida','Pulsa Iniciar para calibrar el micrófono.');document.getElementById('skill-meeting-clock').textContent='00:00';return true}
 
 window.SkilledMeetings=Object.freeze({open,close,start,startWithCountdown,stop,reset,isActive:()=>active,getTranscript:()=>transcript.map(row=>({...row})),getSpeakers:()=>speakers.map(({signature,...speaker})=>({...speaker}))});
 })();

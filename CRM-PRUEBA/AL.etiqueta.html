@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<script src="skilled-config.js?v=118"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060814">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
+<link rel="icon" href="/favicon.ico?v=118" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=118">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=118">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=118">
+<link rel="manifest" href="/site.webmanifest?v=118">
+<meta name="application-name" content="Skilled CRM">
+<meta name="apple-mobile-web-app-title" content="Skilled CRM">
+<link rel="stylesheet" href="interfaz.css?v=118"><script src="skilled-theme.js?v=118"></script>
+<script src="navegacion-suave.js?v=118"></script>
+<title>Skilled - Etiquetas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
+<script src="skilled-supabase.js?v=118"></script>
+<script src="auth-guard.js?v=118"></script>
+<link rel="stylesheet" href="tailwind-local.css?v=118">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.12.3/dist/JsBarcode.all.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<style>
+*{box-sizing:border-box}body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#060814;color:#d7deeb}.lista-scroll::-webkit-scrollbar,.crm-scroll::-webkit-scrollbar{width:6px;height:6px}.lista-scroll::-webkit-scrollbar-thumb,.crm-scroll::-webkit-scrollbar-thumb{background:#1b2642;border-radius:8px}.card{background:#090d1a;border:1px solid #161f38;border-radius:14px}.input{width:100%;background:#060a14;border:1px solid #243257;border-radius:9px;padding:10px 12px;color:#e5e7eb;font-size:12px}.input:focus{outline:none;border-color:#3b82f6}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:700;transition:.18s}.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}.btn-secondary{background:#10172a;border:1px solid #243257;color:#d7deeb}.btn-secondary:hover{background:#151f36}.btn:disabled{opacity:.45;cursor:not-allowed}.label-stage{background-color:#e9edf3;background-image:linear-gradient(45deg,#dce2ea 25%,transparent 25%),linear-gradient(-45deg,#dce2ea 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#dce2ea 75%),linear-gradient(-45deg,transparent 75%,#dce2ea 75%);background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0}.progress-fill{transition:width .15s ease}body.tema-claro{background:#f2f4f9;color:#111827}body.tema-claro .card,body.tema-claro header,body.tema-claro aside{background:#fff!important;border-color:#d7dfeb!important}body.tema-claro .input{background:#fff;border-color:#cdd7e6;color:#111827}body.tema-claro .text-white{color:#111827!important}body.tema-claro .text-gray-400,body.tema-claro .text-gray-500{color:#64748b!important}
+</style>
+<script src="skilled-search.js?v=118"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='118',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v83-design.css?v=118"></head>
+<body class="min-h-screen flex overflow-x-hidden">
+<aside class="w-[260px] h-screen sticky top-0 bg-[#090d1a] border-r border-[#161f38] flex-col justify-between hidden lg:flex shrink-0">
+        <div class="overflow-y-auto flex-1 lista-scroll">
+            <div class="p-6 border-b border-[#161f38] flex items-center justify-between">
+                <a href="AL.inicio.html" title="Ir al inicio">
+                    <img src="logo-reporte.png" alt="Skilled Logo" class="h-9 w-auto object-contain">
+                </a>
+            </div>
+            <nav class="p-4 space-y-6 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
+                <div>
+            <span class="px-3 block mb-2">Cuenta</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.inicio.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Inicio</span>
+        </a>
+    </li>
+<li>
+        <a href="perfil.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Mi perfil</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Materiales</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.catalogo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span>Catálogo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.bajo-minimo.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Bajo mínimo</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.almacenes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            <span>Almacenes</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.etiquetas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#141d34] border-l-2 border-blue-500 text-white font-semibold">
+            <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 7h.01M3 11l8.586-8.586A2 2 0 0113 2h5a2 2 0 012 2v5a2 2 0 01-.586 1.414L10.828 19a2 2 0 01-2.828 0l-5-5a2 2 0 010-2.828z"/></svg>
+            <span>Etiquetas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Movimientos</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            <span>Registrar movimiento</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.historial-movimientos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <span>Historial movimientos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.tomas-fisicas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Tomas físicas</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Compras y Solicitudes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.entrega-directa.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Entrega directa</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.solicitudes-material.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Solicitudes de material</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.ordenes-compra.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Solicitudes de compra</span>
+        </a>
+    </li>
+            </ul>
+        </div><div>
+            <span class="px-3 block mb-2">Proyectos y Reportes</span>
+            <ul class="space-y-1 text-xs normal-case text-gray-400 font-medium">
+                <li>
+        <a href="AL.proyectos.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            <span>Proyectos</span>
+        </a>
+    </li>
+<li>
+        <a href="AL.reportes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#11182c] transition text-gray-400 hover:text-white">
+            <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-6m4 6V7m4 10v-3M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <span>Reportes</span>
+        </a>
+    </li>
+            </ul>
+        </div>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-[#161f38] bg-[#070b16]">
+            <a href="login.html" class="w-full flex items-center justify-center gap-2 bg-[#10172a] hover:bg-red-950/20 border border-[#232f4e] text-red-400 hover:text-red-300 py-2.5 rounded-lg text-xs font-semibold transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Cerrar sesión
+            </a>
+        </div>
+    </aside>
+<div class="flex-1 min-w-0 flex flex-col min-h-screen">
+<header class="skilled-app-header h-16 border-b border-[#161f38] flex items-center justify-between px-6 bg-[#080d1a] sticky top-0 z-30">
+  <div class="flex items-center gap-4 w-full max-w-xl">
+    <div class="relative w-full">
+      <span class="absolute inset-y-0 left-3 flex items-center text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></span>
+      <input id="busqueda" type="search" placeholder="Buscar por código, descripción, categoría o modismo..." class="w-full bg-[#0d1425] text-xs text-gray-300 rounded-lg pl-9 pr-4 py-2 border border-[#1b2642] focus:outline-none focus:border-blue-500 transition">
+    </div>
+  </div>
+  <div class="flex items-center gap-5 ml-5">
+    <button type="button" onclick="cargar(true)" title="Actualizar" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg></button>
+    <button type="button" onclick="alternarTema()" title="Cambiar tema" class="text-gray-400 hover:text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14 12a2 2 0 11-4 0 2 2 0 014 0z"/></svg></button>
+    <div class="flex items-center gap-3 border-l border-[#161f38] pl-5"><div class="text-right hidden sm:block"><div class="text-xs font-bold text-white">Almacen</div><div class="text-[10px] text-gray-500 font-medium">Inventario</div></div><div class="w-8 h-8 rounded-full bg-[#1b253c] border border-blue-500/30 text-white flex items-center justify-center font-bold text-sm">A</div></div>
+  </div>
+</header>
+<main class="flex-1 p-6 md:p-8 max-w-[1500px] mx-auto w-full">
+  <nav class="text-[11px] text-gray-500 mb-3 flex gap-2"><a href="AL.inicio.html">Inicio</a><span>›</span><span>Inventario</span><span>›</span><span class="text-gray-300 font-semibold">Etiquetas</span></nav>
+  <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl border border-blue-500/30 bg-blue-950/20 text-blue-400 flex items-center justify-center"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 7h.01M3 11l8.586-8.586A2 2 0 0113 2h5a2 2 0 012 2v5a2 2 0 01-.586 1.414L10.828 19a2 2 0 01-2.828 0l-5-5a2 2 0 010-2.828z"/></svg></div><div><h1 class="text-2xl font-bold text-white">Etiquetas QR y códigos de barras</h1><p class="text-xs text-gray-500 mt-1">Diseño institucional con el mismo acabado profesional del reporte de alcance.</p></div></div>
+    <div class="flex flex-wrap gap-2"><button id="btnVisibles" type="button" onclick="seleccionarVisibles()" class="btn btn-secondary">Seleccionar visibles</button><button id="btnTodo" type="button" onclick="seleccionarTodo()" class="btn btn-secondary">Seleccionar todo</button><button type="button" onclick="limpiarSeleccion()" class="btn btn-secondary">Limpiar</button></div>
+  </div>
+  <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px] gap-5">
+    <section class="card overflow-hidden min-w-0">
+      <div class="p-4 border-b border-[#161f38] grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Generar por</label><select id="modoSeleccion" class="input" onchange="cambiarModoSeleccion()"><option value="materiales">Materiales</option><option value="categorias">Categorías</option></select></div>
+        <div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Filtrar categoría</label><select id="filtroCategoria" class="input" onchange="renderLista()"><option value="">Todas las categorías</option></select></div>
+        <div><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Selección</label><div class="input flex items-center justify-between"><span><strong id="contadorSeleccion" class="text-blue-300">0</strong> seleccionados</span><span id="contadorResultados" class="text-gray-500">0 visibles</span></div></div>
+      </div>
+      <div id="estadoCarga" class="py-20 text-center text-sm text-gray-500">Consultando el catálogo...</div>
+      <div id="listaSeleccion" class="hidden crm-scroll max-h-[680px] overflow-y-auto divide-y divide-[#161f38]"></div>
+    </section>
+    <aside class="card p-5 h-fit xl:sticky xl:top-20">
+      <h2 class="text-sm font-bold text-white">Configuración de salida</h2><p class="text-[10px] text-gray-500 mt-1">Las etiquetas usan el logo institucional del reporte de alcance.</p>
+      <div class="mt-5"><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Tipo de código</label><div class="grid grid-cols-2 gap-2"><button id="btnQr" type="button" onclick="setTipoCodigo('qr')" class="btn border border-blue-500/50 bg-blue-950/20 text-blue-300">Código QR</button><button id="btnBarra" type="button" onclick="setTipoCodigo('barra')" class="btn btn-secondary">Código de barras</button></div></div>
+      <div class="mt-4"><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Tamaño de etiqueta</label><select id="tamanoEtiqueta" class="input" onchange="renderVistaPrevia()"><option value="70x40">70 × 40 mm</option><option value="50x30">50 × 30 mm</option><option value="100x50">100 × 50 mm</option></select></div>
+      <div class="mt-4"><label class="block text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-2">Copias por etiqueta</label><input id="copias" type="number" min="1" max="50" step="1" value="1" class="input"></div>
+      <div id="vistaPrevia" class="label-stage mt-5 min-h-[245px] rounded-xl border border-[#263756] p-4 flex items-center justify-center text-xs text-gray-500">Selecciona al menos un elemento</div>
+      <div id="panelProgreso" class="hidden mt-4 rounded-lg border border-[#243257] bg-[#060a14] p-3"><div class="flex justify-between text-[10px]"><span id="textoProgreso" class="text-gray-400">Preparando...</span><strong id="porcentajeProgreso" class="text-blue-300">0%</strong></div><div class="mt-2 h-1.5 rounded-full bg-[#18233b] overflow-hidden"><div id="barraProgreso" class="progress-fill h-full bg-blue-500" style="width:0%"></div></div></div>
+      <div class="mt-4 space-y-2"><button id="btnPdf" type="button" onclick="generarPDF(false)" class="btn btn-primary w-full">Descargar PDF</button><button id="btnImprimir" type="button" onclick="generarPDF(true)" class="btn btn-secondary w-full">Imprimir etiquetas</button><button id="btnZip" type="button" onclick="descargarPNGZip()" class="btn btn-secondary w-full">Descargar PNG en ZIP</button></div>
+      <p class="mt-4 text-[9px] leading-relaxed text-gray-500">El sistema divide automáticamente selecciones grandes en varios PDF y utiliza códigos cortos para evitar el error <em>code length overflow</em>.</p>
+    </aside>
+  </div>
+</main>
+</div>
+<div id="qrAux" class="fixed -left-[10000px] top-0"></div>
+<script>
+(function(){if(localStorage.getItem(window.SkilledThemeKey||'skilled_tema_almacen')==='claro')document.body.classList.add('tema-claro')})();
+function alternarTema(){const claro=document.body.classList.toggle('tema-claro');localStorage.setItem(window.SkilledThemeKey||'skilled_tema_almacen',claro?'claro':'oscuro')}
+async function cerrarSesionCRM(){try{await window.SkilledDB?.client?.auth?.signOut()}catch(error){}location.href='login.html'}
+const esc=v=>String(v??'').replace(/[&<>\'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const txt=v=>String(v??'').trim();
+const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+const waitFrame=()=>new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+let materiales=[],categorias=[],modoSeleccion='materiales',tipoCodigo='qr',seleccionados=new Set(),ocupado=false,logoPromise=null;
+function elementosActuales(){if(modoSeleccion==='categorias')return categorias.map(c=>({id:c,codigo:c,descripcion:c,categoria:c,unidad:'',stock:0,tipo:'categoria'}));return materiales.map(m=>({id:txt(m.codigo),codigo:txt(m.codigo),descripcion:txt(m.descripcion||m.desc||m.codigo),categoria:txt(m.categoria),unidad:txt(m.unidad),stock:num(m.stock),modismos:Array.isArray(m.modismos)?m.modismos.join(', '):txt(m.modismosTexto||m.modismos),tipo:'material'})).filter(e=>e.id)}
+function elementosFiltrados(){const q=txt(document.getElementById('busqueda').value).toLocaleLowerCase('es-MX'),cat=document.getElementById('filtroCategoria').value;return elementosActuales().filter(e=>(!cat||e.categoria===cat)&&(!q||(window.SkilledSearch?.matches?window.SkilledSearch.matches([e.codigo,e.descripcion,e.categoria,e.modismos],q):[e.codigo,e.descripcion,e.categoria,e.modismos].some(v=>txt(v).toLocaleLowerCase('es-MX').includes(q)))))}
+async function cargar(mostrar=false){const carga=document.getElementById('estadoCarga'),lista=document.getElementById('listaSeleccion');carga.classList.remove('hidden');lista.classList.add('hidden');carga.textContent=mostrar?'Actualizando catálogo...':'Consultando el catálogo...';try{materiales=await SkilledDB.listMaterials();categorias=[...new Set(materiales.map(m=>txt(m.categoria)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));document.getElementById('filtroCategoria').innerHTML='<option value="">Todas las categorías</option>'+categorias.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');carga.classList.add('hidden');lista.classList.remove('hidden');renderLista();renderVistaPrevia()}catch(error){carga.textContent='No se pudo cargar el catálogo: '+error.message}}
+function cambiarModoSeleccion(){modoSeleccion=document.getElementById('modoSeleccion').value;seleccionados.clear();document.getElementById('filtroCategoria').value='';document.getElementById('filtroCategoria').disabled=modoSeleccion==='categorias';renderLista();renderVistaPrevia()}
+function renderLista(){const list=document.getElementById('listaSeleccion'),rows=elementosFiltrados();document.getElementById('contadorResultados').textContent=`${rows.length.toLocaleString('es-MX')} visibles`;list.innerHTML=rows.length?rows.map(e=>`<label class="flex items-center gap-3 px-5 py-3.5 hover:bg-[#0d1425] cursor-pointer transition"><input type="checkbox" class="w-4 h-4 accent-blue-600" ${seleccionados.has(e.id)?'checked':''} onchange="toggleSeleccion(decodeURIComponent('${encodeURIComponent(e.id)}'),this.checked)"><span class="w-10 h-10 rounded-lg bg-[#060a14] border border-[#243257] text-blue-400 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16zM3.3 7L12 12l8.7-5M12 22V12"/></svg></span><span class="min-w-0 flex-1"><span class="block text-xs font-semibold text-white truncate">${esc(e.descripcion)}</span><span class="block text-[9px] text-gray-500 font-mono mt-1">${esc(e.codigo)}${e.categoria?' · '+esc(e.categoria):''}</span></span>${e.tipo==='material'?`<span class="text-[10px] text-gray-500 whitespace-nowrap">${num(e.stock).toLocaleString('es-MX')} ${esc(e.unidad)}</span>`:''}</label>`).join(''):'<div class="py-20 text-center text-sm text-gray-500">No hay resultados con esos filtros.</div>';actualizarContador()}
+function toggleSeleccion(id,checked){checked?seleccionados.add(id):seleccionados.delete(id);actualizarContador();renderVistaPrevia()}
+function seleccionarVisibles(){elementosFiltrados().forEach(e=>seleccionados.add(e.id));renderLista();renderVistaPrevia()}
+function seleccionarTodo(){elementosActuales().forEach(e=>seleccionados.add(e.id));renderLista();renderVistaPrevia()}
+function limpiarSeleccion(){seleccionados.clear();renderLista();renderVistaPrevia()}
+function actualizarContador(){document.getElementById('contadorSeleccion').textContent=seleccionados.size.toLocaleString('es-MX')}
+function setTipoCodigo(tipo){tipoCodigo=tipo;document.getElementById('btnQr').className=tipo==='qr'?'btn border border-blue-500/50 bg-blue-950/20 text-blue-300':'btn btn-secondary';document.getElementById('btnBarra').className=tipo==='barra'?'btn border border-blue-500/50 bg-blue-950/20 text-blue-300':'btn btn-secondary';renderVistaPrevia()}
+function seleccion(){const map=new Map(elementosActuales().map(e=>[e.id,e]));return[...seleccionados].map(id=>map.get(id)).filter(Boolean)}
+function codePayload(e){const clean=txt(e.codigo||e.categoria||'ITEM').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]/g,'').slice(0,24)||'ITEM';return(e.tipo==='categoria'?'C:':'M:')+clean}
+function loadLogo(){if(logoPromise)return logoPromise;logoPromise=new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src='logo-reporte.png'});return logoPromise}
+function qrCanvas(value,size){const aux=document.getElementById('qrAux');aux.innerHTML='';const short=txt(value).slice(0,28)||'M:ITEM';try{new QRCode(aux,{text:short,width:size,height:size,typeNumber:4,colorDark:'#001f3f',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L})}catch(error){aux.innerHTML='';new QRCode(aux,{text:'M:ITEM',width:size,height:size,typeNumber:2,colorDark:'#001f3f',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L})}const source=aux.querySelector('canvas');if(!source)throw new Error('No se pudo crear el QR.');const out=document.createElement('canvas');out.width=size;out.height=size;const c=out.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,size,size);c.drawImage(source,0,0,size,size);aux.innerHTML='';return out}
+function barcodeCanvas(value,width,height){const out=document.createElement('canvas');out.width=width;out.height=height;const clean=txt(value).replace(/[^A-Za-z0-9._-]/g,'').slice(0,28)||'ITEM';JsBarcode(out,clean,{format:'CODE128',displayValue:false,height:Math.round(height*.62),width:1.25,margin:Math.round(height*.12),background:'#ffffff',lineColor:'#001f3f'});return out}
+function wrap(ctx,text,x,y,maxWidth,lineHeight,maxLines){const words=txt(text).split(/\s+/);let line='',used=0;for(const word of words){const test=line+word+' ';if(ctx.measureText(test).width>maxWidth&&line){ctx.fillText(line.trim(),x,y+used*lineHeight);used++;line=word+' ';if(used>=maxLines)break}else line=test}if(used<maxLines&&line)ctx.fillText(line.trim(),x,y+used*lineHeight)}
+async function labelCanvas(e,lw,lh,preview=false){const scale=preview?8:12,w=Math.round(lw*scale),h=Math.round(lh*scale),cvs=document.createElement('canvas');cvs.width=w;cvs.height=h;const c=cvs.getContext('2d'),pad=Math.round(w*.035),blue='#00416B',red='#EA0029',ink='#102A43',muted='#58738B';c.fillStyle='#fff';c.fillRect(0,0,w,h);c.strokeStyle=blue;c.lineWidth=Math.max(2,Math.round(w*.003));c.strokeRect(2,2,w-4,h-4);c.fillStyle='#f4f8fb';c.fillRect(3,3,w-6,Math.round(h*.20));const logo=await loadLogo();if(logo){const maxW=Math.round(w*.34),maxH=Math.round(h*.13),ratio=logo.width/logo.height;let dw=maxW,dh=dw/ratio;if(dh>maxH){dh=maxH;dw=dh*ratio}c.drawImage(logo,pad,Math.round(h*.035),dw,dh)}else{c.fillStyle=blue;c.font=`bold ${Math.round(h*.075)}px Arial`;c.fillText('Skilled',pad,Math.round(h*.12))}c.fillStyle=blue;c.textAlign='right';c.font=`bold ${Math.max(10,Math.round(h*.034))}px Arial`;c.fillText(e.tipo==='categoria'?'ETIQUETA DE CATEGORÍA':'ETIQUETA DE MATERIAL',w-pad,Math.round(h*.095));c.fillStyle=red;c.fillRect(w-pad-Math.round(w*.12),Math.round(h*.125),Math.round(w*.12),Math.max(3,Math.round(h*.007)));c.strokeStyle=blue;c.lineWidth=Math.max(1,Math.round(w*.0015));c.beginPath();c.moveTo(pad,Math.round(h*.21));c.lineTo(w-pad,Math.round(h*.21));c.stroke();c.textAlign='left';if(tipoCodigo==='qr'){const size=Math.round(Math.min(h*.59,w*.32)),qy=Math.round(h*.25),qr=qrCanvas(codePayload(e),Math.max(180,size));c.drawImage(qr,pad,qy,size,size);const tx=pad+size+Math.round(w*.045),maxW=w-tx-pad;c.fillStyle=ink;c.font=`bold ${Math.max(14,Math.round(h*.052))}px Arial`;wrap(c,e.descripcion,tx,Math.round(h*.34),maxW,Math.round(h*.065),3);c.fillStyle=blue;c.font=`bold ${Math.max(12,Math.round(h*.039))}px monospace`;c.fillText(txt(e.codigo),tx,Math.round(h*.66));c.fillStyle=muted;c.font=`${Math.max(10,Math.round(h*.031))}px Arial`;wrap(c,e.categoria||e.unidad,tx,Math.round(h*.75),maxW,Math.round(h*.045),2);c.fillStyle='#eef4f8';c.fillRect(tx,Math.round(h*.85),maxW,Math.round(h*.09));c.fillStyle=blue;c.font=`bold ${Math.max(9,Math.round(h*.027))}px Arial`;c.fillText('ESCANEAR EN EL CRM',tx+Math.round(maxW*.03),Math.round(h*.91))}else{const bw=w-2*pad,bh=Math.round(h*.27),bar=barcodeCanvas(txt(e.codigo),Math.round(bw*1.3),Math.round(bh*1.3));c.drawImage(bar,pad,Math.round(h*.27),bw,bh);c.fillStyle=blue;c.textAlign='center';c.font=`bold ${Math.max(11,Math.round(h*.035))}px monospace`;c.fillText(txt(e.codigo),w/2,Math.round(h*.61));c.textAlign='left';c.fillStyle=ink;c.font=`bold ${Math.max(13,Math.round(h*.044))}px Arial`;wrap(c,e.descripcion,pad,Math.round(h*.72),w-2*pad,Math.round(h*.052),2);c.fillStyle=muted;c.font=`${Math.max(10,Math.round(h*.029))}px Arial`;wrap(c,e.categoria||e.unidad,pad,Math.round(h*.88),w-2*pad,Math.round(h*.04),1)}c.textAlign='right';c.fillStyle=muted;c.font=`${Math.max(8,Math.round(h*.022))}px Arial`;c.fillText(tipoCodigo==='qr'?'Código QR · Skilled CRM':'Código de barras · Skilled CRM',w-pad,h-Math.round(h*.025));c.textAlign='left';return cvs}
+async function renderVistaPrevia(){const box=document.getElementById('vistaPrevia'),e=seleccion()[0];if(!e){box.innerHTML='Selecciona al menos un elemento';return}try{const [lw,lh]=document.getElementById('tamanoEtiqueta').value.split('x').map(Number),cvs=await labelCanvas(e,lw,lh,true);cvs.className='max-w-full max-h-[230px] object-contain shadow-lg';box.innerHTML='';box.appendChild(cvs)}catch(error){box.innerHTML=`<span class="text-rose-600">${esc(error.message)}</span>`}}
+function setBusy(value){ocupado=value;['btnPdf','btnImprimir','btnZip','btnTodo','btnVisibles'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=value});document.getElementById('panelProgreso').classList.toggle('hidden',!value)}
+function progress(done,total,message){const pct=Math.max(0,Math.min(100,Math.round(done/Math.max(1,total)*100)));document.getElementById('textoProgreso').textContent=message;document.getElementById('porcentajeProgreso').textContent=pct+'%';document.getElementById('barraProgreso').style.width=pct+'%'}
+function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+async function createPdfBlock(items,lw,lh,offset,total){const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true}),pageW=210,pageH=297,margin=8,gap=3,cols=Math.max(1,Math.floor((pageW-2*margin+gap)/(lw+gap))),rows=Math.max(1,Math.floor((pageH-2*margin+gap)/(lh+gap))),perPage=cols*rows;for(let i=0;i<items.length;i++){if(i>0&&i%perPage===0)doc.addPage();const pos=i%perPage,col=pos%cols,row=Math.floor(pos/cols),x=margin+col*(lw+gap),y=margin+row*(lh+gap),cvs=await labelCanvas(items[i],lw,lh,false);doc.addImage(cvs.toDataURL('image/png'),'PNG',x,y,lw,lh,undefined,'FAST');cvs.width=1;cvs.height=1;progress(offset+i+1,total,`Generando etiqueta ${offset+i+1} de ${total}...`);if(i%3===2)await waitFrame()}return doc}
+async function generarPDF(imprimir){if(ocupado)return;const base=seleccion();if(!base.length)return alert('Selecciona al menos un material o categoría.');const copies=Math.max(1,Math.min(50,num(document.getElementById('copias').value)||1)),[lw,lh]=document.getElementById('tamanoEtiqueta').value.split('x').map(Number),items=[];base.forEach(e=>{for(let i=0;i<copies;i++)items.push(e)});setBusy(true);try{const max=48;if(items.length<=max){const doc=await createPdfBlock(items,lw,lh,0,items.length);if(imprimir){const url=doc.output('bloburl'),win=window.open(url,'_blank');if(!win)throw new Error('El navegador bloqueó la ventana de impresión.');setTimeout(()=>{win.focus();win.print()},900)}else doc.save(`Etiquetas_${tipoCodigo}_${new Date().toISOString().slice(0,10)}.pdf`)}else{const zip=new JSZip();for(let start=0,part=1;start<items.length;start+=max,part++){const block=items.slice(start,start+max),doc=await createPdfBlock(block,lw,lh,start,items.length);zip.file(`Etiquetas_${tipoCodigo}_parte_${String(part).padStart(2,'0')}.pdf`,doc.output('blob'));await waitFrame()}progress(items.length,items.length,'Comprimiendo los PDF...');const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}});downloadBlob(blob,`Etiquetas_${tipoCodigo}_${new Date().toISOString().slice(0,10)}.zip`);if(imprimir)alert('La selección es grande. Se descargó un ZIP con varios PDF listos para imprimir.')}progress(1,1,'Proceso terminado.')}catch(error){alert('No se pudo generar el archivo: '+error.message)}finally{setTimeout(()=>setBusy(false),500)}}
+async function descargarPNGZip(){if(ocupado)return;const items=seleccion();if(!items.length)return alert('Selecciona al menos un material o categoría.');const [lw,lh]=document.getElementById('tamanoEtiqueta').value.split('x').map(Number);setBusy(true);try{const zip=new JSZip();for(let i=0;i<items.length;i++){const e=items[i],cvs=await labelCanvas(e,lw,lh,false),blob=await new Promise(resolve=>cvs.toBlob(resolve,'image/png')),name=(e.tipo==='categoria'?`categoria_${e.categoria}`:`material_${e.codigo}`).replace(/[^A-Za-z0-9_-]/g,'_');zip.file(`${name}.png`,blob);cvs.width=1;cvs.height=1;progress(i+1,items.length,`Preparando PNG ${i+1} de ${items.length}...`);if(i%4===3)await waitFrame()}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}});downloadBlob(blob,`Etiquetas_PNG_${new Date().toISOString().slice(0,10)}.zip`)}catch(error){alert('No se pudo generar el ZIP: '+error.message)}finally{setTimeout(()=>setBusy(false),500)}}
+document.getElementById('busqueda').addEventListener('input',renderLista);loadLogo();cargar(false);
+</script>
+<script src="skilled-sidebar.js?v=118"></script>
+
+
+<script src="crm-v78-fixes.js?v=118" defer></script><script src="skilled-performance.js?v=118" defer></script>
+<script src="crm-v83-shell.js?v=118" defer></script></body>
+</html>

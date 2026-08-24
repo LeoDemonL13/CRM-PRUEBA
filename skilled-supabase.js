@@ -5988,6 +5988,71 @@
         return data || {ok:true};
     }
 
+
+    function receptionSupplyRequestFromDb(row = {}) {
+        return {
+            id:Number(row.id), folio:text(row.folio), solicitante:text(row.solicitante), area:text(row.area), notas:text(row.notas),
+            estado:text(row.estado) || 'pendiente', motivoRechazo:text(row.motivo_rechazo), entregaId:Number(row.entrega_id || 0) || null,
+            fechaAtencion:text(row.fecha_atencion), createdAt:text(row.created_at), updatedAt:text(row.updated_at),
+            items:(row.re_solicitud_suministro_items || []).map(item => ({
+                id:Number(item.id), suministroId:Number(item.suministro_id), descripcion:text(item.descripcion), cantidad:number(item.cantidad), unidad:text(item.unidad)
+            }))
+        };
+    }
+
+    async function getReceptionSupplyRequestPortalV120() {
+        const { data, error } = await client.rpc('re_portal_config_v120');
+        assertNoError(error, 'No se pudo obtener el QR de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql V120.');
+        return data || {};
+    }
+
+    async function rotateReceptionSupplyRequestPortalV120() {
+        const { data, error } = await client.rpc('re_rotar_portal_solicitudes_v120');
+        assertNoError(error, 'No se pudo renovar el QR de solicitudes.');
+        return data || {};
+    }
+
+    async function listReceptionSupplyRequestsV120(options = {}) {
+        let query = client.from('re_solicitudes_suministros').select('*,re_solicitud_suministro_items(*)').order('created_at',{ascending:false}).limit(Math.min(300,Math.max(1,Math.round(number(options.limit)||100))));
+        const status = text(options.estado ?? options.status);
+        if (status) query = query.eq('estado', status);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las solicitudes por QR. Ejecuta SQL_MAESTRO_CRM.sql V120.');
+        return (data || []).map(receptionSupplyRequestFromDb);
+    }
+
+    async function listReceptionPublicSupplyCatalogV120(token) {
+        const { data, error } = await client.rpc('re_portal_catalogo_suministros_v120',{p_token:text(token)});
+        assertNoError(error, 'No se pudo abrir el catálogo de solicitudes.');
+        const items = Array.isArray(data?.items) ? data.items : [];
+        return items.map(item => ({ id:Number(item.id), descripcion:text(item.descripcion), categoria:text(item.categoria), unidad:text(item.unidad), imagen:text(item.imagen) }));
+    }
+
+    async function createReceptionPublicSupplyRequestV120(token, payload = {}) {
+        const items=(Array.isArray(payload.items)?payload.items:[]).map(item=>({suministro_id:Number(item.suministroId || item.suministro_id || 0),cantidad:Math.max(0,number(item.cantidad))})).filter(item=>item.suministro_id&&item.cantidad>0);
+        const { data, error } = await client.rpc('re_crear_solicitud_suministros_v120',{
+            p_token:text(token),
+            p_solicitante:text(payload.solicitante),
+            p_area:text(payload.area),
+            p_notas:text(payload.notas)||null,
+            p_items:items
+        });
+        assertNoError(error, 'No se pudo enviar la solicitud a Recepción.');
+        return data || {ok:true};
+    }
+
+    async function deliverReceptionSupplyRequestV120(id) {
+        const { data, error } = await client.rpc('re_entregar_solicitud_suministros_v120',{p_solicitud_id:Number(id||0)});
+        assertNoError(error, 'No se pudo marcar la solicitud como entregada.');
+        return data || {ok:true};
+    }
+
+    async function rejectReceptionSupplyRequestV120(id, reason = '') {
+        const { data, error } = await client.rpc('re_rechazar_solicitud_suministros_v120',{p_solicitud_id:Number(id||0),p_motivo:text(reason)||null});
+        assertNoError(error, 'No se pudo cerrar la solicitud.');
+        return data || {ok:true};
+    }
+
     function serviceFromDb(row) {
         return {
             id: Number(row.id), codigo: text(row.codigo), nombre: text(row.nombre), tipo: text(row.tipo),
@@ -7179,6 +7244,13 @@
         receiveReceptionStoreListV108,
         listReceptionSupplyDeliveriesV108,
         createReceptionSupplyDeliveryV108,
+        getReceptionSupplyRequestPortalV120,
+        rotateReceptionSupplyRequestPortalV120,
+        listReceptionSupplyRequestsV120,
+        listReceptionPublicSupplyCatalogV120,
+        createReceptionPublicSupplyRequestV120,
+        deliverReceptionSupplyRequestV120,
+        rejectReceptionSupplyRequestV120,
         listServices,
         saveService,
         deleteService,
