@@ -21,6 +21,36 @@ if(logoPromise)return logoPromise;
 logoPromise=(async()=>{for(const source of ['logo-reporte.png']){try{return await toDataUrl(source)}catch(error){}}return null})();
 return logoPromise;
 }
+
+function signatureImageElement(source){
+return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('La imagen de firma guardada no se pudo decodificar.'));img.src=source});
+}
+async function prepareSignatureImage(source){
+const value=text(source);
+if(!value)return null;
+if(!/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(value))throw new Error('La firma guardada no tiene un formato de imagen válido. Vuelve a guardarla desde Mi perfil.');
+const img=await signatureImageElement(value);
+const width=Math.max(1,Number(img.naturalWidth||img.width||1)),height=Math.max(1,Number(img.naturalHeight||img.height||1));
+const maxW=900,maxH=270,scale=Math.min(1,maxW/width,maxH/height),cw=Math.max(1,Math.round(width*scale)),ch=Math.max(1,Math.round(height*scale));
+const transparent=document.createElement('canvas');transparent.width=cw;transparent.height=ch;const tctx=transparent.getContext('2d');tctx.clearRect(0,0,cw,ch);tctx.drawImage(img,0,0,cw,ch);
+const png=transparent.toDataURL('image/png');
+const opaque=document.createElement('canvas');opaque.width=cw;opaque.height=ch;const octx=opaque.getContext('2d');octx.fillStyle='rgb(248,249,250)';octx.fillRect(0,0,cw,ch);octx.drawImage(transparent,0,0);const jpeg=opaque.toDataURL('image/jpeg',0.94);
+return{png,jpeg,width:cw,height:ch};
+}
+async function prepareSignatureRows(rows=[]){
+const source=Array.isArray(rows)?rows:[];
+return Promise.all(source.map(async row=>{const copy={...(row||{})};if(text(copy.firmaDataUrl)){try{copy._pdfImage=await prepareSignatureImage(copy.firmaDataUrl)}catch(error){copy._pdfImageError=error}}return copy}));
+}
+function drawSignatureImage(doc,row,x,sy,boxW){
+if(!text(row?.firmaDataUrl))return;
+if(row?._pdfImageError)throw row._pdfImageError;
+const prepared=row?._pdfImage;
+if(!prepared)throw new Error('La firma existe, pero no pudo prepararse para el PDF.');
+const maxW=boxW-8,maxH=14,ratio=Math.max(.1,Number(prepared.width||1)/Math.max(1,Number(prepared.height||1)));let iw=maxW,ih=iw/ratio;if(ih>maxH){ih=maxH;iw=ih*ratio}
+const px=x+(boxW-iw)/2,py=sy+7+(maxH-ih)/2;let firstError=null;
+try{doc.addImage(prepared.png,'PNG',px,py,iw,ih,undefined,'FAST');return}catch(error){firstError=error}
+try{doc.addImage(prepared.jpeg,'JPEG',px,py,iw,ih,undefined,'FAST');return}catch(error){throw new Error(`No se pudo insertar la imagen de firma en el PDF. ${text(error?.message)||text(firstError?.message)||'Error de imagen.'}`)}
+}
 function dateLabel(value){
 if(!value)return new Intl.DateTimeFormat('es-MX',{day:'2-digit',month:'long',year:'numeric'}).format(new Date());
 const date=new Date(/^\d{4}-\d{2}-\d{2}$/.test(value)?`${value}T12:00:00`:value);
@@ -70,6 +100,7 @@ const items=normalizeItems(data.materiales??data.items);
 const order=text(data.ordenCompra??data.orden);
 if(!order)throw new Error('Escribe el número de orden de compra.');
 if(!items.length)throw new Error('La orden no contiene materiales válidos.');
+const preparedSignatures=await prepareSignatureRows(data.firmas);
 const payload={
 version:3,
 sistema:'SKILLED_CRM',
@@ -116,7 +147,7 @@ didDrawPage:()=>{const page=doc.internal.getNumberOfPages();const height=doc.int
 let y=doc.lastAutoTable.finalY+5;if(y>214){doc.addPage();y=20}
 doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(0,65,107);doc.text(`Moneda: ${currency}`,14,y+4);doc.text('Condiciones de pago:',14,y+11);doc.setFont('helvetica','normal');doc.text(text(data.condicionesPago)||'Por definir',45,y+11);doc.setFont('helvetica','bold');doc.text('Ubicación de entrega:',14,y+18);doc.setFont('helvetica','normal');doc.text(text(data.ubicacionEntrega)||text(items[0]?.almacen)||'Por definir',48,y+18,{maxWidth:100});doc.setFont('helvetica','bold');doc.text('Comentarios y/o observaciones:',14,y+25);doc.setFont('helvetica','normal');doc.text(text(data.notas)||'Ninguna',59,y+25,{maxWidth:91});
 const tx=156,tw=40;doc.setDrawColor(180,190,200);doc.setFillColor(248,249,250);doc.rect(tx,y,tw,28,'FD');[['Sub total:',subtotal],['IVA:',iva],['Total:',total]].forEach((row,index)=>{const yy=y+7+index*8;doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);doc.text(row[0],tx+2,yy);doc.setTextColor(234,0,41);doc.text(`$ ${number(row[1]).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}`,tx+tw-2,yy,{align:'right'})});
-let sy=y+34;if(sy>249){doc.addPage();sy=22}const signatureTypes=['solicito','elaboro','reviso','aprobo'];const signatureLabels={solicito:'Solicitó:',elaboro:'Elaboró:',reviso:'Revisó:',aprobo:'Aprobó:'};const signatures=Array.isArray(data.firmas)?data.firmas:[];const boxW=45.5,boxH=32;signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,sy,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,sy+5);if(row.firmaDataUrl){try{const props=doc.getImageProperties(row.firmaDataUrl),maxW=boxW-8,maxH=14,ratio=Math.max(.1,Number(props?.width||1)/Math.max(1,Number(props?.height||1)));let iw=maxW,ih=iw/ratio;if(ih>maxH){ih=maxH;iw=ih*ratio}doc.addImage(row.firmaDataUrl,'PNG',x+(boxW-iw)/2,sy+7+(maxH-ih)/2,iw,ih,undefined,'FAST')}catch(_){}}doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,sy+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,sy+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,sy+29,{align:'center'})}});
+let sy=y+34;if(sy>249){doc.addPage();sy=22}const signatureTypes=['solicito','elaboro','reviso','aprobo'];const signatureLabels={solicito:'Solicitó:',elaboro:'Elaboró:',reviso:'Revisó:',aprobo:'Aprobó:'};const signatures=preparedSignatures;const boxW=45.5,boxH=32;signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,sy,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,sy+5);if(row.firmaDataUrl)drawSignatureImage(doc,row,x,sy,boxW);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,sy+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,sy+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,sy+29,{align:'center'})}});
 doc.setTextColor(255,255,255);doc.setFontSize(.1);doc.text(`SKILLED_OC_NUMERO:${order}`,1,296,{maxWidth:208});
 const filename=`OC_${safe(order)}.pdf`;
 const blob=doc.output('blob');

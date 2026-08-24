@@ -12806,3 +12806,150 @@ insert into public.crm_migraciones(version,aplicada_at) values('CRM-V131-FIRMA-O
 notify pgrst,'reload schema';
 commit;
 select 'OK' as estado,'CRM-V131-FIRMA-OC-EXPLICITA-Y-VISOR-DIRECTO-2026-08-24' as revision,case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v131(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v131;
+
+-- CRM-V132-FIRMA-OC-IMAGEN-VERIFICADA-Y-PDF-ROBUSTO-2026-08-24
+begin;
+
+create or replace function public.crm_mi_firma_para_documento_v132(p_slot integer default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+begin
+  return public.crm_mi_firma_para_documento_v130(p_slot);
+end;
+$$;
+
+create or replace function public.co_estado_firmas_orden_v132(p_orden text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_result jsonb;
+begin
+  v_result:=public.co_estado_firmas_orden_v129(p_orden);
+  return v_result || jsonb_build_object('revision','V132');
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v132(p_orden text,p_tipo text,p_firma_slot integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_requested text:=btrim(coalesce(p_orden,''));
+  v_order text;
+  v_type text:=lower(btrim(coalesce(p_tipo,'')));
+  v_slot integer:=coalesce(p_firma_slot,0);
+  v_profile public.perfiles_usuario%rowtype;
+  v_signature text;
+  v_signature_name text;
+  v_existing public.co_orden_firmas%rowtype;
+  v_row public.co_orden_firmas%rowtype;
+  v_author public.co_orden_autoria%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_requested='' then raise exception 'La orden de compra no tiene número.'; end if;
+  if v_type not in ('solicito','elaboro','reviso','aprobo') then raise exception 'El tipo de firma no es válido.'; end if;
+  if v_slot not between 1 and 3 then raise exception 'Selecciona una de tus tres firmas personales.'; end if;
+
+  select coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),'')) into v_order
+  from public.solicitudes_compra s
+  where lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=lower(v_requested)
+  order by s.id limit 1;
+  if nullif(v_order,'') is null then raise exception 'No se encontró la orden de compra %.',v_requested; end if;
+
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'Tu perfil no está activo.'; end if;
+
+  if v_slot=1 then
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_data_url,'')),'');
+    v_signature_name:=coalesce(nullif(btrim(v_profile.firma_1_nombre),''),'Firma 1');
+  elsif v_slot=2 then
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'');
+    v_signature_name:=coalesce(nullif(btrim(v_profile.firma_2_nombre),''),'Firma 2');
+  else
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'');
+    v_signature_name:=coalesce(nullif(btrim(v_profile.firma_3_nombre),''),'Firma 3');
+  end if;
+
+  if v_signature is null then raise exception 'La % no está configurada en tu perfil.',v_signature_name; end if;
+  if v_signature !~ '^data:image/png;base64,' then raise exception 'La firma guardada no es PNG válido. Ábrela en Mi perfil y vuelve a guardarla.'; end if;
+  if length(v_signature)<100 then raise exception 'La imagen de firma está incompleta. Vuelve a guardarla en Mi perfil.'; end if;
+
+  if v_type='elaboro' then
+    select * into v_author from public.co_orden_autoria where orden_key=lower(btrim(v_order));
+    if not found then raise exception 'Esta orden no tiene elaborador registrado.'; end if;
+    if v_author.elaborada_por<>auth.uid() then raise exception 'El recuadro Elaboró pertenece a %. Solo esa cuenta puede firmarlo.',v_author.elaborada_por_nombre; end if;
+  end if;
+
+  select * into v_existing from public.co_orden_firmas
+  where lower(btrim(orden_compra))=lower(btrim(v_order)) and tipo=v_type
+  order by id limit 1 for update;
+
+  if found then
+    if v_existing.user_id<>auth.uid() then raise exception 'El espacio % ya fue firmado por otra cuenta.',v_type; end if;
+    update public.co_orden_firmas
+       set orden_compra=v_order,
+           nombre=coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),
+           firma_data_url=v_signature,
+           firma_slot=v_slot,
+           firma_nombre_perfil=v_signature_name,
+           user_id=auth.uid(),
+           firmado_at=now(),
+           updated_at=now()
+     where id=v_existing.id
+     returning * into v_row;
+  else
+    insert into public.co_orden_firmas(orden_compra,tipo,nombre,firma_data_url,firma_slot,firma_nombre_perfil,user_id,firmado_at,updated_at)
+    values(v_order,v_type,coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),v_signature,v_slot,v_signature_name,auth.uid(),now(),now())
+    returning * into v_row;
+  end if;
+
+  if v_row.id is null then raise exception 'No se pudo registrar la aprobación.'; end if;
+  if nullif(btrim(coalesce(v_row.firma_data_url,'')),'') is null then raise exception 'La aprobación se registró sin imagen. Operación cancelada.'; end if;
+  if v_row.firma_data_url<>v_signature then raise exception 'La imagen guardada en la orden no coincide con la firma seleccionada.'; end if;
+
+  return jsonb_build_object(
+    'ok',true,
+    'revision','V132',
+    'id',v_row.id,
+    'orden_compra',v_row.orden_compra,
+    'tipo',v_row.tipo,
+    'nombre',v_row.nombre,
+    'firma_data_url',v_row.firma_data_url,
+    'firma_slot',v_row.firma_slot,
+    'firma_nombre_perfil',v_row.firma_nombre_perfil,
+    'firma_longitud',length(v_row.firma_data_url),
+    'user_id',v_row.user_id,
+    'firmado_at',v_row.firmado_at,
+    'updated_at',v_row.updated_at
+  );
+end;
+$$;
+
+revoke all on function public.crm_mi_firma_para_documento_v132(integer) from public,anon;
+revoke all on function public.co_estado_firmas_orden_v132(text) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v132(text,text,integer) from public,anon;
+grant execute on function public.crm_mi_firma_para_documento_v132(integer) to authenticated;
+grant execute on function public.co_estado_firmas_orden_v132(text) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v132(text,text,integer) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V132-FIRMA-OC-IMAGEN-VERIFICADA-Y-PDF-ROBUSTO-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V132-FIRMA-OC-IMAGEN-VERIFICADA-Y-PDF-ROBUSTO-2026-08-24' as revision,
+       case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v132(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v132,
+       case when to_regprocedure('public.co_estado_firmas_orden_v132(text)') is not null then 'OK' else 'FALTA' end as estado_firmas_v132;
