@@ -4713,18 +4713,30 @@
                 nombre: text(row?.nombre) || `Firma ${slot}`,
                 configurada: Boolean(row?.configurada || row?.firma_data_url || row?.firmaDataUrl),
                 firmaDataUrl: text(row?.firma_data_url ?? row?.firmaDataUrl),
-                actualizadaAt: text(row?.actualizada_at ?? row?.actualizadaAt)
+                actualizadaAt: text(row?.actualizada_at ?? row?.actualizadaAt),
+                predeterminada: Boolean(row?.predeterminada)
             };
         });
+    }
+
+    function resolveDefaultSignatureSlot(rows = [], preferred = 0) {
+        const signatures = normalizeSignatureSet(rows);
+        const requested = Math.max(1, Math.min(3, Number(preferred) || 1));
+        if (signatures.find(item => item.slot === requested)?.configurada) return requested;
+        const marked = signatures.find(item => item.predeterminada && item.configurada);
+        if (marked) return marked.slot;
+        return signatures.find(item => item.configurada)?.slot || requested;
     }
 
     async function getMySignatures() {
         let primaryError = null;
         try {
-            const { data, error } = await client.rpc('crm_mis_firmas_v126');
+            const { data, error } = await client.rpc('crm_mis_firmas_v128');
             if (error) throw error;
             const rows = Array.isArray(data?.firmas) ? data.firmas : Array.isArray(data) ? data : [];
-            return { firmas: normalizeSignatureSet(rows), fuente:'v126' };
+            const firmas = normalizeSignatureSet(rows);
+            const predeterminadaSlot = resolveDefaultSignatureSlot(firmas, data?.predeterminada_slot ?? data?.predeterminadaSlot);
+            return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===predeterminadaSlot && item.configurada})), predeterminadaSlot, fuente:'v128' };
         } catch (error) {
             primaryError = error;
         }
@@ -4734,36 +4746,51 @@
             if (sessionError) throw sessionError;
             const userId = sessionData?.session?.user?.id;
             if (!userId) throw new Error('La sesión no está activa.');
-            const { data, error } = await client
+            let data = null;
+            let error = null;
+            ({ data, error } = await client
                 .from('perfiles_usuario')
-                .select('firma_data_url,firma_actualizada_at,firma_1_nombre,firma_2_data_url,firma_2_actualizada_at,firma_2_nombre,firma_3_data_url,firma_3_actualizada_at,firma_3_nombre')
+                .select('firma_data_url,firma_actualizada_at,firma_1_nombre,firma_2_data_url,firma_2_actualizada_at,firma_2_nombre,firma_3_data_url,firma_3_actualizada_at,firma_3_nombre,firma_predeterminada_slot')
                 .eq('id', userId)
-                .maybeSingle();
+                .maybeSingle());
+            if (error && ['42703','PGRST204'].includes(text(error.code))) {
+                ({ data, error } = await client
+                    .from('perfiles_usuario')
+                    .select('firma_data_url,firma_actualizada_at,firma_1_nombre,firma_2_data_url,firma_2_actualizada_at,firma_2_nombre,firma_3_data_url,firma_3_actualizada_at,firma_3_nombre')
+                    .eq('id', userId)
+                    .maybeSingle());
+            }
             if (error) throw error;
             if (data) {
-                return {
-                    firmas: normalizeSignatureSet([
-                        { slot:1,nombre:data.firma_1_nombre||'Firma 1',firma_data_url:data.firma_data_url,actualizada_at:data.firma_actualizada_at },
-                        { slot:2,nombre:data.firma_2_nombre||'Firma 2',firma_data_url:data.firma_2_data_url,actualizada_at:data.firma_2_actualizada_at },
-                        { slot:3,nombre:data.firma_3_nombre||'Firma 3',firma_data_url:data.firma_3_data_url,actualizada_at:data.firma_3_actualizada_at }
-                    ]),
-                    fuente:'perfil'
-                };
+                const firmas = normalizeSignatureSet([
+                    { slot:1,nombre:data.firma_1_nombre||'Firma 1',firma_data_url:data.firma_data_url,actualizada_at:data.firma_actualizada_at },
+                    { slot:2,nombre:data.firma_2_nombre||'Firma 2',firma_data_url:data.firma_2_data_url,actualizada_at:data.firma_2_actualizada_at },
+                    { slot:3,nombre:data.firma_3_nombre||'Firma 3',firma_data_url:data.firma_3_data_url,actualizada_at:data.firma_3_actualizada_at }
+                ]);
+                const predeterminadaSlot = resolveDefaultSignatureSlot(firmas, data.firma_predeterminada_slot || 1);
+                return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===predeterminadaSlot && item.configurada})), predeterminadaSlot, fuente:'perfil' };
             }
+        } catch (_) {}
+
+        try {
+            const { data, error } = await client.rpc('crm_mis_firmas_v126');
+            if (error) throw error;
+            const rows = Array.isArray(data?.firmas) ? data.firmas : Array.isArray(data) ? data : [];
+            const firmas = normalizeSignatureSet(rows);
+            const predeterminadaSlot = resolveDefaultSignatureSlot(firmas, 1);
+            return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===predeterminadaSlot && item.configurada})), predeterminadaSlot, fuente:'v126' };
         } catch (_) {}
 
         try {
             const { data, error } = await client.rpc('crm_mi_firma_v123');
             if (error) throw error;
-            return {
-                firmas: normalizeSignatureSet([
-                    { slot:1,nombre:'Firma 1',firma_data_url:data?.firma_data_url,actualizada_at:data?.actualizada_at }
-                ]),
-                fuente:'compatibilidad'
-            };
+            const firmas = normalizeSignatureSet([
+                { slot:1,nombre:'Firma 1',firma_data_url:data?.firma_data_url,actualizada_at:data?.actualizada_at }
+            ]);
+            return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===1 && item.configurada})), predeterminadaSlot:1, fuente:'compatibilidad' };
         } catch (error) {
             const detail = text(primaryError?.message || error?.message);
-            throw new Error(detail ? `No se pudieron consultar tus firmas personales. ${detail}` : 'No se pudieron consultar tus firmas personales. Ejecuta SQL_MAESTRO_CRM.sql de V126.');
+            throw new Error(detail ? `No se pudieron consultar tus firmas personales. ${detail}` : 'No se pudieron consultar tus firmas personales. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
         }
     }
 
@@ -4783,19 +4810,33 @@
         const selectedSlot = Math.max(1, Math.min(3, Number(slot) || 1));
         const value = text(signatureDataUrl);
         const label = text(name) || `Firma ${selectedSlot}`;
-        const { data, error } = await client.rpc('crm_guardar_mi_firma_v126', {
+        let { data, error } = await client.rpc('crm_guardar_mi_firma_v128', {
             p_slot: selectedSlot,
             p_nombre: label,
             p_firma_data: value || null
         });
         if (error) {
+            ({ data, error } = await client.rpc('crm_guardar_mi_firma_v126', {
+                p_slot: selectedSlot,
+                p_nombre: label,
+                p_firma_data: value || null
+            }));
+        }
+        if (error) {
             if (selectedSlot === 1) {
                 const legacy = await client.rpc('crm_guardar_mi_firma_v123', { p_firma_data: value || null });
-                assertNoError(legacy.error, 'No se pudo guardar la firma personal. Ejecuta SQL_MAESTRO_CRM.sql de V126.');
+                assertNoError(legacy.error, 'No se pudo guardar la firma personal. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
                 return legacy.data || {};
             }
-            assertNoError(error, 'No se pudo guardar esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V126 para habilitar las tres firmas.');
+            assertNoError(error, 'No se pudo guardar esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V128 para habilitar las tres firmas y la predeterminada.');
         }
+        return data || {};
+    }
+
+    async function setMyDefaultSignature(slot = 1) {
+        const selectedSlot = Math.max(1, Math.min(3, Number(slot) || 1));
+        const { data, error } = await client.rpc('crm_guardar_firma_predeterminada_v128', { p_slot:selectedSlot });
+        assertNoError(error, 'No se pudo establecer la firma predeterminada. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
         return data || {};
     }
 
@@ -4833,14 +4874,21 @@
         };
     }
 
-    async function approvePurchaseOrderWithMySignature(order, type, signatureSlot = 1) {
-        const selectedSlot = Math.max(1, Math.min(3, Number(signatureSlot) || 1));
+    async function approvePurchaseOrderWithMySignature(order, type, signatureSlot = null) {
+        const rawSlot = Number(signatureSlot || 0);
+        const selectedSlot = rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null;
         const args = { p_orden: text(order), p_tipo: text(type).toLowerCase(), p_firma_slot: selectedSlot };
-        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v126', args);
+        let { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v128', args);
+        if (!error) return data || {};
+        let fallbackSlot = selectedSlot;
+        if (!fallbackSlot) {
+            try { fallbackSlot = Number((await getMySignatures())?.predeterminadaSlot || 1); } catch (_) { fallbackSlot = 1; }
+        }
+        ({ data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v126', { ...args, p_firma_slot:fallbackSlot }));
         if (error) {
-            if (selectedSlot !== 1) assertNoError(error, 'No se pudo aprobar con esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V126.');
+            if (fallbackSlot !== 1) assertNoError(error, 'No se pudo aprobar con esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
             const legacy = await client.rpc('co_firmar_orden_con_mi_firma_v124', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
-            assertNoError(legacy.error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V126.');
+            assertNoError(legacy.error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
             return legacy.data || {};
         }
         return data || {};
@@ -7137,7 +7185,8 @@
         const order = text(payload.ordenCompra), type = text(payload.tipo).toLowerCase();
         if (!order) throw new Error('La orden necesita número antes de firmar.');
         if (!['solicito','elaboro','reviso','aprobo'].includes(type)) throw new Error('El tipo de firma no es válido.');
-        return approvePurchaseOrderWithMySignature(order, type, Number(payload.firmaSlot ?? payload.signatureSlot ?? 1));
+        const rawSlot = Number(payload.firmaSlot ?? payload.signatureSlot ?? 0);
+        return approvePurchaseOrderWithMySignature(order, type, rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null);
     }
 
     async function deletePurchaseOrderSignature(order, type) {
@@ -7344,6 +7393,7 @@
         getMySignatures,
         saveMySignature,
         saveMySignatureSlot,
+        setMyDefaultSignature,
         getPurchaseOrderAuthorship,
         claimLegacyPurchaseOrderAuthorship,
         approvePurchaseOrderWithMySignature,
