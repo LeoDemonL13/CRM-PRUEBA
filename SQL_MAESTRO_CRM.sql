@@ -12063,3 +12063,279 @@ select
   ) then 'OK' else 'FALTA' end as modelo_oc,
   case when to_regclass('public.co_orden_autoria') is not null then 'OK' else 'FALTA' end as autoria_oc,
   case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v124(text,text)') is not null then 'OK' else 'FALTA' end as firma_elaboro_segura;
+
+begin;
+
+alter table public.perfiles_usuario add column if not exists firma_1_nombre text not null default 'Firma 1';
+alter table public.perfiles_usuario add column if not exists firma_2_nombre text not null default 'Firma 2';
+alter table public.perfiles_usuario add column if not exists firma_2_data_url text;
+alter table public.perfiles_usuario add column if not exists firma_2_actualizada_at timestamptz;
+alter table public.perfiles_usuario add column if not exists firma_3_nombre text not null default 'Firma 3';
+alter table public.perfiles_usuario add column if not exists firma_3_data_url text;
+alter table public.perfiles_usuario add column if not exists firma_3_actualizada_at timestamptz;
+
+update public.perfiles_usuario
+set firma_1_nombre=coalesce(nullif(btrim(firma_1_nombre),''),'Firma 1'),
+    firma_2_nombre=coalesce(nullif(btrim(firma_2_nombre),''),'Firma 2'),
+    firma_3_nombre=coalesce(nullif(btrim(firma_3_nombre),''),'Firma 3');
+
+alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_firma_2_data_v126_check;
+alter table public.perfiles_usuario add constraint perfiles_usuario_firma_2_data_v126_check
+check (
+  firma_2_data_url is null or (
+    firma_2_data_url ~ '^data:image/png;base64,' and
+    length(firma_2_data_url) <= 500000
+  )
+);
+
+alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_firma_3_data_v126_check;
+alter table public.perfiles_usuario add constraint perfiles_usuario_firma_3_data_v126_check
+check (
+  firma_3_data_url is null or (
+    firma_3_data_url ~ '^data:image/png;base64,' and
+    length(firma_3_data_url) <= 500000
+  )
+);
+
+alter table public.co_orden_firmas add column if not exists firma_slot smallint;
+alter table public.co_orden_firmas add column if not exists firma_nombre_perfil text;
+alter table public.co_orden_firmas drop constraint if exists co_orden_firmas_firma_slot_v126_check;
+alter table public.co_orden_firmas add constraint co_orden_firmas_firma_slot_v126_check
+check (firma_slot is null or firma_slot between 1 and 3);
+
+create or replace function public.crm_mis_firmas_v126()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_profile public.perfiles_usuario%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'No se encontró un perfil activo para esta cuenta.'; end if;
+
+  return jsonb_build_object(
+    'firmas',
+    jsonb_build_array(
+      jsonb_build_object(
+        'slot',1,
+        'nombre',coalesce(nullif(btrim(v_profile.firma_1_nombre),''),'Firma 1'),
+        'configurada',nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is not null,
+        'firma_data_url',coalesce(v_profile.firma_data_url,''),
+        'actualizada_at',v_profile.firma_actualizada_at
+      ),
+      jsonb_build_object(
+        'slot',2,
+        'nombre',coalesce(nullif(btrim(v_profile.firma_2_nombre),''),'Firma 2'),
+        'configurada',nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'') is not null,
+        'firma_data_url',coalesce(v_profile.firma_2_data_url,''),
+        'actualizada_at',v_profile.firma_2_actualizada_at
+      ),
+      jsonb_build_object(
+        'slot',3,
+        'nombre',coalesce(nullif(btrim(v_profile.firma_3_nombre),''),'Firma 3'),
+        'configurada',nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'') is not null,
+        'firma_data_url',coalesce(v_profile.firma_3_data_url,''),
+        'actualizada_at',v_profile.firma_3_actualizada_at
+      )
+    )
+  );
+end;
+$$;
+
+create or replace function public.crm_guardar_mi_firma_v126(p_slot integer,p_nombre text,p_firma_data text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_slot integer:=coalesce(p_slot,1);
+  v_name text:=nullif(btrim(coalesce(p_nombre,'')),'');
+  v_data text:=nullif(btrim(coalesce(p_firma_data,'')),'');
+  v_at timestamptz:=case when nullif(btrim(coalesce(p_firma_data,'')),'') is null then null else now() end;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_slot not between 1 and 3 then raise exception 'La firma seleccionada no es válida.'; end if;
+  v_name:=coalesce(v_name,'Firma '||v_slot::text);
+  if length(v_name)>60 then raise exception 'El nombre de la firma no puede exceder 60 caracteres.'; end if;
+  if v_data is not null and v_data !~ '^data:image/png;base64,' then raise exception 'La firma debe guardarse como imagen PNG.'; end if;
+  if v_data is not null and length(v_data)>500000 then raise exception 'La firma es demasiado grande. Usa una imagen más sencilla.'; end if;
+
+  if v_slot=1 then
+    update public.perfiles_usuario
+       set firma_1_nombre=v_name,
+           firma_data_url=v_data,
+           firma_actualizada_at=v_at,
+           updated_at=now()
+     where id=auth.uid() and activo=true;
+  elsif v_slot=2 then
+    update public.perfiles_usuario
+       set firma_2_nombre=v_name,
+           firma_2_data_url=v_data,
+           firma_2_actualizada_at=v_at,
+           updated_at=now()
+     where id=auth.uid() and activo=true;
+  else
+    update public.perfiles_usuario
+       set firma_3_nombre=v_name,
+           firma_3_data_url=v_data,
+           firma_3_actualizada_at=v_at,
+           updated_at=now()
+     where id=auth.uid() and activo=true;
+  end if;
+
+  if not found then raise exception 'No se encontró un perfil activo para esta cuenta.'; end if;
+
+  return jsonb_build_object(
+    'ok',true,
+    'slot',v_slot,
+    'nombre',v_name,
+    'configurada',v_data is not null,
+    'actualizada_at',v_at
+  );
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v126(p_orden text,p_tipo text,p_firma_slot integer default 1)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_type text:=lower(btrim(coalesce(p_tipo,'')));
+  v_slot integer:=coalesce(p_firma_slot,1);
+  v_profile public.perfiles_usuario%rowtype;
+  v_signature text;
+  v_signature_name text;
+  v_existing public.co_orden_firmas%rowtype;
+  v_row public.co_orden_firmas%rowtype;
+  v_author public.co_orden_autoria%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_order='' then raise exception 'La orden de compra no tiene número.'; end if;
+  if v_type not in ('solicito','elaboro','reviso','aprobo') then raise exception 'El tipo de firma no es válido.'; end if;
+  if v_slot not between 1 and 3 then raise exception 'La firma seleccionada no es válida.'; end if;
+
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'Tu perfil no está activo.'; end if;
+
+  if v_slot=1 then
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_data_url,'')),'');
+    v_signature_name:=coalesce(nullif(btrim(v_profile.firma_1_nombre),''),'Firma 1');
+  elsif v_slot=2 then
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_2_data_url,'')),'');
+    v_signature_name:=coalesce(nullif(btrim(v_profile.firma_2_nombre),''),'Firma 2');
+  else
+    v_signature:=nullif(btrim(coalesce(v_profile.firma_3_data_url,'')),'');
+    v_signature_name:=coalesce(nullif(btrim(v_profile.firma_3_nombre),''),'Firma 3');
+  end if;
+
+  if v_signature is null then
+    raise exception 'La % no está configurada en tu perfil.',v_signature_name;
+  end if;
+
+  if not exists(
+    select 1 from public.solicitudes_compra s
+    where lower(coalesce(nullif(btrim(s.orden_compra),''),nullif(btrim(s.grupo_orden),''),''))=lower(v_order)
+  ) then raise exception 'No se encontró la orden de compra %.',v_order; end if;
+
+  if v_type='elaboro' then
+    select * into v_author from public.co_orden_autoria where orden_key=lower(v_order);
+    if not found then
+      raise exception 'Esta orden es anterior a V124 y no tiene elaborador registrado. Compras debe registrar primero quién la elaboró.';
+    end if;
+    if v_author.elaborada_por<>auth.uid() then
+      raise exception 'El recuadro Elaboró pertenece a %. Solo esa cuenta puede aprobarlo y colocar su propia firma.',v_author.elaborada_por_nombre;
+    end if;
+  end if;
+
+  select * into v_existing
+    from public.co_orden_firmas
+   where lower(btrim(orden_compra))=lower(v_order)
+     and tipo=v_type
+   limit 1;
+
+  if found and v_existing.user_id<>auth.uid() then
+    raise exception 'El espacio % ya fue aprobado y firmado por otra cuenta.',v_type;
+  end if;
+
+  insert into public.co_orden_firmas(
+    orden_compra,tipo,nombre,firma_data_url,firma_slot,firma_nombre_perfil,user_id,firmado_at,updated_at
+  )
+  values(
+    v_order,v_type,coalesce(nullif(btrim(v_profile.nombre),''),coalesce(auth.jwt()->>'email','Usuario')),
+    v_signature,v_slot,v_signature_name,auth.uid(),now(),now()
+  )
+  on conflict(orden_compra,tipo) do update
+    set nombre=excluded.nombre,
+        firma_data_url=excluded.firma_data_url,
+        firma_slot=excluded.firma_slot,
+        firma_nombre_perfil=excluded.firma_nombre_perfil,
+        user_id=excluded.user_id,
+        firmado_at=excluded.firmado_at,
+        updated_at=excluded.updated_at
+    where public.co_orden_firmas.user_id=auth.uid()
+  returning * into v_row;
+
+  if v_row.id is null then raise exception 'No se pudo registrar la aprobación.'; end if;
+
+  return jsonb_build_object(
+    'ok',true,'id',v_row.id,'orden_compra',v_row.orden_compra,'tipo',v_row.tipo,
+    'nombre',v_row.nombre,'user_id',v_row.user_id,'firmado_at',v_row.firmado_at,
+    'firma_slot',v_slot,'firma_nombre',v_signature_name
+  );
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v124(p_orden text,p_tipo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+begin
+  return public.co_firmar_orden_con_mi_firma_v126(p_orden,p_tipo,1);
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v123(p_orden text,p_tipo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+begin
+  return public.co_firmar_orden_con_mi_firma_v126(p_orden,p_tipo,1);
+end;
+$$;
+
+revoke all on function public.crm_mis_firmas_v126() from public,anon;
+revoke all on function public.crm_guardar_mi_firma_v126(integer,text,text) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v126(text,text,integer) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v124(text,text) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v123(text,text) from public,anon;
+
+grant execute on function public.crm_mis_firmas_v126() to authenticated;
+grant execute on function public.crm_guardar_mi_firma_v126(integer,text,text) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v126(text,text,integer) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v124(text,text) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v123(text,text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V126-TRES-FIRMAS-PERFIL-Y-CARGA-ROBUSTA-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V126-TRES-FIRMAS-PERFIL-Y-CARGA-ROBUSTA-2026-08-24' as revision,
+       case when to_regprocedure('public.crm_mis_firmas_v126()') is not null then 'OK' else 'FALTA' end as tres_firmas,
+       case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v126(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v126;
+
