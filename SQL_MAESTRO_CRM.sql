@@ -11250,3 +11250,135 @@ on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 notify pgrst,'reload schema';
 commit;
 
+
+
+-- ============================================================================
+-- CRM V121 · RECEPCIÓN · CATÁLOGO QR COMPLETO + FIRMA DE SOLICITUD
+-- ============================================================================
+begin;
+
+alter table public.re_solicitudes_suministros
+  add column if not exists firma_solicitud_data text;
+
+create or replace function public.re_portal_catalogo_suministros_v121(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_items jsonb;
+begin
+  if nullif(btrim(coalesce(p_token,'')),'') is null or not exists(
+    select 1 from public.re_portal_solicitudes_config
+    where id=1 and activo=true and token::text=btrim(p_token)
+  ) then
+    raise exception using errcode='42501',message='Este QR no está vigente. Solicita a Recepción el QR actual.';
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'id',s.id,
+      'descripcion',s.descripcion,
+      'categoria',s.categoria,
+      'unidad',s.unidad,
+      'imagen',coalesce(s.imagen_url,'')
+    ) order by lower(s.categoria),lower(s.descripcion)),'[]'::jsonb)
+  into v_items
+  from public.re_suministros s
+  where s.activo=true;
+
+  return jsonb_build_object('ok',true,'items',v_items);
+end;
+$$;
+
+create or replace function public.re_crear_solicitud_suministros_v121(
+  p_token text,
+  p_solicitante text,
+  p_area text,
+  p_notas text,
+  p_firma_solicitud_data text,
+  p_items jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_id bigint;
+  v_folio text;
+  v_item jsonb;
+  v_supply public.re_suministros%rowtype;
+  v_supply_id bigint;
+  v_qty numeric;
+  v_count integer:=0;
+  v_sign text:=btrim(coalesce(p_firma_solicitud_data,''));
+begin
+  if nullif(btrim(coalesce(p_token,'')),'') is null or not exists(
+    select 1 from public.re_portal_solicitudes_config
+    where id=1 and activo=true and token::text=btrim(p_token)
+  ) then
+    raise exception using errcode='42501',message='Este QR no está vigente. Solicita a Recepción el QR actual.';
+  end if;
+  if length(btrim(coalesce(p_solicitante,'')))<3 then raise exception 'Escribe tu nombre completo.'; end if;
+  if length(btrim(coalesce(p_area,'')))<2 then raise exception 'Indica tu área, proyecto o motivo.'; end if;
+  if p_items is null or jsonb_typeof(p_items)<>'array' or jsonb_array_length(p_items)=0 then raise exception 'Agrega al menos un suministro.'; end if;
+  if jsonb_array_length(p_items)>20 then raise exception 'Una solicitud puede contener máximo 20 suministros.'; end if;
+  if v_sign='' or v_sign !~ '^data:image/png;base64,' then raise exception 'Firma la solicitud antes de enviarla.'; end if;
+  if length(v_sign)>500000 then raise exception 'La firma es demasiado grande. Límpiala e inténtalo nuevamente.'; end if;
+
+  v_folio:='RE-SOL-'||to_char(clock_timestamp(),'YYYYMMDD-HH24MISSMS')||'-'||upper(substr(md5(random()::text),1,3));
+  insert into public.re_solicitudes_suministros(folio,solicitante,area,notas,firma_solicitud_data)
+  values(
+    v_folio,
+    left(btrim(p_solicitante),120),
+    left(btrim(p_area),160),
+    nullif(left(btrim(coalesce(p_notas,'')),800),''),
+    v_sign
+  ) returning id into v_id;
+
+  for v_item in select value from jsonb_array_elements(p_items)
+  loop
+    if coalesce(v_item->>'suministro_id','') !~ '^\d+$' then continue; end if;
+    v_supply_id:=(v_item->>'suministro_id')::bigint;
+    begin
+      v_qty:=(v_item->>'cantidad')::numeric;
+    exception when others then
+      v_qty:=0;
+    end;
+    v_qty:=greatest(coalesce(v_qty,0),0);
+    if v_qty<=0 or v_qty>9999 then continue; end if;
+    select * into v_supply from public.re_suministros where id=v_supply_id and activo=true;
+    if not found then continue; end if;
+    insert into public.re_solicitud_suministro_items(solicitud_id,suministro_id,descripcion,cantidad,unidad)
+    values(v_id,v_supply.id,v_supply.descripcion,v_qty,v_supply.unidad)
+    on conflict(solicitud_id,suministro_id) do update
+      set cantidad=public.re_solicitud_suministro_items.cantidad+excluded.cantidad;
+    v_count:=v_count+1;
+  end loop;
+
+  if v_count=0 then
+    delete from public.re_solicitudes_suministros where id=v_id;
+    raise exception 'No hay suministros válidos en la solicitud.';
+  end if;
+
+  return jsonb_build_object('ok',true,'folio',v_folio,'solicitud_id',v_id,'partidas',v_count,'firmada',true);
+end;
+$$;
+
+revoke all on function public.re_portal_catalogo_suministros_v121(text) from public;
+revoke all on function public.re_crear_solicitud_suministros_v121(text,text,text,text,text,jsonb) from public;
+grant execute on function public.re_portal_catalogo_suministros_v121(text) to anon,authenticated;
+grant execute on function public.re_crear_solicitud_suministros_v121(text,text,text,text,text,jsonb) to anon,authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V121-RECEPCION-QR-FIRMA-CATALOGO-COMPLETO-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V121-RECEPCION-QR-FIRMA-CATALOGO-COMPLETO-2026-08-24' as revision,
+       case when to_regclass('public.re_solicitudes_suministros') is not null then 'OK' else 'FALTA' end as solicitudes,
+       case when to_regclass('public.re_suministros') is not null then 'OK' else 'FALTA' end as suministros;

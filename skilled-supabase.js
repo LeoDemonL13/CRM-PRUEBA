@@ -5991,7 +5991,7 @@
 
     function receptionSupplyRequestFromDb(row = {}) {
         return {
-            id:Number(row.id), folio:text(row.folio), solicitante:text(row.solicitante), area:text(row.area), notas:text(row.notas),
+            id:Number(row.id), folio:text(row.folio), solicitante:text(row.solicitante), area:text(row.area), notas:text(row.notas), firmaSolicitudData:text(row.firma_solicitud_data),
             estado:text(row.estado) || 'pendiente', motivoRechazo:text(row.motivo_rechazo), entregaId:Number(row.entrega_id || 0) || null,
             fechaAtencion:text(row.fecha_atencion), createdAt:text(row.created_at), updatedAt:text(row.updated_at),
             items:(row.re_solicitud_suministro_items || []).map(item => ({
@@ -6038,6 +6038,28 @@
             p_items:items
         });
         assertNoError(error, 'No se pudo enviar la solicitud a Recepción.');
+        return data || {ok:true};
+    }
+
+
+    async function listReceptionPublicSupplyCatalogV121(token) {
+        const { data, error } = await client.rpc('re_portal_catalogo_suministros_v121',{p_token:text(token)});
+        assertNoError(error, 'No se pudo abrir el catálogo de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql V121.');
+        const items = Array.isArray(data?.items) ? data.items : [];
+        return items.map(item => ({ id:Number(item.id), descripcion:text(item.descripcion), categoria:text(item.categoria), unidad:text(item.unidad), imagen:text(item.imagen) }));
+    }
+
+    async function createReceptionPublicSupplyRequestV121(token, payload = {}) {
+        const items=(Array.isArray(payload.items)?payload.items:[]).map(item=>({suministro_id:Number(item.suministroId || item.suministro_id || 0),cantidad:Math.max(0,number(item.cantidad))})).filter(item=>item.suministro_id&&item.cantidad>0);
+        const { data, error } = await client.rpc('re_crear_solicitud_suministros_v121',{
+            p_token:text(token),
+            p_solicitante:text(payload.solicitante),
+            p_area:text(payload.area),
+            p_notas:text(payload.notas)||null,
+            p_firma_solicitud_data:text(payload.firmaSolicitudData)||null,
+            p_items:items
+        });
+        assertNoError(error, 'No se pudo enviar la solicitud a Recepción. Ejecuta SQL_MAESTRO_CRM.sql V121.');
         return data || {ok:true};
     }
 
@@ -7249,6 +7271,8 @@
         listReceptionSupplyRequestsV120,
         listReceptionPublicSupplyCatalogV120,
         createReceptionPublicSupplyRequestV120,
+        listReceptionPublicSupplyCatalogV121,
+        createReceptionPublicSupplyRequestV121,
         deliverReceptionSupplyRequestV120,
         rejectReceptionSupplyRequestV120,
         listServices,
