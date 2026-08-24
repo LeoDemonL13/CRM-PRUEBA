@@ -4962,22 +4962,23 @@
     }
 
     async function approvePurchaseOrderWithMySignature(order, type, signatureSlot = null) {
-        const rawSlot = Number(signatureSlot || 0);
-        const selectedSlot = rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null;
+        let selectedSlot = Number(signatureSlot || 0);
+        if (!(selectedSlot >= 1 && selectedSlot <= 3)) {
+            try { selectedSlot = Number((await getMySigningSignature(null))?.slot || 0); } catch (_) { selectedSlot = 0; }
+        }
+        if (!(selectedSlot >= 1 && selectedSlot <= 3)) throw new Error('No se pudo determinar qué firma personal utilizar.');
         const args = { p_orden: text(order), p_tipo: text(type).toLowerCase(), p_firma_slot: selectedSlot };
-        let { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v129', args);
+        let { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v131', args);
+        if (!error) return data || {};
+        ({ data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v129', args));
         if (!error) return data || {};
         ({ data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v128', args));
         if (!error) return data || {};
-        let fallbackSlot = selectedSlot;
-        if (!fallbackSlot) {
-            try { fallbackSlot = Number((await getMySignatures())?.predeterminadaSlot || 1); } catch (_) { fallbackSlot = 1; }
-        }
-        ({ data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v126', { ...args, p_firma_slot:fallbackSlot }));
+        ({ data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v126', args));
         if (error) {
-            if (fallbackSlot !== 1) assertNoError(error, 'No se pudo aprobar con esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
+            if (selectedSlot !== 1) assertNoError(error, 'No se pudo aprobar con esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V131.');
             const legacy = await client.rpc('co_firmar_orden_con_mi_firma_v124', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
-            assertNoError(legacy.error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
+            assertNoError(legacy.error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V131.');
             return legacy.data || {};
         }
         return data || {};
