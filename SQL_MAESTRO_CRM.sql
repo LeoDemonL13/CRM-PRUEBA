@@ -12560,3 +12560,105 @@ select 'OK' as estado,
        'CRM-V128-FIRMA-PREDETERMINADA-Y-SELECCION-2026-08-24' as revision,
        case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='perfiles_usuario' and column_name='firma_predeterminada_slot') then 'OK' else 'FALTA' end as firma_predeterminada,
        case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v128(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v128;
+
+-- CRM-V129-OC-FIRMAS-FLUIDAS-Y-ESTADO-COMBINADO-2026-08-24
+begin;
+
+create or replace function public.co_estado_firmas_orden_v129(p_orden text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_author public.co_orden_autoria%rowtype;
+  v_auth jsonb;
+  v_signatures jsonb;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_order='' then
+    return jsonb_build_object('firmas','[]'::jsonb,'autoria',jsonb_build_object('configurada',false));
+  end if;
+
+  select * into v_author
+    from public.co_orden_autoria
+   where orden_key=lower(v_order);
+
+  if found then
+    v_auth:=jsonb_build_object(
+      'configurada',true,
+      'orden_compra',v_author.orden_compra,
+      'user_id',v_author.elaborada_por,
+      'nombre',v_author.elaborada_por_nombre,
+      'elaborada_at',v_author.elaborada_at,
+      'origen',v_author.origen,
+      'es_mia',v_author.elaborada_por=auth.uid()
+    );
+  else
+    v_auth:=jsonb_build_object(
+      'configurada',false,
+      'orden_compra',v_order,
+      'es_mia',false
+    );
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'id',f.id,
+      'orden_compra',f.orden_compra,
+      'tipo',f.tipo,
+      'nombre',f.nombre,
+      'firma_data_url',f.firma_data_url,
+      'firma_slot',f.firma_slot,
+      'firma_nombre_perfil',f.firma_nombre_perfil,
+      'user_id',f.user_id,
+      'firmado_at',f.firmado_at,
+      'updated_at',f.updated_at
+    ) order by f.id),'[]'::jsonb)
+    into v_signatures
+    from public.co_orden_firmas f
+   where lower(btrim(f.orden_compra))=lower(v_order);
+
+  return jsonb_build_object('firmas',v_signatures,'autoria',v_auth);
+end;
+$$;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v129(p_orden text,p_tipo text,p_firma_slot integer default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_result jsonb;
+  v_row public.co_orden_firmas%rowtype;
+begin
+  v_result:=public.co_firmar_orden_con_mi_firma_v128(p_orden,p_tipo,p_firma_slot);
+  select * into v_row
+    from public.co_orden_firmas
+   where lower(btrim(orden_compra))=lower(btrim(coalesce(p_orden,'')))
+     and tipo=lower(btrim(coalesce(p_tipo,'')))
+     and user_id=auth.uid()
+   limit 1;
+  if found then
+    v_result:=v_result || jsonb_build_object(
+      'firma_data_url',v_row.firma_data_url,
+      'firma_nombre_perfil',v_row.firma_nombre_perfil,
+      'updated_at',v_row.updated_at
+    );
+  end if;
+  return v_result;
+end;
+$$;
+
+revoke all on function public.co_estado_firmas_orden_v129(text) from public,anon;
+revoke all on function public.co_firmar_orden_con_mi_firma_v129(text,text,integer) from public,anon;
+grant execute on function public.co_estado_firmas_orden_v129(text) to authenticated;
+grant execute on function public.co_firmar_orden_con_mi_firma_v129(text,text,integer) to authenticated;
+
+commit;
+
+select
+  case when to_regprocedure('public.co_estado_firmas_orden_v129(text)') is not null then 'OK' else 'FALTA' end as estado_firmas_v129,
+  case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v129(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v129;

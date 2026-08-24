@@ -4860,6 +4860,45 @@
         };
     }
 
+    async function getPurchaseOrderSignatureState(order = '') {
+        const value = text(order);
+        if (!value) return { signatures: [], authorship: { configurada:false, ordenCompra:'', userId:'', nombre:'', elaboradaAt:'', esMia:false }, fuente:'v129' };
+        try {
+            const { data, error } = await client.rpc('co_estado_firmas_orden_v129', { p_orden:value });
+            if (error) throw error;
+            const rawSignatures = Array.isArray(data?.firmas) ? data.firmas : [];
+            const signatures = rawSignatures.map(row => ({
+                id:Number(row?.id || 0),
+                ordenCompra:text(row?.orden_compra || value),
+                tipo:text(row?.tipo),
+                nombre:text(row?.nombre),
+                firmaDataUrl:text(row?.firma_data_url),
+                firmaSlot:Number(row?.firma_slot || 0),
+                firmaNombrePerfil:text(row?.firma_nombre_perfil),
+                userId:text(row?.user_id),
+                firmadoAt:text(row?.firmado_at),
+                updatedAt:text(row?.updated_at)
+            }));
+            const a = data?.autoria || {};
+            const authorship = {
+                configurada:Boolean(a?.configurada),
+                ordenCompra:text(a?.orden_compra || value),
+                userId:text(a?.user_id),
+                nombre:text(a?.nombre),
+                elaboradaAt:text(a?.elaborada_at),
+                origen:text(a?.origen),
+                esMia:Boolean(a?.es_mia)
+            };
+            return { signatures, authorship, fuente:'v129' };
+        } catch (_) {
+            const [signatures, authorship] = await Promise.all([
+                listPurchaseOrderSignatures(value),
+                getPurchaseOrderAuthorship(value)
+            ]);
+            return { signatures: signatures || [], authorship: authorship || null, fuente:'compatibilidad' };
+        }
+    }
+
     async function claimLegacyPurchaseOrderAuthorship(order) {
         const value = text(order);
         if (!value) throw new Error('La orden de compra no tiene número.');
@@ -4878,7 +4917,9 @@
         const rawSlot = Number(signatureSlot || 0);
         const selectedSlot = rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null;
         const args = { p_orden: text(order), p_tipo: text(type).toLowerCase(), p_firma_slot: selectedSlot };
-        let { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v128', args);
+        let { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v129', args);
+        if (!error) return data || {};
+        ({ data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v128', args));
         if (!error) return data || {};
         let fallbackSlot = selectedSlot;
         if (!fallbackSlot) {
@@ -7395,6 +7436,7 @@
         saveMySignatureSlot,
         setMyDefaultSignature,
         getPurchaseOrderAuthorship,
+        getPurchaseOrderSignatureState,
         claimLegacyPurchaseOrderAuthorship,
         approvePurchaseOrderWithMySignature,
         removeMyPurchaseOrderSignature,
