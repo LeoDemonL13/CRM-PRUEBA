@@ -11429,3 +11429,224 @@ commit;
 
 select 'OK' as estado,
        'CRM-V122-RECEPCION-TIENDA-CIERRE-INMUTABLE-2026-08-24' as revision;
+
+begin;
+
+alter table public.perfiles_usuario add column if not exists firma_data_url text;
+alter table public.perfiles_usuario add column if not exists firma_actualizada_at timestamptz;
+
+alter table public.perfiles_usuario drop constraint if exists perfiles_usuario_firma_data_v123_check;
+alter table public.perfiles_usuario add constraint perfiles_usuario_firma_data_v123_check
+check (
+  firma_data_url is null or (
+    firma_data_url ~ '^data:image/png;base64,' and
+    length(firma_data_url) <= 500000
+  )
+);
+
+create or replace function public.crm_guardar_mi_firma_v123(p_firma_data text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_data text:=nullif(btrim(coalesce(p_firma_data,'')),'');
+  v_at timestamptz;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_data is not null and v_data !~ '^data:image/png;base64,' then raise exception 'La firma debe guardarse como imagen PNG.'; end if;
+  if v_data is not null and length(v_data)>500000 then raise exception 'La firma es demasiado grande. Usa una imagen más sencilla.'; end if;
+  v_at:=case when v_data is null then null else now() end;
+  update public.perfiles_usuario
+     set firma_data_url=v_data,
+         firma_actualizada_at=v_at,
+         updated_at=now()
+   where id=auth.uid() and activo=true;
+  if not found then raise exception 'No se encontró un perfil activo para esta cuenta.'; end if;
+  return jsonb_build_object('ok',true,'configurada',v_data is not null,'actualizada_at',v_at);
+end;
+$$;
+
+revoke all on function public.crm_guardar_mi_firma_v123(text) from public,anon;
+grant execute on function public.crm_guardar_mi_firma_v123(text) to authenticated;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v123(p_orden text,p_tipo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_type text:=lower(btrim(coalesce(p_tipo,'')));
+  v_profile public.perfiles_usuario%rowtype;
+  v_existing public.co_orden_firmas%rowtype;
+  v_row public.co_orden_firmas%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_order='' then raise exception 'La orden de compra no tiene número.'; end if;
+  if v_type not in ('solicito','elaboro','reviso','aprobo') then raise exception 'El tipo de firma no es válido.'; end if;
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'Tu perfil no está activo.'; end if;
+  if nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is null then raise exception 'Primero configura tu firma en Mi perfil > Firma.'; end if;
+  if not exists(
+    select 1 from public.solicitudes_compra s
+    where lower(btrim(coalesce(s.orden_compra,'')))=lower(v_order)
+       or lower(btrim(coalesce(s.grupo_orden,'')))=lower(v_order)
+  ) then raise exception 'No se encontró la orden de compra %.',v_order; end if;
+  select * into v_existing from public.co_orden_firmas where lower(orden_compra)=lower(v_order) and tipo=v_type limit 1;
+  if found and v_existing.user_id<>auth.uid() then
+    raise exception 'El espacio % ya fue aprobado y firmado por otra cuenta.',v_type;
+  end if;
+  insert into public.co_orden_firmas(orden_compra,tipo,nombre,firma_data_url,user_id,firmado_at,updated_at)
+  values(v_order,v_type,coalesce(nullif(btrim(v_profile.nombre),''),'Usuario'),v_profile.firma_data_url,auth.uid(),now(),now())
+  on conflict(orden_compra,tipo) do update
+    set nombre=excluded.nombre,
+        firma_data_url=excluded.firma_data_url,
+        user_id=excluded.user_id,
+        firmado_at=excluded.firmado_at,
+        updated_at=excluded.updated_at
+    where public.co_orden_firmas.user_id=auth.uid()
+  returning * into v_row;
+  if v_row.id is null then raise exception 'No se pudo registrar la aprobación.'; end if;
+  return jsonb_build_object('ok',true,'id',v_row.id,'orden_compra',v_row.orden_compra,'tipo',v_row.tipo,'nombre',v_row.nombre,'user_id',v_row.user_id,'firmado_at',v_row.firmado_at);
+end;
+$$;
+
+create or replace function public.co_retirar_mi_firma_v123(p_orden text,p_tipo text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_type text:=lower(btrim(coalesce(p_tipo,'')));
+  v_count integer:=0;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_order='' or v_type not in ('solicito','elaboro','reviso','aprobo') then raise exception 'Firma no válida.'; end if;
+  delete from public.co_orden_firmas
+   where lower(orden_compra)=lower(v_order)
+     and tipo=v_type
+     and user_id=auth.uid();
+  get diagnostics v_count=row_count;
+  if v_count=0 then raise exception 'Solo la cuenta que aprobó este espacio puede retirar su firma.'; end if;
+  return jsonb_build_object('ok',true,'retiradas',v_count);
+end;
+$$;
+
+revoke all on function public.co_firmar_orden_con_mi_firma_v123(text,text) from public,anon;
+revoke all on function public.co_retirar_mi_firma_v123(text,text) from public,anon;
+grant execute on function public.co_firmar_orden_con_mi_firma_v123(text,text) to authenticated;
+grant execute on function public.co_retirar_mi_firma_v123(text,text) to authenticated;
+
+revoke insert,update,delete on public.co_orden_firmas from authenticated;
+drop policy if exists co_orden_firmas_insert on public.co_orden_firmas;
+drop policy if exists co_orden_firmas_update on public.co_orden_firmas;
+drop policy if exists co_orden_firmas_delete on public.co_orden_firmas;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V123-FIRMA-PERSONAL-APROBACION-DOCUMENTOS-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V123-FIRMA-PERSONAL-APROBACION-DOCUMENTOS-2026-08-24' as revision,
+       case when exists(select 1 from information_schema.columns where table_schema='public' and table_name='perfiles_usuario' and column_name='firma_data_url') then 'OK' else 'FALTA' end as firma_perfil,
+       case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v123(text,text)') is not null then 'OK' else 'FALTA' end as firma_oc;
+
+begin;
+
+create or replace function public.co_proteger_contenido_orden_firmada_v123()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_order text:=coalesce(nullif(btrim(old.orden_compra),''),nullif(btrim(old.grupo_orden),''),'');
+  v_old jsonb;
+  v_new jsonb;
+  v_allowed text[]:=array['estado','cantidad_recibida','estado_compras','fecha_compra','motivo_no_viable','revisada_por','revisada_at','pdf_url','pdf_path','pdf_nombre','updated_at'];
+begin
+  if v_order='' then return new; end if;
+  if not exists(select 1 from public.co_orden_firmas f where lower(btrim(f.orden_compra))=lower(v_order)) then return new; end if;
+  v_old:=to_jsonb(old)-v_allowed;
+  v_new:=to_jsonb(new)-v_allowed;
+  if v_new is distinct from v_old then
+    raise exception 'La orden % ya tiene aprobaciones. Reábrela para cambios; al hacerlo se retirarán todas las firmas y deberá aprobarse nuevamente.',v_order;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_co_proteger_contenido_orden_firmada_v123 on public.solicitudes_compra;
+create trigger trg_co_proteger_contenido_orden_firmada_v123
+before update on public.solicitudes_compra
+for each row execute function public.co_proteger_contenido_orden_firmada_v123();
+
+create or replace function public.co_reabrir_orden_para_cambios_v123(p_orden text)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_order text:=btrim(coalesce(p_orden,''));
+  v_count integer:=0;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if not public.crm_usuario_tiene_rol(array['administrador','compras']) then raise exception using errcode='42501',message='Solo Compras o Administrador puede reabrir una orden firmada.'; end if;
+  if v_order='' then raise exception 'Orden no válida.'; end if;
+  delete from public.co_orden_firmas where lower(btrim(orden_compra))=lower(v_order);
+  get diagnostics v_count=row_count;
+  return jsonb_build_object('ok',true,'orden',v_order,'firmas_retiradas',v_count);
+end;
+$$;
+
+revoke all on function public.co_reabrir_orden_para_cambios_v123(text) from public,anon;
+grant execute on function public.co_reabrir_orden_para_cambios_v123(text) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V123-FIRMA-INTEGRIDAD-DOCUMENTO-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,'CRM-V123-FIRMA-INTEGRIDAD-DOCUMENTO-2026-08-24' as revision;
+
+begin;
+
+create or replace function public.crm_mi_firma_v123()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_profile public.perfiles_usuario%rowtype;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  select * into v_profile from public.perfiles_usuario where id=auth.uid() and activo=true;
+  if not found then raise exception 'No se encontró un perfil activo para esta cuenta.'; end if;
+  return jsonb_build_object(
+    'configurada',nullif(btrim(coalesce(v_profile.firma_data_url,'')),'') is not null,
+    'firma_data_url',coalesce(v_profile.firma_data_url,''),
+    'actualizada_at',v_profile.firma_actualizada_at
+  );
+end;
+$$;
+
+revoke all on function public.crm_mi_firma_v123() from public,anon;
+grant execute on function public.crm_mi_firma_v123() to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V123-FIRMA-PRIVADA-PERFIL-2026-08-24',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;

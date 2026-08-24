@@ -4700,6 +4700,41 @@
         return data || {};
     }
 
+    async function getMySignature() {
+        const { data, error } = await client.rpc('crm_mi_firma_v123');
+        assertNoError(error, 'No se pudo consultar tu firma personal. Ejecuta SQL_MAESTRO_CRM.sql de V123.');
+        return {
+            configurada: Boolean(data?.configurada),
+            firmaDataUrl: text(data?.firma_data_url),
+            actualizadaAt: text(data?.actualizada_at)
+        };
+    }
+
+    async function saveMySignature(signatureDataUrl = '') {
+        const value = text(signatureDataUrl);
+        const { data, error } = await client.rpc('crm_guardar_mi_firma_v123', { p_firma_data: value || null });
+        assertNoError(error, 'No se pudo guardar la firma personal. Ejecuta SQL_MAESTRO_CRM.sql de V123.');
+        return data || {};
+    }
+
+    async function approvePurchaseOrderWithMySignature(order, type) {
+        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v123', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
+        assertNoError(error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V123.');
+        return data || {};
+    }
+
+    async function removeMyPurchaseOrderSignature(order, type) {
+        const { data, error } = await client.rpc('co_retirar_mi_firma_v123', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
+        assertNoError(error, 'No se pudo retirar tu firma de la orden.');
+        return data || {};
+    }
+
+    async function reopenPurchaseOrderForChanges(order) {
+        const { data, error } = await client.rpc('co_reabrir_orden_para_cambios_v123', { p_orden: text(order) });
+        assertNoError(error, 'No se pudo reabrir la orden para cambios.');
+        return data || {};
+    }
+
 
     function deliveryInfoFromDb(row) {
         return {
@@ -6976,23 +7011,14 @@
     }
 
     async function savePurchaseOrderSignature(payload = {}) {
-        const order = text(payload.ordenCompra), type = text(payload.tipo).toLowerCase(), name = text(payload.nombre), signature = text(payload.firmaDataUrl);
+        const order = text(payload.ordenCompra), type = text(payload.tipo).toLowerCase();
         if (!order) throw new Error('La orden necesita número antes de firmar.');
         if (!['solicito','elaboro','reviso','aprobo'].includes(type)) throw new Error('El tipo de firma no es válido.');
-        if (!name) throw new Error('Escribe el nombre de quien firma.');
-        if (!/^data:image\/(png|jpeg);base64,/i.test(signature)) throw new Error('Dibuja la firma antes de guardarla.');
-        const user = (await client.auth.getUser()).data?.user;
-        if (!user?.id) throw new Error('La sesión no está activa.');
-        const row = { orden_compra:order,tipo:type,nombre:name,firma_data_url:signature,user_id:user.id,firmado_at:new Date().toISOString(),updated_at:new Date().toISOString() };
-        const { data, error } = await client.from('co_orden_firmas').upsert(row,{onConflict:'orden_compra,tipo'}).select('*').single();
-        assertNoError(error, 'No se pudo guardar la firma. Ejecuta SQL_MAESTRO_CRM.sql.');
-        return { id:Number(data.id),ordenCompra:text(data.orden_compra),tipo:text(data.tipo),nombre:text(data.nombre),firmaDataUrl:text(data.firma_data_url),userId:text(data.user_id),firmadoAt:text(data.firmado_at),updatedAt:text(data.updated_at) };
+        return approvePurchaseOrderWithMySignature(order, type);
     }
 
     async function deletePurchaseOrderSignature(order, type) {
-        const { error } = await client.from('co_orden_firmas').delete().eq('orden_compra', text(order)).eq('tipo', text(type));
-        assertNoError(error, 'No se pudo retirar la firma.');
-        return true;
+        return removeMyPurchaseOrderSignature(order, type);
     }
 
     async function listTimeClockPunches(options = {}) {
@@ -7191,6 +7217,11 @@
         getMyProfile,
         saveMyProfile,
         saveUiPreferences,
+        getMySignature,
+        saveMySignature,
+        approvePurchaseOrderWithMySignature,
+        removeMyPurchaseOrderSignature,
+        reopenPurchaseOrderForChanges,
         listTools,
         saveTool,
         createIncompleteTool,
