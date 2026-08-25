@@ -13180,3 +13180,45 @@ select 'OK' as estado,
        'CRM-V133-FIRMA-OC-APLICACION-DIRECTA-Y-PDF-SINCRONIZADO-2026-08-24' as revision,
        case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v133(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v133,
        case when to_regprocedure('public.co_estado_firmas_orden_v133(text)') is not null then 'OK' else 'FALTA' end as estado_firmas_v133;
+
+
+-- ============================================================
+-- V134 · FIRMA OC CONFIRMADA + RESTRICCION REVISO/APROBO
+-- ============================================================
+begin;
+
+create or replace function public.co_firmar_orden_con_mi_firma_v134(p_orden text,p_tipo text,p_firma_slot integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,auth
+as $$
+declare
+  v_type text:=lower(btrim(coalesce(p_tipo,'')));
+  v_result jsonb;
+begin
+  if auth.uid() is null then raise exception 'La sesión no está activa.'; end if;
+  if v_type not in ('solicito','elaboro','reviso','aprobo') then raise exception 'El tipo de firma no es válido.'; end if;
+  if v_type in ('reviso','aprobo') and not public.crm_usuario_tiene_rol(array['gerente_general','subgerente']) then
+    raise exception 'El espacio % solo puede ser firmado por Gerente General o Subgerente.',case when v_type='reviso' then 'Revisó' else 'Aprobó' end;
+  end if;
+  v_result:=public.co_firmar_orden_con_mi_firma_v133(p_orden,v_type,p_firma_slot);
+  if not coalesce((v_result->>'ok')::boolean,false) then raise exception 'La firma no fue confirmada por el servidor.'; end if;
+  if coalesce(length(v_result->>'firma_data_url'),0)<100 then raise exception 'La firma se registró sin una imagen válida.'; end if;
+  return v_result||jsonb_build_object('revision','V134');
+end;
+$$;
+
+revoke all on function public.co_firmar_orden_con_mi_firma_v134(text,text,integer) from public,anon;
+grant execute on function public.co_firmar_orden_con_mi_firma_v134(text,text,integer) to authenticated;
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V134-FIRMA-OC-CONFIRMADA-Y-ROLES-2026-08-25',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+notify pgrst,'reload schema';
+commit;
+
+select 'OK' as estado,
+       'CRM-V134-FIRMA-OC-CONFIRMADA-Y-ROLES-2026-08-25' as revision,
+       case when to_regprocedure('public.co_firmar_orden_con_mi_firma_v134(text,text,integer)') is not null then 'OK' else 'FALTA' end as firma_oc_v134;
