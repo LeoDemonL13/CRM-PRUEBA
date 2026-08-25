@@ -72,6 +72,40 @@
         if(mode)mode.textContent=active?'Cámara activa':type==='error'?'Revisar':type==='warn'?'Atención':'En espera';
     }
 
+    function normalizeScannerViewport(){
+        const root=$('universal-reader');
+        if(!root)return;
+        root.style.width='100%';
+        root.style.height='100%';
+        root.style.display='block';
+        const scanRegion=document.getElementById('universal-reader__scan_region');
+        if(scanRegion){
+            scanRegion.style.position='absolute';
+            scanRegion.style.inset='0';
+            scanRegion.style.width='100%';
+            scanRegion.style.height='100%';
+            scanRegion.style.minHeight='100%';
+            scanRegion.style.padding='0';
+            scanRegion.style.overflow='hidden';
+            scanRegion.style.background='transparent';
+        }
+        const dashboard=document.getElementById('universal-reader__dashboard');
+        if(dashboard)dashboard.style.display='none';
+        const dashboardSection=document.getElementById('universal-reader__dashboard_section');
+        if(dashboardSection)dashboardSection.style.display='none';
+        const header=document.getElementById('universal-reader__header_message');
+        if(header)header.style.display='none';
+        const video=(scanRegion&&scanRegion.querySelector('video'))||root.querySelector('video');
+        if(video){
+            video.style.display='block';
+            video.style.width='100%';
+            video.style.height='100%';
+            video.style.minHeight='100%';
+            video.style.objectFit='cover';
+            video.style.background='#03060d';
+        }
+    }
+
     function setCameraState(isActive){
         active=Boolean(isActive);
         document.body.classList.toggle('skilled-scanner-active',active);
@@ -294,7 +328,20 @@
             await loadScannerLibrary();
             setStatus('Solicitando acceso a la cámara…');
             scanner=scanner||new Html5Qrcode('universal-reader');
-            const portrait=window.matchMedia('(orientation:portrait)').matches&&window.innerWidth<=900;await scanner.start({facingMode:'environment'},{fps:10,qrbox:(w,h)=>({width:Math.max(180,Math.min(w*(portrait?.82:.76),portrait?310:360)),height:Math.max(100,Math.min(h*(portrait?.28:.46),portrait?170:230))}),aspectRatio:portrait?.75:1.333},code=>resolve(code),()=>{});
+            const portrait=window.matchMedia('(orientation:portrait)').matches&&window.innerWidth<=900;
+            const scanConfig={
+                fps:10,
+                qrbox:(w,h)=>({
+                    width:Math.max(180,Math.min(w*(portrait?0.82:0.76),portrait?300:360)),
+                    height:Math.max(100,Math.min(h*(portrait?0.30:0.46),portrait?150:230))
+                }),
+                aspectRatio:portrait?1:1.333
+            };
+            await scanner.start({facingMode:'environment'},scanConfig,code=>resolve(code),()=>{});
+            normalizeScannerViewport();
+            requestAnimationFrame(normalizeScannerViewport);
+            setTimeout(normalizeScannerViewport,180);
+            setTimeout(normalizeScannerViewport,520);
             setCameraState(true);
             setStatus('Cámara activa. Centra el código dentro del marco.','ok');
         }catch(error){
@@ -347,6 +394,8 @@
         if(event.key.length===1&&!event.ctrlKey&&!event.metaKey&&!event.altKey)wedgeBuffer+=event.key;
     },true);
 
+    window.addEventListener('resize',()=>{if(active)normalizeScannerViewport()});
+    window.addEventListener('orientationchange',()=>{if(active)setTimeout(normalizeScannerViewport,160)});
     window.addEventListener('beforeunload',()=>{if(scanner&&active)scanner.stop().catch(()=>{})});
     document.addEventListener('DOMContentLoaded',()=>{
         setCameraState(false);
