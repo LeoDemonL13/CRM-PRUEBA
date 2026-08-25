@@ -4848,7 +4848,7 @@
         const rawSlot = Number(signatureSlot || 0);
         const selectedSlot = rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null;
         const { data, error } = await client.rpc('crm_mi_firma_para_documento_v133', { p_slot:selectedSlot });
-        assertNoError(error, 'No se pudo consultar la firma para documentos. Ejecuta SQL_MAESTRO_CRM.sql de V134.');
+        assertNoError(error, 'No se pudo consultar la firma para documentos. Ejecuta SQL_MAESTRO_CRM.sql de V135.');
         const options = (Array.isArray(data?.opciones) ? data.opciones : []).map(item => ({
             slot:Number(item?.slot || 0),
             nombre:text(item?.nombre) || `Firma ${Number(item?.slot || 0) || ''}`,
@@ -4890,9 +4890,9 @@
 
     async function getPurchaseOrderSignatureState(order = '') {
         const value = text(order);
-        if (!value) return { signatures: [], authorship: { configurada:false, ordenCompra:'', userId:'', nombre:'', elaboradaAt:'', esMia:false }, fuente:'v133' };
-        const { data, error } = await client.rpc('co_estado_firmas_orden_v133', { p_orden:value });
-        assertNoError(error, 'No se pudo consultar el estado de firmas. Ejecuta SQL_MAESTRO_CRM.sql de V134.');
+        if (!value) return { signatures: [], authorship: { configurada:false, ordenCompra:'', userId:'', nombre:'', elaboradaAt:'', esMia:false }, fuente:'v135' };
+        const { data, error } = await client.rpc('co_estado_firmas_orden_v135', { p_orden:value });
+        assertNoError(error, 'No se pudo consultar el estado de firmas. Ejecuta SQL_MAESTRO_CRM.sql de V135.');
         const rawSignatures = Array.isArray(data?.firmas) ? data.firmas : [];
         const signatures = rawSignatures.map(row => ({
             id:Number(row?.id || 0),
@@ -4916,7 +4916,7 @@
             origen:text(a?.origen),
             esMia:Boolean(a?.es_mia)
         };
-        return { signatures, authorship, fuente:'v133' };
+        return { signatures, authorship, signedCount:Number(data?.firmadas_count || signatures.length), revision:text(data?.revision || 'V135'), fuente:'v135' };
     }
 
     async function claimLegacyPurchaseOrderAuthorship(order) {
@@ -4937,14 +4937,37 @@
         let selectedSlot = Number(signatureSlot || 0);
         if (!(selectedSlot >= 1 && selectedSlot <= 3)) selectedSlot = Number((await getMySigningSignature(null))?.slot || 0);
         if (!(selectedSlot >= 1 && selectedSlot <= 3)) throw new Error('No se pudo determinar qué firma personal utilizar.');
-        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v134', {
+        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v135', {
             p_orden:text(order),
             p_tipo:text(type).toLowerCase(),
             p_firma_slot:selectedSlot
         });
-        assertNoError(error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V134.');
-        if (!data?.id || !text(data?.firma_data_url) || Number(data?.firma_longitud || 0) < 100) throw new Error('Supabase no devolvió una imagen de firma válida. No se generará un PDF incompleto.');
-        return data || {};
+        assertNoError(error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V135.');
+        const row = data?.firma || data || {};
+        const signature = {
+            id:Number(row?.id || 0),
+            ordenCompra:text(row?.orden_compra || order),
+            tipo:text(row?.tipo || type).toLowerCase(),
+            nombre:text(row?.nombre),
+            firmaDataUrl:text(row?.firma_data_url),
+            firmaSlot:Number(row?.firma_slot || selectedSlot),
+            firmaNombrePerfil:text(row?.firma_nombre_perfil),
+            userId:text(row?.user_id),
+            firmadoAt:text(row?.firmado_at),
+            updatedAt:text(row?.updated_at)
+        };
+        if (!signature.id || !signature.firmaDataUrl || signature.firmaDataUrl.length < 100) throw new Error('Supabase no confirmó la imagen de la firma. La orden permanece sin firmar en la interfaz.');
+        const a = data?.autoria || {};
+        const authorship = {
+            configurada:Boolean(a?.configurada),
+            ordenCompra:text(a?.orden_compra || order),
+            userId:text(a?.user_id),
+            nombre:text(a?.nombre),
+            elaboradaAt:text(a?.elaborada_at),
+            origen:text(a?.origen),
+            esMia:Boolean(a?.es_mia)
+        };
+        return { ok:true, revision:text(data?.revision || 'V135'), signature, authorship, signedCount:Number(data?.firmadas_count || 0), firma_data_url:signature.firmaDataUrl, firma_slot:signature.firmaSlot, firma_nombre_perfil:signature.firmaNombrePerfil };
     }
 
     async function removeMyPurchaseOrderSignature(order, type) {
