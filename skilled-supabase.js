@@ -2591,6 +2591,18 @@
             pdf_nombre: text(row.pdf_nombre),
             pdfFirmaRevisionAt: text(row.pdf_firma_revision_at),
             pdf_firma_revision_at: text(row.pdf_firma_revision_at),
+            metodoPago: text(row.metodo_pago),
+            metodo_pago: text(row.metodo_pago),
+            condicionesPago: text(row.condiciones_pago),
+            condiciones_pago: text(row.condiciones_pago),
+            ordenEnviadaAt: text(row.orden_enviada_at),
+            orden_enviada_at: text(row.orden_enviada_at),
+            ordenEnvioCanal: text(row.orden_envio_canal),
+            orden_envio_canal: text(row.orden_envio_canal),
+            ordenEnvioDestinatario: text(row.orden_envio_destinatario),
+            orden_envio_destinatario: text(row.orden_envio_destinatario),
+            ordenEnvioMessageId: text(row.orden_envio_message_id),
+            orden_envio_message_id: text(row.orden_envio_message_id),
             ordenCompra: text(row.orden_compra),
             fechaOrdenCompra: text(row.fecha_orden_compra),
             referencia: text(row.referencia),
@@ -2925,6 +2937,8 @@
         if ('motivoNoViable' in changes || 'motivo_no_viable' in changes) row.motivo_no_viable = text(changes.motivoNoViable ?? changes.motivo_no_viable) || null;
         if ('fechaCompra' in changes || 'fecha_compra' in changes) row.fecha_compra = text(changes.fechaCompra ?? changes.fecha_compra) || null;
         if ('direccionEntregaId' in changes || 'direccion_entrega_id' in changes) row.direccion_entrega_id = Number(changes.direccionEntregaId ?? changes.direccion_entrega_id) || null;
+        if ('metodoPago' in changes || 'metodo_pago' in changes) row.metodo_pago = text(changes.metodoPago ?? changes.metodo_pago) || null;
+        if ('condicionesPago' in changes || 'condiciones_pago' in changes) row.condiciones_pago = text(changes.condicionesPago ?? changes.condiciones_pago) || null;
 
         if (row.cantidad_solicitada != null && row.cantidad_solicitada <= 0) {
             throw new Error('La cantidad solicitada debe ser mayor a cero.');
@@ -2968,6 +2982,8 @@
         if ('motivoNoViable' in changes || 'motivo_no_viable' in changes) row.motivo_no_viable = text(changes.motivoNoViable ?? changes.motivo_no_viable) || null;
         if ('fechaCompra' in changes || 'fecha_compra' in changes) row.fecha_compra = text(changes.fechaCompra ?? changes.fecha_compra) || null;
         if ('direccionEntregaId' in changes || 'direccion_entrega_id' in changes) row.direccion_entrega_id = Number(changes.direccionEntregaId ?? changes.direccion_entrega_id) || null;
+        if ('metodoPago' in changes || 'metodo_pago' in changes) row.metodo_pago = text(changes.metodoPago ?? changes.metodo_pago) || null;
+        if ('condicionesPago' in changes || 'condiciones_pago' in changes) row.condiciones_pago = text(changes.condicionesPago ?? changes.condiciones_pago) || null;
         const validStatus = ['pendiente', 'autorizada', 'ordenada', 'parcial', 'recibida', 'cancelada'];
         if (row.estado && !validStatus.includes(row.estado)) throw new Error('Estado de solicitud no válido.');
         const validPurchaseStatus = ['no_revisada','en_revision','compra_realizada','no_viable'];
@@ -7158,7 +7174,15 @@
             p_items: rows
         });
         assertNoError(error, 'No se pudo crear la orden libre. Ejecuta el SQL_MAESTRO_CRM.sql V107.');
-        return data || {};
+        const created = data || {};
+        const createdOrder = text(created.orden || created.orden_compra || payload.ordenCompra || payload.orden);
+        if (createdOrder && text(payload.metodoPago)) {
+            const paymentRow = { metodo_pago:text(payload.metodoPago), condiciones_pago:text(payload.condicionesPago)||null, updated_at:new Date().toISOString() };
+            const firstUpdate = await client.from('solicitudes_compra').update(paymentRow).eq('orden_compra', createdOrder);
+            if (firstUpdate.error) assertNoError(firstUpdate.error, 'La orden se creó, pero no se pudo guardar el método de pago. Ejecuta SQL V138.');
+            await client.from('solicitudes_compra').update(paymentRow).eq('grupo_orden', createdOrder);
+        }
+        return created;
     }
 
     async function createDirectPurchaseOrderFromQuotationV96(payload = {}) {
@@ -7286,6 +7310,40 @@
         assertNoError(headerError, 'La orden se creó, pero no se pudo actualizar la cotización.');
 
         return { ok:true, orden:order, materiales:requestRows.length, cotizacion_id:cotizacionId, pendientes:(remainingRows || []).length, origen:'cotizacion_directa_compatibilidad' };
+    }
+
+    async function getPurchaseOrderDispatchInfoV138(order = '') {
+        const value = text(order);
+        if (!value) throw new Error('La orden no tiene número.');
+        const { data, error } = await client.rpc('co_datos_envio_orden_v138', { p_orden: value });
+        assertNoError(error, 'No se pudieron preparar los datos de envío de la orden. Ejecuta SQL_V138_ORDEN_ENVIO_Y_METODO_PAGO.sql.');
+        const row = data || {};
+        return {
+            ok: Boolean(row.ok), lista: Boolean(row.lista), ordenCompra: text(row.orden_compra || value), firmas: Number(row.firmas || 0), metodoPago: text(row.metodo_pago), condicionesPago: text(row.condiciones_pago),
+            proveedorId: Number(row.proveedor_id || 0) || null, proveedor: text(row.proveedor), contacto: text(row.contacto), email: text(row.email), telefono: text(row.telefono), whatsapp: text(row.whatsapp),
+            pdfUrl: text(row.pdf_url), pdfPath: text(row.pdf_path), pdfNombre: text(row.pdf_nombre), enviadaAt: text(row.orden_enviada_at), envioCanal: text(row.orden_envio_canal), envioDestinatario: text(row.orden_envio_destinatario),
+            faltantes: Array.isArray(row.faltantes) ? row.faltantes.map(text) : []
+        };
+    }
+
+    async function sendPurchaseOrderV138(payload = {}) {
+        const order = text(payload.ordenCompra);
+        const channel = lower(payload.canal || payload.channel);
+        if (!order) throw new Error('La orden no tiene número.');
+        if (!['email','whatsapp'].includes(channel)) throw new Error('Selecciona correo o WhatsApp.');
+        const data = await invokeEdgeFunction('contactar-proveedor', {
+            ordenCompra: order, canal: channel, adjuntarOrden: true, asunto: text(payload.asunto), mensaje: text(payload.mensaje)
+        }, { timeoutMs: 30000 });
+        if (data?.error) throw new Error(text(data.error));
+        return data || {};
+    }
+
+    async function markPurchaseOrderSentV138(payload = {}) {
+        const order = text(payload.ordenCompra), channel = lower(payload.canal || payload.channel), recipient = text(payload.destinatario);
+        if (!order) throw new Error('La orden no tiene número.');
+        const { data, error } = await client.rpc('co_marcar_orden_enviada_v138', { p_orden: order, p_canal: channel || 'manual', p_destinatario: recipient || null, p_message_id: text(payload.messageId) || null });
+        assertNoError(error, 'No se pudo marcar la orden como enviada.');
+        return data || {};
     }
 
     async function listPurchaseOrderSignatures(order = '') {
@@ -7422,6 +7480,9 @@
         createManualPurchaseOrderV73,
         createFreePurchaseOrderV107,
         createDirectPurchaseOrderFromQuotationV96,
+        getPurchaseOrderDispatchInfoV138,
+        sendPurchaseOrderV138,
+        markPurchaseOrderSentV138,
         listPurchaseOrderSignatures,
         savePurchaseOrderSignature,
         deletePurchaseOrderSignature,

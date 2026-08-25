@@ -102,7 +102,7 @@ if(!order)throw new Error('Escribe el número de orden de compra.');
 if(!items.length)throw new Error('La orden no contiene materiales válidos.');
 const rawSignatures=Array.isArray(data.firmas)?data.firmas:[];for(const row of rawSignatures){if(text(row?.firmadoAt)&&!text(row?.firmaDataUrl))throw new Error(`La aprobación ${text(row?.tipo)||''} tiene fecha de firma pero no contiene la imagen. El PDF no se generará incompleto.`)}const preparedSignatures=await prepareSignatureRows(rawSignatures);
 const payload={
-version:3,
+version:4,
 sistema:'SKILLED_CRM',
 tipo:'ORDEN_COMPRA',
 ordenCompra:order,
@@ -114,6 +114,8 @@ cliente:text(data.cliente),
 responsable:text(data.responsable),
 proveedor:text(data.proveedor),
 contactoProveedor:text(data.contactoProveedor),
+metodoPago:text(data.metodoPago),
+condicionesPago:text(data.condicionesPago),
 prioridad:text(data.prioridad)||'normal',
 solicitadoPor:text(data.solicitadoPor),
 notas:text(data.notas),
@@ -144,10 +146,35 @@ alternateRowStyles:{fillColor:[255,255,255]},
 columnStyles:{0:{cellWidth:9,halign:'center'},1:{cellWidth:62},2:{cellWidth:31},3:{cellWidth:12,halign:'center'},4:{cellWidth:14,halign:'right'},5:{cellWidth:18,halign:'center'},6:{cellWidth:18,halign:'right'},7:{cellWidth:18,halign:'right'}},
 didDrawPage:()=>{const page=doc.internal.getNumberOfPages();const height=doc.internal.pageSize.getHeight();doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(80,105,126);doc.text('SK-F-COM-003-R02',14,height-8);doc.text('Orden de compra',105,height-8,{align:'center'});doc.text(`Página ${page}`,196,height-8,{align:'right'})}
 });
-let y=doc.lastAutoTable.finalY+5;if(y>214){doc.addPage();y=20}
-doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(0,65,107);doc.text(`Moneda: ${currency}`,14,y+4);doc.text('Condiciones de pago:',14,y+11);doc.setFont('helvetica','normal');doc.text(text(data.condicionesPago)||'Por definir',45,y+11);doc.setFont('helvetica','bold');doc.text('Ubicación de entrega:',14,y+18);doc.setFont('helvetica','normal');doc.text(text(data.ubicacionEntrega)||text(items[0]?.almacen)||'Por definir',48,y+18,{maxWidth:100});doc.setFont('helvetica','bold');doc.text('Comentarios y/o observaciones:',14,y+25);doc.setFont('helvetica','normal');doc.text(text(data.notas)||'Ninguna',59,y+25,{maxWidth:91});
-const tx=156,tw=40;doc.setDrawColor(180,190,200);doc.setFillColor(248,249,250);doc.rect(tx,y,tw,28,'FD');[['Sub total:',subtotal],['IVA:',iva],['Total:',total]].forEach((row,index)=>{const yy=y+7+index*8;doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);doc.text(row[0],tx+2,yy);doc.setTextColor(234,0,41);doc.text(`$ ${number(row[1]).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}`,tx+tw-2,yy,{align:'right'})});
-let sy=y+34;if(sy>249){doc.addPage();sy=22}const signatureTypes=['solicito','elaboro','reviso','aprobo'];const signatureLabels={solicito:'Solicitó:',elaboro:'Elaboró:',reviso:'Revisó:',aprobo:'Aprobó:'};const signatures=preparedSignatures;const boxW=45.5,boxH=32;signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,sy,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,sy+5);if(row.firmaDataUrl)drawSignatureImage(doc,row,x,sy,boxW);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,sy+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,sy+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,sy+29,{align:'center'})}});
+const pageHeight=doc.internal.pageSize.getHeight();
+const footerY=pageHeight-8;
+const signatureTypes=['solicito','elaboro','reviso','aprobo'];
+const signatureLabels={solicito:'Solicitó:',elaboro:'Elaboró:',reviso:'Revisó:',aprobo:'Aprobó:'};
+const signatures=preparedSignatures;
+const boxW=45.5,boxH=32;
+const conditions=text(data.condicionesPago)||'Por definir';
+const payment=text(data.metodoPago)||'Por definir';
+const delivery=text(data.ubicacionEntrega)||text(items[0]?.almacen)||'Por definir';
+const observations=text(data.notas)||'Ninguna';
+const observationLines=doc.splitTextToSize(observations,88);
+const conditionLines=doc.splitTextToSize(conditions,62);
+const detailH=Math.max(35,27+Math.max(0,observationLines.length-1)*3.2+Math.max(0,conditionLines.length-1)*3.2);
+const signatureY=pageHeight-17-boxH;
+const detailsY=signatureY-5-detailH;
+if(doc.lastAutoTable.finalY+5>detailsY){doc.addPage();}
+const closingPage=doc.internal.getNumberOfPages();
+const closingSignatureY=doc.internal.pageSize.getHeight()-17-boxH;
+const closingDetailsY=closingSignatureY-5-detailH;
+doc.setDrawColor(190,198,207);doc.setFillColor(252,253,254);doc.roundedRect(14,closingDetailsY,137,detailH,1.5,1.5,'FD');
+doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);
+doc.text(`Moneda: ${currency}`,17,closingDetailsY+6);
+doc.text('Método de pago:',17,closingDetailsY+13);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(payment,42,closingDetailsY+13,{maxWidth:50});
+doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Condiciones:',95,closingDetailsY+13);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(conditionLines,113,closingDetailsY+13);
+doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Ubicación de entrega:',17,closingDetailsY+20);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(delivery,49,closingDetailsY+20,{maxWidth:96});
+doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Comentarios y/o observaciones:',17,closingDetailsY+27);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(observationLines,58,closingDetailsY+27);
+const tx=156,tw=40;doc.setDrawColor(180,190,200);doc.setFillColor(248,249,250);doc.rect(tx,closingDetailsY,tw,detailH,'FD');[['Sub total:',subtotal],['IVA:',iva],['Total:',total]].forEach((row,index)=>{const yy=closingDetailsY+8+index*9;doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);doc.text(row[0],tx+2,yy);doc.setTextColor(234,0,41);doc.text(`$ ${number(row[1]).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}`,tx+tw-2,yy,{align:'right'})});
+signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,closingSignatureY,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,closingSignatureY+5);if(row.firmaDataUrl)drawSignatureImage(doc,row,x,closingSignatureY,boxW);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,closingSignatureY+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,closingSignatureY+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,closingSignatureY+29,{align:'center'})}});
+if(closingPage>doc.lastAutoTable.pageNumber){doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(80,105,126);doc.text('SK-F-COM-003-R02',14,footerY);doc.text('Orden de compra',105,footerY,{align:'center'});doc.text(`Página ${closingPage}`,196,footerY,{align:'right'});}
 doc.setTextColor(255,255,255);doc.setFontSize(.1);doc.text(`SKILLED_OC_NUMERO:${order}`,1,296,{maxWidth:208});
 const filename=`OC_${safe(order)}.pdf`;
 const blob=doc.output('blob');
