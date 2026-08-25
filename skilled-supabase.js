@@ -6926,6 +6926,20 @@
         return (Array.isArray(data)?data:[]).map(row=>({ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),firmadasCount:Number(row.firmadas_count||0),revisoFirmado:Boolean(row.reviso_firmado),aproboFirmado:Boolean(row.aprobo_firmado),miFirmaEjecutiva:Boolean(row.mi_firma_ejecutiva),pendientesEjecutivas:Array.isArray(row.pendientes_ejecutivas)?row.pendientes_ejecutivas.map(text):[]}));
     }
 
+    async function listExecutivePurchaseOrdersV137(){
+        const {data,error}=await client.rpc('co_ordenes_validacion_ejecutiva_v137');
+        assertNoError(error,'No se pudieron consultar las órdenes de Dirección. Ejecuta SQL_V137_VALIDACION_OC_HISTORIAL.sql.');
+        return (Array.isArray(data)?data:[]).map(row=>({
+            ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),
+            materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),
+            firmadasCount:Number(row.firmadas_count||0),revisoFirmado:Boolean(row.reviso_firmado),aproboFirmado:Boolean(row.aprobo_firmado),
+            miFirmaEjecutiva:Boolean(row.mi_firma_ejecutiva),estadoEjecutivo:text(row.estado_ejecutivo)||'pendiente',
+            pendientesEjecutivas:Array.isArray(row.pendientes_ejecutivas)?row.pendientes_ejecutivas.map(text):[],
+            misFirmas:Array.isArray(row.mis_firmas)?row.mis_firmas.map(text):[],
+            firmasResumen:Array.isArray(row.firmas_resumen)?row.firmas_resumen.map(f=>({tipo:text(f.tipo),nombre:text(f.nombre),firmadoAt:text(f.firmado_at),userId:text(f.user_id),firmaSlot:Number(f.firma_slot||0),firmaNombre:text(f.firma_nombre_perfil)})):[]
+        }));
+    }
+
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
         const payload = { p_fuente: sourceKey, p_filtro: text(filter) || null };
@@ -7394,6 +7408,7 @@
         getReceptionRecognitionDirectoryV102,
         getSkillProfileDataV136,
         listExecutivePendingPurchaseOrdersV136,
+        listExecutivePurchaseOrdersV137,
         getSkyProfileData,
         listMaterialPackages,
         saveMaterialPackage,
