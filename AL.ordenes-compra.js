@@ -100,7 +100,7 @@ const items=normalizeItems(data.materiales??data.items);
 const order=text(data.ordenCompra??data.orden);
 if(!order)throw new Error('Escribe el número de orden de compra.');
 if(!items.length)throw new Error('La orden no contiene materiales válidos.');
-const preparedSignatures=await prepareSignatureRows(data.firmas);
+const rawSignatures=Array.isArray(data.firmas)?data.firmas:[];for(const row of rawSignatures){if(text(row?.firmadoAt)&&!text(row?.firmaDataUrl))throw new Error(`La aprobación ${text(row?.tipo)||''} tiene fecha de firma pero no contiene la imagen. El PDF no se generará incompleto.`)}const preparedSignatures=await prepareSignatureRows(rawSignatures);
 const payload={
 version:3,
 sistema:'SKILLED_CRM',
