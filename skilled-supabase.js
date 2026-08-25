@@ -6900,6 +6900,32 @@
         return Array.isArray(data)?data:[];
     }
 
+    async function getSkillProfileDataV136(source, filter = '') {
+        const sourceKey=lower(source);
+        const {data,error}=await client.rpc('crm_skill_perfil_consultar_v136',{p_fuente:sourceKey,p_filtro:text(filter)||null});
+        assertNoError(error,'Skill no pudo consultar la información autorizada para tu perfil. Ejecuta SQL_V136_SKILL_Y_VALIDACION_OC.sql.');
+        const rows=Array.isArray(data)?data:[];
+        if(['materiales','vehiculos','proyectos','projectdetails','herramientas','compras','purchases','cotizaciones','quotations','suministros'].includes(sourceKey)){
+            if(sourceKey==='materiales')return rows.map(row=>({codigo:text(row.codigo),descripcion:text(row.descripcion),desc:text(row.descripcion),categoria:text(row.categoria),tipoCable:text(row.tipo_cable),tipo_cable:text(row.tipo_cable),tamano:text(row.tamano_mm2),tamano_mm2:text(row.tamano_mm2),unidad:text(row.unidad),precio:number(row.precio),stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),stockMedio:number(row.stock_medio),stock_medio:number(row.stock_medio),stockMaximo:number(row.stock_maximo),stock_maximo:number(row.stock_maximo),marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),proveedor:text(row.proveedor),contactoProveedor:text(row.contacto_proveedor),contacto_proveedor:text(row.contacto_proveedor),rollosDisponibles:number(row.rollos_disponibles),rollos_disponibles:number(row.rollos_disponibles),metrosRollos:number(row.metros_rollos),metros_rollos:number(row.metros_rollos),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],almacenes:Array.isArray(row.almacenes)?row.almacenes:[],activo:row.activo!==false}));
+            if(sourceKey==='vehiculos')return rows.map(row=>vehicleFromDb(row));
+            if(sourceKey==='proyectos'||sourceKey==='projectdetails')return rows.map(row=>({proyecto:text(row.proyecto),idProyecto:text(row.idProyecto??row.proyecto),nombreProyecto:text(row.nombreProyecto??row.nombre),nombre:text(row.nombre??row.nombreProyecto),cliente:text(row.cliente),ordenCompra:text(row.ordenCompra),planta:text(row.planta),nave:text(row.nave),responsableSkilled:text(row.responsableSkilled??row.responsable),responsable:text(row.responsable??row.responsableSkilled),fechaAsignacion:text(row.fechaAsignacion),fechaEntrega:text(row.fechaEntrega),estado:text(row.estado),tipoControl:text(row.tipoControl??row.tipo_control)||'materiales',tipo_control:text(row.tipo_control??row.tipoControl)||'materiales',presupuestoPlaneado:number(row.presupuestoPlaneado??row.presupuesto_planeado),presupuesto_planeado:number(row.presupuesto_planeado??row.presupuestoPlaneado),lineas:number(row.lineas),planeado:number(row.planeado),consumido:number(row.consumido),costoPlaneado:number(row.costoPlaneado),costoConsumido:number(row.costoConsumido),costoRealProyecto:number(row.costoRealProyecto??row.costoConsumido),costoMateriales:number(row.costoMateriales),costoNomina:number(row.costoNomina),costoFueraPlan:number(row.costoFueraPlan),avance:number(row.avance),movimientos:number(row.movimientos),cantidadMovimientos:number(row.cantidadMovimientos??row.movimientos),ultimoMovimiento:text(row.ultimoMovimiento)}));
+            if(sourceKey==='herramientas')return rows.map(row=>({...row,id:Number(row.id||0),sku:text(row.sku),descripcion:text(row.descripcion),desc:text(row.descripcion),clasificacion:text(row.clasificacion),marca:text(row.marca),modelo:text(row.modelo),uso:text(row.uso),unidad:text(row.unidad)||'pieza',total:number(row.total),disponibles:number(row.disponibles),asignadas:number(row.asignadas),otros:number(row.otros),estado:number(row.disponibles)>0?'disponible':number(row.asignadas)>0?'asignada':'sin disponibilidad',activo:row.activo!==false}));
+            if(sourceKey==='compras'||sourceKey==='purchases')return rows.map(row=>({...row,id:Number(row.id||0),folio:text(row.folio),materialCodigo:text(row.materialCodigo??row.material_codigo),descripcion:text(row.descripcion),estado:text(row.estado),estadoCompras:text(row.estadoCompras??row.estado_compras),proveedor:text(row.proveedor),ordenCompra:text(row.ordenCompra??row.orden_compra),prioridad:text(row.prioridad),cantidadSolicitada:number(row.cantidadSolicitada??row.cantidad_solicitada),cantidadRecibida:number(row.cantidadRecibida??row.cantidad_recibida),proyecto:text(row.proyecto??row.proyecto_numero)}));
+            if(sourceKey==='cotizaciones'||sourceKey==='quotations')return rows.map(row=>({...row,id:text(row.id),folio:text(row.folio),origen:text(row.origen),estado:text(row.estado),prioridad:text(row.prioridad),fechaRequerida:text(row.fechaRequerida??row.fecha_requerida),solicitadoPor:text(row.solicitadoPor??row.solicitado_por),referencia:text(row.referencia),notas:text(row.notas),items:Array.isArray(row.items)?row.items:[]}));
+            if(sourceKey==='suministros')return rows.map(row=>({id:Number(row.id||0),codigo:text(row.codigo),descripcion:text(row.descripcion),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],categoria:text(row.categoria),marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),ubicacion:text(row.ubicacion),unidad:text(row.unidad)||'PIEZA',stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),precio:number(row.precio),monedaCosto:text(row.moneda_costo)||'MXN',moneda_costo:text(row.moneda_costo)||'MXN',imagen:text(row.imagen_url),imagen_url:text(row.imagen_url),activo:row.activo!==false}));
+        }
+        if(sourceKey==='herramientas_asignaciones')return rows.map(toolAssignmentFromDb);
+        if(sourceKey==='activos_rh')return rows.map(rhOfficeAssetFromDb);
+        if(sourceKey==='resguardos_rh')return rows.map(rhOfficeAssignmentFromDb);
+        return rows;
+    }
+
+    async function listExecutivePendingPurchaseOrdersV136(){
+        const {data,error}=await client.rpc('co_ordenes_pendientes_firma_ejecutiva_v136');
+        assertNoError(error,'No se pudieron consultar las órdenes pendientes de validación. Ejecuta SQL_V136_SKILL_Y_VALIDACION_OC.sql.');
+        return (Array.isArray(data)?data:[]).map(row=>({ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),firmadasCount:Number(row.firmadas_count||0),revisoFirmado:Boolean(row.reviso_firmado),aproboFirmado:Boolean(row.aprobo_firmado),miFirmaEjecutiva:Boolean(row.mi_firma_ejecutiva),pendientesEjecutivas:Array.isArray(row.pendientes_ejecutivas)?row.pendientes_ejecutivas.map(text):[]}));
+    }
+
     async function getSkyProfileData(source, filter = '') {
         const sourceKey = lower(source);
         const payload = { p_fuente: sourceKey, p_filtro: text(filter) || null };
@@ -7366,6 +7392,8 @@
         getExecutiveRHOfficeAssets,
         getReceptionPresenceV100,
         getReceptionRecognitionDirectoryV102,
+        getSkillProfileDataV136,
+        listExecutivePendingPurchaseOrdersV136,
         getSkyProfileData,
         listMaterialPackages,
         saveMaterialPackage,

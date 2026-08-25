@@ -56,19 +56,23 @@ let liveInterimStartedAt=0;
 let lastAudioChunkAt=0;
 let audioChunkSequence=0;
 let recorderWatchdogTimer=0;
-const MAX_SPEAKERS=12;
+let recorderRestartCount=0;
+let recorderGeneration=0;
+let activeSpeakerLockedAt=0;
+let lastTranscriptCheckpointAt=0;
+const MAX_SPEAKERS=8;
 const VOICE_THRESHOLD_MIN=0.011;
-const SILENCE_CLOSE_MS=320;
+const SILENCE_CLOSE_MS=430;
 const FEATURE_INTERVAL_MS=55;
-const RECOGNITION_ROTATE_MS=42000;
-const RECOGNITION_VOICE_STALL_MS=4200;
+const RECOGNITION_ROTATE_MS=56000;
+const RECOGNITION_VOICE_STALL_MS=6200;
 const RECOGNITION_WATCHDOG_MS=1000;
-const SPEAKER_SWITCH_CONFIRMATIONS=3;
-const NEW_SPEAKER_CONFIRMATIONS=4;
-const NEW_SPEAKER_MIN_VOICE_MS=650;
-const INTERIM_COMMIT_MS=4600;
-const TRANSCRIPT_MERGE_WINDOW_MS=8500;
-const RECENT_TRANSCRIPT_ROWS=8;
+const SPEAKER_SWITCH_CONFIRMATIONS=8;
+const NEW_SPEAKER_CONFIRMATIONS=8;
+const NEW_SPEAKER_MIN_VOICE_MS=1200;
+const INTERIM_COMMIT_MS=2800;
+const TRANSCRIPT_MERGE_WINDOW_MS=16000;
+const RECENT_TRANSCRIPT_ROWS=24;
 
 const text=v=>String(v??'').trim();
 const html=v=>text(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
@@ -173,7 +177,7 @@ function create(){
     overlay.className='skill-meeting-overlay';
     overlay.innerHTML=`
 <section class="skill-meeting-modal" role="dialog" aria-modal="true" aria-labelledby="skill-meeting-title">
-<header class="skill-meeting-head"><div><div id="skill-meeting-title" class="skill-meeting-title">SKILL · Modo reunión <span style="color:#60a5fa;font-size:9px">V119</span></div><div class="skill-meeting-sub">Sesión continua V119: conserva el hilo aunque el navegador reinicie el reconocimiento, fusiona solapamientos para evitar texto repetido y estabiliza las voces para no crear duplicados. El audio se captura por bloques de 1 segundo mientras la reunión está activa.</div></div><div class="skill-meeting-head-actions"><button id="skill-meeting-help" type="button">Cómo funciona</button><button id="skill-meeting-close" type="button">Cerrar</button></div></header>
+<header class="skill-meeting-head"><div><div id="skill-meeting-title" class="skill-meeting-title">SKILL · Modo reunión <span style="color:#60a5fa;font-size:9px">V136</span></div><div class="skill-meeting-sub">Sesión continua V136: el audio se graba de forma independiente a la transcripción, conserva más contexto entre reinicios del navegador, elimina solapamientos repetidos y estabiliza cada turno antes de crear una voz nueva. El audio se captura en bloques de 750 ms mientras la reunión está activa.</div></div><div class="skill-meeting-head-actions"><button id="skill-meeting-help" type="button">Cómo funciona</button><button id="skill-meeting-close" type="button">Cerrar</button></div></header>
 <div class="skill-meeting-body">
 <aside class="skill-meeting-side">
 <label class="skill-meeting-field"><span>Título</span><input id="skill-meeting-name" value="Reunión de trabajo" maxlength="160"></label>
@@ -187,7 +191,7 @@ function create(){
 </div></section>`;
     document.body.appendChild(overlay);
     document.getElementById('skill-meeting-close').addEventListener('click',close);
-    document.getElementById('skill-meeting-help').addEventListener('click',()=>alert('Modo reunión V119: el audio se graba de forma continua en bloques de 1 segundo y la transcripción mantiene un contexto de las intervenciones recientes para evitar perder o repetir frases cuando Chrome reinicia el reconocimiento. La detección de hablantes exige más evidencia antes de crear una voz nueva y fusiona duplicados acústicos evidentes. Si configuras el motor local gratuito, al finalizar SKILL reprocesa el audio completo con Whisper y, si Pyannote está disponible, aplica diarización de mayor precisión. Si no hay diarización local, conserva la asignación de voces realizada durante la reunión en lugar de convertir todo en Voz 1.'));
+    document.getElementById('skill-meeting-help').addEventListener('click',()=>alert('Modo reunión V136: la grabación continua funciona separada del reconocimiento de texto y conserva el audio aunque Chrome reinicie su motor de voz. SKILL mantiene una ventana mayor de contexto, fusiona repeticiones y decide una voz nueva al cerrar un turno completo, no por cambios momentáneos de volumen o tono. Si configuras el motor local gratuito, al finalizar reprocesa el audio completo con Whisper y Pyannote cuando esté disponible; si no hay diarización local, conserva la mejor asignación de voces obtenida en vivo.'));
     document.getElementById('skill-meeting-start').addEventListener('click',startWithCountdown);
     document.getElementById('skill-meeting-pause').addEventListener('click',togglePause);
     document.getElementById('skill-meeting-stop').addEventListener('click',()=>stop({final:true}));
@@ -239,7 +243,7 @@ async function start(){
     if(active)return;
     if(!navigator.mediaDevices?.getUserMedia){setState('Micrófono no disponible','Este navegador no permite captura de audio.');return}
     try{
-        stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1},video:false});
+        stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:false,channelCount:1,sampleRate:{ideal:48000}},video:false});
         audioContext=new (window.AudioContext||window.webkitAudioContext)();
         await audioContext.resume();
         sourceNode=audioContext.createMediaStreamSource(stream);
@@ -248,7 +252,7 @@ async function start(){
         analyser.smoothingTimeConstant=.55;
         sourceNode.connect(analyser);
         startMeetingRecorder();
-        active=true;paused=false;startedAt=Date.now();speechActive=false;featureFrames=[];speakerTimeline=[];lastSpeakerKey='';currentSpeakerKey='';segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;window.clearTimeout(interimCommitTimer);interimCommitTimer=0;window.clearTimeout(interimRenderTimer);interimRenderTimer=0;liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;interimCommittedText='';recognitionBlocked=false;recognitionRestartCount=0;recognitionStartedAt=0;lastRecognitionActivityAt=Date.now();lastRecognitionTextAt=0;lastVoiceDetectedAt=0;checkpointCandidateKey='';checkpointCandidateCount=0;pendingNewSignature=null;pendingNewCount=0;
+        active=true;paused=false;startedAt=Date.now();speechActive=false;featureFrames=[];speakerTimeline=[];lastSpeakerKey='';currentSpeakerKey='';segmentSpeakerVotes=[];pendingFinals=[];window.clearTimeout(pendingFinalTimer);pendingFinalTimer=0;window.clearTimeout(interimCommitTimer);interimCommitTimer=0;window.clearTimeout(interimRenderTimer);interimRenderTimer=0;liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;interimCommittedText='';recognitionBlocked=false;recognitionRestartCount=0;recognitionStartedAt=0;lastRecognitionActivityAt=Date.now();lastRecognitionTextAt=0;lastVoiceDetectedAt=0;checkpointCandidateKey='';checkpointCandidateCount=0;pendingNewSignature=null;pendingNewCount=0;activeSpeakerLockedAt=0;lastTranscriptCheckpointAt=Date.now();recorderRestartCount=0;
         setState('Calibrando ambiente','Habla con normalidad; SKILL ajustará el ruido base durante los primeros segundos.');
         document.getElementById('skill-meeting-mic-state').textContent='Micrófono activo';
         document.getElementById('skill-meeting-engine').textContent='Texto · preparando sesión extendida';
@@ -256,7 +260,7 @@ async function start(){
         startRecognition();
         startRecognitionWatchdog();
         meterTimer=window.setInterval(analyseFrame,FEATURE_INTERVAL_MS);
-        window.setTimeout(()=>{if(active&&!paused)setState('Escuchando reunión','SKILL escribe texto provisional mientras hablan y separa cambios de voz sin esperar silencios largos.');},1800);
+        window.setTimeout(()=>{if(active&&!paused)setState('Escuchando reunión','SKILL conserva el hilo de la conversación, registra audio continuo y solo crea una nueva voz cuando el cambio acústico se mantiene.');},1800);
     }catch(error){
         setState('No se pudo iniciar',error?.message||'Autoriza el micrófono para usar Modo reunión.');
         document.getElementById('skill-meeting-mic-state').textContent='Sin permiso de micrófono';
@@ -293,6 +297,7 @@ async function stop(options={}){
     commitLiveInterim('fin');
     if(speechActive)finalizeSpeakerSegment(Date.now());
     await flushPendingFinals(true);
+    consolidateMeetingTranscript();
     active=false;paused=false;
     window.clearInterval(meterTimer);meterTimer=0;
     stopRecognitionWatchdog();
@@ -312,20 +317,31 @@ async function stop(options={}){
     if(options.final&&meetingAudio?.size)await processRecordedMeetingWithBridge(meetingAudio);
 }
 
-function startMeetingRecorder(){
-    recordedChunks=[];recordedMimeType='';audioChunkSequence=0;lastAudioChunkAt=0;window.clearInterval(recorderWatchdogTimer);recorderWatchdogTimer=0;
+function startMeetingRecorder(recovery=false){
+    if(!recovery){recordedChunks=[];recordedMimeType='';audioChunkSequence=0;lastAudioChunkAt=0;}
+window.clearInterval(recorderWatchdogTimer);recorderWatchdogTimer=0;
     if(!stream||typeof MediaRecorder==='undefined'){setRecorderStatus('Audio · grabación continua no disponible');return}
     try{
         const candidates=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
         const mime=candidates.find(value=>MediaRecorder.isTypeSupported?.(value))||'';
         mediaRecorder=new MediaRecorder(stream,mime?{mimeType:mime,audioBitsPerSecond:64000}:{audioBitsPerSecond:64000});
-        recordedMimeType=mediaRecorder.mimeType||mime||'audio/webm';
-        mediaRecorder.ondataavailable=event=>{if(event.data?.size){recordedChunks.push(event.data);audioChunkSequence+=1;lastAudioChunkAt=Date.now();setRecorderStatus(`Audio · continuo · ${audioChunkSequence} bloques`)}};
-        mediaRecorder.onerror=event=>{setRecorderStatus(`Audio · error${event?.error?.name?` · ${event.error.name}`:''}`)};
-        mediaRecorder.onstart=()=>setRecorderStatus('Audio · grabando de forma continua');
-        mediaRecorder.onpause=()=>setRecorderStatus('Audio · pausado');
-        mediaRecorder.onresume=()=>setRecorderStatus('Audio · grabando de forma continua');
-        mediaRecorder.start(1000);
+        const recorder=mediaRecorder;
+        recordedMimeType=recorder.mimeType||mime||'audio/webm';
+        recorder.ondataavailable=event=>{if(event.data?.size){recordedChunks.push(event.data);audioChunkSequence+=1;lastAudioChunkAt=Date.now();setRecorderStatus(`Audio · continuo · ${audioChunkSequence} bloques`)}};
+        const generation=++recorderGeneration;
+        recorder.onerror=event=>{setRecorderStatus(`Audio · error${event?.error?.name?` · ${event.error.name}`:''}`)};
+        recorder.onstart=()=>setRecorderStatus(`Audio · continuo V136${recorderRestartCount?` · R${recorderRestartCount}`:''}`);
+        recorder.onpause=()=>setRecorderStatus('Audio · pausado');
+        recorder.onresume=()=>setRecorderStatus('Audio · grabando de forma continua');
+        recorder.onstop=()=>{
+            if(generation!==recorderGeneration)return;
+            if(mediaRecorder===recorder)mediaRecorder=null;
+            if(!active||paused||!stream)return;
+            recorderRestartCount+=1;
+            setRecorderStatus(`Audio · recuperando grabación · R${recorderRestartCount}`);
+            window.setTimeout(()=>{if(active&&!paused&&stream&&!mediaRecorder)startMeetingRecorder(true)},120);
+        };
+        recorder.start(750);
         recorderWatchdogTimer=window.setInterval(()=>{
             if(!mediaRecorder||mediaRecorder.state!=='recording')return;
             const age=lastAudioChunkAt?Date.now()-lastAudioChunkAt:0;
@@ -340,15 +356,21 @@ function stopMeetingRecorder(){
     window.clearInterval(recorderWatchdogTimer);recorderWatchdogTimer=0;
     return new Promise(resolve=>{
         if(!mediaRecorder){resolve(null);return}
-        const recorder=mediaRecorder;mediaRecorder=null;
+        const recorder=mediaRecorder;mediaRecorder=null;recorderGeneration+=1;
+        let finished=false;
+        let timeoutId=0;
         const finish=()=>{
+            if(finished)return;
+            finished=true;
+            if(timeoutId)window.clearTimeout(timeoutId);
+            try{recorder.removeEventListener('stop',finish)}catch(_){}
             try{const blob=recordedChunks.length?new Blob(recordedChunks,{type:recordedMimeType||recorder.mimeType||'audio/webm'}):null;recordedChunks=[];resolve(blob)}catch(_){recordedChunks=[];resolve(null)}
         };
         if(recorder.state==='inactive'){finish();return}
         recorder.addEventListener('stop',finish,{once:true});
         try{recorder.requestData()}catch(_){}
-        try{recorder.stop()}catch(_){finish()}
-        window.setTimeout(()=>{if(recordedChunks.length)finish()},1800);
+        try{recorder.stop()}catch(_){finish();return}
+        timeoutId=window.setTimeout(finish,1800);
     });
 }
 
@@ -451,7 +473,7 @@ function analyseFrame(){
     if(isVoice){
         lastVoiceDetectedAt=now;
         if(!speechActive){
-            speechActive=true;speechStartedAt=now;featureFrames=[];silenceStartedAt=0;currentSpeakerKey='';segmentSpeakerVotes=[];
+            speechActive=true;speechStartedAt=now;featureFrames=[];silenceStartedAt=0;currentSpeakerKey='';segmentSpeakerVotes=[];activeSpeakerLockedAt=0;
             checkpointCandidateKey='';checkpointCandidateCount=0;pendingNewSignature=null;pendingNewCount=0;
         }
         featureFrames.push(features);
@@ -463,11 +485,11 @@ function analyseFrame(){
                 const key=checkpoint.speaker.key;
                 segmentSpeakerVotes.push(key);
                 if(segmentSpeakerVotes.length>28)segmentSpeakerVotes=segmentSpeakerVotes.slice(-28);
-                if(!currentSpeakerKey){currentSpeakerKey=key;checkpointCandidateKey=key;checkpointCandidateCount=1}
+                if(!currentSpeakerKey){currentSpeakerKey=key;activeSpeakerLockedAt=now;checkpointCandidateKey=key;checkpointCandidateCount=1}
                 else if(key===currentSpeakerKey){checkpointCandidateKey=key;checkpointCandidateCount=0}
                 else{
                     if(checkpointCandidateKey===key)checkpointCandidateCount+=1;else{checkpointCandidateKey=key;checkpointCandidateCount=1}
-                    if(checkpointCandidateCount>=SPEAKER_SWITCH_CONFIRMATIONS&&now-speechStartedAt>500){
+                    if(checkpoint.strong&&checkpointCandidateCount>=SPEAKER_SWITCH_CONFIRMATIONS&&now-speechStartedAt>1250&&(!activeSpeakerLockedAt||now-activeSpeakerLockedAt>1100)){
                         splitActiveSpeakerTurn(key,now,signature);
                         checkpointCandidateCount=0;
                     }
@@ -558,6 +580,7 @@ function splitActiveSpeakerTurn(newKey,at,signature){
         lastSpeakerKey=previousKey;
     }
     currentSpeakerKey=newKey;
+    activeSpeakerLockedAt=at;
     speechStartedAt=boundary;
     featureFrames=featureFrames.slice(-8);
     segmentSpeakerVotes=[newKey,newKey];
@@ -572,28 +595,39 @@ function classifySpeakerWindow(signature){
     if(!speakers.length)return {speaker:ensureSpeaker('Voz 1',signature),distance:0,newSpeaker:true,strong:true};
     const ranked=speakers.map(speaker=>({speaker,distance:featureDistance(signature,speakerReference(speaker))})).sort((a,b)=>a.distance-b.distance);
     const best=ranked[0],second=ranked[1];
-    const strongLimit=.105;
-    const matchLimit=best?.speaker?.samples>=8?.145:.155;
+    const strongLimit=.095;
+    const matchLimit=best?.speaker?.samples>=8?.15:.165;
     if(best&&best.distance<=matchLimit){
-        const strong=best.distance<=strongLimit||(!second||best.distance+.018<second.distance);
+        const strong=best.distance<=strongLimit||(!second||best.distance+.026<second.distance);
         if(strong&&best.speaker.key===currentSpeakerKey){
             best.speaker.samples+=1;
-            best.speaker.signature=best.speaker.signature?best.speaker.signature.map((value,index)=>value*.985+signature[index]*.015):signature.slice();
+            best.speaker.signature=best.speaker.signature?best.speaker.signature.map((value,index)=>value*.99+signature[index]*.01):signature.slice();
         }
-        pendingNewSignature=null;pendingNewCount=0;
         return {...best,newSpeaker:false,strong};
     }
-    if(best&&best.distance<.165){pendingNewSignature=null;pendingNewCount=0;return {...best,newSpeaker:false,provisional:true,strong:false}}
-    if(speakers.length>=MAX_SPEAKERS)return {...best,newSpeaker:false,strong:false};
-    if(!pendingNewSignature||featureDistance(signature,pendingNewSignature)>.07){pendingNewSignature=signature.slice();pendingNewCount=1;return best?{...best,provisional:true,strong:false}:null}
-    pendingNewCount+=1;
-    pendingNewSignature=pendingNewSignature.map((value,index)=>value*.82+signature[index]*.18);
-    if(pendingNewCount>=NEW_SPEAKER_CONFIRMATIONS&&Date.now()-speechStartedAt>=NEW_SPEAKER_MIN_VOICE_MS){
-        const speaker=ensureSpeaker('',pendingNewSignature);
-        pendingNewSignature=null;pendingNewCount=0;
-        return {speaker,distance:0,newSpeaker:true,strong:true};
+    // Durante un turno activo no se crea una identidad nueva por una variación momentánea.
+    // La decisión de una voz nueva se toma con la firma acústica completa al cerrar el turno.
+    return best?{...best,newSpeaker:false,provisional:true,strong:false}:null;
+}
+
+function clusterCompletedTurn(signature,durationMs=0){
+    if(!signature){const speaker=speakers[0]||ensureSpeaker('Voz 1',signature);return {speaker,newSpeaker:false,distance:0}}
+    if(!speakers.length)return {speaker:ensureSpeaker('Voz 1',signature),newSpeaker:true,distance:0};
+    const ranked=speakers.map(speaker=>({speaker,distance:featureDistance(signature,speakerReference(speaker))})).sort((a,b)=>a.distance-b.distance);
+    const best=ranked[0];
+    const matchLimit=best?.speaker?.samples>=10?.165:.18;
+    if(best&&best.distance<=matchLimit){
+        const speaker=best.speaker;
+        speaker.samples+=1;
+        if(best.distance<.13)speaker.signature=speaker.signature?speaker.signature.map((value,index)=>value*.965+signature[index]*.035):signature.slice();
+        speaker.lastDistance=best.distance;
+        return {speaker,newSpeaker:false,distance:best.distance};
     }
-    return best?{...best,provisional:true,strong:false}:null;
+    if(durationMs>=850&&speakers.length<MAX_SPEAKERS){
+        const speaker=ensureSpeaker('',signature);
+        return {speaker,newSpeaker:true,distance:best?.distance??0};
+    }
+    return {speaker:best?.speaker||speakers[0],newSpeaker:false,distance:best?.distance??99};
 }
 
 function updateMeter(rms,threshold){
@@ -662,9 +696,9 @@ function mergeSpeakerClones(){
     if(speakers.length<2)return;
     let changed=false;
     for(let i=speakers.length-1;i>=0;i--){
-        const candidate=speakers[i];if(!candidate||candidate.samples>4||!speakerReference(candidate))continue;
+        const candidate=speakers[i];if(!candidate||candidate.samples>10||!speakerReference(candidate))continue;
         const matches=speakers.filter(other=>other.key!==candidate.key&&other.samples>=candidate.samples&&speakerReference(other)).map(other=>({other,distance:featureDistance(speakerReference(candidate),speakerReference(other))})).sort((a,b)=>a.distance-b.distance);
-        const best=matches[0];if(!best||best.distance>.048)continue;
+        const best=matches[0];if(!best||best.distance>(candidate.samples<=4?.072:.058))continue;
         speakerTimeline.forEach(segment=>{if(segment.speakerKey===candidate.key)segment.speakerKey=best.other.key});
         transcript.forEach(row=>{if(row.speakerKey===candidate.key)row.speakerKey=best.other.key});
         if(lastSpeakerKey===candidate.key)lastSpeakerKey=best.other.key;
@@ -676,20 +710,38 @@ function mergeSpeakerClones(){
     if(changed){renderSpeakers();renderTranscript();refreshSummary()}
 }
 
+function consolidateMeetingTranscript(){
+    mergeSpeakerClones();
+    const cleaned=[];
+    for(const row of transcript){
+        const item={...row,text:text(row.text).replace(/\s+/g,' ')};if(!item.text)continue;
+        const last=cleaned[cleaned.length-1];
+        if(last&&last.speakerKey===item.speakerKey&&item.at-last.at<18000){last.text=mergeTextOverlap(last.text,item.text);last.at=Math.max(last.at,item.at);last.confidence=Math.max(last.confidence||0,item.confidence||0);continue}
+        const dup=cleaned.slice(-10).find(prev=>Math.abs(item.at-prev.at)<24000&&transcriptSimilarity(prev.text,item.text)>=.93);
+        if(dup){dup.confidence=Math.max(dup.confidence||0,item.confidence||0);continue}
+        cleaned.push(item);
+    }
+    transcript=cleaned.map((row,index)=>({...row,id:index+1}));segmentSequence=transcript.length;
+    renderSpeakers();renderTranscript();refreshSummary();
+}
+
 function finalizeSpeakerSegment(endAt){
     if(!speechActive)return;
     const signature=aggregateFeatures(featureFrames);
-    const finalCandidate=clusterSpeaker(signature);
+    const duration=Math.max(0,endAt-speechStartedAt);
+    const completed=clusterCompletedTurn(signature,duration);
+    const finalCandidate=completed?.speaker||speakers[0]||ensureSpeaker('Voz 1',signature);
     if(finalCandidate)segmentSpeakerVotes.push(finalCandidate.key);
-    const winnerKey=majoritySpeakerKey(segmentSpeakerVotes)||currentSpeakerKey||finalCandidate?.key||'';
-    let speaker=speakers.find(item=>item.key===winnerKey)||finalCandidate||speakers[0]||ensureSpeaker('Voz 1',signature);
-    if(signature&&speaker!==finalCandidate){speaker.samples+=1;speaker.signature=speaker.signature?speaker.signature.map((value,index)=>value*.92+signature[index]*.08):signature.slice()}
+    const votedKey=majoritySpeakerKey(segmentSpeakerVotes)||currentSpeakerKey||lastSpeakerKey||finalCandidate?.key||'';
+    // Una voz nueva decidida con el turno completo tiene prioridad sobre votos provisionales del mismo turno.
+    const winnerKey=completed?.newSpeaker?finalCandidate.key:votedKey;
+    const speaker=speakers.find(item=>item.key===winnerKey)||finalCandidate;
     const votes=segmentSpeakerVotes.filter(Boolean);const winnerVotes=votes.filter(key=>key===speaker.key).length;
-    const speakerConfidence=votes.length?winnerVotes/votes.length:0;
+    const speakerConfidence=completed?.newSpeaker ? .86 : (votes.length?winnerVotes/votes.length:.6);
     speakerTimeline.push({speakerKey:speaker.key,start:speechStartedAt,end:endAt,confidence:speakerConfidence});
-    if(speakerTimeline.length>160)speakerTimeline=speakerTimeline.slice(-160);
+    if(speakerTimeline.length>220)speakerTimeline=speakerTimeline.slice(-220);
     lastSpeakerKey=speaker.key;
-    speechActive=false;featureFrames=[];segmentSpeakerVotes=[];silenceStartedAt=0;speechStartedAt=0;currentSpeakerKey='';
+    speechActive=false;featureFrames=[];segmentSpeakerVotes=[];silenceStartedAt=0;speechStartedAt=0;currentSpeakerKey='';activeSpeakerLockedAt=0;
     mergeSpeakerClones();
 }
 
@@ -749,14 +801,14 @@ function startRecognition(forceNew=false,reason='inicio'){
     if(forceNew){try{recognition?.abort()}catch(_){}recognition=null}
     const engine=new Recognition();
     recognition=engine;
-    engine.lang='es-MX';engine.continuous=true;engine.interimResults=true;engine.maxAlternatives=5;
+    engine.lang='es-MX';engine.continuous=true;engine.interimResults=true;engine.maxAlternatives=3;
     engine.onstart=()=>{
         if(generation!==recognitionGeneration)return;
         recognitionStarting=false;
         recognitionStartedAt=Date.now();
         lastRecognitionActivityAt=Date.now();
         liveInterimText='';liveInterimSpeakerKey='';liveInterimAt=0;liveInterimStartedAt=0;
-        setRecognitionStatus(`Texto · continuo V119${recognitionRestartCount?` · R${recognitionRestartCount}`:''}`);
+        setRecognitionStatus(`Texto · continuo V136${recognitionRestartCount?` · R${recognitionRestartCount}`:''}`);
     };
     engine.onaudiostart=()=>{if(generation===recognitionGeneration)lastRecognitionActivityAt=Date.now()};
     engine.onspeechstart=()=>{if(generation===recognitionGeneration)lastRecognitionActivityAt=Date.now()};
@@ -810,7 +862,7 @@ function startRecognition(forceNew=false,reason='inicio'){
     };
     try{
         engine.start();
-        setRecognitionStatus(reason==='inicio'?'Texto · iniciando modo continuo V119':'Texto · reiniciando con contexto conservado');
+        setRecognitionStatus(reason==='inicio'?'Texto · iniciando modo continuo V136':'Texto · reiniciando con contexto conservado');
     }catch(error){
         recognitionStarting=false;
         scheduleRecognitionRestart('start',500);
@@ -835,7 +887,7 @@ function isRecentTranscriptDuplicate(value){
     return transcript.slice(-RECENT_TRANSCRIPT_ROWS).some(row=>{
         const r=meetingNormalize(row.text);if(r===n)return true;
         if(n.length>22&&(r.includes(n)||n.includes(r)))return true;
-        if(words.length>=4&&transcriptSimilarity(value,row.text)>=.9)return true;
+        if(words.length>=4&&transcriptSimilarity(value,row.text)>=.88)return true;
         return false;
     });
 }
@@ -850,7 +902,12 @@ function updateLiveInterim(value){
     const clean=text(value).replace(/\s+/g,' ');if(!clean)return;
     const now=Date.now();
     if(!liveInterimText)liveInterimStartedAt=now;
-    liveInterimText=clean;
+    if(liveInterimText){
+        const oldWords=meetingWords(liveInterimText),newWords=meetingWords(clean);
+        const similarity=transcriptSimilarity(liveInterimText,clean);
+        if(newWords.length>=oldWords.length||similarity<.55)liveInterimText=clean;
+        else if(overlapWordCount(liveInterimText,clean)>=2)liveInterimText=mergeTextOverlap(liveInterimText,clean);
+    }else liveInterimText=clean;
     const stableKey=currentSpeakerKey||lastSpeakerKey||liveInterimSpeakerKey||'';
     if(stableKey)liveInterimSpeakerKey=stableKey;
     liveInterimAt=now;
@@ -924,7 +981,7 @@ function appendTranscript(value,confidence=0,resolvedSpeaker=null,eventAt=Date.n
         if(meetingNormalize(merged)!==meetingNormalize(last.text))last.text=merged;
         last.confidence=Math.max(last.confidence||0,confidence||0);last.at=Math.max(last.at,at);
     }else{
-        const duplicate=transcript.slice(-RECENT_TRANSCRIPT_ROWS).find(row=>transcriptSimilarity(row.text,clean)>=.94&&Math.abs(at-row.at)<12000);
+        const duplicate=transcript.slice(-RECENT_TRANSCRIPT_ROWS).find(row=>transcriptSimilarity(row.text,clean)>=.92&&Math.abs(at-row.at)<20000);
         if(duplicate){duplicate.confidence=Math.max(duplicate.confidence||0,confidence||0);renderTranscript();refreshSummary();return}
         transcript.push({id:++segmentSequence,speakerKey:speaker.key,text:clean,at,elapsed:Math.max(0,at-startedAt),confidence:Number(confidence)||0});
     }
