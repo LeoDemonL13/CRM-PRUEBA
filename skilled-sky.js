@@ -299,7 +299,7 @@
     let conversationContext = { material:null, vehicle:null, project:null, supplier:null, person:null, area:'', pendingAction:null, lastIntent:'', lastEntity:'', lastQuery:'', turns:[], updatedAt:0 };
     function saveConversationContext(){conversationContext.updatedAt=Date.now()}
     function rememberConversation(intent='',entity='',query=''){if(intent)conversationContext.lastIntent=text(intent);if(entity)conversationContext.lastEntity=text(entity);if(query)conversationContext.lastQuery=text(query);saveConversationContext()}
-    function rememberTurn(user='',assistant=''){const u=text(user).slice(0,420),a=text(assistant).slice(0,520);if(!u&&!a)return;conversationContext.turns=Array.isArray(conversationContext.turns)?conversationContext.turns:[];conversationContext.turns.push({user:u,assistant:a});if(conversationContext.turns.length>12)conversationContext.turns=conversationContext.turns.slice(-12);saveConversationContext()}
+    function rememberTurn(user='',assistant=''){const u=text(user).slice(0,420),a=text(assistant).slice(0,520);if(!u&&!a)return;conversationContext.turns=Array.isArray(conversationContext.turns)?conversationContext.turns:[];conversationContext.turns.push({user:u,assistant:a});if(conversationContext.turns.length>18)conversationContext.turns=conversationContext.turns.slice(-18);saveConversationContext()}
     const ttl = 45000;
     const SKILL_DATA_TIMEOUT_MS = 12000;
     const SKILL_AI_TIMEOUT_MS = 14000;
@@ -342,7 +342,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=136'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=141'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -3134,7 +3134,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=136'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=141'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3215,68 +3215,146 @@
         let norm=commandNormalize(raw);
         const words={una:'1',uno:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9',diez:'10',once:'11',doce:'12'};
         for(const [word,value] of Object.entries(words))norm=norm.replace(new RegExp(`\\b${word}\\b`,'g'),value);
-        return norm.replace(/\ba medio dia\b|\bal mediodia\b|\bmediodia\b/g,'a las 12 pm').replace(/\ba media noche\b|\ba medianoche\b|\bmedianoche\b/g,'a las 12 am');
+        return norm
+            .replace(/\ba medio dia\b|\bal mediodia\b|\bmediodia\b/g,'a las 12 pm')
+            .replace(/\ba media noche\b|\ba medianoche\b|\bmedianoche\b/g,'a las 12 am')
+            .replace(/\bde la manana\b/g,'am')
+            .replace(/\bde la tarde\b|\bde la noche\b/g,'pm');
     }
 
-    function parseSkyDateTime(raw) {
+    const meetingMonths={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,setiembre:8,octubre:9,noviembre:10,diciembre:11};
+    const meetingWeekdays={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
+
+    function validCalendarDate(year,month,day){
+        const probe=new Date(year,month,day,12,0,0,0);
+        return probe.getFullYear()===year&&probe.getMonth()===month&&probe.getDate()===day;
+    }
+
+    function analyzeSkyDateTime(raw,baseDate=null){
         const norm=meetingTimeNormalized(raw);
         const now=new Date();
+        const base=baseDate instanceof Date&&!Number.isNaN(baseDate.getTime())?new Date(baseDate):new Date(now);
+        base.setSeconds(0,0);
         const relative=norm.match(/\ben\s+(\d{1,3})\s*(minuto|minutos|hora|horas)\b/);
-        if(relative){const amount=Number(relative[1]);const minutes=relative[2].startsWith('hora')?amount*60:amount;return new Date(now.getTime()+minutes*60000)}
-        if(/\ben media hora\b/.test(norm))return new Date(now.getTime()+30*60000);
-        let d=new Date(now);d.setSeconds(0,0);
-        let daySpecified=false;
-        const explicitDate=norm.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
-        if(explicitDate){let year=explicitDate[3]?Number(explicitDate[3]):now.getFullYear();if(year<100)year+=2000;d.setFullYear(year,Number(explicitDate[2])-1,Number(explicitDate[1]));daySpecified=true}
-        else if(/\bpasado manana\b/.test(norm)){d.setDate(d.getDate()+2);daySpecified=true}
-        else if(/\bmanana\b/.test(norm)){d.setDate(d.getDate()+1);daySpecified=true}
-        else if(/\bhoy\b/.test(norm)){daySpecified=true}
-        else{
-            const weekdays={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
-            const dayName=Object.keys(weekdays).find(name=>new RegExp(`\\b${name}\\b`).test(norm));
-            if(dayName){const delta=(weekdays[dayName]-d.getDay()+7)%7;d.setDate(d.getDate()+delta);daySpecified=true;d._skyWeekday=true}
+        if(relative){
+            const amount=Number(relative[1]);
+            const minutes=relative[2].startsWith('hora')?amount*60:amount;
+            return{date:new Date(now.getTime()+minutes*60000),hasExplicitTime:true,hasExplicitDay:false,valid:true,kind:'relative',explicitYear:false};
         }
+        if(/\ben media hora\b/.test(norm))return{date:new Date(now.getTime()+30*60000),hasExplicitTime:true,hasExplicitDay:false,valid:true,kind:'relative',explicitYear:false};
+
+        let d=new Date(base);
+        let hasExplicitDay=false;
+        let hasExplicitTime=false;
+        let explicitYear=false;
+        let dateKind='none';
+        let dateValid=true;
+        let weekdaySpecified=false;
+        let yearWasImplicit=false;
+
+        const numeric=norm.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+        const namedA=norm.match(/\b(?:el\s+)?(?:dia\s+)?(\d{1,2})\s+(?:de\s+)?(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+(?:de|del)\s+(\d{4}))?\b/);
+        const namedB=!namedA?norm.match(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(\d{1,2})(?:\s+(?:de|del)\s+(\d{4}))?\b/):null;
+        if(numeric){
+            let year=numeric[3]?Number(numeric[3]):now.getFullYear();
+            if(year<100)year+=2000;
+            explicitYear=Boolean(numeric[3]);yearWasImplicit=!explicitYear;
+            const month=Number(numeric[2])-1,day=Number(numeric[1]);
+            dateValid=validCalendarDate(year,month,day);
+            if(dateValid)d.setFullYear(year,month,day);
+            hasExplicitDay=true;dateKind='numeric';
+        }else if(namedA||namedB){
+            const match=namedA||namedB;
+            const day=Number(namedA?match[1]:match[2]);
+            const month=meetingMonths[namedA?match[2]:match[1]];
+            const yearToken=namedA?match[3]:match[3];
+            let year=yearToken?Number(yearToken):now.getFullYear();
+            explicitYear=Boolean(yearToken);yearWasImplicit=!explicitYear;
+            dateValid=validCalendarDate(year,month,day);
+            if(dateValid)d.setFullYear(year,month,day);
+            hasExplicitDay=true;dateKind='named';
+        }else if(/\bpasado manana\b/.test(norm)){
+            d=new Date(now);d.setDate(d.getDate()+2);hasExplicitDay=true;dateKind='relative-day';
+        }else if(/\bmanana\b/.test(norm)){
+            d=new Date(now);d.setDate(d.getDate()+1);hasExplicitDay=true;dateKind='relative-day';
+        }else if(/\bhoy\b/.test(norm)){
+            d=new Date(now);hasExplicitDay=true;dateKind='relative-day';
+        }else{
+            const weekdayName=Object.keys(meetingWeekdays).find(name=>new RegExp(`\\b${name}\\b`).test(norm));
+            if(weekdayName){
+                d=new Date(now);
+                let delta=(meetingWeekdays[weekdayName]-d.getDay()+7)%7;
+                const next=/\b(proximo|siguiente)\s+(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/.test(norm);
+                if(next&&delta===0)delta=7;
+                d.setDate(d.getDate()+delta);
+                hasExplicitDay=true;dateKind='weekday';weekdaySpecified=true;
+            }
+        }
+
         let m=norm.match(/\b(?:a\s+las|alas|a\s+la)\s+(\d{1,2})(?::(\d{2})|\s+y\s+media)?\s*(am|pm)?\b/);
         if(!m)m=norm.match(/\b(\d{1,2})(?::(\d{2}))\s*(am|pm)?\b/);
         if(!m)m=norm.match(/\b(\d{1,2})\s*(am|pm)\b/);
         if(m){
-            let h=Number(m[1]);let min=Number(m[2]||0);let ap=m[3]||'';
+            let h=Number(m[1]),min=Number(m[2]||0),ap=m[3]||'';
             if(m[0].includes('y media'))min=30;
             if(!ap&&m.length===3&&/^(am|pm)$/.test(m[2]||''))ap=m[2];
-            if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;
-            if(!ap&&h>=1&&h<=7)h+=12;
-            d.setHours(h,min,0,0);
-            if(d.getTime()<=now.getTime()+60000&&!/\bhoy\b/.test(norm)){
-                if(d._skyWeekday)d.setDate(d.getDate()+7);else if(!daySpecified)d.setDate(d.getDate()+1);
+            if(h>23||min>59||(ap&&h>12)||h<0||min<0){dateValid=false}
+            else{
+                if(ap==='pm'&&h<12)h+=12;
+                if(ap==='am'&&h===12)h=0;
+                if(!ap&&h>=1&&h<=7)h+=12;
+                d.setHours(h,min,0,0);
+                hasExplicitTime=true;
             }
-        }else d=new Date(now.getTime()+15*60000);
-        try{delete d._skyWeekday}catch(_){}
-        return d;
+        }
+
+        if(!hasExplicitDay&&!hasExplicitTime){
+            d=new Date(now.getTime()+15*60000);
+        }else if(!hasExplicitDay&&hasExplicitTime&&d.getTime()<=now.getTime()+60000){
+            d.setDate(d.getDate()+1);
+        }else if(hasExplicitDay&&hasExplicitTime&&dateValid){
+            if(weekdaySpecified&&d.getTime()<=now.getTime()+60000)d.setDate(d.getDate()+7);
+            else if(yearWasImplicit&&(dateKind==='named'||dateKind==='numeric')&&d.getTime()<=now.getTime()+60000)d.setFullYear(d.getFullYear()+1);
+        }
+        return{date:d,hasExplicitTime,hasExplicitDay,valid:dateValid,kind:dateKind,explicitYear};
     }
 
-    function meetingTimeInfo(raw) {
-        const norm=meetingTimeNormalized(raw);
-        return {
-            hasExplicitTime:/\ben\s+(?:\d{1,3}\s*(?:minuto|minutos|hora|horas)|media hora)\b|\b(?:a\s+las|alas|a\s+la)\s+\d{1,2}(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b|\b\d{1,2}:\d{2}\s*(?:am|pm)?\b|\b\d{1,2}\s*(?:am|pm)\b/.test(norm),
-            hasExplicitDay:/\b(hoy|manana|pasado manana|lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b|\b\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?\b/.test(norm)
-        };
+    function parseSkyDateTime(raw,baseDate=null){return analyzeSkyDateTime(raw,baseDate).date}
+
+    function meetingTimeInfo(raw){
+        const info=analyzeSkyDateTime(raw);
+        return{hasExplicitTime:info.hasExplicitTime,hasExplicitDay:info.hasExplicitDay,valid:info.valid,kind:info.kind};
+    }
+
+    function stripMeetingDateTimePhrases(value){
+        return text(value)
+            .replace(/\b(?:para\s+)?(?:el\s+)?(?:dia\s+)?\d{1,2}\s+(?:de\s+)?(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+(?:de|del)\s+\d{4})?\b/ig,' ')
+            .replace(/\b(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+\d{1,2}(?:\s+(?:de|del)\s+\d{4})?\b/ig,' ')
+            .replace(/\b(?:para\s+)?(?:el\s+)?\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?\b/ig,' ')
+            .replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|(?:(?:este|proximo|próximo|siguiente)\s+)?(?:lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo))\b/ig,' ')
+            .replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,' ')
+            .replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm|de\s+la\s+mañana|de\s+la\s+manana|de\s+la\s+tarde|de\s+la\s+noche)?\b/ig,' ')
+            .replace(/\b\d{1,2}:\d{2}\s*(?:am|pm)?\b/ig,' ')
+            .replace(/\b\d{1,2}\s*(?:am|pm)\b/ig,' ')
+            .replace(/\s+/g,' ').trim();
     }
 
     function extractMeetingAudience(source) {
         const norm=commandNormalize(source);
-        if (/\b(general|todos|todas|todo el equipo|todos los usuarios|toda la empresa|equipo completo)\b/.test(norm)) return { audience:'general', specified:true };
+        if (/\b(chat\s+general|general|todos|todas|todo el equipo|todos los usuarios|toda la empresa|equipo completo)\b/.test(norm)) return { audience:'general', specified:true };
         let head=source.split(/\b(?:para revisar|para ver|para tratar|sobre|tema de|del tema|por motivo de|porque|para hablar de|para checar|para revisar lo de)\b/i)[0] || source;
-        head=head.replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,' ')
-            .replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,' ')
-            .replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,' ')
-            .replace(/\b\d{1,2}:\d{2}\s*(?:am|pm)?\b/ig,' ')
+        head=stripMeetingDateTimePhrases(head)
+            .replace(/\ben\s+(?:el\s+)?chat\s+general\b/ig,' ')
             .replace(/^(?:oye\s+)?(?:(?:skill|skil|sky)[,;:\s-]*)?/i,'')
             .replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s*/i,'')
             .replace(/^(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?\s*/i,'')
             .replace(/\s+/g,' ').trim();
         const m=head.match(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+|el\s+|la\s+|los\s+|las\s+)?(.+)$/i);
         if(!m?.[1])return{audience:'general',specified:false};
-        let candidate=text(m[1]).replace(/\s+(?:una\s+)?(?:reunion|reunión|junta|cita)\b.*$/i,'').replace(/[,.!?]+$/,'').trim();
+        let candidate=text(m[1])
+            .replace(/\s+(?:una\s+)?(?:reunion|reunión|junta|cita)\b.*$/i,'')
+            .replace(/\s+en\s+(?:el\s+)?chat\b.*$/i,'')
+            .replace(/[,.!?]+$/,'').trim();
         if(!candidate||/^(?:las?\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)?$/i.test(candidate))return{audience:'general',specified:false};
         return{audience:candidate,specified:true};
     }
@@ -3289,6 +3367,7 @@
         if(chatIntent&&!chatIntent.capability)return null;
         if(/\b(?:que|qué)\s+(?:es|son|significa)\b/.test(norm))return null;
         const timeInfo=meetingTimeInfo(source);
+        const dateAnalysis=analyzeSkyDateTime(source);
         const actionVerb=/\b(genera|generar|crea|crear|convoca|convocar|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\b/.test(norm);
         const prepareOnly=/\b(prepara|preparar|arma|armar)\b/.test(norm);
         const explicitSend=/\b(enviala|envíala|mandala|mándala|enviar convocatoria|manda la convocatoria|mandar convocatoria|confirmala|confírmala|publicala|publícala)\b/.test(norm);
@@ -3302,7 +3381,7 @@
         let note='';
         if(topic){note=text(topic[1]);title=`Reunión · ${note.slice(0,80)}`}
         if(!note){
-            const cleaned=text(source.replace(/^(?:oye\s+)?(?:(?:skill|skil|sky)[,;:\s-]*)?/i,'').replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'').replace(/\b(?:(?:para|el)\s+)?(?:hoy|manana|mañana|pasado manana|pasado mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo)\b/ig,'').replace(/\ben\s+(?:media\s+hora|(?:\d{1,3}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(?:minuto|minutos|hora|horas))\b/ig,'').replace(/\b(?:a\s+las|alas|a\s+la)\s+(?:\d{1,2}|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?::\d{2}|\s+y\s+media)?\s*(?:am|pm)?\b/ig,'').replace(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+)?[^,.;]+$/i,'').trim());
+            const cleaned=text(stripMeetingDateTimePhrases(source.replace(/^(?:oye\s+)?(?:(?:skill|skil|sky)[,;:\s-]*)?/i,'').replace(/^(?:por\s+favor\s+)?(?:puedes\s+|podrias\s+|podrías\s+|quiero\s+que\s+|necesito\s+que\s+)?(?:generar|genera|crear|crea|convocar|convoca|agenda|agendar|programa|programar|pon|poner|haz|hacer|prepara|preparar|arma|armar|organiza|organizar|reune|reúne|reunir)\s+(?:una\s+)?(?:reunion|reunión|junta|cita)(?:\s+general)?/i,'')).replace(/\ben\s+(?:el\s+)?chat\s+general\b/ig,'').replace(/\b(?:con|para|a)\s+(?:el\s+area\s+de\s+|el\s+área\s+de\s+)?[^,.;]+$/i,'').trim());
             if(cleaned&&commandNormalize(cleaned)!==commandNormalize(audienceInfo.audience))note=cleaned;
         }
         if(!note)note='Reunión solicitada desde Skill.';
@@ -3311,7 +3390,8 @@
             audienceSpecified:audienceInfo.specified,
             title,
             note,
-            date:parseSkyDateTime(source),
+            date:dateAnalysis.date,
+            dateValid:dateAnalysis.valid,
             actionVerb,
             autoSendRequested:Boolean(explicitSend||(actionVerb&&!prepareOnly)),
             hasExplicitTime:timeInfo.hasExplicitTime,
@@ -3321,7 +3401,7 @@
     }
 
     function setPendingAction(action) {
-        conversationContext.pendingAction={...action,createdAt:Date.now(),expiresAt:Date.now()+3*60*1000};
+        conversationContext.pendingAction={...action,createdAt:Date.now(),expiresAt:Date.now()+8*60*1000};
         saveConversationContext();
     }
 
@@ -3338,6 +3418,12 @@
     }
 
     async function executeMeetingPlan(parsed) {
+        if(parsed?.dateValid===false||!(parsed?.date instanceof Date)||Number.isNaN(parsed.date.getTime())){
+            setPendingAction({type:'meeting',...parsed,dateValid:false,hasExplicitDay:false});
+            const message='La fecha indicada no es válida. Dime la fecha correcta y conservaré el destino, la hora y el motivo.';
+            setAnswer('Necesito corregir la fecha',message,'No enviaré ninguna convocatoria hasta tener una fecha válida.');
+            return{handled:true,voice:message};
+        }
         if(parsed?.hasExplicitTime && parsed?.date instanceof Date && parsed.date.getTime()<=Date.now()+60000){
             setPendingAction({type:'meeting',...parsed,hasExplicitTime:false});
             const message='Esa hora ya pasó. Dime otra hora y conservaré el destino y el motivo de la reunión.';
@@ -3422,7 +3508,20 @@
         if(pending.type==='meeting'){
             const updated={...pending};
             const timeInfo=meetingTimeInfo(source);
-            if(!updated.hasExplicitTime&&timeInfo.hasExplicitTime){updated.date=parseSkyDateTime(source);updated.hasExplicitTime=true;updated.hasExplicitDay=updated.hasExplicitDay||timeInfo.hasExplicitDay}
+            if(timeInfo.hasExplicitDay||timeInfo.hasExplicitTime){
+                const baseDate=updated.date instanceof Date?updated.date:new Date(updated.date||Date.now());
+                const incoming=analyzeSkyDateTime(source,baseDate);
+                if(!incoming.valid){
+                    setPendingAction({...updated,dateValid:false});
+                    const message='Esa fecha no existe o no pude interpretarla con seguridad. Dime nuevamente el día y mes.';
+                    setAnswer('Fecha no válida',message,'Conservaré los demás datos de la reunión.');
+                    return{handled:true,voice:message};
+                }
+                updated.date=incoming.date;
+                updated.dateValid=true;
+                updated.hasExplicitTime=updated.hasExplicitTime||timeInfo.hasExplicitTime;
+                updated.hasExplicitDay=updated.hasExplicitDay||timeInfo.hasExplicitDay;
+            }
             if(!updated.audienceSpecified){
                 const fromCommand=extractMeetingAudience(source);
                 if(fromCommand.specified){updated.audience=fromCommand.audience;updated.audienceSpecified=true}
@@ -3469,6 +3568,12 @@
                 {title:'Conversación',detail:'Si falta hora o destinatario, Skill lo pregunta y continúa sin hacerte repetir todo.'},
                 {title:'Chat',detail:'La reunión aparece como tarjeta dentro del chat interno.'}
             ]);
+            return{handled:true,voice:message};
+        }
+        if(parsed.dateValid===false){
+            setPendingAction({type:'meeting',...parsed,hasExplicitDay:false});
+            const message='La fecha que indicaste no es válida. Dime nuevamente el día y mes; conservaré el destinatario, la hora y el motivo.';
+            setAnswer('Corrijamos la fecha',message,'No enviaré la convocatoria hasta validar la fecha.');
             return{handled:true,voice:message};
         }
         if(parsed.autoSendRequested&&(!parsed.hasExplicitTime||!parsed.audienceSpecified)){
@@ -4667,6 +4772,15 @@
         return (words.length>=8&&connectors>=2)||(words.length>=7&&narrative)||(words.length>=9&&constraints>=3)||multiQuestion||correction||indirect;
     }
 
+    function isFastDeterministicSkillAction(raw){
+        const norm=commandNormalize(raw);
+        const meetingAction=/\b(?:genera|generar|crea|crear|convoca|convocar|agenda|agendar|programa|programar|prepara|preparar|organiza|organizar|reune|reunir|inicia|iniciar|comienza|comenzar|empieza|empezar|arranca|arrancar)\b.*\b(?:reunion|reunión|junta|cita)\b/.test(norm)
+            || /\b(?:reunion|reunión|junta|cita)\b.*\b(?:hoy|manana|mañana|lunes|martes|miercoles|miércoles|jueves|viernes|sabado|sábado|domingo|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|\d{1,2}\s*(?:am|pm)|a\s+las)\b/.test(norm);
+        const directMessage=/\b(?:dile|diles|avisa|avisale|avísale|avísales|manda|mandale|mándale|mandales|mándales|envia|envía|enviame|envíame|escribele|escríbele|informa|infórmale|mensaje)\b.*\b(?:a|para|que|general|chat|compras|almacen|almacén|rh|recepcion|recepción|gerencia|subgerencia|tsi)\b/.test(norm);
+        const meetingCapture=/\b(?:modo reunion|modo reunión|tomar minuta|toma minuta|transcribir reunion|transcribir reunión|diferenciar voces|separar voces)\b/.test(norm);
+        return meetingAction||directMessage||meetingCapture;
+    }
+
     function shouldUseSkyAI(raw, profile = detectProfile()) {
         if (!window.SkilledDB?.interpretSkyQuery || Date.now() < aiRetryAfter) return false;
         const norm=commandNormalize(raw);
@@ -4899,10 +5013,15 @@
             const cleanRaw = expandEntityAliases(stripWakeWord(raw));
             const localRaw = simplifyLocalRequest(cleanRaw);
             const complex = isComplexSkillQuery(cleanRaw);
+            const fastAction = isFastDeterministicSkillAction(cleanRaw);
             let voice = '';
             let usedAI = false;
             let simple = {handled:false,voice:''};
-            if (complex) {
+            if(fastAction){
+                simple = await answerSimple(cleanRaw);
+                voice = simple.handled ? simple.voice : '';
+            }
+            if (!voice && complex) {
                 const plan = await interpretWithSkyAI(cleanRaw);
                 if (plan) {
                     setInterpreted(plan.query || cleanRaw,'interpretada');
@@ -4913,7 +5032,7 @@
                     simple = await answerSimple(cleanRaw);
                     voice = simple.handled ? simple.voice : '';
                 }
-            } else {
+            } else if(!voice && !fastAction) {
                 simple = await answerSimple(cleanRaw);
                 voice = simple.handled ? simple.voice : '';
             }
