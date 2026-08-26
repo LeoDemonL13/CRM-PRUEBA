@@ -1,1 +1,0 @@
-(function(){'use strict';if(window.SkilledSky||document.querySelector('script[src*="skilled-sky.js"]'))return;const s=document.createElement('script');s.src='skilled-sky.js?v=35';s.defer=true;document.head.appendChild(s)})();
