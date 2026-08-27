@@ -10,6 +10,7 @@ const markerRegex=/SKILLED_OC_JSON_BEGIN\s+([A-Za-z0-9+/=]+)\s+SKILLED_OC_JSON_E
 let logoPromise=null;
 let importInput=null;
 let importing=false;
+const signatureImageCache=new Map();
 async function toDataUrl(source){
 const response=await fetch(source,{mode:'cors',cache:'no-store'});
 if(!response.ok)throw new Error('No se pudo cargar el logo.');
@@ -28,14 +29,16 @@ return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resol
 async function prepareSignatureImage(source){
 const value=text(source);
 if(!value)return null;
+if(signatureImageCache.has(value))return signatureImageCache.get(value);
 if(!/^data:image\/(png|jpeg|jpg|webp);base64,/i.test(value))throw new Error('La firma guardada no tiene un formato de imagen válido. Vuelve a guardarla desde Mi perfil.');
-const img=await signatureImageElement(value);
+const task=(async()=>{let img;try{img=await signatureImageElement(value)}catch(firstError){await new Promise(resolve=>setTimeout(resolve,80));img=await signatureImageElement(value).catch(()=>{throw firstError})}
 const width=Math.max(1,Number(img.naturalWidth||img.width||1)),height=Math.max(1,Number(img.naturalHeight||img.height||1));
 const maxW=900,maxH=270,scale=Math.min(1,maxW/width,maxH/height),cw=Math.max(1,Math.round(width*scale)),ch=Math.max(1,Math.round(height*scale));
-const transparent=document.createElement('canvas');transparent.width=cw;transparent.height=ch;const tctx=transparent.getContext('2d');tctx.clearRect(0,0,cw,ch);tctx.drawImage(img,0,0,cw,ch);
+const transparent=document.createElement('canvas');transparent.width=cw;transparent.height=ch;const tctx=transparent.getContext('2d',{alpha:true});if(!tctx)throw new Error('El navegador no pudo preparar la firma para PDF.');tctx.clearRect(0,0,cw,ch);tctx.drawImage(img,0,0,cw,ch);
 const png=transparent.toDataURL('image/png');
-const opaque=document.createElement('canvas');opaque.width=cw;opaque.height=ch;const octx=opaque.getContext('2d');octx.fillStyle='rgb(248,249,250)';octx.fillRect(0,0,cw,ch);octx.drawImage(transparent,0,0);const jpeg=opaque.toDataURL('image/jpeg',0.94);
-return{png,jpeg,width:cw,height:ch};
+const opaque=document.createElement('canvas');opaque.width=cw;opaque.height=ch;const octx=opaque.getContext('2d');if(!octx)throw new Error('El navegador no pudo preparar la firma alternativa para PDF.');octx.fillStyle='rgb(248,249,250)';octx.fillRect(0,0,cw,ch);octx.drawImage(transparent,0,0);const jpeg=opaque.toDataURL('image/jpeg',0.96);
+return{png,jpeg,width:cw,height:ch};})();
+signatureImageCache.set(value,task);try{return await task}catch(error){signatureImageCache.delete(value);throw error}
 }
 async function prepareSignatureRows(rows=[]){
 const source=Array.isArray(rows)?rows:[];
@@ -134,7 +137,7 @@ doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(45,76,10
 doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0,65,107);doc.text('Orden de compra',116,17);doc.text('Fecha',156,17);doc.text('Referencia',177,17);
 doc.setFontSize(9);doc.setTextColor(234,0,41);doc.text(order,116,23,{maxWidth:37});doc.setTextColor(45,76,102);doc.text(dateLabel(data.fecha),156,23,{maxWidth:19});doc.text(text(data.referencia)||'—',177,23,{maxWidth:19});
 doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.setFontSize(8);doc.text('Proveedor',116,34);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.setFontSize(8);doc.text(text(data.proveedor)||'Por definir',116,40,{maxWidth:80});doc.setFont('helvetica','bold');doc.text('Contacto:',116,47);doc.setFont('helvetica','normal');doc.text(text(data.contactoProveedor)||'Por definir',134,47,{maxWidth:62});doc.setFont('helvetica','bold');doc.text('Solicita:',14,62);doc.setFont('helvetica','normal');doc.text(text(data.solicitadoPor)||'No especificado',30,62,{maxWidth:65});
-const subtotal=items.reduce((sum,item)=>sum+(number(item.precio)*number(item.cantidad)),0);const iva=subtotal*.16;const total=subtotal+iva;const currency=(items.find(item=>item.moneda)?.moneda||'MXN').toUpperCase();
+const currencies=[...new Set(items.map(item=>(text(item.moneda)||'MXN').toUpperCase()).filter(Boolean))];if(currencies.length>1)throw new Error('La orden contiene partidas en monedas diferentes. Separa MXN, USD y EUR en órdenes distintas antes de generar el PDF.');const currency=currencies[0]||'MXN';const subtotal=items.reduce((sum,item)=>sum+(number(item.precio)*number(item.cantidad)),0);const iva=subtotal*.16;const total=subtotal+iva;
 doc.autoTable({
 startY:69,
 head:[['Pos','Descripción','Modelo','T.E.','Cant.','UM','PU','Total']],
@@ -159,22 +162,27 @@ const observations=text(data.notas)||'Ninguna';
 const observationLines=doc.splitTextToSize(observations,88);
 const conditionLines=doc.splitTextToSize(conditions,62);
 const detailH=Math.max(35,27+Math.max(0,observationLines.length-1)*3.2+Math.max(0,conditionLines.length-1)*3.2);
-const signatureY=pageHeight-17-boxH;
-const detailsY=signatureY-5-detailH;
-if(doc.lastAutoTable.finalY+5>detailsY){doc.addPage();}
-const closingPage=doc.internal.getNumberOfPages();
-const closingSignatureY=doc.internal.pageSize.getHeight()-17-boxH;
+const closingBottomY=pageHeight-13;
+const closingSignatureY=closingBottomY-boxH;
 const closingDetailsY=closingSignatureY-5-detailH;
-doc.setDrawColor(190,198,207);doc.setFillColor(252,253,254);doc.roundedRect(14,closingDetailsY,137,detailH,1.5,1.5,'FD');
+const tableBottom=number(doc.lastAutoTable?.finalY);
+const tableLastPage=doc.internal.getNumberOfPages();
+if(tableBottom+6>closingDetailsY){doc.addPage();}
+const closingPage=doc.internal.getNumberOfPages();
+const closingPageHeight=doc.internal.pageSize.getHeight();
+const finalBottomY=closingPageHeight-13;
+const finalSignatureY=finalBottomY-boxH;
+const finalDetailsY=finalSignatureY-5-detailH;
+doc.setDrawColor(190,198,207);doc.setFillColor(252,253,254);doc.roundedRect(14,finalDetailsY,137,detailH,1.5,1.5,'FD');doc.setDrawColor(0,65,107);doc.setLineWidth(.35);doc.line(14,finalDetailsY-2,196,finalDetailsY-2);doc.setFont('helvetica','bold');doc.setFontSize(6.4);doc.setTextColor(80,105,126);doc.text('CONDICIONES, TOTALES Y AUTORIZACIONES',14,finalDetailsY-4);
 doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);
-doc.text(`Moneda: ${currency}`,17,closingDetailsY+6);
-doc.text('Método de pago:',17,closingDetailsY+13);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(payment,42,closingDetailsY+13,{maxWidth:50});
-doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Condiciones:',95,closingDetailsY+13);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(conditionLines,113,closingDetailsY+13);
-doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Ubicación de entrega:',17,closingDetailsY+20);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(delivery,49,closingDetailsY+20,{maxWidth:96});
-doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Comentarios y/o observaciones:',17,closingDetailsY+27);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(observationLines,58,closingDetailsY+27);
-const tx=156,tw=40;doc.setDrawColor(180,190,200);doc.setFillColor(248,249,250);doc.rect(tx,closingDetailsY,tw,detailH,'FD');[['Sub total:',subtotal],['IVA:',iva],['Total:',total]].forEach((row,index)=>{const yy=closingDetailsY+8+index*9;doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);doc.text(row[0],tx+2,yy);doc.setTextColor(234,0,41);doc.text(`$ ${number(row[1]).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}`,tx+tw-2,yy,{align:'right'})});
-signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,closingSignatureY,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,closingSignatureY+5);if(row.firmaDataUrl)drawSignatureImage(doc,row,x,closingSignatureY,boxW);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,closingSignatureY+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,closingSignatureY+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,closingSignatureY+29,{align:'center'})}});
-if(closingPage>doc.lastAutoTable.pageNumber){doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(80,105,126);doc.text('SK-F-COM-003-R02',14,footerY);doc.text('Orden de compra',105,footerY,{align:'center'});doc.text(`Página ${closingPage}`,196,footerY,{align:'right'});}
+doc.text(`Moneda: ${currency}`,17,finalDetailsY+6);
+doc.text('Método de pago:',17,finalDetailsY+13);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(payment,42,finalDetailsY+13,{maxWidth:50});
+doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Condiciones:',95,finalDetailsY+13);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(conditionLines,113,finalDetailsY+13);
+doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Ubicación de entrega:',17,finalDetailsY+20);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(delivery,49,finalDetailsY+20,{maxWidth:96});
+doc.setFont('helvetica','bold');doc.setTextColor(0,65,107);doc.text('Comentarios y/o observaciones:',17,finalDetailsY+27);doc.setFont('helvetica','normal');doc.setTextColor(45,76,102);doc.text(observationLines,58,finalDetailsY+27);
+const tx=156,tw=40;doc.setDrawColor(180,190,200);doc.setFillColor(248,249,250);doc.rect(tx,finalDetailsY,tw,detailH,'FD');[['Sub total:',subtotal],['IVA:',iva],['Total:',total]].forEach((row,index)=>{const yy=finalDetailsY+8+index*9;doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(0,65,107);doc.text(row[0],tx+2,yy);doc.setTextColor(234,0,41);doc.text(`$ ${number(row[1]).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}`,tx+tw-2,yy,{align:'right'})});
+signatureTypes.forEach((type,index)=>{const x=14+index*boxW,row=signatures.find(s=>text(s.tipo)===type)||{};doc.setDrawColor(170,180,190);doc.setFillColor(248,249,250);doc.rect(x,finalSignatureY,boxW,boxH,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.setTextColor(0,65,107);doc.text(signatureLabels[type],x+2,finalSignatureY+5);if(row.firmaDataUrl)drawSignatureImage(doc,row,x,finalSignatureY,boxW);doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.setTextColor(45,76,102);doc.text(text(row.nombre)||'',x+boxW/2,finalSignatureY+25,{align:'center',maxWidth:boxW-5});if(row.firmadoAt){const d=new Date(row.firmadoAt);if(!Number.isNaN(d.getTime()))doc.setFontSize(5.6),doc.text(d.toLocaleDateString('es-MX'),x+boxW/2,finalSignatureY+29,{align:'center'})}else if(row.pendiente&&row.nombre){doc.setFont('helvetica','italic');doc.setFontSize(5.4);doc.setTextColor(120,130,140);doc.text('Pendiente de firma',x+boxW/2,finalSignatureY+29,{align:'center'})}});
+if(closingPage>tableLastPage){doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(80,105,126);doc.text('SK-F-COM-003-R02',14,footerY);doc.text('Orden de compra',105,footerY,{align:'center'});doc.text(`Página ${closingPage}`,196,footerY,{align:'right'});}
 doc.setTextColor(255,255,255);doc.setFontSize(.1);doc.text(`SKILLED_OC_NUMERO:${order}`,1,296,{maxWidth:208});
 const filename=`OC_${safe(order)}.pdf`;
 const blob=doc.output('blob');

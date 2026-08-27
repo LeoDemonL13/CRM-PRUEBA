@@ -422,23 +422,22 @@
 
     const roleAccess = {
         administrador:['*'],
-        jefe_almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
-        almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.movimientos.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
-        compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.servicios.html','perfil.html','al.catalogo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','paq.paquetes-materiales.html'],
-        rh:['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
-        finanzas:['fi.inicio.html','fi.activos-rentas.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.reportes.html','perfil.html','al.proyectos.html','al.reportes.html','paq.paquetes-materiales.html'],
+        jefe_almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.etiqueta.html','al.movimientos.html','al.devolucion-sobrantes.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.solicitudes-epp-tsi.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','proy.importar.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','al.prueba-ticket.html','paq.paquetes-materiales.html'],
+        almacen:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.importar-materiales.html','al.bajo-minimo.html','al.almacenes.html','al.etiquetas.html','al.etiqueta.html','al.movimientos.html','al.devolucion-sobrantes.html','al.historial-movimientos.html','al.tomas-fisicas.html','al.entrega-directa.html','al.solicitudes-material.html','al.solicitudes-epp-tsi.html','al.ordenes-compra.html','al.reportes.html','al.proyectos.html','proy.importar.html','al.herramientas.html','al.unidades-herramientas.html','al.asignaciones-herramientas.html','al.estado-herramientas.html','al.historial-herramientas.html','al.vehiculos.html','al.automatizaciones.html','al.manual-usuario.html','paq.paquetes-materiales.html'],
+        compras:['co.inicio.html','co.cotizaciones.html','co.ordenes-compra.html','co.proveedores.html','co.requisiciones.html','co.recepciones.html','co.hacer-compra.html','co.entregas.html','co.servicios.html','perfil.html','al.catalogo.html','co.bajo-minimo.html','al.bajo-minimo.html','al.historial-movimientos.html','al.proyectos.html','al.ordenes-compra.html','al.reportes.html','paq.paquetes-materiales.html'],
+        rh:['rh.inicio.html','rh.personal.html','rh.equipos.html','rh.proyectos.html','proy.importar.html','rh.nomina.html','rh.checador.html','rh.asistencias.html','rh.documentos.html','rh.capacitacion.html','al.vehiculos.html','perfil.html','paq.paquetes-materiales.html'],
+        finanzas:['fi.inicio.html','fi.presupuestos.html','fi.gastos.html','fi.cuentas-pagar.html','fi.activos-rentas.html','fi.reportes.html','perfil.html','al.reportes.html','al.proyectos.html','paq.paquetes-materiales.html'],
         gerente_general:['gg.inicio.html','gg.validar-ordenes-compra.html','gg.proyectos.html','gg.vehiculos.html','perfil.html'],
         subgerente:['sg.inicio.html','sg.validar-ordenes-compra.html','sg.proyectos.html','sg.vehiculos.html','perfil.html'],
         sky_demo:['sky.inicio.html','perfil.html'],
         tsi:['tsi.inicio.html','tsi.solicitudes-epp.html','perfil.html','paq.paquetes-materiales.html'],
-        proyectos:['al.proyectos.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','perfil.html','paq.paquetes-materiales.html'],
+        proyectos:['al.proyectos.html','proy.importar.html','al.reportes.html','al.solicitudes-material.html','al.historial-movimientos.html','al.catalogo.html','perfil.html','paq.paquetes-materiales.html'],
         planeacion:['pl.inicio.html','al.proyectos.html','proy.importar.html','al.solicitudes-material.html','al.reportes.html','perfil.html'],
         coordinacion:['cr.inicio.html','al.proyectos.html','al.solicitudes-material.html','al.vehiculos.html','al.reportes.html','perfil.html'],
         logistica:['lg.inicio.html','al.vehiculos.html','co.entregas.html','al.proyectos.html','al.catalogo.html','perfil.html'],
-        recepcion:['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.bodeguita.html','re.tienda.html','perfil.html'],
-        consulta:['al.inicio.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','perfil.html','paq.paquetes-materiales.html']
+        recepcion:['re.inicio.html','re.suministros.html','re.importar-suministros.html','re.bodeguita.html','re.tienda.html','re.entregas.html','perfil.html'],
+        consulta:['al.inicio.html','perfil.html','al.escaner.html','al.catalogo.html','al.reportes.html','al.manual-usuario.html','paq.paquetes-materiales.html']
     };
-
     let searchIndexPromise = null;
     let searchIndexCreatedAt = 0;
     let activeSearchResult = -1;
@@ -1293,7 +1292,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=141');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=145');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1342,7 +1341,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=141');
+                await loadOptionalScript('skilled-chat.js?v=145');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1378,7 +1377,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=141'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=145'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });
