@@ -15496,4 +15496,6 @@ values('CRM-V148-ESTADO-BASE-INSPECCION-VISUAL-VEHICULOS-2026-08-28',now())
 on conflict(version) do update set aplicada_at=excluded.aplicada_at;
 
 commit;
-
+begin;
+insert into public.crm_migraciones(version,aplicada_at) values('CRM-V149-RESPONSIVA-VISUAL-POR-TIPO-VEHICULO-2026-08-28',now()) on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+commit;
