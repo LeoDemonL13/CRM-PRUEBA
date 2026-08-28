@@ -3561,7 +3561,7 @@
             try { return await saveDirect(existing); }
             catch (_) { throw new Error('Supabase no autorizó el material incompleto. Ejecuta SQL_MAESTRO_CRM.sql para reparar permisos de plan de materiales.'); }
         }
-        if (['PGRST202','42883','PGRST204','42703'].includes(lastCode)) throw new Error('Falta aplicar SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql para registrar materiales incompletos.');
+        if (['PGRST202','42883','PGRST204','42703'].includes(lastCode)) throw new Error('Falta aplicar SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql para registrar materiales incompletos.');
         assertNoError(lastError, 'No se pudo crear el material incompleto.');
     }
     async function syncProjectUnlistedMaterials(projectNumber = '') {
@@ -4008,6 +4008,11 @@
             tipo: text(row.tipo) || 'pickup',
             color: text(row.color),
             combustible: text(row.combustible),
+            combustibleGrado: text(row.combustible_grado),
+            combustible_grado: text(row.combustible_grado),
+            numeroMotor: text(row.numero_motor),
+            numero_motor: text(row.numero_motor),
+            cilindros: row.cilindros == null ? null : Math.max(0, Math.trunc(number(row.cilindros))),
             transmision: text(row.transmision),
             capacidadCarga: number(row.capacidad_carga),
             capacidad_carga: number(row.capacidad_carga),
@@ -4045,8 +4050,11 @@
             tarjeta_circulacion: text(row.tarjeta_circulacion),
             vigenciaTarjeta: text(row.vigencia_tarjeta),
             vigencia_tarjeta: text(row.vigencia_tarjeta),
+            ultimaVerificacion: text(row.ultima_verificacion),
+            ultima_verificacion: text(row.ultima_verificacion),
             proximaVerificacion: text(row.proxima_verificacion),
             proxima_verificacion: text(row.proxima_verificacion),
+            engomado: text(row.engomado),
             fechaAdquisicion: text(row.fecha_adquisicion),
             fecha_adquisicion: text(row.fecha_adquisicion),
             costoAdquisicion: number(row.costo_adquisicion),
@@ -4128,6 +4136,9 @@
             tipo: lower(vehicle.tipo) || 'pickup',
             color: text(vehicle.color) || null,
             combustible: lower(vehicle.combustible) || null,
+            combustible_grado: lower(vehicle.combustibleGrado ?? vehicle.combustible_grado) || null,
+            numero_motor: text(vehicle.numeroMotor ?? vehicle.numero_motor).toUpperCase() || null,
+            cilindros: text(vehicle.cilindros) === '' ? null : Math.max(0, Math.trunc(number(vehicle.cilindros))),
             transmision: lower(vehicle.transmision) || null,
             capacidad_carga: Math.max(0, number(vehicle.capacidadCarga ?? vehicle.capacidad_carga)),
             capacidad_personas: peopleCapacity,
@@ -4148,7 +4159,9 @@
             aviso_seguro_dias: Math.max(1, Math.min(180, Math.trunc(number(vehicle.avisoSeguroDias ?? vehicle.aviso_seguro_dias) || 30))),
             tarjeta_circulacion: text(vehicle.tarjetaCirculacion ?? vehicle.tarjeta_circulacion) || null,
             vigencia_tarjeta: normalizeDbDate(vehicle.vigenciaTarjeta ?? vehicle.vigencia_tarjeta, 'vigencia de la tarjeta de circulación'),
+            ultima_verificacion: normalizeDbDate(vehicle.ultimaVerificacion ?? vehicle.ultima_verificacion, 'última verificación'),
             proxima_verificacion: normalizeDbDate(vehicle.proximaVerificacion ?? vehicle.proxima_verificacion, 'fecha de verificación'),
+            engomado: text(vehicle.engomado) || null,
             fecha_adquisicion: normalizeDbDate(vehicle.fechaAdquisicion ?? vehicle.fecha_adquisicion, 'fecha de adquisición'),
             costo_adquisicion: Math.max(0, number(vehicle.costoAdquisicion ?? vehicle.costo_adquisicion)),
             imagen_url: text(vehicle.imagen ?? vehicle.imagenUrl ?? vehicle.imagen_url) || null,
@@ -4206,6 +4219,7 @@
         const passengers = Array.isArray(row.vehiculos_viaje_pasajeros) ? row.vehiculos_viaje_pasajeros : [];
         return {
             id: Number(row.id),
+            folio: text(row.folio),
             vehiculoId: Number(row.vehiculo_id),
             vehiculo: {
                 id: Number(vehicle.id || row.vehiculo_id || 0),
@@ -4220,6 +4234,8 @@
             fechaRegresoEstimada: text(row.fecha_regreso_estimada),
             fechaRegresoReal: text(row.fecha_regreso_real),
             conductor: text(row.conductor),
+            conductorPersonalId: row.conductor_personal_id == null ? null : Number(row.conductor_personal_id),
+            ciudadEstado: text(row.ciudad_estado),
             proyecto: text(row.proyecto),
             destino: text(row.destino),
             motivo: text(row.motivo),
@@ -4227,6 +4243,26 @@
             kilometrajeRegreso: row.kilometraje_regreso == null ? null : number(row.kilometraje_regreso),
             estado: text(row.estado) || 'en_curso',
             observaciones: text(row.observaciones),
+            estadoBaseSnapshot: row.estado_base_snapshot || {},
+            danosSalida: Array.isArray(row.danos_salida) ? row.danos_salida : [],
+            danosEntrada: Array.isArray(row.danos_entrada) ? row.danos_entrada : [],
+            combustibleSalida: row.combustible_salida == null ? null : number(row.combustible_salida),
+            combustibleRegreso: row.combustible_regreso == null ? null : number(row.combustible_regreso),
+            vidaLlantasSalida: row.vida_llantas_salida == null ? null : number(row.vida_llantas_salida),
+            vidaLlantasRegreso: row.vida_llantas_regreso == null ? null : number(row.vida_llantas_regreso),
+            checklistSalida: row.checklist_salida || {},
+            checklistEntrada: row.checklist_entrada || {},
+            elaboroFirma: text(row.elaboro_firma),
+            autorizoNombre: text(row.autorizo_nombre),
+            autorizoFirma: text(row.autorizo_firma),
+            autorizoFirmaSlot: row.autorizo_firma_slot == null ? null : Number(row.autorizo_firma_slot),
+            responsableModo: text(row.responsable_modo),
+            responsablePersonalId: row.responsable_personal_id == null ? null : Number(row.responsable_personal_id),
+            responsableNombre: text(row.responsable_nombre),
+            responsableEmpresa: text(row.responsable_empresa),
+            responsableFirma: text(row.responsable_firma),
+            responsableFirmadoAt: text(row.responsable_firmado_at),
+            politicasAceptadas: row.politicas_aceptadas === true,
             pasajeros: passengers.map(item => ({
                 id: Number(item.id),
                 nombre: text(item.nombre),
@@ -4241,7 +4277,7 @@
 
     function vehicleBaseLocationFromDb(row){return{id:Number(row.id),tipo:text(row.tipo)||'sede',nombre:text(row.nombre),direccion:text(row.direccion),notas:text(row.notas),activo:row.activo!==false};}
     async function listVehicleBaseLocations(options={}){let query=client.from('vehiculos_ubicaciones_base').select('*').order('tipo').order('nombre');if(options.includeInactive!==true)query=query.eq('activo',true);const {data,error}=await query;if(error?.code==='42P01')return[];assertNoError(error,'No se pudieron consultar las ubicaciones base de vehículos.');return(data||[]).map(vehicleBaseLocationFromDb);}
-    async function saveVehicleBaseLocation(payload={}){const type=lower(payload.tipo||payload.type);const name=text(payload.nombre||payload.name);if(!type||!name)throw new Error('Tipo y nombre de ubicación base son obligatorios.');const {data,error}=await client.rpc('crm_guardar_ubicacion_base_vehiculo_v145',{p_tipo:type,p_nombre:name,p_direccion:text(payload.direccion||payload.address)||null,p_notas:text(payload.notas||payload.notes)||null});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V145.sql antes de administrar ubicaciones base.');assertNoError(error,'No se pudo guardar la ubicación base.');const row=Array.isArray(data)?data[0]:data;return row?vehicleBaseLocationFromDb(row):null;}
+    async function saveVehicleBaseLocation(payload={}){const type=lower(payload.tipo||payload.type);const name=text(payload.nombre||payload.name);if(!type||!name)throw new Error('Tipo y nombre de ubicación base son obligatorios.');const {data,error}=await client.rpc('crm_guardar_ubicacion_base_vehiculo_v145',{p_tipo:type,p_nombre:name,p_direccion:text(payload.direccion||payload.address)||null,p_notas:text(payload.notas||payload.notes)||null});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de administrar ubicaciones base.');assertNoError(error,'No se pudo guardar la ubicación base.');const row=Array.isArray(data)?data[0]:data;return row?vehicleBaseLocationFromDb(row):null;}
 
     function vehicleMaintenancePlanFromDb(row) {
         return {
@@ -4267,14 +4303,223 @@
     async function saveVehicleMaintenancePlan(payload = {}, originalId = 0) {
         const vehicleId=Number(payload.vehiculoId??payload.vehicleId??payload.vehiculo_id??0);if(!vehicleId)throw new Error('Selecciona un vehículo.');if(!text(payload.nombre))throw new Error('Captura el mantenimiento o reparación requerida.');
         const body={vehiculo_id:vehicleId,nombre:text(payload.nombre),tipo:lower(payload.tipo)||'preventivo',criterio:lower(payload.criterio)||'kilometraje',proximo_km:text(payload.proximoKm??payload.proximo_km)||null,proxima_fecha:normalizeDbDate(payload.proximaFecha??payload.proxima_fecha,'fecha programada'),aviso_km:Math.max(0,number(payload.avisoKm??payload.aviso_km)||0),aviso_dias:Math.max(0,Math.trunc(number(payload.avisoDias??payload.aviso_dias)||0)),intervalo_km:text(payload.intervaloKm??payload.intervalo_km)||null,intervalo_dias:text(payload.intervaloDias??payload.intervalo_dias)||null,prioridad:lower(payload.prioridad)||'normal',proveedor_sugerido:text(payload.proveedorSugerido??payload.proveedor_sugerido)||null,notas:text(payload.notas)||null,activo:payload.activo!==false};
-        const id=Number(originalId||payload.id||0);const {data,error}=await client.rpc('crm_guardar_mantenimiento_vehiculo_v145',{p_id:id||null,p_datos:body});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V145.sql antes de usar mantenimiento vehicular.');assertNoError(error,'No se pudo guardar el mantenimiento.');const row=Array.isArray(data)?data[0]:data;return row?vehicleMaintenancePlanFromDb(row):null;
+        const id=Number(originalId||payload.id||0);const {data,error}=await client.rpc('crm_guardar_mantenimiento_vehiculo_v145',{p_id:id||null,p_datos:body});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de usar mantenimiento vehicular.');assertNoError(error,'No se pudo guardar el mantenimiento.');const row=Array.isArray(data)?data[0]:data;return row?vehicleMaintenancePlanFromDb(row):null;
     }
     async function completeVehicleMaintenance(id,payload={}) {
-        const planId=Number(id);if(!planId)throw new Error('Mantenimiento no válido.');const body={fecha:normalizeDbDate(payload.fecha||new Date().toISOString().slice(0,10),'fecha del mantenimiento'),odometro:text(payload.odometro)||null,proveedor:text(payload.proveedor)||null,costo:Math.max(0,number(payload.costo)),comprobante:text(payload.comprobante)||null,resultado:text(payload.resultado)||null,notas:text(payload.notas)||null};const {data,error}=await client.rpc('crm_completar_mantenimiento_vehiculo_v145',{p_id:planId,p_datos:body});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V145.sql antes de completar mantenimientos.');assertNoError(error,'No se pudo completar el mantenimiento.');return data||{ok:true};
+        const planId=Number(id);if(!planId)throw new Error('Mantenimiento no válido.');const body={fecha:normalizeDbDate(payload.fecha||new Date().toISOString().slice(0,10),'fecha del mantenimiento'),odometro:text(payload.odometro)||null,proveedor:text(payload.proveedor)||null,costo:Math.max(0,number(payload.costo)),comprobante:text(payload.comprobante)||null,resultado:text(payload.resultado)||null,notas:text(payload.notas)||null};const {data,error}=await client.rpc('crm_completar_mantenimiento_vehiculo_v145',{p_id:planId,p_datos:body});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de completar mantenimientos.');assertNoError(error,'No se pudo completar el mantenimiento.');return data||{ok:true};
     }
     async function setVehicleMaintenanceActive(id,active) {const planId=Number(id);if(!planId)throw new Error('Mantenimiento no válido.');const {data,error}=await client.from('vehiculos_mantenimiento_planes').update({activo:Boolean(active),updated_at:new Date().toISOString()}).eq('id',planId).select('*').single();assertNoError(error,'No se pudo actualizar el mantenimiento.');return vehicleMaintenancePlanFromDb(data);}
     async function listVehicleMaintenanceHistory(options={}) {let query=client.from('vehiculos_mantenimiento_historial').select('*').order('fecha',{ascending:false}).order('id',{ascending:false});const vehicleId=Number(options.vehiculoId??options.vehicleId??0);if(vehicleId)query=query.eq('vehiculo_id',vehicleId);if(Number(options.limit||0)>0)query=query.limit(Math.min(1000,Number(options.limit)));const {data,error}=await query;if(error?.code==='42P01')return[];assertNoError(error,'No se pudo consultar el historial de mantenimiento.');return(data||[]).map(vehicleMaintenanceHistoryFromDb);}
     async function syncVehicleAlerts(){const {data,error}=await client.rpc('crm_generar_alertas_vehiculos_v145');if(error&&['PGRST202','42883'].includes(String(error.code||'')))return 0;assertNoError(error,'No se pudieron sincronizar los avisos vehiculares.');return Number(data||0);}
+
+    async function listVehicleAuthorizedDrivers(vehicleId) {
+        const id = Number(vehicleId);
+        if (!id) return [];
+        const { data, error } = await client.rpc('crm_conductores_vehiculo_v148', { p_vehiculo_id: id });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) return [];
+        assertNoError(error, 'No se pudieron consultar los conductores autorizados.');
+        return (data || []).map(row => ({
+            personalId: Number(row.personal_id),
+            numeroEmpleado: text(row.numero_empleado),
+            nombre: text(row.nombre_completo),
+            puesto: text(row.puesto),
+            departamento: text(row.departamento),
+            autorizado: row.autorizado === true
+        }));
+    }
+
+    async function saveVehicleAuthorizedDrivers(vehicleId, personalIds = []) {
+        const id = Number(vehicleId);
+        if (!id) throw new Error('Vehículo no válido.');
+        const ids = [...new Set((personalIds || []).map(Number).filter(Boolean))];
+        const { data, error } = await client.rpc('crm_guardar_conductores_vehiculo_v148', { p_vehiculo_id: id, p_personal_ids: ids });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de administrar conductores autorizados.');
+        assertNoError(error, 'No se pudieron guardar los conductores autorizados.');
+        return Number(data || 0);
+    }
+
+    async function saveVehicleTripResponsiva(payload = {}) {
+        const vehicleId = Number(payload.vehiculoId ?? payload.vehicleId ?? 0);
+        if (!vehicleId) throw new Error('Selecciona el vehículo de la salida.');
+        const body = {
+            vehiculo_id: vehicleId,
+            fecha_salida: text(payload.fechaSalida ?? payload.departureAt) || new Date().toISOString(),
+            fecha_regreso_estimada: text(payload.fechaRegresoEstimada ?? payload.expectedReturnAt) || null,
+            conductor_personal_id: Number(payload.conductorPersonalId ?? payload.driverPersonalId ?? 0) || null,
+            proyecto: text(payload.proyecto ?? payload.project) || null,
+            destino: text(payload.destino ?? payload.destination),
+            ciudad_estado: text(payload.ciudadEstado ?? payload.cityState) || null,
+            motivo: text(payload.motivo ?? payload.purpose) || null,
+            kilometraje_salida: Math.max(0, number(payload.kilometrajeSalida ?? payload.startMileage)),
+            combustible_salida: payload.combustibleSalida === '' || payload.combustibleSalida == null ? null : Math.max(0, Math.min(1, number(payload.combustibleSalida))),
+            vida_llantas_salida: payload.vidaLlantasSalida === '' || payload.vidaLlantasSalida == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantasSalida))),
+            checklist_salida: payload.checklistSalida || {},
+            danos_salida: Array.isArray(payload.danosSalida) ? payload.danosSalida : [],
+            observaciones: text(payload.observaciones ?? payload.notes) || null,
+            elaboro_firma: text(payload.elaboroFirma),
+            autorizo_firma_slot: payload.autorizoFirmaSlot == null || payload.autorizoFirmaSlot === '' ? null : Number(payload.autorizoFirmaSlot),
+            autorizo_firma_manual: text(payload.autorizoFirmaManual),
+            responsable_modo: text(payload.responsableModo) || 'mismo_elaboro',
+            responsable_personal_id: Number(payload.responsablePersonalId || 0) || null,
+            responsable_nombre: text(payload.responsableNombre) || null,
+            responsable_empresa: text(payload.responsableEmpresa) || null,
+            responsable_firma: text(payload.responsableFirma) || null,
+            politicas_aceptadas: payload.politicasAceptadas === true,
+            pasajeros: normalizePassengerList(payload.pasajeros ?? payload.passengers)
+        };
+        const { data, error } = await client.rpc('crm_guardar_salida_vehiculo_v148', { p_datos: body });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de usar la responsiva vehicular.');
+        assertNoError(error, 'No se pudo autorizar la salida del vehículo.');
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? vehicleTripFromDb(row) : null;
+    }
+
+    async function closeVehicleTripResponsiva(id, payload = {}) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Salida no válida.');
+        const body = {
+            fecha_regreso_real: text(payload.fechaRegresoReal ?? payload.returnAt) || new Date().toISOString(),
+            kilometraje_regreso: Math.max(0, number(payload.kilometrajeRegreso ?? payload.endMileage)),
+            combustible_regreso: payload.combustibleRegreso === '' || payload.combustibleRegreso == null ? null : Math.max(0, Math.min(1, number(payload.combustibleRegreso))),
+            vida_llantas_regreso: payload.vidaLlantasRegreso === '' || payload.vidaLlantasRegreso == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantasRegreso))),
+            checklist_entrada: payload.checklistEntrada || {},
+            danos_entrada: Array.isArray(payload.danosEntrada) ? payload.danosEntrada : [],
+            observaciones: text(payload.observaciones ?? payload.notes) || null,
+            actualizar_estado_base: payload.actualizarEstadoBase !== false
+        };
+        const { data, error } = await client.rpc('crm_cerrar_salida_vehiculo_v148', { p_viaje_id: tripId, p_datos: body });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de registrar el regreso.');
+        assertNoError(error, 'No se pudo cerrar la responsiva vehicular.');
+        const fuelAmount = number(payload.gastoGasolina ?? payload.fuelAmount);
+        const tolls = number(payload.casetas ?? payload.tolls);
+        const row = Array.isArray(data) ? data[0] : data;
+        const vehicleId = Number(row?.vehiculo_id || 0);
+        const mileage = number(row?.kilometraje_regreso);
+        if (fuelAmount > 0 && vehicleId) await saveVehicleExpense({ vehiculoId: vehicleId, viajeId: tripId, fecha: new Date().toISOString().slice(0,10), tipo: 'gasolina', litros: payload.litrosGasolina ?? payload.fuelLiters, importe: fuelAmount, odometro: mileage, proveedor: payload.proveedorGasolina ?? payload.fuelVendor, comprobante: payload.comprobante ?? payload.receipt, notas: 'Registrado al finalizar la responsiva.' });
+        if (tolls > 0 && vehicleId) await saveVehicleExpense({ vehiculoId: vehicleId, viajeId: tripId, fecha: new Date().toISOString().slice(0,10), tipo: 'casetas', importe: tolls, odometro: mileage, comprobante: payload.comprobante ?? payload.receipt, notas: 'Casetas registradas al finalizar la responsiva.' });
+        return row ? vehicleTripFromDb(row) : null;
+    }
+
+    async function signVehicleTripResponsible(id, signatureDataUrl, options = {}) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Salida no válida.');
+        const signature = text(signatureDataUrl);
+        if (!signature) throw new Error('Captura la firma del Responsable asignado.');
+        const { data, error } = await client.rpc('crm_firmar_responsable_salida_v148', {
+            p_viaje_id: tripId,
+            p_firma: signature,
+            p_nombre: text(options.nombre) || null,
+            p_empresa: text(options.empresa) || null
+        });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de completar firmas vehiculares.');
+        assertNoError(error, 'No se pudo guardar la firma del Responsable asignado.');
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? vehicleTripFromDb(row) : null;
+    }
+
+    async function createVehicleResponsibleSignatureLink(id) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Salida no válida.');
+        const { data, error } = await client.rpc('crm_crear_enlace_firma_vehiculo_v148', { p_viaje_id: tripId });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de generar enlaces de firma.');
+        assertNoError(error, 'No se pudo generar el enlace de firma.');
+        return data || {};
+    }
+
+    async function getVehicleSignaturePortal(token) {
+        const value = text(token);
+        if (!value) return { ok:false, estado:'invalido', mensaje:'Falta el token de firma.' };
+        const { data, error } = await client.rpc('crm_portal_firma_vehiculo_v148', { p_token: value });
+        assertNoError(error, 'No se pudo consultar la responsiva.');
+        return data || { ok:false };
+    }
+
+    async function signVehicleSignaturePortal(token, payload = {}) {
+        const value = text(token);
+        if (!value) throw new Error('Falta el token de firma.');
+        const { data, error } = await client.rpc('crm_portal_firmar_vehiculo_v148', {
+            p_token: value,
+            p_nombre: text(payload.nombre),
+            p_empresa: text(payload.empresa) || null,
+            p_firma: text(payload.firma)
+        });
+        assertNoError(error, 'No se pudo registrar la firma.');
+        return data || { ok:true };
+    }
+
+    function vehicleBaseStateFromDb(row) {
+        const damages = Array.isArray(row?.danos) ? row.danos : [];
+        return {
+            id: Number(row?.id || 0),
+            vehiculoId: Number(row?.vehiculo_id || 0),
+            combustibleTipo: text(row?.combustible_tipo),
+            combustibleGrado: text(row?.combustible_grado),
+            combustibleNivelReferencia: row?.combustible_nivel_referencia == null ? null : number(row.combustible_nivel_referencia),
+            vidaLlantas: row?.vida_llantas == null ? null : number(row.vida_llantas),
+            presionDelIzq: row?.presion_del_izq == null ? null : number(row.presion_del_izq),
+            presionDelDer: row?.presion_del_der == null ? null : number(row.presion_del_der),
+            presionTrasIzq: row?.presion_tras_izq == null ? null : number(row.presion_tras_izq),
+            presionTrasDer: row?.presion_tras_der == null ? null : number(row.presion_tras_der),
+            kilometrajeReferencia: row?.kilometraje_referencia == null ? null : number(row.kilometraje_referencia),
+            ultimaVerificacion: text(row?.ultima_verificacion),
+            proximoServicioFecha: text(row?.proximo_servicio_fecha),
+            proximoServicioKm: row?.proximo_servicio_km == null ? null : number(row.proximo_servicio_km),
+            responsable: text(row?.responsable),
+            condicionGeneral: text(row?.condicion_general) || 'buena',
+            danos: damages,
+            observaciones: text(row?.observaciones),
+            actualizadoPor: text(row?.actualizado_por_nombre),
+            updatedAt: text(row?.updated_at),
+            createdAt: text(row?.created_at)
+        };
+    }
+
+    async function listVehicleBaseStates(options = {}) {
+        let query = client.from('vehiculos_estado_base').select('*').order('updated_at', { ascending: false });
+        const vehicleId = Number(options.vehiculoId ?? options.vehicleId ?? 0);
+        if (vehicleId) query = query.eq('vehiculo_id', vehicleId);
+        const { data, error } = await query;
+        if (error?.code === '42P01') return [];
+        assertNoError(error, 'No se pudo consultar el estado base de los vehículos.');
+        return (data || []).map(vehicleBaseStateFromDb);
+    }
+
+    async function saveVehicleBaseState(payload = {}) {
+        const vehicleId = Number(payload.vehiculoId ?? payload.vehicleId ?? 0);
+        if (!vehicleId) throw new Error('Selecciona un vehículo para guardar su estado base.');
+        const body = {
+            combustible_tipo: lower(payload.combustibleTipo ?? payload.fuelType) || null,
+            combustible_grado: lower(payload.combustibleGrado ?? payload.fuelGrade) || null,
+            combustible_nivel_referencia: payload.combustibleNivelReferencia === '' || payload.combustibleNivelReferencia == null ? null : Math.max(0, Math.min(1, number(payload.combustibleNivelReferencia))),
+            vida_llantas: payload.vidaLlantas === '' || payload.vidaLlantas == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantas))),
+            presion_del_izq: payload.presionDelIzq === '' || payload.presionDelIzq == null ? null : Math.max(0, number(payload.presionDelIzq)),
+            presion_del_der: payload.presionDelDer === '' || payload.presionDelDer == null ? null : Math.max(0, number(payload.presionDelDer)),
+            presion_tras_izq: payload.presionTrasIzq === '' || payload.presionTrasIzq == null ? null : Math.max(0, number(payload.presionTrasIzq)),
+            presion_tras_der: payload.presionTrasDer === '' || payload.presionTrasDer == null ? null : Math.max(0, number(payload.presionTrasDer)),
+            kilometraje_referencia: payload.kilometrajeReferencia === '' || payload.kilometrajeReferencia == null ? null : Math.max(0, number(payload.kilometrajeReferencia)),
+            ultima_verificacion: normalizeDbDate(payload.ultimaVerificacion, 'última verificación'),
+            proximo_servicio_fecha: normalizeDbDate(payload.proximoServicioFecha, 'próximo servicio'),
+            proximo_servicio_km: payload.proximoServicioKm === '' || payload.proximoServicioKm == null ? null : Math.max(0, number(payload.proximoServicioKm)),
+            responsable: text(payload.responsable) || null,
+            condicion_general: lower(payload.condicionGeneral) || 'buena',
+            danos: Array.isArray(payload.danos) ? payload.danos : [],
+            observaciones: text(payload.observaciones) || null
+        };
+        const { data, error } = await client.rpc('crm_guardar_estado_base_vehiculo_v148', { p_vehiculo_id: vehicleId, p_datos: body });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V148.sql antes de usar Estado base.');
+        assertNoError(error, 'No se pudo guardar el estado base del vehículo.');
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? vehicleBaseStateFromDb(row) : null;
+    }
+
+    async function listVehicleBaseStateHistory(vehicleId, limit = 50) {
+        const id = Number(vehicleId);
+        if (!id) return [];
+        const { data, error } = await client.from('vehiculos_estado_base_historial').select('*').eq('vehiculo_id', id).order('created_at', { ascending: false }).limit(Math.min(200, Math.max(1, Number(limit) || 50)));
+        if (error?.code === '42P01') return [];
+        assertNoError(error, 'No se pudo consultar el historial del estado base.');
+        return data || [];
+    }
 
     async function listVehicleTrips(options = {}) {
         let query = client.from('vehiculos_viajes').select('*,vehiculos(id,numero_economico,placas,marca,modelo,capacidad_personas,distribucion_asientos),vehiculos_viaje_pasajeros(*)').order('fecha_salida', { ascending: false });
@@ -4307,6 +4552,11 @@
             if (activeError?.code !== '42P01') assertNoError(activeError);
             if ((count || 0) > 0) throw new Error('Este vehículo ya tiene una salida activa. Registra primero su regreso.');
         }
+        let baseSnapshot = null;
+        if (!id) {
+            const baseResult = await client.from('vehiculos_estado_base').select('*').eq('vehiculo_id', vehicleId).maybeSingle();
+            if (!baseResult.error && baseResult.data) baseSnapshot = baseResult.data;
+        }
         const row = {
             vehiculo_id: vehicleId,
             fecha_salida: text(payload.fechaSalida ?? payload.departureAt) || new Date().toISOString(),
@@ -4317,6 +4567,10 @@
             motivo: text(payload.motivo ?? payload.purpose) || null,
             kilometraje_salida: Math.max(0, number(payload.kilometrajeSalida ?? payload.startMileage)),
             observaciones: text(payload.observaciones ?? payload.notes) || null,
+            estado_base_snapshot: payload.estadoBaseSnapshot || baseSnapshot || {},
+            danos_salida: Array.isArray(payload.danosSalida) ? payload.danosSalida : (Array.isArray(baseSnapshot?.danos) ? baseSnapshot.danos : []),
+            combustible_salida: payload.combustibleSalida === '' || payload.combustibleSalida == null ? (baseSnapshot?.combustible_nivel_referencia ?? null) : Math.max(0, Math.min(1, number(payload.combustibleSalida))),
+            vida_llantas_salida: payload.vidaLlantasSalida === '' || payload.vidaLlantasSalida == null ? (baseSnapshot?.vida_llantas ?? null) : Math.max(0, Math.min(100, number(payload.vidaLlantasSalida))),
             estado: 'en_curso',
             updated_at: new Date().toISOString()
         };
@@ -4420,6 +4674,9 @@
             fecha_regreso_real: text(payload.fechaRegresoReal ?? payload.returnAt) || new Date().toISOString(),
             kilometraje_regreso: endMileage,
             estado: 'finalizado',
+            danos_entrada: Array.isArray(payload.danosEntrada) ? payload.danosEntrada : (Array.isArray(trip.danos_salida) ? trip.danos_salida : []),
+            combustible_regreso: payload.combustibleRegreso === '' || payload.combustibleRegreso == null ? null : Math.max(0, Math.min(1, number(payload.combustibleRegreso))),
+            vida_llantas_regreso: payload.vidaLlantasRegreso === '' || payload.vidaLlantasRegreso == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantasRegreso))),
             observaciones: [text(trip.observaciones), text(payload.observaciones ?? payload.notes)].filter(Boolean).join(' | ') || null,
             updated_at: new Date().toISOString()
         };
@@ -6171,7 +6428,7 @@
             assertNoError(deleteError, 'La categoría se renombró, pero no se pudo retirar el nombre anterior.');
         } else {
             const { error } = await client.from('re_suministro_categorias').upsert(row, { onConflict:'nombre' });
-            assertNoError(error, 'No se pudo guardar la categoría de Suministros. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+            assertNoError(error, 'No se pudo guardar la categoría de Suministros. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         }
         return receptionSupplyCategoryFromDb(row);
     }
@@ -6344,7 +6601,7 @@
         })).filter(item => item.item_id && item.cantidad > 0);
         if (!text(folio) || !payload.length) throw new Error('Selecciona al menos una cantidad para recibir.');
         const { data, error } = await client.rpc('re_recibir_lista_compra_v108', { p_folio:text(folio), p_items:payload, p_recibido_por:text(receivedBy) || null });
-        assertNoError(error, 'No se pudo registrar la recepción de la lista. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudo registrar la recepción de la lista. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return data || { ok:true };
     }
 
@@ -6354,7 +6611,7 @@
 
     async function listReceptionSupplyDeliveriesV108() {
         const { data, error } = await client.from('re_entregas_suministros').select('*,re_entrega_suministro_items(*)').order('created_at',{ascending:false}).limit(300);
-        assertNoError(error, 'No se pudieron consultar las entregas de Suministros. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudieron consultar las entregas de Suministros. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return (data || []).map(receptionDeliveryFromDb);
     }
 
@@ -6363,7 +6620,7 @@
         if(!text(payload.entregadoA)) throw new Error('Escribe el nombre de quien recibe.');
         if(!items.length) throw new Error('Agrega al menos un suministro a la entrega.');
         const { data, error } = await client.rpc('re_registrar_entrega_suministros_v108',{p_entregado_a:text(payload.entregadoA),p_area:text(payload.area)||null,p_notas:text(payload.notas)||null,p_firma_data:text(payload.firmaData)||null,p_items:items});
-        assertNoError(error,'No se pudo registrar la entrega. Revisa existencias y ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error,'No se pudo registrar la entrega. Revisa existencias y ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return data || {ok:true};
     }
 
@@ -6381,7 +6638,7 @@
 
     async function getReceptionSupplyRequestPortalV120() {
         const { data, error } = await client.rpc('re_portal_config_v120');
-        assertNoError(error, 'No se pudo obtener el QR de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudo obtener el QR de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return data || {};
     }
 
@@ -6396,7 +6653,7 @@
         const status = text(options.estado ?? options.status);
         if (status) query = query.eq('estado', status);
         const { data, error } = await query;
-        assertNoError(error, 'No se pudieron consultar las solicitudes por QR. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudieron consultar las solicitudes por QR. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return (data || []).map(receptionSupplyRequestFromDb);
     }
 
@@ -6423,7 +6680,7 @@
 
     async function listReceptionPublicSupplyCatalogV121(token) {
         const { data, error } = await client.rpc('re_portal_catalogo_suministros_v121',{p_token:text(token)});
-        assertNoError(error, 'No se pudo abrir el catálogo de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudo abrir el catálogo de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         const items = Array.isArray(data?.items) ? data.items : [];
         return items.map(item => ({ id:Number(item.id), descripcion:text(item.descripcion), categoria:text(item.categoria), unidad:text(item.unidad), imagen:text(item.imagen) }));
     }
@@ -6438,7 +6695,7 @@
             p_firma_solicitud_data:text(payload.firmaSolicitudData)||null,
             p_items:items
         });
-        assertNoError(error, 'No se pudo enviar la solicitud a Recepción. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudo enviar la solicitud a Recepción. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return data || {ok:true};
     }
 
@@ -6987,7 +7244,7 @@
 
     async function importRHOfficeAssetsAssignmentsV144(assets = [], assignments = []) {
         const {data,error}=await client.rpc('rh_importar_activos_resguardos_v144',{p_activos:Array.isArray(assets)?assets:[],p_resguardos:Array.isArray(assignments)?assignments:[]});
-        assertNoError(error,'No se pudieron importar los equipos y resguardos de RH. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error,'No se pudieron importar los equipos y resguardos de RH. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return data||{ok:true,activos_insertados:0,activos_actualizados:0,resguardos_insertados:0,resguardos_actualizados:0,omitidos:0,errores:[]};
     }
 
@@ -7015,7 +7272,7 @@
             ({data,error}=await client.rpc('crm_skill_vehiculos_v145',{p_filtro:text(filter)||null}));
             if(error&&['PGRST202','42883'].includes(String(error.code||'')))({data,error}=await client.rpc('crm_skill_perfil_consultar_v136',{p_fuente:sourceKey,p_filtro:text(filter)||null}));
         }else({data,error}=await client.rpc('crm_skill_perfil_consultar_v136',{p_fuente:sourceKey,p_filtro:text(filter)||null}));
-        assertNoError(error,'Skill no pudo consultar la información autorizada para tu perfil. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error,'Skill no pudo consultar la información autorizada para tu perfil. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         const rows=Array.isArray(data)?data:[];
         if(['materiales','vehiculos','proyectos','projectdetails','herramientas','compras','purchases','cotizaciones','quotations','suministros'].includes(sourceKey)){
             if(sourceKey==='materiales')return rows.map(row=>({codigo:text(row.codigo),descripcion:text(row.descripcion),desc:text(row.descripcion),categoria:text(row.categoria),tipoCable:text(row.tipo_cable),tipo_cable:text(row.tipo_cable),tamano:text(row.tamano_mm2),tamano_mm2:text(row.tamano_mm2),unidad:text(row.unidad),precio:number(row.precio),stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),stockMedio:number(row.stock_medio),stock_medio:number(row.stock_medio),stockMaximo:number(row.stock_maximo),stock_maximo:number(row.stock_maximo),marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),proveedor:text(row.proveedor),contactoProveedor:text(row.contacto_proveedor),contacto_proveedor:text(row.contacto_proveedor),rollosDisponibles:number(row.rollos_disponibles),rollos_disponibles:number(row.rollos_disponibles),metrosRollos:number(row.metros_rollos),metros_rollos:number(row.metros_rollos),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],almacenes:Array.isArray(row.almacenes)?row.almacenes:[],activo:row.activo!==false}));
@@ -7034,13 +7291,13 @@
 
     async function listExecutivePendingPurchaseOrdersV136(){
         const {data,error}=await client.rpc('co_ordenes_pendientes_firma_ejecutiva_v136');
-        assertNoError(error,'No se pudieron consultar las órdenes pendientes de validación. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error,'No se pudieron consultar las órdenes pendientes de validación. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return (Array.isArray(data)?data:[]).map(row=>({ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),firmadasCount:Number(row.firmadas_count||0),revisoFirmado:Boolean(row.reviso_firmado),aproboFirmado:Boolean(row.aprobo_firmado),miFirmaEjecutiva:Boolean(row.mi_firma_ejecutiva),pendientesEjecutivas:Array.isArray(row.pendientes_ejecutivas)?row.pendientes_ejecutivas.map(text):[]}));
     }
 
     async function listExecutivePurchaseOrdersV137(){
         const {data,error}=await client.rpc('co_ordenes_validacion_ejecutiva_v137');
-        assertNoError(error,'No se pudieron consultar las órdenes de Dirección. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error,'No se pudieron consultar las órdenes de Dirección. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         return (Array.isArray(data)?data:[]).map(row=>({
             ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),
             materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),
@@ -7269,13 +7526,13 @@
             p_justificacion: text(payload.justificacion) || null,
             p_items: rows
         });
-        assertNoError(error, 'No se pudo crear la orden libre. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudo crear la orden libre. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         const created = data || {};
         const createdOrder = text(created.orden || created.orden_compra || payload.ordenCompra || payload.orden);
         if (createdOrder && text(payload.metodoPago)) {
             const paymentRow = { metodo_pago:text(payload.metodoPago), condiciones_pago:text(payload.condicionesPago)||null, updated_at:new Date().toISOString() };
             const firstUpdate = await client.from('solicitudes_compra').update(paymentRow).eq('orden_compra', createdOrder);
-            if (firstUpdate.error) assertNoError(firstUpdate.error, 'La orden se creó, pero no se pudo guardar el método de pago. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+            if (firstUpdate.error) assertNoError(firstUpdate.error, 'La orden se creó, pero no se pudo guardar el método de pago. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
             await client.from('solicitudes_compra').update(paymentRow).eq('grupo_orden', createdOrder);
         }
         return created;
@@ -7412,7 +7669,7 @@
         const value = text(order);
         if (!value) throw new Error('La orden no tiene número.');
         const { data, error } = await client.rpc('co_datos_envio_orden_v138', { p_orden: value });
-        assertNoError(error, 'No se pudieron preparar los datos de envío de la orden. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V145.sql.');
+        assertNoError(error, 'No se pudieron preparar los datos de envío de la orden. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V148.sql.');
         const row = data || {};
         return {
             ok: Boolean(row.ok), lista: Boolean(row.lista), ordenCompra: text(row.orden_compra || value), firmas: Number(row.firmas || 0), metodoPago: text(row.metodo_pago), condicionesPago: text(row.condiciones_pago),
@@ -7643,6 +7900,17 @@
         loanProjectMaterials,
         listVehicles,
         saveVehicle,
+        listVehicleBaseStates,
+        saveVehicleBaseState,
+        listVehicleBaseStateHistory,
+        listVehicleAuthorizedDrivers,
+        saveVehicleAuthorizedDrivers,
+        saveVehicleTripResponsiva,
+        closeVehicleTripResponsiva,
+        signVehicleTripResponsible,
+        createVehicleResponsibleSignatureLink,
+        getVehicleSignaturePortal,
+        signVehicleSignaturePortal,
         setVehicleActive,
         deleteVehicle,
         listVehicleBaseLocations,
