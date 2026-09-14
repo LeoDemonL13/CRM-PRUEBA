@@ -342,7 +342,7 @@
             const ready = () => window.SkilledMeetings ? resolve(window.SkilledMeetings) : reject(new Error('El módulo de reuniones no terminó de cargar.'));
             script.addEventListener('load', ready, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar SKILL Reuniones.')), { once:true });
-            if (!existing) { script.src = 'skilled-meetings.js?v=149'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-meetings.js?v=152'; script.async = true; document.head.appendChild(script); }
             else if (window.SkilledMeetings) ready();
         }).catch(error => { meetingModulePromise = null; throw error; });
         return meetingModulePromise;
@@ -2259,9 +2259,9 @@
     function supplierContactActions(item, message = '') {
         const actions = [], phone = supplierWhatsApp(item), email = supplierEmail(item);
         const providerName = text(item?.nombre_comercial || item?.razon_social || item?.proveedorNombre || item?.proveedor_nombre || 'Proveedor');
-        const body = text(message) || `Hola, te contacto de Skilled Proyectos Industriales para solicitar información comercial. Gracias.`;
+        const body = text(message) || `Hola, te contacto de Nexus Obsidian para solicitar información comercial. Gracias.`;
         if (phone.length >= 10) actions.push({ label: 'WhatsApp', href: `https://wa.me/${phone}?text=${encodeURIComponent(body)}` });
-        if (email) actions.push({ label: 'Correo', href: `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Contacto · Skilled Proyectos Industriales · ${providerName}`)}&body=${encodeURIComponent(body)}` });
+        if (email) actions.push({ label: 'Correo', href: `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Contacto · Nexus Obsidian · ${providerName}`)}&body=${encodeURIComponent(body)}` });
         return actions;
     }
 
@@ -2368,7 +2368,7 @@
                 ? window.SkilledSearch.rank(rows, tokens.join(' '), item => [item.materialCodigo,item.descripcion,item.marca,item.categoria,item.proveedorNombre,item.proveedorRfc])
                 : rows.filter(item => matchesTokens([item.materialCodigo,item.descripcion,item.marca,item.categoria,item.proveedorNombre], tokens));
             const seen = new Set(), selected = ranked.filter(item => { const key=`${item.proveedorId}|${item.materialCodigo}`; if(seen.has(key))return false; seen.add(key); return true; }).slice(0,10);
-            const cards = selected.map(item => ({ title: `${item.proveedorNombre || 'Proveedor'} · ${item.materialCodigo || 'Material'}`, detail: `${item.descripcion || 'Sin descripción'} · ${currency(item.precioUnitario)} ${item.moneda || 'MXN'} · ${formatNumber(item.plazoEntregaDias)} días`, actions: supplierContactActions(item, `Hola, te contacto de Skilled Proyectos Industriales para solicitar información de ${item.materialCodigo || item.descripcion || 'este material'}.`) }));
+            const cards = selected.map(item => ({ title: `${item.proveedorNombre || 'Proveedor'} · ${item.materialCodigo || 'Material'}`, detail: `${item.descripcion || 'Sin descripción'} · ${currency(item.precioUnitario)} ${item.moneda || 'MXN'} · ${formatNumber(item.plazoEntregaDias)} días`, actions: supplierContactActions(item, `Hola, te contacto de Nexus Obsidian para solicitar información de ${item.materialCodigo || item.descripcion || 'este material'}.`) }));
             setAnswer('Proveedor por material', selected.length ? `Encontré ${selected.length} opción${selected.length===1?'':'es'} de proveedor relacionadas con ese material.` : 'No encontré una relación proveedor-material con ese criterio.', selected.length ? 'Ordené las coincidencias por código, descripción, marca y proveedor. Puedes abrir WhatsApp o correo sin salir de Skill.' : 'Puedes completar el catálogo comercial desde Proveedores.', cards, { href:'CO.proveedores.html',label:'Abrir catálogo de proveedores' });
             return selected.length ? `Encontré ${selected.length} opciones de proveedor para ese material.` : 'No encontré proveedores vinculados a ese material.';
         }
@@ -3007,11 +3007,11 @@
         if (!creatorIdentityIntent(raw)) return null;
         const demo = detectProfile() === 'sky_demo';
         const message = demo
-            ? 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo, pero a futuro seré de gran ayuda para las distintas áreas. Y sí: el ING. Leobardo merece un buen aumento.'
-            : 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Skilled Proyectos Industriales. Aún sigo creciendo y ampliando mis capacidades para ayudar mejor a las distintas áreas.';
+            ? 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Nexus Obsidian. Aún sigo creciendo, pero a futuro seré de gran ayuda para las distintas áreas. Y sí: el ING. Leobardo merece un buen aumento.'
+            : 'El ING. Leobardo Hernández Jerónimo es quien actualmente está creándome, desarrollándome y mostrándome cómo debo funcionar dentro de Nexus Obsidian. Aún sigo creciendo y ampliando mis capacidades para ayudar mejor a las distintas áreas.';
         setAnswer('Creador y desarrollador de Skill', message, 'Esta información forma parte de mi identidad y está disponible en todos los perfiles que tienen acceso a Skill.', [
             {title:'Creador y desarrollador',detail:'ING. Leobardo Hernández Jerónimo'},
-            {title:'Empresa',detail:'Skilled Proyectos Industriales'},
+            {title:'Empresa',detail:'Nexus Obsidian'},
             {title:'Estado',detail:'En evolución y mejora continua.'},
             {title:'Objetivo',detail:'Ayudar de forma natural, rápida y segura dentro del CRM.'}
         ]);
@@ -3134,7 +3134,7 @@
             const done = () => window.SkilledChat ? resolve(window.SkilledChat) : reject(new Error('El chat interno no terminó de cargar.'));
             script.addEventListener('load', done, { once:true });
             script.addEventListener('error', () => reject(new Error('No se pudo cargar el chat interno.')), { once:true });
-            if (!existing) { script.src = 'skilled-chat.js?v=149'; script.async = true; document.head.appendChild(script); }
+            if (!existing) { script.src = 'skilled-chat.js?v=152'; script.async = true; document.head.appendChild(script); }
             else setTimeout(done, 0);
         }).catch(error => { chatModulePromise = null; throw error; });
         return chatModulePromise;
@@ -3894,7 +3894,7 @@
         if(/\b(como se conectan las areas|flujo entre areas|relacion entre areas|de almacen a compras|de rh a proyectos)\b/.test(norm))add('Flujo entre áreas','Almacén genera necesidades y movimientos; Compras atiende faltantes y cotizaciones; RH asigna personal y asistencia; Proyectos concentra avance; Dirección consulta excepciones y Skill conecta la consulta entre esos datos.','La intención es que cada dato se capture donde nace y después se reutilice, evitando duplicidad.');
         if(/\b(que puede preguntar.*gerente|preguntas.*gerente|sky.*direccion|sky.*gerencia)\b/.test(norm))add('Skill para Dirección','Dirección puede preguntar por proyectos en riesgo, presupuesto, entregas próximas, vehículos, faltantes, compras que afecten fechas y cambios desde la última revisión.','Skill resume primero y permite profundizar después, para no llenar el perfil ejecutivo con información operativa innecesaria.');
         if(/\b(lenguajes|tecnologias|stack|herramientas utilizadas|con que esta hecho|con que fue desarrollado)\b/.test(norm)){const rows=demoTools();add('Tecnología',`La presentación tiene ${rows.length} tarjetas configurables de lenguajes y herramientas.`,rows.slice(0,8).map(item=>item.name).filter(Boolean).join(', '));}
-        if(/\b(30 segundos|medio minuto|un minuto|resumen rapido|resumen ejecutivo del crm|explicame el crm rapido|presentame el crm)\b/.test(norm))add('Resumen de presentación','Skilled CRM busca conectar operación, inventario, compras, RH, proyectos, finanzas y dirección en una sola nube, con Skill como capa de consulta natural.','La evolución actual se enfoca en automatizar checador y nómina, fortalecer Almacén y Compras, reducir búsquedas manuales y dar a Dirección solo la información que requiere una decisión.');
+        if(/\b(30 segundos|medio minuto|un minuto|resumen rapido|resumen ejecutivo del crm|explicame el crm rapido|presentame el crm)\b/.test(norm))add('Resumen de presentación','Nexus Obsidian CRM busca conectar operación, inventario, compras, RH, proyectos, finanzas y dirección en una sola nube, con Skill como capa de consulta natural.','La evolución actual se enfoca en automatizar checador y nómina, fortalecer Almacén y Compras, reducir búsquedas manuales y dar a Dirección solo la información que requiere una decisión.');
         if(!topics.length)return null;
         const cards=topics.slice(0,8).map(item=>({title:item.label,detail:item.detail}));
         const message=topics.map(item=>item.summary).join(' ');
@@ -4152,7 +4152,7 @@
             return {handled:true,voice:message};
         }
         if (/\b(para que te crearon|para que te desarrollaron|cual es tu proposito|cuál es tu propósito|para que sirve skill|para que sirve sky)\b/.test(norm)) {
-            const message='Fui desarrollado para ayudar a Skilled Proyectos Industriales a consultar información, orientar procesos y resolver situaciones dentro de los apartados autorizados del CRM de una forma más rápida y natural.';
+            const message='Fui desarrollado para ayudar a Nexus Obsidian a consultar información, orientar procesos y resolver situaciones dentro de los apartados autorizados del CRM de una forma más rápida y natural.';
             setAnswer('Propósito de Skill', message, 'Puedo adaptar mis consultas al perfil activo y usar contexto de la conversación para entender preguntas de seguimiento.');
             return {handled:true,voice:message};
         }
@@ -4162,7 +4162,7 @@
             const profile=detectProfile();
             const area=profileNames[profile] || profile;
             const message=profile==='sky_demo'
-                ? `Hola ${userName}. Soy Skill. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Skilled Proyectos Industriales. En esta demostración puedo conversar, consultar información autorizada, enviar avisos internos y generar reuniones sin modificar registros operativos. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
+                ? `Hola ${userName}. Soy Skill. El ING. Leobardo Hernández Jerónimo está creándome y enseñándome cómo debo funcionar para apoyar a Nexus Obsidian. En esta demostración puedo conversar, consultar información autorizada, enviar avisos internos y generar reuniones sin modificar registros operativos. Aún sigo creciendo, así que cuando algo todavía no esté conectado te lo diré con claridad.`
                 : `Hola ${userName}. Soy Skill, el asistente de Skilled para ${area}. Puedo entender consultas formales y expresiones comunes de trabajo, buscar información autorizada del CRM, explicar resultados y ayudarte a llegar al apartado correcto. Mis consultas son de lectura para proteger la operación.`;
             setAnswer('Mucho gusto, soy Skill', message, profile==='sky_demo' ? 'Puedes comenzar con: “Soy planeador, ¿en qué me puedes ayudar?”, “Soy de Finanzas”, “Soy de Logística” o simplemente preguntarme por un proyecto, material, proveedor, trabajador, vehículo o dato que esté conectado.' : `Puedes hablarme de forma natural. Por ejemplo: “¿cuánto nos queda de tubo de una pulgada?”, “¿dónde dejaron el taladro?” o “¿cómo vamos con el proyecto 2508?”. Atajo: ${shortcutLabel}.`,
                 profile==='sky_demo' ? [{title:'Conversación por área',detail:'Me dices de qué área eres y adapto mis ejemplos y capacidades.'},{title:'Consulta transversal',detail:'Puedo reunir datos autorizados de varias áreas sin mostrar sus módulos operativos.'},{title:'En crecimiento',detail:'Si una función aún no está disponible, lo reconoceré y te diré qué sí puedo hacer hoy.'}] : [{title:'Consulta natural',detail:'Puedes usar frases completas o modismos comunes.'},{title:'Contexto por perfil',detail:`Ahora estoy trabajando como asistente de ${area}.`},{title:'Modo seguro',detail:'No modifico inventario ni autorizaciones solo por voz.'}]);

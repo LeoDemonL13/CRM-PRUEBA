@@ -1,10 +1,10 @@
 (function(){
 'use strict';
 const root=document.documentElement;
-const RELEASE='146';
+const RELEASE='150';
 const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
 function addConnectionHints(){
- const hints=[['preconnect','https://cdn.jsdelivr.net','anonymous'],['dns-prefetch','https://cdn.jsdelivr.net',''],['preconnect','https://cuxnzqbszzrfnrinxbdp.supabase.co','anonymous'],['dns-prefetch','https://cuxnzqbszzrfnrinxbdp.supabase.co','']];
+ const hints=[['preconnect','https://cdn.jsdelivr.net','anonymous'],['dns-prefetch','https://cdn.jsdelivr.net',''],['preconnect','https://pibvfosvufbwbnwfwbmw.supabase.co','anonymous'],['dns-prefetch','https://pibvfosvufbwbnwfwbmw.supabase.co','']];
  hints.forEach(([rel,href,crossorigin])=>{if(document.head.querySelector(`link[rel="${rel}"][href="${href}"]`))return;const link=document.createElement('link');link.rel=rel;link.href=href;if(crossorigin)link.crossOrigin=crossorigin;document.head.appendChild(link)});
 }
 addConnectionHints();

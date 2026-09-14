@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Preview Vehículos V158</title>
+  <link rel="stylesheet" href="vehicle-shared-v159.css?v=169">
+  <link rel="stylesheet" href="vehicle-visuals-v159.css?v=169">
+  <style>
+    body{margin:0;background:#060b14;color:#fff;font-family:Arial,Helvetica,sans-serif;padding:24px}
+    .wrap{max-width:1500px;margin:0 auto}
+    .title{font-size:28px;font-weight:900;margin-bottom:8px}
+    .sub{color:#94a3b8;margin-bottom:22px;line-height:1.5}
+    .vehicle-fleet-grid{display:grid!important}
+    .section{margin-top:18px;padding:16px;border:1px solid #16314e;border-radius:20px;background:linear-gradient(180deg,rgba(7,15,29,.96),rgba(5,10,18,.98))}
+    .preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .view-card{border:1px solid #1a3251;border-radius:18px;overflow:hidden;background:#08111f}
+    .view-card h4{margin:0;padding:12px 14px;border-bottom:1px solid #152741;color:#e6effd;font-size:14px}
+    .view-stage{display:grid;place-items:center;min-height:260px;padding:12px;background:radial-gradient(circle at 50% 38%,rgba(59,130,246,.14),transparent 36%),linear-gradient(180deg,#091220,#07101a 60%,#060c14 100%)}
+    .view-stage svg{width:min(100%,420px);height:auto;max-height:230px}
+    @media(max-width:1100px){.preview-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:760px){.preview-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Preview visual de vehículos V158</div>
+    <div class="sub">Versión de revisión rápida. Aquí se validan cards y vistas frontal/lateral/trasera con diseños más diferenciados para pickup, camioneta, automóvil, van y camión.</div>
+    <section id="grid" class="vehicle-fleet-grid"></section>
+    <section class="section">
+      <h3 style="margin:0 0 14px 0">Comparativa rápida por vista</h3>
+      <div id="views" class="preview-grid"></div>
+    </section>
+  </div>
+  <script src="vehicle-visuals-v159.js?v=169"></script>
+  <script>
+    const typeColors={pickup:'#f97316',camioneta:'#22c55e',automovil:'#3b82f6',van:'#8b5cf6',camion:'#f59e0b',motocicleta:'#10b981',montacargas:'#eab308',generador_movil:'#06b6d4',maquinaria_movil:'#64748b'};
+    const stateColors={disponible:'#10b981',en_uso:'#8b5cf6',mantenimiento:'#f59e0b'};
+    const labels={pickup:'Pickup',camioneta:'Camioneta',automovil:'Automóvil',van:'Van',camion:'Camión',motocicleta:'Motocicleta',montacargas:'Montacargas',generador_movil:'Generador móvil',maquinaria_movil:'Maquinaria móvil'};
+    const fmt=v=>Number(v||0).toLocaleString('es-MX');
+    function card(v){
+      const t=typeColors[v.tipo]||'#3b82f6',s=stateColors[v.estado]||'#64748b';
+      return `<article class="vehicle-card vehicle-card-v13 panel" style="--state:${s};--type-color:${t}"><div class="vehicle-card-media-v13"><div class="vehicle-photo vehicle-photo-v13"><div class="vehicle-photo-placeholder vehicle-photo-placeholder-v13">${window.NexusVehicleVisuals.render(v,'lado_izquierdo',{compact:true})}</div></div><div class="vehicle-media-badges-v13"><span class="vehicle-type-badge" style="--type-color:${t}"><i></i>${labels[v.tipo]||v.tipo}</span><span class="vehicle-status-badge-v152" style="--state-color:${s}"><i></i>${v.estado.replaceAll('_',' ')}</span></div><div class="vehicle-id-strip-v13"><span>${v.numeroEconomico}</span><small>${v.responsable}</small></div></div><div class="vehicle-card-content-v13"><div class="vehicle-card-title-v13"><div class="min-w-0"><div class="flex items-center gap-2"><h3>${v.marca} ${v.modelo}</h3><span class="vehicle-year-v13">${v.anio}</span></div><p>Base: ${v.proyecto||'Sin base fija'} · ${v.responsable}</p><p>Seguro: ${v.aseguradora}</p></div><span class="vehicle-readonly-v152">Preview</span></div><div class="vehicle-assignment-v13"><span class="vehicle-assignment-icon-v13">•</span><div class="min-w-0"><small>Uso / asignación</small><strong>${v.proyecto||'Sin asignación'}</strong></div></div><div class="vehicle-quick-stats-v13"><div><span>Kilometraje</span><strong>${fmt(v.kilometraje)} km</strong></div><div><span>Capacidad</span><strong>${fmt(v.capacidadCarga)} kg</strong></div><div><span>Estado</span><strong>${v.estado}</strong></div></div></div></article>`;
+    }
+    const sample=[
+      {numeroEconomico:'DEM-HILUX',marca:'Toyota',modelo:'Hilux',anio:2025,tipo:'pickup',estado:'disponible',kilometraje:28450,capacidadCarga:950,proyecto:'',responsable:'Equipo Nexus',aseguradora:'Aseguradora Demo',placas:'DEM-001'},
+      {numeroEconomico:'DEM-SUV',marca:'Ford',modelo:'Explorer',anio:2024,tipo:'camioneta',estado:'en_uso',kilometraje:19420,capacidadCarga:620,proyecto:'Monterrey',responsable:'Ing. José',aseguradora:'Qualitas',placas:'DEM-002'},
+      {numeroEconomico:'DEM-AUTO',marca:'Nissan',modelo:'Versa',anio:2023,tipo:'automovil',estado:'disponible',kilometraje:12500,capacidadCarga:420,proyecto:'',responsable:'Recepción',aseguradora:'AXA',placas:'DEM-003'},
+      {numeroEconomico:'DEM-VAN',marca:'Ford',modelo:'Transit',anio:2024,tipo:'van',estado:'en_uso',kilometraje:42100,capacidadCarga:1450,proyecto:'DEM-26001',responsable:'Equipo Nexus',aseguradora:'Aseguradora Demo',placas:'DEM-004'},
+      {numeroEconomico:'DEM-CAMION',marca:'Hino',modelo:'300',anio:2023,tipo:'camion',estado:'mantenimiento',kilometraje:65800,capacidadCarga:3000,proyecto:'',responsable:'Equipo Nexus',aseguradora:'Mapfre',placas:'DEM-005'}
+    ];
+    document.getElementById('grid').innerHTML=sample.map(card).join('');
+    const compare=[sample[0],sample[1],sample[3],sample[4]];
+    const views=['frontal','lado_izquierdo','trasera'];
+    document.getElementById('views').innerHTML=compare.flatMap(v=>views.map(view=>`<article class="view-card"><h4>${v.numeroEconomico} · ${view.replace('_',' ')}</h4><div class="view-stage">${window.NexusVehicleVisuals.render(v,view,{compact:true})}</div></article>`)).join('');
+  </script>
+</body>
+</html>

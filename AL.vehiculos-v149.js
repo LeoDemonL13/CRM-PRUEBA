@@ -21,15 +21,15 @@ function vehicleName(v){return [v?.numeroEconomico,v?.apodo?`“${v.apodo}”`:'
 const visualTypeNames={pickup:'Pickup',suv:'Camioneta',car:'Automóvil',van:'Van',truck:'Camión',motorcycle:'Motocicleta',forklift:'Montacargas',equipment:'Generador móvil / equipo',machinery:'Maquinaria móvil'};
 function visualType(value){
  const raw=clean(value?.tipo??value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s-]+/g,'_');
- if(['pickup','camioneta_pickup'].includes(raw))return'pickup';
- if(['camioneta','suv'].includes(raw))return'suv';
- if(['automovil','auto','coche','sedan'].includes(raw))return'car';
- if(['van','minivan'].includes(raw))return'van';
- if(['camion','tractocamion'].includes(raw))return'truck';
+ if(['pickup','pick_up','camioneta_pickup','camioneta_de_carga','troca','troka'].includes(raw))return'pickup';
+ if(['camioneta','suv','suv_camioneta','utilitaria','utilitario','wagon','crossover'].includes(raw))return'suv';
+ if(['automovil','auto','coche','sedan','hatchback','compacto'].includes(raw))return'car';
+ if(['van','minivan','panel','furgon','furgoneta'].includes(raw))return'van';
+ if(['camion','tractocamion','tracto','camion_ligero','camion_mediano','rabon','torton'].includes(raw))return'truck';
  if(['motocicleta','moto'].includes(raw))return'motorcycle';
  if(['montacargas','forklift'].includes(raw))return'forklift';
- if(['generador_movil','generador','genny'].includes(raw))return'equipment';
- if(['maquinaria_movil','maquinaria'].includes(raw))return'machinery';
+ if(['generador_movil','generador','genny','planta_de_luz'].includes(raw))return'equipment';
+ if(['maquinaria_movil','maquinaria','retroexcavadora','minicargador','excavadora'].includes(raw))return'machinery';
  return'car';
 }
 function visualDefs(id){return`<defs><linearGradient id="${id}-body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#365d87"/><stop offset=".42" stop-color="#1f4168"/><stop offset="1" stop-color="#0b1c31"/></linearGradient><linearGradient id="${id}-glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a6e9d" stop-opacity=".86"/><stop offset="1" stop-color="#061624" stop-opacity=".96"/></linearGradient><linearGradient id="${id}-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fa7bf"/><stop offset="1" stop-color="#36495f"/></linearGradient><filter id="${id}-shadow" x="-25%" y="-25%" width="150%" height="165%"><feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#000" flood-opacity=".38"/></filter></defs>`}
@@ -74,15 +74,78 @@ function visualSide(shape,id,right=false){
  return`<g transform="${flip}" filter="url(#${id}-shadow)"><ellipse cx="400" cy="421" rx="310" ry="26" fill="#000" opacity=".26"/>${body}${wheels}<path d="M136 276H193" stroke="#c5dff0" stroke-width="10" stroke-linecap="round"/><path d="M651 278H687" stroke="#dc4354" stroke-width="10" stroke-linecap="round"/></g>`;
 }
 function svg(view,vehicle=selectedVehicle){
+ if(window.NexusVehicleVisuals?.render)return window.NexusVehicleVisuals.render(vehicle,view);
  const shape=visualType(vehicle),id=`v149-${shape}-${view}-${Math.random().toString(36).slice(2,7)}`;
- if(view==='superior'&&typeof window.SkilledVehicleVisualTopV149==='function')return window.SkilledVehicleVisualTopV149(vehicle?.tipo||shape).replace('<svg ','<svg class="vehicle-visual-v149" ');
- const common=`viewBox="0 0 800 500" role="img" aria-label="${viewLabels[view]||view} · ${shape}" class="vehicle-visual-v149"`;
+ if(view==='superior'&&typeof window.SkilledVehicleVisualTopV149==='function')return window.SkilledVehicleVisualTopV149(vehicle?.tipo||shape).replace('<svg ','<svg class="vehicle-visual-v149 vehicle-silhouette" ');
+ const common=`viewBox="0 0 800 500" role="img" aria-label="${viewLabels[view]||view} · ${shape}" class="vehicle-visual-v149 vehicle-silhouette"`;
  const defs=visualDefs(id);
  const content=view==='frontal'?visualFrontRear(shape,id,false):view==='trasera'?visualFrontRear(shape,id,true):view==='lado_derecho'?visualSide(shape,id,true):view==='lado_izquierdo'?visualSide(shape,id,false):visualTopFallback(shape,id);
  return`<svg ${common}>${defs}${content}</svg>`;
 }
 
 function setDirty(value=true){dirty=value;const badge=$('base-status');if(!badge)return;if(!selectedVehicle){badge.className='inspection-status-v148 is-empty';return}if(value){badge.className='inspection-status-v148 is-warning';badge.querySelector('strong').textContent='Cambios sin guardar';badge.querySelector('small').textContent='Guarda el estado base para usar estos datos en futuras responsivas.'}else{badge.className='inspection-status-v148';badge.querySelector('strong').textContent=currentState?'Estado base guardado':'Estado base listo para guardar';badge.querySelector('small').textContent=currentState?.updatedAt?`Última actualización: ${formatDateTime(currentState.updatedAt)}`:'Esta unidad todavía no tiene un estado base guardado.'}}
+function pickVehicleValueV150(vehicle,...keys){for(const key of keys){const value=vehicle?.[key];if(value===0||value==='0')return String(value);if(clean(value))return String(value)}return''}
+function humanConditionV150(value){const map={excelente:'Excelente',buena:'Buena',regular:'Regular',mala:'Mala',fuera_servicio:'Fuera de servicio'};return map[clean(value)]||clean(value)||'Sin definir'}
+function formatRelativeDueV150(value){if(!value)return'Sin fecha registrada';const d=new Date(value);if(Number.isNaN(d.getTime()))return clean(value);const diff=Math.ceil((d.getTime()-Date.now())/86400000);if(diff<0)return`Vencido hace ${Math.abs(diff)} día${Math.abs(diff)===1?'':'s'}`;if(diff===0)return'Vence hoy';if(diff<=30)return`Vence en ${diff} día${diff===1?'':'s'}`;return`Vence el ${formatDate(value)}`}
+function ensureInspectionEnhancementsV150(){
+ const shell=document.querySelector('#inspection-panel .inspection-shell-v148');
+ if(!shell)return;
+ const status=$('base-status');
+ if(status&&!$('inspection-meta-grid'))status.insertAdjacentHTML('afterend',`<section id="inspection-meta-grid" class="inspection-meta-grid-v150"><article class="inspection-meta-card-v150" style="--meta-accent:#3b82f6"><span>Unidad seleccionada</span><strong id="inspection-meta-unit">Sin unidad seleccionada</strong><small id="inspection-meta-unit-sub">Selecciona una unidad para revisar su estado base y su mapa visual.</small></article><article class="inspection-meta-card-v150" style="--meta-accent:#0ea5e9"><span>Tipo / identificación</span><strong id="inspection-meta-type">—</strong><small id="inspection-meta-id">Placas y serie aparecerán aquí.</small></article><article class="inspection-meta-card-v150" style="--meta-accent:#22c55e"><span>Base / resguardo</span><strong id="inspection-meta-base">Sin base registrada</strong><small id="inspection-meta-assigned">Responsable y proyecto actual.</small></article><article class="inspection-meta-card-v150" style="--meta-accent:#f59e0b"><span>Documentación</span><strong id="inspection-meta-docs">Sin documento crítico</strong><small id="inspection-meta-docs-sub">Seguro, tarjeta y servicio próximos.</small></article></section>`);
+ const legend=shell.querySelector('.inspection-legend-v148');
+ if(legend&&!$('base-active-damage-type')){const block=document.createElement('div');block.className='inspection-active-damage-v150';block.innerHTML='<span>Tipo activo</span><strong id="base-active-damage-type">Golpe</strong><small>Las siguientes marcas usarán este tipo y color.</small>';const types=legend.querySelector('.inspection-damage-types-v148');if(types)legend.insertBefore(block,types)}
+ const vars=shell.querySelector('.inspection-variables-v148');
+ const fieldWrap=vars?.querySelector('.inspection-fields-v148');
+ if(fieldWrap&&!fieldWrap.dataset.v150Ready){
+   fieldWrap.dataset.v150Ready='1';
+   const items=[...fieldWrap.children];
+   const findByInput=id=>items.find(el=>el.querySelector?.('#'+id));
+   const findBySelector=selector=>items.find(el=>el.matches?.(selector)||el.querySelector?.(selector));
+   const take=selectors=>selectors.map(sel=>sel.startsWith('.')?findBySelector(sel):findByInput(sel.replace(/^#/,''))).filter(Boolean).filter((el,idx,arr)=>arr.indexOf(el)===idx);
+   const groups=[
+     {title:'Combustible y kilometraje',desc:'Valores base que se cargarán al abrir una nueva salida de la unidad.',selectors:['#base-fuel-type','#base-fuel-grade','#base-fuel-level','#base-mileage']},
+     {title:'Llantas y presión',desc:'Conserva la referencia del desgaste y la presión normal de la unidad.',selectors:['#base-tire-life','.inspection-pressure-grid-v148']},
+     {title:'Servicio y condición',desc:'Define el estado operativo general y los próximos compromisos de mantenimiento.',selectors:['#base-last-verification','#base-service-date','#base-service-km','#base-condition']},
+     {title:'Responsable y observaciones',desc:'Indica quién resguarda la unidad y cualquier nota importante para futuras responsivas.',selectors:['#base-responsible','#base-notes']}
+   ];
+   fieldWrap.innerHTML='';
+   groups.forEach(group=>{const section=document.createElement('section');section.className='inspection-field-group-v150';const head=document.createElement('div');head.className='inspection-field-group-head-v150';head.innerHTML=`<strong>${group.title}</strong><small>${group.desc}</small>`;const grid=document.createElement('div');grid.className='inspection-field-group-grid-v150';take(group.selectors).forEach(node=>grid.appendChild(node));section.append(head,grid);fieldWrap.appendChild(section)});
+ }
+ updateActiveDamageBadgeV150();
+ updateInspectionMetaV150();
+}
+function updateActiveDamageBadgeV150(){const name=damageTypes[currentDamageType]?.label||'Daño';const el=$('base-active-damage-type');if(el)el.textContent=name}
+function updateInspectionMetaV150(){
+ if(!$('inspection-meta-grid'))return;
+ const v=selectedVehicle;
+ const state=currentState||{};
+ const unit=$('inspection-meta-unit'),unitSub=$('inspection-meta-unit-sub'),type=$('inspection-meta-type'),id=$('inspection-meta-id'),base=$('inspection-meta-base'),assigned=$('inspection-meta-assigned'),docs=$('inspection-meta-docs'),docsSub=$('inspection-meta-docs-sub');
+ if(!v){if(unit)unit.textContent='Sin unidad seleccionada';if(unitSub)unitSub.textContent='Selecciona una unidad para revisar su estado base y su mapa visual.';if(type)type.textContent='—';if(id)id.textContent='Placas y serie aparecerán aquí.';if(base)base.textContent='Sin base registrada';if(assigned)assigned.textContent='Responsable y proyecto actual.';if(docs)docs.textContent='Sin documento crítico';if(docsSub)docsSub.textContent='Seguro, tarjeta y servicio próximos.';return}
+ const typeLabel=visualTypeNames[visualType(v)]||pickVehicleValueV150(v,'tipo')||'Tipo no especificado';
+ const plates=pickVehicleValueV150(v,'placas');
+ const vin=pickVehicleValueV150(v,'vin','numeroSerie','numero_serie');
+ const insurer=pickVehicleValueV150(v,'aseguradora');
+ const insuranceDue=pickVehicleValueV150(v,'vigenciaSeguro','vigencia_seguro');
+ const cardDue=pickVehicleValueV150(v,'vigenciaTarjeta','vigencia_tarjeta');
+ const project=pickVehicleValueV150(v,'proyectoNombre','proyecto','project_name');
+ const basePlace=pickVehicleValueV150(v,'ubicacionBaseNombre','baseNombre','ubicacionBase','baseUbicacion','ubicacion_base','instalacionBase','instalacion_base')||'Sin base registrada';
+ const responsible=pickVehicleValueV150(v,'responsable')||clean(getField('base-responsible'))||'Sin responsable asignado';
+ const fuelLabel=fuelLevelLabel(state.combustibleNivelReferencia ?? getField('base-fuel-level'));
+ const mileageValue=pickVehicleValueV150(state,'kilometrajeReferencia')||pickVehicleValueV150(v,'kilometraje')||clean(getField('base-mileage'));
+ if(unit)unit.textContent=vehicleName(v);
+ if(unitSub)unitSub.textContent=`${fuelLabel} de combustible · ${damages.length} marca${damages.length===1?'':'s'} registradas${mileageValue?` · ${Number(mileageValue).toLocaleString('es-MX')} km`:''}`;
+ if(type)type.textContent=typeLabel;
+ if(id)id.textContent=[plates?`Placas: ${plates}`:'',vin?`Serie: ${vin}`:''].filter(Boolean).join(' · ')||'Agrega placas y número de serie para completar la ficha.';
+ if(base)base.textContent=basePlace;
+ if(assigned)assigned.textContent=[`Responsable: ${responsible}`,project?`Proyecto: ${project}`:''].filter(Boolean).join(' · ');
+ if(docs)docs.textContent=humanConditionV150(state.condicionGeneral||getField('base-condition'));
+ const docsParts=[];
+ if(insurer||insuranceDue)docsParts.push(`${insurer||'Seguro'} · ${formatRelativeDueV150(insuranceDue)}`);
+ if(cardDue)docsParts.push(`Tarjeta · ${formatRelativeDueV150(cardDue)}`);
+ if(state.proximoServicioFecha||getField('base-service-date'))docsParts.push(`Servicio · ${formatRelativeDueV150(state.proximoServicioFecha||getField('base-service-date'))}`);
+ docsSub && (docsSub.textContent=docsParts.join(' · ')||'Seguro, tarjeta y servicio próximos.');
+}
+
 function formatDate(value){if(!value)return'—';const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return`${m[3]}/${m[2]}/${m[1]}`;const d=new Date(value);return Number.isNaN(d.getTime())?clean(value):d.toLocaleDateString('es-MX')}
 function formatDateTime(value){if(!value)return'—';const d=new Date(value);return Number.isNaN(d.getTime())?clean(value):d.toLocaleString('es-MX',{dateStyle:'medium',timeStyle:'short'})}
 function stateForVehicle(id){return states.get(Number(id))||null}
@@ -108,10 +171,10 @@ async function selectVehicle(id){
 function clearFields(){['base-fuel-type','base-fuel-grade','base-fuel-level','base-mileage','base-tire-life','base-psi-fl','base-psi-fr','base-psi-rl','base-psi-rr','base-last-verification','base-service-date','base-service-km','base-responsible','base-notes'].forEach(id=>setField(id,''));setField('base-condition','buena');damages=[];currentState=null}
 function markerTitle(d){return`${damageTypes[d.tipo]?.label||'Daño'} · ${viewLabels[d.vista]||d.vista}${d.nota?` · ${d.nota}`:''}`}
 function render(){
- const map=$('base-visual-map');if(!map)return;map.innerHTML=svg(currentView,selectedVehicle);$('base-current-view-label').textContent=viewLabels[currentView];$('base-current-vehicle').textContent=selectedVehicle?vehicleName(selectedVehicle):'Sin vehículo';
+ const map=$('base-visual-map');if(!map)return;ensureInspectionEnhancementsV150();map.innerHTML=svg(currentView,selectedVehicle);$('base-current-view-label').textContent=viewLabels[currentView];$('base-current-vehicle').textContent=selectedVehicle?vehicleName(selectedVehicle):'Sin vehículo';
  const visible=damages.filter(d=>d.vista===currentView);visible.forEach((d,index)=>{const type=damageTypes[d.tipo]||damageTypes.otro;const btn=document.createElement('button');btn.type='button';btn.className='base-damage-marker-v148';btn.style.left=`${Math.max(0,Math.min(100,num(d.x)))}%`;btn.style.top=`${Math.max(0,Math.min(100,num(d.y)))}%`;btn.style.setProperty('--damage',type.color);btn.title=markerTitle(d);btn.dataset.damageId=d.id||String(index);btn.addEventListener('click',event=>{event.stopPropagation();editDamage(d)});map.appendChild(btn)});
  $('base-view-count').textContent=`${visible.length} marca${visible.length===1?'':'s'}`;$('base-damage-total').textContent=String(damages.length);const summary=$('base-damage-summary');summary.innerHTML=Object.entries(damageTypes).map(([key,t])=>{const count=damages.filter(d=>d.tipo===key).length;return`<div class="inspection-summary-chip-v148"><span><i style="--damage:${t.color}"></i>${t.label}</span><strong>${count}</strong></div>`}).join('');
- $('base-updated-at').textContent=currentState?.updatedAt?formatDateTime(currentState.updatedAt):'Sin registro';$('base-updated-by').textContent=currentState?.actualizadoPor?`Por ${currentState.actualizadoPor}`:'—';
+ $('base-updated-at').textContent=currentState?.updatedAt?formatDateTime(currentState.updatedAt):'Sin registro';$('base-updated-by').textContent=currentState?.actualizadoPor?`Por ${currentState.actualizadoPor}`:'—';updateActiveDamageBadgeV150();updateInspectionMetaV150();
 }
 function editDamage(d){const note=prompt(`${markerTitle(d)}\n\nDescribe el daño. Deja vacío para conservarlo sin nota. Escribe ELIMINAR para quitar la marca.`,d.nota||'');if(note===null)return;if(clean(note).toUpperCase()==='ELIMINAR'){damages=damages.filter(x=>x!==d)}else d.nota=clean(note);setDirty();render()}
 function addDamage(event){if(!selectedVehicle)return;const map=$('base-visual-map'),rect=map.getBoundingClientRect();if(!rect.width||!rect.height)return;const x=((event.clientX-rect.left)/rect.width)*100,y=((event.clientY-rect.top)/rect.height)*100;damages.push({id:`d-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,vista:currentView,tipo:currentDamageType,x:Number(x.toFixed(3)),y:Number(y.toFixed(3)),nota:'',severidad:'menor'});setDirty();render()}
@@ -211,6 +274,7 @@ async function decorateTripSignatureLinksV148(){
 
 async function init(){
  if(!$('inspection-panel')||!window.SkilledDB)return;
+ ensureInspectionEnhancementsV150();
  await refresh();
  $('base-vehicle')?.addEventListener('change',e=>selectVehicle(e.target.value));
  $('base-save')?.addEventListener('click',save);
@@ -218,7 +282,7 @@ async function init(){
  $('base-visual-map')?.addEventListener('click',addDamage);
  $('base-clear-view')?.addEventListener('click',()=>{if(!selectedVehicle)return;const count=damages.filter(d=>d.vista===currentView).length;if(count&&confirm(`¿Eliminar las ${count} marcas de ${viewLabels[currentView]}?`)){damages=damages.filter(d=>d.vista!==currentView);setDirty();render()}});
  document.querySelectorAll('[data-base-view]').forEach(b=>b.addEventListener('click',()=>{currentView=b.dataset.baseView;document.querySelectorAll('[data-base-view]').forEach(x=>x.classList.toggle('is-active',x===b));render()}));
- document.querySelectorAll('[data-damage-type]').forEach(b=>b.addEventListener('click',()=>{currentDamageType=b.dataset.damageType;document.querySelectorAll('[data-damage-type]').forEach(x=>x.classList.toggle('is-active',x===b))}));
+ document.querySelectorAll('[data-damage-type]').forEach(b=>b.addEventListener('click',()=>{currentDamageType=b.dataset.damageType;document.querySelectorAll('[data-damage-type]').forEach(x=>x.classList.toggle('is-active',x===b));updateActiveDamageBadgeV150()}));
  document.querySelectorAll('#inspection-panel input,#inspection-panel select,#inspection-panel textarea').forEach(el=>{if(el.id!=='base-vehicle')el.addEventListener('input',()=>selectedVehicle&&setDirty())});
  if(!canManage()){$('base-save').disabled=true;$('base-save').title='Solo Jefe de Almacén/Administrador puede actualizar el estado base.';const promote=$('return-update-base');if(promote){promote.checked=false;promote.disabled=true;promote.closest('.return-update-base-v148')?.classList.add('opacity-50');promote.closest('.return-update-base-v148')?.setAttribute('title','Solo Jefe de Almacén/Administrador puede convertir un regreso en el nuevo estado base.')}}
 
@@ -260,7 +324,7 @@ async function init(){
 
  decorateTripSignatureLinksV148();
  ['trips-body','active-trips','grid'].forEach(id=>{const target=$(id);if(target)new MutationObserver(()=>decorateTripSignatureLinksV148()).observe(target,{childList:true,subtree:true})});
- window.addEventListener('skilled:vehicles-updated',refresh);
+ window.addEventListener('skilled:vehicles-updated',()=>{refresh().then(updateInspectionMetaV150).catch(()=>{})});
 }
 
 window.SkilledVehicleInspectionV149={open,refresh,lastTripBaseState:null,printResponsiva:printTripResponsivaV149,printBase:printReport,visualSvg:svg,reportVehicleQuad};window.SkilledVehicleInspectionV148=window.SkilledVehicleInspectionV149;if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();

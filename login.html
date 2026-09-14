@@ -2,23 +2,23 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<script src="skilled-config.js?v=149"></script>
+<script src="skilled-config.js?v=153"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=149" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=149">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=149">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=149">
-<link rel="manifest" href="/site.webmanifest?v=149">
-<meta name="application-name" content="Skilled CRM">
-<meta name="apple-mobile-web-app-title" content="Skilled CRM">
+<link rel="preconnect" href="https://pibvfosvufbwbnwfwbmw.supabase.co" crossorigin>
+<link rel="icon" href="/favicon.ico?v=153" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=153">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=153">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=153">
+<link rel="manifest" href="/site.webmanifest?v=153">
+<meta name="application-name" content="Nexus Obsidian CRM">
+<meta name="apple-mobile-web-app-title" content="Nexus Obsidian CRM">
 <meta name="color-scheme" content="dark">
-<link rel="stylesheet" href="interfaz.css?v=149">
+<link rel="stylesheet" href="interfaz.css?v=153">
 <script>document.documentElement.classList.remove('tema-claro');document.documentElement.dataset.crmTheme='oscuro';document.documentElement.style.colorScheme='dark';</script>
-<title>Skilled CRM — Iniciar sesión</title>
-<link rel="stylesheet" href="tailwind-local.css?v=149">
+<title>Nexus Obsidian CRM — Iniciar sesión</title>
+<link rel="stylesheet" href="tailwind-local.css?v=153">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -54,9 +54,13 @@
 @media(max-width:700px){body{overflow:auto}.login-stage{padding:18px}.login-orbit{padding:22px 0}.orbit-ring{display:none}.login-card{border-radius:21px}.login-header,.login-form{padding-left:23px;padding-right:23px}.logo-shell{width:min(210px,88%);height:82px;margin:0 auto 3px}.login-logo{width:154px;max-height:60px}}
 @media(prefers-reduced-motion:reduce){.login-scene::before,.scene-grid,.glow,.particle,.orbit-ring,.logo-shell::before,.login-card::after,.security-pill i{animation:none!important}.login-orbit{animation:none}}
 </style>
-<script src="skilled-search.js?v=149"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='149',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
-<link rel="stylesheet" href="crm-v83-design.css?v=149"></head>
+<script src="skilled-search.js?v=153"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='150',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v83-design.css?v=153">
+<link rel="stylesheet" href="nexus-obsidian-theme.css?v=156">
+<script src="nexus-branding.js?v=153" defer></script>
+<script src="nexus-security.js?v=153" defer></script>
+</head>
 <body class="login-dark crm-v83-no-sidebar">
 <div class="login-scene" aria-hidden="true">
 <div class="scene-grid"></div><div class="scanline"></div><div class="glow blue"></div><div class="glow red"></div><div id="particles"></div>
@@ -67,20 +71,20 @@
 <section class="login-card" aria-label="Inicio de sesión del CRM">
 <div class="card-accent"></div>
 <header class="login-header">
-<div class="logo-shell"><img src="logo-reporte.png" alt="Skilled Proyectos Industriales" class="login-logo"></div>
+<div class="logo-shell"><img src="logo-reporte.png" alt="Nexus Obsidian" class="login-logo"></div>
 <div class="security-pill"><i></i> Plataforma corporativa protegida</div>
 </header>
 <form id="login-form" class="login-form">
-<div class="form-row"><label for="email">Correo electrónico <span>Cuenta autorizada</span></label><div class="input-wrap"><span class="input-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="m4 7 8 6 8-6"></path></svg></span><input id="email" type="email" required autocomplete="email" placeholder="nombre@skilled.mx"></div></div>
+<div class="form-row"><label for="email">Correo electrónico <span>Cuenta autorizada</span></label><div class="input-wrap"><span class="input-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><path d="m4 7 8 6 8-6"></path></svg></span><input id="email" type="email" required autocomplete="email" placeholder="tu-correo@empresa.com"></div></div>
 <div class="form-row"><label for="password">Contraseña <span>Acceso cifrado</span></label><div class="input-wrap"><span class="input-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></span><input id="password" type="password" required autocomplete="current-password" placeholder="••••••••••••"><button id="toggle-password" type="button" class="password-toggle" title="Mostrar contraseña" aria-label="Mostrar contraseña"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div></div>
 <p id="login-message" class="hidden login-message"></p>
 <button id="login-button" type="submit" class="login-submit"><span class="button-content"><span class="button-spinner"></span><span id="login-button-text">Entrar al CRM</span></span></button>
-<div class="login-footer"><span class="footer-status">Servicio conectado</span><strong>Skilled Proyectos Industriales</strong></div>
+<div class="login-footer"><span class="footer-status">Servicio conectado</span><strong>Nexus Obsidian</strong></div>
 </form>
 </section>
 </div>
 </main>
-<script src="skilled-supabase.js?v=149"></script>
+<script src="skilled-supabase.js?v=156"></script>
 <script>
 (function(){
 const form=document.getElementById('login-form');
@@ -139,6 +143,6 @@ location.replace(target);
 validateExistingSession();
 })();
 </script>
-<script src="crm-v78-fixes.js?v=149" defer></script><script src="skilled-performance.js?v=149" defer></script>
-<script src="crm-v83-shell.js?v=149" defer></script></body>
+<script src="crm-v78-fixes.js?v=153" defer></script><script src="skilled-performance.js?v=153" defer></script>
+<script src="crm-v83-shell.js?v=153" defer></script></body>
 </html>

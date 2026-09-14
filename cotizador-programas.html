@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07101e">
+<meta name="description" content="Formulario para solicitar un programa personalizado para tu negocio.">
+<title>Solicita tu programa personalizado | Skilled</title>
+<link rel="icon" href="favicon.ico?v=153" sizes="any">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="cotizador-programas.css?v=153">
+<script src="skilled-config.js?v=153"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3" defer></script>
+<script src="cotizador-programas-catalogo.js?v=153" defer></script>
+<script src="cotizador-programas.js?v=153" defer></script>
+
+<link rel="stylesheet" href="nexus-obsidian-theme.css?v=156">
+<script src="nexus-branding.js?v=153" defer></script>
+<script src="nexus-security.js?v=153" defer></script>
+</head>
+<body class="quote-public">
+<div class="quote-noise" aria-hidden="true"></div>
+<header class="quote-public-header">
+<a class="quote-brand" href="https://www.skilled.mx" target="_blank" rel="noopener">
+<img src="logo-reporte.png" alt="Nexus Obsidian">
+<span class="quote-brand-copy"><strong>Soluciones digitales</strong><span>Programas personalizados para tu operación</span></span>
+</a>
+<div class="quote-secure"><i></i><span>Solicitud protegida</span></div>
+</header>
+<main class="quote-public-main">
+<section class="quote-intro">
+<div class="quote-intro-copy">
+<span class="quote-kicker">Diseñemos una solución a tu medida</span>
+<h1>Cuéntanos cómo debería funcionar tu programa</h1>
+<p>Selecciona las áreas, perfiles, herramientas, inteligencia artificial, página web e integraciones que necesitas. Revisaremos la información y prepararemos una propuesta personalizada para tu negocio.</p>
+<div class="quote-privacy-note"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0110 0v3"></path><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M12 14v3"></path></svg><span>Este formulario no muestra precios. El alcance será revisado antes de enviarte una propuesta.</span></div>
+</div>
+<aside class="quote-help-card">
+<h2>¿Cómo funciona?</h2>
+<p>Puedes avanzar a tu ritmo. Tus respuestas se guardan temporalmente en este dispositivo.</p>
+<ol class="quote-help-list">
+<li><b>1</b><div><strong>Describe tu negocio</strong><span>Datos de contacto, objetivo y situación actual.</span></div></li>
+<li><b>2</b><div><strong>Define los perfiles</strong><span>Agrega los puestos, usuarios y herramientas necesarias.</span></div></li>
+<li><b>3</b><div><strong>Selecciona funciones</strong><span>Elige solo lo que realmente ayudará a tu operación.</span></div></li>
+<li><b>4</b><div><strong>Envía tu solicitud</strong><span>La revisaremos para preparar una propuesta formal.</span></div></li>
+</ol>
+</aside>
+</section>
+<section class="quote-shell" id="quote-shell">
+<aside class="quote-steps" aria-label="Progreso del formulario">
+<div class="quote-progress-copy"><span>Avance de la solicitud</span><strong id="quote-progress-label">1 de 6</strong></div>
+<div class="quote-progress-track"><span id="quote-progress-bar"></span></div>
+<ol class="quote-step-list">
+<li><button type="button" class="quote-step-button is-active" data-step-target="1"><b>1</b><span>Tu negocio</span></button></li>
+<li><button type="button" class="quote-step-button" data-step-target="2"><b>2</b><span>Perfiles</span></button></li>
+<li><button type="button" class="quote-step-button" data-step-target="3"><b>3</b><span>Funciones</span></button></li>
+<li><button type="button" class="quote-step-button" data-step-target="4"><b>4</b><span>IA y página</span></button></li>
+<li><button type="button" class="quote-step-button" data-step-target="5"><b>5</b><span>Implementación</span></button></li>
+<li><button type="button" class="quote-step-button" data-step-target="6"><b>6</b><span>Revisión</span></button></li>
+</ol>
+<div class="quote-side-note">Puedes seleccionar varias opciones. Si una función no aparece, descríbela en “Funciones adicionales”.</div>
+</aside>
+<form class="quote-form-card" id="quote-form" novalidate>
+<div id="quote-form-content">
+<section class="quote-step-panel is-active" data-step="1">
+<div class="quote-panel-heading"><div><small>Paso 1</small><h2>Conozcamos tu negocio</h2><p>Estos datos nos ayudarán a entender quién utilizará el programa y qué problema debe resolver.</p></div><span class="quote-step-count">Información general</span></div>
+<div class="quote-grid">
+<div class="quote-field"><label for="contact-name">Nombre completo <span>*</span></label><input id="contact-name" name="contactName" maxlength="120" autocomplete="name" required placeholder="Tu nombre y apellidos"></div>
+<div class="quote-field"><label for="contact-company">Empresa o negocio <span>*</span></label><input id="contact-company" name="company" maxlength="140" autocomplete="organization" required placeholder="Nombre de tu negocio"></div>
+<div class="quote-field"><label for="contact-position">Puesto o responsabilidad</label><input id="contact-position" name="position" maxlength="100" autocomplete="organization-title" placeholder="Ej. Propietario, gerente, administrador"></div>
+<div class="quote-field"><label for="contact-industry">Giro del negocio</label><input id="contact-industry" name="industry" maxlength="120" placeholder="Ej. Construcción, comercio, salud, servicios"></div>
+<div class="quote-field"><label for="contact-email">Correo electrónico</label><input id="contact-email" name="email" type="email" maxlength="160" autocomplete="email" placeholder="correo@empresa.com"><span class="quote-field-hint">Captura correo o teléfono; al menos uno es obligatorio.</span></div>
+<div class="quote-field"><label for="contact-phone">Teléfono o WhatsApp</label><input id="contact-phone" name="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="Ej. 771 000 0000"><span class="quote-field-hint">Incluye lada si es necesario.</span></div>
+<div class="quote-field"><label for="contact-city">Ciudad y estado</label><input id="contact-city" name="city" maxlength="120" autocomplete="address-level2" placeholder="Ej. Pachuca, Hidalgo"></div>
+<div class="quote-field"><label for="preferred-contact">¿Cómo prefieres que te contactemos?</label><select id="preferred-contact" name="preferredContact"><option value="whatsapp">WhatsApp</option><option value="telefono">Llamada telefónica</option><option value="correo">Correo electrónico</option><option value="cualquiera">Cualquiera</option></select></div>
+<div class="quote-field full"><label for="project-objective">¿Qué problema quieres resolver o mejorar? <span>*</span></label><textarea id="project-objective" name="objective" maxlength="1800" required placeholder="Describe cómo trabajan actualmente, qué se complica y qué te gustaría que hiciera el programa."></textarea></div>
+<div class="quote-field"><label for="current-system">¿Qué utilizan actualmente?</label><select id="current-system" name="currentSystem"><option value="ninguno">No utilizamos un sistema</option><option value="papel">Papel o formatos impresos</option><option value="excel">Excel u hojas de cálculo</option><option value="sistema">Otro sistema o programa</option><option value="mixto">Una combinación de varios medios</option></select></div>
+<div class="quote-field"><label for="estimated-users">Cantidad aproximada de usuarios</label><select id="estimated-users" name="estimatedUsers"><option value="1-5">1 a 5 usuarios</option><option value="6-15">6 a 15 usuarios</option><option value="16-30">16 a 30 usuarios</option><option value="31-60">31 a 60 usuarios</option><option value="61-100">61 a 100 usuarios</option><option value="100+">Más de 100 usuarios</option></select></div>
+</div>
+<div class="quote-error" data-step-error="1"></div>
+</section>
+<section class="quote-step-panel" data-step="2">
+<div class="quote-panel-heading"><div><small>Paso 2</small><h2>Perfiles, usuarios y herramientas</h2><p>Agrega cada puesto que utilizará el programa. Puedes crear tantos perfiles como necesites y definir las herramientas de cada uno.</p></div><span class="quote-step-count">Accesos por puesto</span></div>
+<div class="quote-profile-summary"><div><strong>Perfiles del programa</strong><span>Ejemplos: Administrador, Ventas, Compras, Almacén, RH, Supervisión o Cliente.</span></div><button type="button" class="quote-btn secondary" id="add-profile"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Agregar perfil</button></div>
+<div class="quote-profiles" id="quote-profiles"></div>
+<div class="quote-error" data-step-error="2"></div>
+</section>
+<section class="quote-step-panel" data-step="3">
+<div class="quote-panel-heading"><div><small>Paso 3</small><h2>Funciones del programa</h2><p>Selecciona los módulos y herramientas que se parecen a lo que necesitas. Después podremos ajustar el alcance contigo.</p></div><span class="quote-step-count">Selección múltiple</span></div>
+<div class="quote-catalog-toolbar"><label class="quote-catalog-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="function-search" type="search" placeholder="Buscar una función, por ejemplo: inventario, nómina, vehículos..."></label><span class="quote-selection-badge" id="module-selection-count">0 funciones seleccionadas</span></div>
+<div class="quote-groups" id="module-groups"></div>
+<div class="quote-empty-search" id="module-empty">No encontramos funciones con ese término. Puedes describirla más adelante.</div>
+<div class="quote-error" data-step-error="3"></div>
+</section>
+<section class="quote-step-panel" data-step="4">
+<div class="quote-panel-heading"><div><small>Paso 4</small><h2>IA, página web e integraciones</h2><p>Añade inteligencia artificial, una página para anunciar tu negocio y conexiones con otras herramientas.</p></div><span class="quote-step-count">Opciones avanzadas</span></div>
+<div class="quote-groups" id="advanced-groups"></div>
+<div class="quote-error" data-step-error="4"></div>
+</section>
+<section class="quote-step-panel" data-step="5">
+<div class="quote-panel-heading"><div><small>Paso 5</small><h2>Implementación y necesidades adicionales</h2><p>Cuéntanos dónde se utilizará, qué información existe y cuándo te gustaría comenzar.</p></div><span class="quote-step-count">Últimos detalles</span></div>
+<div class="quote-section-label"><h3>¿Dónde necesitas utilizarlo?</h3><p>Selecciona la modalidad principal.</p></div>
+<div class="quote-choice-grid">
+<label class="quote-choice"><input type="radio" name="deployment" value="nube" checked><strong>En internet o nube</strong><small>Disponible desde diferentes lugares con acceso autorizado.</small></label>
+<label class="quote-choice"><input type="radio" name="deployment" value="local"><strong>En equipos o servidor local</strong><small>Operación dentro de las instalaciones o red del negocio.</small></label>
+<label class="quote-choice"><input type="radio" name="deployment" value="hibrido"><strong>Modalidad híbrida</strong><small>Combina funciones locales, nube y sincronización.</small></label>
+</div>
+<div class="quote-section-label"><h3>Prioridad del proyecto</h3><p>La fecha se confirmará después de revisar el alcance.</p></div>
+<div class="quote-choice-grid">
+<label class="quote-choice"><input type="radio" name="priority" value="flexible" checked><strong>Fecha flexible</strong><small>Prefiero planear correctamente el alcance y las etapas.</small></label>
+<label class="quote-choice"><input type="radio" name="priority" value="normal"><strong>Necesidad próxima</strong><small>Me gustaría comenzar durante los próximos meses.</small></label>
+<label class="quote-choice"><input type="radio" name="priority" value="urgente"><strong>Necesidad urgente</strong><small>Existe una fecha o problema operativo que debemos atender pronto.</small></label>
+</div>
+<div class="quote-grid three" style="margin-top:24px">
+<div class="quote-field"><label for="desired-date">Fecha deseada</label><input id="desired-date" name="desiredDate" type="date"></div>
+<div class="quote-field"><label for="existing-data">Información para migrar</label><select id="existing-data" name="existingData"><option value="sin_datos">No hay información previa</option><option value="poca">Pocos archivos o registros</option><option value="media">Varias hojas o bases de datos</option><option value="alta">Gran cantidad de información</option><option value="por_revisar">Necesito que la revisemos</option></select></div>
+<div class="quote-field"><label for="budget-range">Presupuesto considerado</label><select id="budget-range" name="budgetRange"><option value="por_definir">Aún no está definido</option><option value="menos_20">Menos de $20,000 MXN</option><option value="20_50">$20,000 a $50,000 MXN</option><option value="50_100">$50,000 a $100,000 MXN</option><option value="100_250">$100,000 a $250,000 MXN</option><option value="250_mas">Más de $250,000 MXN</option><option value="etapas">Prefiero desarrollarlo por etapas</option></select></div>
+<div class="quote-field full"><label for="additional-functions">Funciones adicionales o reglas especiales</label><textarea id="additional-functions" name="additionalFunctions" maxlength="2500" placeholder="Escribe cualquier función que no aparezca en la lista, reportes especiales, autorizaciones, reglas del negocio o conexiones que necesites."></textarea></div>
+<div class="quote-field full"><label for="additional-context">Comentarios o información útil</label><textarea id="additional-context" name="additionalContext" maxlength="1800" placeholder="Puedes mencionar cantidad de sucursales, dispositivos, documentos actuales, problemas frecuentes o cualquier detalle importante."></textarea></div>
+</div>
+<div class="quote-error" data-step-error="5"></div>
+</section>
+<section class="quote-step-panel" data-step="6">
+<div class="quote-panel-heading"><div><small>Paso 6</small><h2>Revisa tu solicitud</h2><p>Verifica que la información represente lo que buscas. Enviar la solicitud no genera ningún cargo ni compromiso.</p></div><span class="quote-step-count">Confirmación</span></div>
+<div class="quote-review" id="quote-review"></div>
+<label class="quote-consent"><input id="quote-consent" type="checkbox" required><span><strong>Confirmo que la información es correcta y autorizo el contacto para dar seguimiento. <em style="color:#ea8295">*</em></strong><span>Mis datos se utilizarán únicamente para analizar esta solicitud y comunicarse conmigo.</span></span></label>
+<label class="quote-honeypot" aria-hidden="true">Sitio web<input id="company-website-confirm" type="text" tabindex="-1" autocomplete="off"></label>
+<div class="quote-error" data-step-error="6"></div>
+</section>
+</div>
+<section class="quote-success-screen" id="quote-success" aria-live="polite">
+<div class="quote-success-box"><div class="quote-success-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></div><h2>Solicitud enviada correctamente</h2><p>Gracias por compartir las necesidades de tu negocio. Revisaremos las funciones seleccionadas y nos comunicaremos contigo para aclarar el alcance y preparar una propuesta personalizada.</p><span class="quote-folio" id="success-folio"></span><div class="quote-success-actions"><button type="button" class="quote-btn primary" id="new-request">Crear otra solicitud</button><button type="button" class="quote-btn secondary" id="print-confirmation">Imprimir confirmación</button></div></div>
+</section>
+<footer class="quote-form-actions" id="quote-actions">
+<span class="quote-save-state" id="draft-state">Borrador guardado en este dispositivo</span>
+<div class="quote-submit-status" id="submit-status"><span class="quote-spinner"></span>Enviando solicitud...</div>
+<div class="quote-form-actions-right"><button type="button" class="quote-btn ghost" id="previous-step">Anterior</button><button type="button" class="quote-btn primary" id="next-step">Continuar <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button><button type="submit" class="quote-btn primary" id="submit-request" hidden>Enviar solicitud <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></button></div>
+</footer>
+</form>
+</section>
+</main>
+<footer class="quote-public-footer"><span>© <span id="quote-year"></span> Nexus Obsidian</span><strong>Soluciones diseñadas para procesos reales</strong></footer>
+</body>
+</html>

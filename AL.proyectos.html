@@ -3,29 +3,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+<script src="skilled-config.js?v=153"></script>
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#060814">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://cuxnzqbszzrfnrinxbdp.supabase.co" crossorigin>
-<link rel="icon" href="/favicon.ico?v=53" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=53">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=53">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=53">
-<link rel="manifest" href="/site.webmanifest?v=53">
-<meta name="application-name" content="Skilled CRM">
-<meta name="apple-mobile-web-app-title" content="Skilled CRM">
-<link rel="stylesheet" href="interfaz.css?v=53"><script src="skilled-theme.js?v=53"></script>
-<script src="navegacion-suave.js?v=53"></script>
-<title>Skilled - Proyectos</title>
+<link rel="preconnect" href="https://pibvfosvufbwbnwfwbmw.supabase.co" crossorigin>
+<link rel="icon" href="/favicon.ico?v=153" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=153">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=153">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=153">
+<link rel="manifest" href="/site.webmanifest?v=153">
+<meta name="application-name" content="Nexus Obsidian CRM">
+<meta name="apple-mobile-web-app-title" content="Nexus Obsidian CRM">
+<link rel="stylesheet" href="interfaz.css?v=153"><script src="skilled-theme.js?v=153"></script>
+<script src="navegacion-suave.js?v=153"></script>
+<title>Nexus Obsidian - Proyectos</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"></script>
-    <script src="skilled-supabase.js?v=53"></script>
-<script src="auth-guard.js?v=53"></script>
-    <link rel="stylesheet" href="tailwind-local.css?v=53">
+    <script src="skilled-supabase.js?v=156"></script>
+<script src="auth-guard.js?v=153"></script>
+    <link rel="stylesheet" href="tailwind-local.css?v=153">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
     <style>
         body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #060814; }
         input[type=number]::-webkit-inner-spin-button,
@@ -105,9 +105,16 @@
             }
         })();
     </script>
-    <script src="skilled-sidebar.js?v=53" defer></script>
-<script src="skilled-search.js?v=53"></script>
-<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='53',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+    <script src="skilled-sidebar.js?v=153" defer></script>
+<script src="skilled-search.js?v=153"></script>
+<script id="skilled-boot-recovery">(()=>{'use strict';const RELEASE='150',FLAG='skilled_recovery_once_'+RELEASE;async function clearStale(){try{if(!('serviceWorker'in navigator))return false;const controller=navigator.serviceWorker.controller;if(!controller){try{sessionStorage.removeItem(FLAG)}catch(_){}return false}const script=String(controller.scriptURL||'');if(!/crm-sw\.js/i.test(script)||new RegExp('[?&]v='+RELEASE+'(?:&|$)').test(script))return false;try{if(sessionStorage.getItem(FLAG)==='1')return false;sessionStorage.setItem(FLAG,'1')}catch(_){}const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>/^skilled-crm/i.test(k)).map(k=>caches.delete(k).catch(()=>false)))}location.reload();return true}catch(_){return false}}clearStale();window.addEventListener('DOMContentLoaded',()=>{const name=(location.pathname.split('/').pop()||'').toLowerCase();if(/^(login|index|limpiar-cache|recuperar-crm)(?:\.html)?$/.test(name))return;setTimeout(()=>{const missing=[];if(!window.SkilledDB)missing.push('conexión');if(!document.getElementById('skilled-sidebar'))missing.push('menú');if(!missing.length)return;if(document.getElementById('skilled-runtime-warning'))return;const box=document.createElement('div');box.id='skilled-runtime-warning';box.style.cssText='position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;width:min(620px,calc(100vw - 24px));padding:12px 14px;border:1px solid #ef4444;border-radius:12px;background:#200b12;color:#fecaca;font:600 12px/1.45 Inter,system-ui,sans-serif;box-shadow:0 16px 45px rgba(0,0,0,.45)';box.innerHTML='El CRM no pudo cargar '+missing.join(' y ')+'. <a href="recuperar-crm.html" style="color:#93c5fd;text-decoration:underline">Recuperar el CRM</a>';document.body.appendChild(box)},4500)},{once:true})})();</script>
+<link rel="stylesheet" href="crm-v69-responsive.css?v=153">
+<link rel="stylesheet" href="crm-v83-design.css?v=153">
+<link rel="stylesheet" href="nexus-obsidian-theme.css?v=156">
+<script src="nexus-branding.js?v=153" defer></script>
+<script src="nexus-security.js?v=153" defer></script>
+
+<script src="nexus-demo-profiles.js?v=156" defer></script>
 </head>
 <script>console.info('SKILLED CRM: Supabase Only v10 — Historial y reporte de alcance');</script>
 <body class="text-gray-300 min-h-screen flex overflow-x-hidden">
@@ -127,7 +134,7 @@
         <div class="overflow-y-auto flex-1 lista-scroll">
             <div class="p-6 border-b border-[#161f38] flex items-center justify-between">
                 <a href="AL.inicio.html" title="Ir al inicio">
-                    <img src="logo-reporte.png" alt="Skilled Logo" class="h-9 w-auto object-contain">
+                    <img src="logo-reporte.png" alt="Nexus Obsidian" class="h-9 w-auto object-contain">
                 </a>
             </div>
             <nav class="p-4 space-y-6 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
@@ -358,6 +365,7 @@
                     <div class="flex items-center gap-2">
                         <button onclick="volverALista()" class="px-3.5 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition">← Volver</button>
                         <button onclick="actualizarDetalle()" class="px-3.5 py-2 rounded-lg border border-[#243257] bg-[#10172a] hover:bg-[#151c35] text-xs font-semibold text-gray-300 transition">Actualizar</button>
+                        <a id="btn-devolver-sobrantes" href="AL.devolucion-sobrantes.html" class="hidden px-3.5 py-2 rounded-lg border border-emerald-500/35 bg-emerald-950/20 hover:bg-emerald-900/25 text-xs font-semibold text-emerald-300 transition">Devolver sobrantes</a>
                         <button id="btn-editar-plan-superior" onclick="activarEdicionPlan()" class="px-3.5 py-2 rounded-lg border border-blue-500/40 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition">Editar plan</button>
                     </div>
                 </div>
@@ -395,7 +403,6 @@
                     <button data-tab="seguimiento" onclick="cambiarTab('seguimiento')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">◉ Seguimiento</button>
                     <button data-tab="historial" onclick="cambiarTab('historial')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">↶ Historial <span id="badge-historial" class="ml-1 text-[9px] bg-[#161f38] px-1.5 py-0.5 rounded-full">0</span></button>
                     <button data-tab="herramientas" onclick="cambiarTab('herramientas')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">⌁ Herramientas <span id="badge-herramientas-proyecto" class="ml-1 text-[9px] bg-[#161f38] px-1.5 py-0.5 rounded-full">0</span></button>
-                    <button data-tab="servicios" onclick="cambiarTab('servicios')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">◇ Servicios <span id="badge-servicios-proyecto" class="ml-1 text-[9px] bg-[#161f38] px-1.5 py-0.5 rounded-full">0</span></button>
                     <button data-tab="reporte" onclick="cambiarTab('reporte')" class="tab-proyecto whitespace-nowrap pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-300">▤ Reporte de alcance</button>
                 </div>
 
@@ -482,7 +489,10 @@
                                     Material no enlistado
                                 </button>
                             </div>
-                            <p class="mt-2 text-[10px] text-gray-600">Los materiales no enlistados se guardan solo dentro del plan del proyecto y no modifican el inventario del catálogo.</p>
+                            <div class="mt-2 flex flex-col gap-1 text-[10px] text-gray-600">
+                                <p>Los materiales no enlistados se guardan solo dentro del plan del proyecto y no modifican el inventario del catálogo.</p>
+                                <p class="text-blue-300/80">Puedes agregar varias veces el mismo material para organizar la captura. Si un código se repite, al guardar el plan sus cantidades se sumarán automáticamente y quedará una sola partida.</p>
+                            </div>
 
                             <div class="mt-4 overflow-x-auto lista-scroll border border-[#1b2642] rounded-xl">
                                 <table class="w-full min-w-[1060px] text-left">
@@ -501,7 +511,10 @@
                                 </table>
                                 <div id="editor-plan-vacio" class="px-5 py-10 text-center text-xs text-gray-500">Busca un material para agregarlo al plan.</div>
                             </div>
-                            <div class="mt-3 text-right text-[10px] text-gray-500">Costo total planeado (sin guardar): <span id="total-editor-plan" class="font-mono text-gray-300">$0.00</span></div>
+                            <div class="mt-3 flex flex-col items-end gap-1 text-right text-[10px] text-gray-500">
+                                <div id="resumen-consolidacion-plan">Sin partidas repetidas.</div>
+                                <div>Costo planeado por moneda (sin guardar): <span id="total-editor-plan" class="font-mono text-gray-300">$0.00</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -557,39 +570,6 @@
                     <section class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden"><div class="p-4 border-b border-[#161f38]"><div class="text-xs font-bold text-white">Unidades asignadas actualmente</div><div class="text-[10px] text-gray-500 mt-1">Resguardos activos vinculados al proyecto.</div></div><div id="unidades-asignadas-proyecto" class="divide-y divide-[#161f38]"></div><div id="vacio-asignaciones-proyecto" class="hidden py-12 text-center text-xs text-gray-500">No hay unidades de herramientas asignadas.</div></section>
                 </div>
 
-
-                <div id="tab-servicios" class="tab-contenido hidden">
-                    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
-                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Servicios registrados</p><strong id="servicios-kpi-total" class="block mt-2 text-xl text-white">0</strong><p class="text-[9px] text-gray-600 mt-1">Historial vinculado al proyecto</p></article>
-                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Pendientes / en proceso</p><strong id="servicios-kpi-pendientes" class="block mt-2 text-xl text-amber-400">0</strong><p class="text-[9px] text-gray-600 mt-1">Requieren seguimiento</p></article>
-                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Completados</p><strong id="servicios-kpi-completados" class="block mt-2 text-xl text-emerald-400">0</strong><p class="text-[9px] text-gray-600 mt-1">Servicios cerrados</p></article>
-                        <article class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4"><p class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Costo registrado</p><strong id="servicios-kpi-costo" class="block mt-2 text-lg text-blue-300">$0.00 MXN</strong><p class="text-[9px] text-gray-600 mt-1">Sin convertir monedas</p></article>
-                    </section>
-                    <section class="bg-[#090d1a] border border-[#161f38] rounded-xl overflow-hidden">
-                        <div class="p-4 border-b border-[#161f38] flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                            <div>
-                                <div class="text-xs font-bold text-white">Servicios de equipos vinculados al proyecto</div>
-                                <div class="text-[10px] text-gray-500 mt-1">Registra mantenimiento, reparación, inspección, calibración u otros trabajos realizados a equipos de oficina, vehículos y herramientas.</div>
-                            </div>
-                            <button type="button" onclick="abrirModalServicioProyecto()" class="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[10px] font-semibold text-white whitespace-nowrap">+ Registrar servicio</button>
-                        </div>
-                        <div class="p-4 border-b border-[#161f38] grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr] gap-3">
-                            <div class="relative"><span class="absolute inset-y-0 left-3 flex items-center text-gray-600">⌕</span><input id="servicios-filtro-busqueda" oninput="renderServiciosProyecto()" placeholder="Buscar activo, servicio, responsable, proveedor o referencia..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg pl-9 pr-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></div>
-                            <select id="servicios-filtro-activo" onchange="renderServiciosProyecto()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="">Todos los activos</option><option value="equipo_oficina">Equipos de oficina</option><option value="vehiculo">Vehículos</option><option value="herramienta">Herramientas</option></select>
-                            <select id="servicios-filtro-estado" onchange="renderServiciosProyecto()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300"><option value="">Todos los estados</option><option value="programado">Programado</option><option value="pendiente">Pendiente</option><option value="en_proceso">En proceso</option><option value="completado">Completado</option><option value="cancelado">Cancelado</option></select>
-                        </div>
-                        <div id="servicios-aviso" class="hidden mx-4 mt-4 rounded-lg border border-amber-500/30 bg-amber-950/15 px-4 py-3 text-[10px] text-amber-300"></div>
-                        <div class="overflow-x-auto lista-scroll">
-                            <table class="w-full min-w-[1120px] text-left">
-                                <thead class="bg-[#0d1325] text-[9px] uppercase tracking-wider text-gray-500"><tr><th class="px-4 py-3">Fecha</th><th class="px-4 py-3">Activo</th><th class="px-4 py-3">Servicio</th><th class="px-4 py-3">Estado</th><th class="px-4 py-3">Responsable / proveedor</th><th class="px-4 py-3">Referencia</th><th class="px-4 py-3 text-right">Costo</th><th class="px-4 py-3 text-right">Acciones</th></tr></thead>
-                                <tbody id="tabla-servicios-proyecto"></tbody>
-                            </table>
-                        </div>
-                        <div id="servicios-vacio" class="hidden py-14 text-center"><div class="w-11 h-11 mx-auto rounded-full bg-[#060a14] border border-[#161f38] flex items-center justify-center text-gray-600">◇</div><div class="mt-3 text-xs font-semibold text-gray-400">No hay servicios registrados</div><div class="mt-1 text-[10px] text-gray-600">Los servicios que registres aquí quedarán ligados a este proyecto.</div></div>
-                        <div class="px-4 py-3 border-t border-[#161f38] flex items-center justify-between gap-3"><span id="servicios-contador" class="text-[9px] text-gray-500">0 registros</span><button type="button" onclick="limpiarFiltrosServiciosProyecto()" class="text-[9px] text-gray-500 hover:text-gray-300">Limpiar filtros</button></div>
-                    </section>
-                </div>
-
                 <div id="tab-reporte" class="tab-contenido hidden">
                     <div class="bg-[#090d1a] border border-[#161f38] rounded-xl p-4 mb-4">
                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -641,8 +621,8 @@
                     <div id="reporte-alcance-preview" class="reporte-hoja">
                         <div class="flex items-start justify-between gap-6 pb-5 mb-5" style="border-bottom:2px solid #8aa0bf">
                             <div class="flex items-center gap-3">
-                                <img src="logo-reporte.png" alt="Skilled Proyectos Industriales" class="h-12 w-auto object-contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-                                <div style="display:none;font-size:16px;font-weight:700;color:#00416b">Skilled Proyectos Industriales</div>
+                                <img src="logo-reporte.png" alt="Nexus Obsidian" class="h-12 w-auto object-contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                                <div style="display:none;font-size:16px;font-weight:700;color:#00416b">Nexus Obsidian</div>
                             </div>
                             <div class="text-right">
                                 <div class="font-bold text-sm" style="color:#003763">REPORTE DE ALCANCE</div>
@@ -657,42 +637,15 @@
         </main>
     </div>
 
-
-    <div id="modal-servicio-proyecto" class="hidden fixed inset-0 z-[115] bg-black/80 items-center justify-center p-4">
-        <div class="w-full max-w-4xl max-h-[92vh] bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl flex flex-col overflow-hidden">
-            <div class="px-5 py-4 border-b border-[#161f38] flex items-start justify-between gap-4">
-                <div><h3 id="servicio-modal-titulo" class="text-sm font-bold text-white">Registrar servicio</h3><p class="text-[10px] text-gray-500 mt-1">El servicio quedará relacionado con el proyecto abierto y conservará la referencia del activo.</p></div>
-                <button type="button" onclick="cerrarModalServicioProyecto()" class="text-gray-500 hover:text-white text-xl">×</button>
-            </div>
-            <div class="p-5 overflow-y-auto lista-scroll">
-                <div id="servicio-modal-aviso" class="hidden mb-4 rounded-lg border border-rose-500/30 bg-rose-950/15 px-4 py-3 text-[10px] text-rose-300"></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Tipo de activo *</label><select id="servicio-activo-tipo" onchange="actualizarActivosServicioProyecto()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"><option value="equipo_oficina">Equipo de oficina</option><option value="vehiculo">Vehículo</option><option value="herramienta">Herramienta</option></select></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Equipo / vehículo / herramienta *</label><select id="servicio-activo-id" onchange="alternarActivoManualServicioProyecto()" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></select></div>
-                    <div id="servicio-activo-manual" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Código / identificación</label><input id="servicio-activo-codigo" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Código, placas o número económico"></div><div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Nombre del activo *</label><input id="servicio-activo-nombre" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Nombre o descripción del equipo"></div></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Tipo de servicio *</label><select id="servicio-tipo" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"><option value="mantenimiento_preventivo">Mantenimiento preventivo</option><option value="mantenimiento_correctivo">Mantenimiento correctivo</option><option value="reparacion">Reparación</option><option value="inspeccion">Inspección</option><option value="calibracion">Calibración</option><option value="limpieza">Limpieza</option><option value="diagnostico">Diagnóstico</option><option value="otro">Otro</option></select></div>
-                    <div class="grid grid-cols-2 gap-3"><div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Fecha *</label><input id="servicio-fecha" type="date" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></div><div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Estado *</label><select id="servicio-estado" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"><option value="programado">Programado</option><option value="pendiente">Pendiente</option><option value="en_proceso">En proceso</option><option value="completado">Completado</option><option value="cancelado">Cancelado</option></select></div></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Responsable</label><input id="servicio-responsable" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Persona responsable del servicio"></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Proveedor / taller</label><input id="servicio-proveedor" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Proveedor externo o área interna"></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Folio / referencia</label><input id="servicio-referencia" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Factura, OT, ticket o referencia"></div>
-                    <div class="grid grid-cols-[1fr_110px] gap-3"><div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Costo</label><input id="servicio-costo" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></div><div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Moneda</label><select id="servicio-moneda" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"><option value="MXN">MXN</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div></div>
-                    <div class="md:col-span-2"><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Servicio realizado / alcance *</label><textarea id="servicio-descripcion" rows="3" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500 resize-y" placeholder="Describe con claridad qué se revisó, reparó, cambió o realizó."></textarea></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Próximo servicio</label><input id="servicio-proximo" type="date" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></div>
-                    <div><label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Notas</label><input id="servicio-notas" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500" placeholder="Observaciones adicionales"></div>
-                </div>
-            </div>
-            <div class="px-5 py-4 border-t border-[#161f38] flex items-center justify-between gap-3"><div id="servicio-modal-proyecto" class="text-[10px] text-gray-500"></div><div class="flex gap-3"><button type="button" onclick="cerrarModalServicioProyecto()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button id="servicio-btn-guardar" type="button" onclick="guardarServicioProyecto()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Guardar servicio</button></div></div>
-        </div>
-    </div>
-
-    <div id="modal-proyecto" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-        <div class="bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
-            <div class="px-5 py-4 border-b border-[#161f38] flex items-center justify-between">
+    <div id="modal-proyecto" class="crm-workspace-overlay hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="crm-workspace-dialog crm-project-dialog bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
+            <div class="crm-dialog-head px-5 py-4 border-b border-[#161f38] flex items-center justify-between gap-4 shrink-0">
                 <div><div id="modal-titulo" class="text-sm font-bold text-white">Nuevo proyecto</div><div class="text-[10px] text-gray-500 mt-1">Primero crea el proyecto. Después podrás abrirlo y construir o modificar su plan de materiales cuando lo necesites.</div></div>
                 <button onclick="cerrarModalProyecto()" class="text-gray-500 hover:text-white text-xl">×</button>
             </div>
-            <form id="form-proyecto" class="p-5">
+            <form id="form-proyecto" class="crm-dialog-form flex min-h-0 flex-1 flex-col">
                 <input type="hidden" id="proyecto-original">
+                <div class="crm-dialog-scroll p-5 overflow-y-auto lista-scroll min-h-0 flex-1">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">No. de proyecto (ID) *</label>
@@ -745,7 +698,8 @@
                         <input id="f-fecha-entrega" type="date" required class="w-full bg-[#060a14] border border-[#1b2642] rounded-lg px-3 py-2.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500">
                     </div>
                 </div>
-                <div class="flex justify-between gap-3 mt-6 pt-4 border-t border-[#161f38]">
+                </div>
+                <div class="crm-dialog-foot flex justify-between gap-3 px-5 py-4 border-t border-[#161f38] shrink-0 bg-[#090d1a]">
                     <button id="btn-eliminar-proyecto" type="button" onclick="eliminarProyectoActual()" class="hidden px-4 py-2.5 rounded-lg text-xs font-semibold text-red-400 hover:bg-red-950/20">Eliminar prueba</button>
                     <div class="ml-auto flex gap-3"><button type="button" onclick="cerrarModalProyecto()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button><button id="btn-guardar-proyecto" type="submit" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white">Guardar proyecto</button></div>
                 </div>
@@ -753,16 +707,16 @@
         </div>
     </div>
 
-    <div id="modal-no-listado-plan" class="hidden fixed inset-0 z-[90] bg-black/75 items-center justify-center p-4">
-        <div class="w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
+    <div id="modal-no-listado-plan" class="crm-fit-overlay hidden fixed inset-0 z-[90] bg-black/75 items-center justify-center p-4">
+        <div class="crm-fit-dialog w-full max-w-xl bg-[#090d1a] border border-[#243257] rounded-xl shadow-2xl overflow-hidden">
+            <div class="crm-fit-head px-6 py-4 border-b border-[#161f38] flex items-center justify-between gap-4">
                 <div>
                     <h3 class="text-sm font-bold text-white">Añadir material no enlistado</h3>
-                    <p class="text-[10px] text-gray-500 mt-1">Se registrará únicamente dentro del plan de este proyecto.</p>
+                    <p class="text-[10px] text-gray-500 mt-1">Se agregará al plan y quedará identificado por su código de marca / modelo para completar después su información comercial.</p>
                 </div>
                 <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="text-gray-500 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
-            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="crm-fit-body p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="sm:col-span-2">
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Descripción *</label>
                     <input id="plan-nl-descripcion" type="text" placeholder="Ej. Conector especial para instalación" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
@@ -770,6 +724,10 @@
                 <div>
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código o referencia</label>
                     <input id="plan-nl-codigo" type="text" placeholder="Se genera si lo dejas vacío" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Código de marca / modelo</label>
+                    <input id="plan-nl-codigo-marca" type="text" placeholder="Número de parte o modelo del fabricante" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Categoría</label>
@@ -780,11 +738,19 @@
                     <input id="plan-nl-unidad" type="text" placeholder="PIEZA, METRO, LOTE..." class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Cantidad requerida *</label>
+                    <input id="plan-nl-cantidad" type="number" min="0.01" step="0.01" value="1" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
                     <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Precio unitario</label>
                     <input id="plan-nl-precio" type="number" min="0" step="0.01" value="0" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500">
                 </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Moneda del costo</label>
+                    <select id="plan-nl-moneda" class="w-full bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-amber-500"><option value="MXN">MXN — Peso mexicano</option><option value="USD">USD — Dólar estadounidense</option><option value="EUR">EUR — Euro</option></select>
+                </div>
             </div>
-            <div class="px-6 py-4 border-t border-[#161f38] flex justify-end gap-3">
+            <div class="crm-fit-foot px-6 py-4 border-t border-[#161f38] flex justify-end gap-3">
                 <button type="button" onclick="cerrarMaterialNoListadoPlan()" class="px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">Cancelar</button>
                 <button type="button" onclick="agregarMaterialNoListadoPlan()" class="px-4 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold">Añadir al plan</button>
             </div>
@@ -849,6 +815,9 @@
 
         const formatoNumero = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 });
         const formatoMoneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+        function codigoMonedaMaterial(linea = {}, material = {}) { const codigo = String(linea.monedaCosto || linea.moneda_costo || material.monedaCosto || material.moneda_costo || 'MXN').toUpperCase(); return ['MXN','USD','EUR'].includes(codigo) ? codigo : 'MXN'; }
+        function formatoCostoPorMoneda(valor, moneda = 'MXN') { try { return `${new Intl.NumberFormat('es-MX', { style: 'currency', currency: moneda, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(valor || 0))} ${moneda}`; } catch (_) { return `${Number(valor || 0).toFixed(2)} ${moneda}`; } }
+        function resumenCostosPorMoneda(lineas = []) { const totales = { MXN:0, USD:0, EUR:0 }; lineas.forEach(linea => { const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {}; const moneda = codigoMonedaMaterial(linea, material); const precio = Number(linea.precioUnitario || material.precio || 0); totales[moneda] += Number(linea.cantidadPlaneada || 0) * precio; }); const activos = Object.entries(totales).filter(([,valor]) => Math.abs(valor) > 0.000001); return activos.length ? activos.map(([moneda,valor]) => formatoCostoPorMoneda(valor,moneda)).join(' · ') : formatoCostoPorMoneda(0,'MXN'); }
 
         function escapeHTML(valor) {
             return String(valor ?? '')
@@ -1030,7 +999,6 @@
                 cargarMovimientosProyecto(),
                 cargarPlanProyecto()
             ]);
-            if (window.cargarResumenServiciosProyecto) await window.cargarResumenServiciosProyecto();
             iniciarRefrescoProyecto();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1063,7 +1031,6 @@
                     cargarMovimientosProyecto(),
                     cargarPlanProyecto()
                 ]);
-                if (window.cargarResumenServiciosProyecto) await window.cargarResumenServiciosProyecto();
             }
         }
 
@@ -1169,7 +1136,7 @@
         function obtenerClienteSupabasePlan() {
             const cliente = window.SkilledDB?.client || window.skilledSupabase;
             if (!cliente || typeof cliente.from !== 'function') {
-                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=53');
+                throw new Error('No se encontró la conexión activa con Supabase. Verifica skilled-supabase.js?v=156');
             }
             return cliente;
         }
@@ -1235,6 +1202,10 @@
                     cantidadSobrante: Number(fila.cantidad_sobrante || 0),
                     unidad: textoSeguro(fila.unidad),
                     precioUnitario: Number(fila.precio_unitario || 0),
+                    monedaCosto: codigoMonedaMaterial(fila, material),
+                    moneda_costo: codigoMonedaMaterial(fila, material),
+                    codigoMarca: textoSeguro(fila.codigo_marca),
+                    codigo_marca: textoSeguro(fila.codigo_marca),
                     observaciones: textoSeguro(fila.observaciones),
                     estadoSolicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
                     estado_solicitud: textoSeguro(fila.estado_solicitud) || 'pendiente',
@@ -1292,6 +1263,8 @@
                         codigo_manual: codigo,
                         descripcion,
                         categoria: textoSeguro(linea.categoria ?? material.categoria) || null,
+                        codigo_marca: textoSeguro(linea.codigoMarca ?? linea.codigo_marca ?? material.codigoMarca ?? material.codigo_marca) || null,
+                        moneda_costo: codigoMonedaMaterial(linea, material),
                         cantidad_planeada: cantidad,
                         cantidad_entregada: Number(linea.cantidadEntregada ?? linea.cantidad_entregada ?? 0) || 0,
                         cantidad_sobrante: Number(linea.cantidadSobrante ?? linea.cantidad_sobrante ?? 0) || 0,
@@ -1367,6 +1340,11 @@
                 cantidadSobrante: Number(linea.cantidadSobrante ?? 0) || 0,
                 unidad: textoSeguro(linea.unidad ?? linea.material?.unidad),
                 precioUnitario: Number(linea.precioUnitario ?? linea.material?.precio ?? 0) || 0,
+                monedaCosto: codigoMonedaMaterial(linea, linea.material || {}),
+                moneda_costo: codigoMonedaMaterial(linea, linea.material || {}),
+                codigoMarca: textoSeguro(linea.codigoMarca ?? linea.codigo_marca ?? linea.material?.codigoMarca ?? linea.material?.codigo_marca),
+                codigo_marca: textoSeguro(linea.codigoMarca ?? linea.codigo_marca ?? linea.material?.codigoMarca ?? linea.material?.codigo_marca),
+                descripcion: textoSeguro(linea.descripcion ?? linea.material?.descripcion ?? linea.material?.desc),
                 observaciones: textoSeguro(linea.observaciones),
                 estadoSolicitud: textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud) || 'pendiente',
                 estado_solicitud: textoSeguro(linea.estadoSolicitud ?? linea.estado_solicitud) || 'pendiente',
@@ -1470,6 +1448,7 @@
             tbody.innerHTML = planProyectoActual.map(linea => {
                 const material = linea.material || {};
                 const precio = Number(linea.precioUnitario || material.precio || 0);
+                const monedaCosto = codigoMonedaMaterial(linea, material);
                 const costo = Number(linea.cantidadPlaneada || 0) * precio;
                 const estado = estadoVisualPlan(linea);
                 const entregado = Math.max(0, Number(linea.cantidadEntregada || 0));
@@ -1479,12 +1458,12 @@
                     <td class="px-5 py-3.5 text-[10px] font-mono font-semibold text-blue-300">${escapeHTML(linea.codigo)}</td>
                     <td class="px-4 py-3.5"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div class="min-w-0"><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}</div><div class="mt-2 w-32 max-w-full h-1.5 rounded-full bg-[#060a14] overflow-hidden"><div class="h-full ${avance >= 100 ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full" style="width:${avance}%"></div></div></div></div></td>
                     <td class="px-4 py-3.5 text-[10px] text-gray-400">${escapeHTML(linea.unidad || material.unidad || '—')}</td>
-                    <td class="px-4 py-3.5 text-right text-[10px] text-gray-400">${formatoMoneda.format(precio)}</td>
+                    <td class="px-4 py-3.5 text-right text-[10px] text-gray-400">${escapeHTML(formatoCostoPorMoneda(precio, monedaCosto))}</td>
                     <td class="px-4 py-3.5 text-center text-xs font-semibold text-gray-200">${formatoNumero.format(planeado)}</td>
                     <td class="px-4 py-3.5 text-center text-xs font-semibold ${entregado > 0 ? 'text-emerald-300' : 'text-gray-500'}">${formatoNumero.format(entregado)}</td>
                     <td class="px-4 py-3.5 text-center text-xs font-semibold ${Number(linea.cantidadSobrante || 0) > 0 ? 'text-amber-300' : 'text-emerald-300'}">${formatoNumero.format(linea.cantidadSobrante)}</td>
                     <td class="px-4 py-3.5 text-center"><span class="inline-flex px-2 py-1 rounded-full border text-[9px] font-semibold ${estado.clase}" title="${escapeHTML(estado.detalle)}">${escapeHTML(estado.texto)}</span><div class="mt-1 text-[8px] text-gray-600">${escapeHTML(estado.detalle)}</div></td>
-                    <td class="px-4 py-3.5 text-right text-xs font-semibold text-gray-300">${formatoMoneda.format(costo)}</td>
+                    <td class="px-4 py-3.5 text-right text-xs font-semibold text-gray-300">${escapeHTML(formatoCostoPorMoneda(costo, monedaCosto))}</td>
                     <td class="px-4 py-3.5 text-[10px] text-gray-500">${escapeHTML(linea.observaciones || '—')}</td>
                 </tr>`;
             }).join('');
@@ -1524,36 +1503,52 @@
             renderPlanVista();
         }
 
+        function resumenDuplicadosPlan(codigo) {
+            const coincidencias = planBorrador.filter(item => claveProyecto(item.codigo) === claveProyecto(codigo));
+            return {
+                lineas: coincidencias.length,
+                cantidad: coincidencias.reduce((total, item) => total + Math.max(0, Number(item.cantidadPlaneada || 0)), 0)
+            };
+        }
+
         function buscarMaterialPlan(valor) {
             const dropdown = document.getElementById('dropdown-material-plan');
             const termino = textoSeguro(valor);
-            const seleccionados = new Set(planBorrador.map(item => claveProyecto(item.codigo)));
-            let resultados = catalogoMateriales.filter(item => !seleccionados.has(claveProyecto(item.codigo)));
+            let resultados = [...catalogoMateriales];
             if (termino) resultados = window.SkilledSearch?.rank
                 ? window.SkilledSearch.rank(resultados, termino, item => [item.codigo,item.desc,item.descripcion,item.categoria,item.marca,item.proveedor,item.tipoCable,item.tamano,...(item.modismos||[])])
                 : resultados.filter(item => claveProyecto([item.codigo,item.desc,item.descripcion,item.categoria,item.marca,item.proveedor].join(' ')).includes(claveProyecto(termino)));
             resultados = resultados.slice(0, 12);
 
             if (!resultados.length) {
-                dropdown.innerHTML = '<div class="px-4 py-4 text-[11px] text-gray-500">No hay materiales disponibles con ese criterio.</div>';
+                dropdown.innerHTML = '<div class="px-4 py-4 text-[11px] text-gray-500">No hay materiales con ese criterio.</div>';
                 dropdown.classList.remove('hidden');
                 return;
             }
 
-            dropdown.innerHTML = resultados.map(material => `<button type="button" onclick='agregarMaterialPlan(${JSON.stringify(material.codigo)})' class="w-full px-3 py-2.5 hover:bg-[#161f38] transition flex items-center gap-3 text-left">
-                ${imagenMaterialPlan(material, 'w-9 h-9')}
-                <div class="min-w-0 flex-1">
-                    <div class="text-xs text-gray-200"><span class="font-mono text-[10px] text-blue-300">${escapeHTML(material.codigo)}</span> <span class="font-semibold">${escapeHTML(material.desc || material.descripcion)}</span></div>
-                    <div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || 'Sin categoría')}</div>
-                </div>
-                <div class="text-[9px] text-gray-500 shrink-0">${formatoNumero.format(material.stock || 0)} ${escapeHTML(material.unidad || '')}</div>
-            </button>`).join('');
+            dropdown.innerHTML = resultados.map(material => {
+                const repetido = resumenDuplicadosPlan(material.codigo);
+                const aviso = repetido.lineas > 0
+                    ? `<div class="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-950/15 px-2 py-0.5 text-[8px] font-semibold text-amber-300"><span>Ya está en el plan</span><span class="text-amber-200/60">·</span><span>${repetido.lineas} ${repetido.lineas === 1 ? 'partida' : 'partidas'} · ${formatoNumero.format(repetido.cantidad)} ${escapeHTML(material.unidad || '')}</span></div>`
+                    : '<div class="mt-1 text-[8px] text-emerald-400/70">Disponible para agregar al plan</div>';
+                return `<button type="button" onclick='agregarMaterialPlan(${JSON.stringify(material.codigo)})' class="w-full px-3 py-2.5 hover:bg-[#161f38] transition flex items-center gap-3 text-left">
+                    ${imagenMaterialPlan(material, 'w-9 h-9')}
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs text-gray-200"><span class="font-mono text-[10px] text-blue-300">${escapeHTML(material.codigo)}</span> <span class="font-semibold">${escapeHTML(material.desc || material.descripcion)}</span></div>
+                        <div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || 'Sin categoría')}</div>
+                        ${aviso}
+                    </div>
+                    <div class="text-[9px] text-gray-500 shrink-0">${formatoNumero.format(material.stock || 0)} ${escapeHTML(material.unidad || '')}</div>
+                </button>`;
+            }).join('');
             dropdown.classList.remove('hidden');
         }
 
         function agregarMaterialPlan(codigo) {
-            const material = catalogoMateriales.find(item => item.codigo === codigo);
-            if (!material || planBorrador.some(item => claveProyecto(item.codigo) === claveProyecto(codigo))) return;
+            const material = catalogoMateriales.find(item => claveProyecto(item.codigo) === claveProyecto(codigo));
+            if (!material) return;
+            const monedaCosto = codigoMonedaMaterial({}, material);
+            const repetidoAntes = resumenDuplicadosPlan(material.codigo);
             planBorrador.push({
                 id: null,
                 codigo: material.codigo,
@@ -1562,8 +1557,11 @@
                 cantidadSobrante: 0,
                 unidad: material.unidad || '',
                 precioUnitario: Number(material.precio || 0),
+                monedaCosto,
+                moneda_costo: monedaCosto,
                 observaciones: '',
-                material
+                material,
+                adicionSeparada: repetidoAntes.lineas > 0
             });
             document.getElementById('buscar-material-plan').value = '';
             document.getElementById('dropdown-material-plan').classList.add('hidden');
@@ -1575,8 +1573,10 @@
         }
 
         function abrirMaterialNoListadoPlan() {
-            ['plan-nl-descripcion', 'plan-nl-codigo', 'plan-nl-categoria', 'plan-nl-unidad'].forEach(id => document.getElementById(id).value = '');
+            ['plan-nl-descripcion', 'plan-nl-codigo', 'plan-nl-codigo-marca', 'plan-nl-categoria', 'plan-nl-unidad'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('plan-nl-precio').value = '0';
+            document.getElementById('plan-nl-cantidad').value = '1';
+            document.getElementById('plan-nl-moneda').value = 'MXN';
             const modal = document.getElementById('modal-no-listado-plan');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1594,25 +1594,29 @@
             const unidad = document.getElementById('plan-nl-unidad').value.trim();
             let codigo = document.getElementById('plan-nl-codigo').value.trim() || generarCodigoNoListadoPlan();
             const categoria = document.getElementById('plan-nl-categoria').value.trim();
+            const codigoMarca = document.getElementById('plan-nl-codigo-marca').value.trim();
             const precio = Math.max(0, Number(document.getElementById('plan-nl-precio').value) || 0);
+            const cantidad = Math.max(0, Number(document.getElementById('plan-nl-cantidad').value) || 0);
+            const monedaCosto = document.getElementById('plan-nl-moneda').value || 'MXN';
             if (!descripcion) { alert('Escribe la descripción del material.'); return; }
             if (!unidad) { alert('Escribe la unidad del material.'); return; }
-            if (planBorrador.some(item => claveProyecto(item.codigo) === claveProyecto(codigo))) {
-                alert('Ya existe un material con ese código o referencia dentro del plan.');
-                return;
-            }
-            const material = { codigo, desc: descripcion, descripcion, categoria, unidad, precio, stock: 0, imagen: '', esNoListado: true };
+            if (!(cantidad > 0)) { alert('La cantidad requerida debe ser mayor a cero.'); return; }
+            const repetidoAntes = resumenDuplicadosPlan(codigo);
+            const material = { codigo, desc: descripcion, descripcion, categoria, codigoMarca, codigo_marca: codigoMarca, unidad, precio, monedaCosto, moneda_costo: monedaCosto, stock: 0, imagen: '', esNoListado: true };
             planBorrador.push({
                 id: null,
                 codigo,
-                cantidadPlaneada: 1,
+                cantidadPlaneada: cantidad,
                 cantidadEntregada: 0,
                 cantidadSobrante: 0,
                 unidad,
                 precioUnitario: precio,
+                monedaCosto,
+                moneda_costo: monedaCosto,
                 observaciones: '',
                 esNoListado: true,
-                material
+                material,
+                adicionSeparada: repetidoAntes.lineas > 0
             });
             cerrarMaterialNoListadoPlan();
             renderEditorPlan();
@@ -1633,6 +1637,54 @@
             renderEditorPlan();
         }
 
+        function unirNotasPlan(actual, nueva) {
+            const notas = [actual, nueva]
+                .flatMap(valor => textoSeguro(valor).split(/\s*[|·]\s*/g))
+                .map(textoSeguro)
+                .filter(Boolean);
+            return [...new Set(notas.map(nota => nota.toLocaleLowerCase('es-MX')))]
+                .map(clave => notas.find(nota => nota.toLocaleLowerCase('es-MX') === clave))
+                .filter(Boolean)
+                .join(' · ');
+        }
+
+        function consolidarLineasPlan(lineas = planBorrador) {
+            const mapa = new Map();
+            (Array.isArray(lineas) ? lineas : []).forEach(origen => {
+                const linea = copiarLineaPlan(origen);
+                const codigo = textoSeguro(linea.codigo || linea.material?.codigo);
+                const clave = claveProyecto(codigo);
+                if (!clave) return;
+                const cantidad = Math.max(0, Number(linea.cantidadPlaneada || 0));
+                if (!mapa.has(clave)) {
+                    mapa.set(clave, {
+                        ...linea,
+                        codigo,
+                        cantidadPlaneada: cantidad,
+                        cantidadEntregada: Math.max(0, Number(linea.cantidadEntregada || 0)),
+                        cantidadSobrante: Math.max(0, Number(linea.cantidadSobrante || 0)),
+                        observaciones: textoSeguro(linea.observaciones),
+                        capturasCombinadas: 1
+                    });
+                    return;
+                }
+                const destino = mapa.get(clave);
+                destino.cantidadPlaneada += cantidad;
+                destino.cantidadEntregada += Math.max(0, Number(linea.cantidadEntregada || 0));
+                destino.cantidadSobrante += Math.max(0, Number(linea.cantidadSobrante || 0));
+                destino.observaciones = unirNotasPlan(destino.observaciones, linea.observaciones);
+                destino.capturasCombinadas += 1;
+                if (!destino.id && linea.id) destino.id = linea.id;
+                if (!destino.material && linea.material) destino.material = linea.material;
+                if (!destino.unidad && linea.unidad) destino.unidad = linea.unidad;
+                if (!(Number(destino.precioUnitario) > 0) && Number(linea.precioUnitario) > 0) destino.precioUnitario = Number(linea.precioUnitario);
+                destino.esNoListado = Boolean(destino.esNoListado || linea.esNoListado);
+                if (linea.estadoSolicitud && destino.estadoSolicitud === 'pendiente') destino.estadoSolicitud = linea.estadoSolicitud;
+                if (linea.estado_solicitud && destino.estado_solicitud === 'pendiente') destino.estado_solicitud = linea.estado_solicitud;
+            });
+            return [...mapa.values()];
+        }
+
         function renderEditorPlan(reconstruir = true) {
             const tbody = document.getElementById('tabla-editor-plan');
             const vacio = document.getElementById('editor-plan-vacio');
@@ -1641,7 +1693,9 @@
             if (!planBorrador.length) {
                 tbody.innerHTML = '';
                 vacio.classList.remove('hidden');
-                document.getElementById('total-editor-plan').textContent = formatoMoneda.format(0);
+                document.getElementById('total-editor-plan').textContent = formatoCostoPorMoneda(0, 'MXN');
+                const resumen = document.getElementById('resumen-consolidacion-plan');
+                if (resumen) resumen.textContent = 'Sin partidas repetidas.';
                 return;
             }
 
@@ -1650,30 +1704,37 @@
                 tbody.innerHTML = planBorrador.map((linea, indice) => {
                     const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {};
                     const precio = Number(linea.precioUnitario || material.precio || 0);
+                    const monedaCosto = codigoMonedaMaterial(linea, material);
                     const costo = Number(linea.cantidadPlaneada || 0) * precio;
+                    const repetido = resumenDuplicadosPlan(linea.codigo);
+                    const badgeRepetido = repetido.lineas > 1 ? `<span class="ml-2 px-1.5 py-0.5 rounded border border-blue-500/25 bg-blue-950/15 text-[8px] text-blue-300">${repetido.lineas} capturas · se sumarán</span>` : '';
                     return `<tr class="hover:bg-[#0d1425] transition">
                         <td class="px-4 py-3 text-[10px] font-mono text-blue-300">${escapeHTML(linea.codigo)}</td>
-                        <td class="px-4 py-3"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}</div></div></div></td>
-                        <td class="px-4 py-3 text-right text-[10px] font-mono text-gray-400">${formatoMoneda.format(precio)}</td>
-                        <td class="px-4 py-3"><div class="flex items-center justify-center gap-2"><input type="number" min="0.01" step="0.01" value="${Number(linea.cantidadPlaneada || 0)}" oninput="cambiarCantidadPlan(${indice}, this.value)" class="w-20 bg-[#060a14] border border-[#243257] rounded-lg px-2 py-2 text-center text-xs text-gray-200 focus:outline-none focus:border-blue-500"><span class="text-[9px] text-gray-500 uppercase">${escapeHTML(linea.unidad || material.unidad || '')}</span></div></td>
-                        <td id="costo-linea-${indice}" class="px-4 py-3 text-right text-[10px] font-mono text-gray-300">${formatoMoneda.format(costo)}</td>
+                        <td class="px-4 py-3"><div class="flex items-center gap-3">${imagenMaterialPlan(material)}<div><div class="text-xs font-semibold text-gray-200">${escapeHTML(material.desc || material.descripcion || linea.codigo)} ${linea.esNoListado ? '<span class="ml-2 px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-950/20 text-[8px] text-amber-300 uppercase">No enlistado</span>' : ''}${badgeRepetido}</div><div class="text-[9px] text-gray-500 mt-0.5">${escapeHTML(material.categoria || '')}${repetido.lineas > 1 ? ` · Total al guardar: ${formatoNumero.format(repetido.cantidad)} ${escapeHTML(linea.unidad || material.unidad || '')}` : ''}</div></div></div></td>
+                        <td class="px-4 py-3 text-right text-[10px] font-mono text-gray-400">${escapeHTML(formatoCostoPorMoneda(precio, monedaCosto))}</td>
+                        <td class="px-4 py-3"><div class="flex items-center justify-center gap-2"><input type="number" min="0.01" step="0.01" value="${Number(linea.cantidadPlaneada || 0)}" oninput="cambiarCantidadPlan(${indice}, this.value)" onchange="renderEditorPlan()" class="w-20 bg-[#060a14] border border-[#243257] rounded-lg px-2 py-2 text-center text-xs text-gray-200 focus:outline-none focus:border-blue-500"><span class="text-[9px] text-gray-500 uppercase">${escapeHTML(linea.unidad || material.unidad || '')}</span></div></td>
+                        <td id="costo-linea-${indice}" class="px-4 py-3 text-right text-[10px] font-mono text-gray-300">${escapeHTML(formatoCostoPorMoneda(costo, monedaCosto))}</td>
                         <td class="px-4 py-3"><input value="${escapeHTML(linea.observaciones || '')}" oninput="cambiarNotaPlan(${indice}, this.value)" placeholder="Opcional" class="w-full min-w-44 bg-[#060a14] border border-[#243257] rounded-lg px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-blue-500"></td>
                         <td class="px-4 py-3 text-right"><button type="button" onclick="eliminarMaterialPlan(${indice})" class="text-rose-500 hover:text-rose-400" title="Quitar material"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0l1 14h8l1-14M10 11v5m4-5v5"/></svg></button></td>
                     </tr>`;
                 }).join('');
             } else {
                 planBorrador.forEach((linea, indice) => {
-                    const precio = Number(linea.precioUnitario || linea.material?.precio || 0);
+                    const material = linea.material || catalogoMateriales.find(item => item.codigo === linea.codigo) || {};
+                    const precio = Number(linea.precioUnitario || material.precio || 0);
+                    const monedaCosto = codigoMonedaMaterial(linea, material);
                     const celda = document.getElementById(`costo-linea-${indice}`);
-                    if (celda) celda.textContent = formatoMoneda.format(Number(linea.cantidadPlaneada || 0) * precio);
+                    if (celda) celda.textContent = formatoCostoPorMoneda(Number(linea.cantidadPlaneada || 0) * precio, monedaCosto);
                 });
             }
 
-            const total = planBorrador.reduce((suma, linea) => {
-                const precio = Number(linea.precioUnitario || linea.material?.precio || 0);
-                return suma + Number(linea.cantidadPlaneada || 0) * precio;
-            }, 0);
-            document.getElementById('total-editor-plan').textContent = formatoMoneda.format(total);
+            document.getElementById('total-editor-plan').textContent = resumenCostosPorMoneda(planBorrador);
+            const consolidadas = consolidarLineasPlan(planBorrador);
+            const repeticiones = Math.max(0, planBorrador.length - consolidadas.length);
+            const resumen = document.getElementById('resumen-consolidacion-plan');
+            if (resumen) resumen.innerHTML = repeticiones
+                ? `<span class="text-blue-300">${planBorrador.length} capturas se convertirán en ${consolidadas.length} partidas al guardar · ${repeticiones} repetición${repeticiones === 1 ? '' : 'es'} se sumará${repeticiones === 1 ? '' : 'n'} automáticamente.</span>`
+                : 'Sin partidas repetidas.';
         }
 
         async function guardarPlanProyecto() {
@@ -1683,6 +1744,11 @@
                 alert('Todas las cantidades planeadas deben ser mayores a cero.');
                 return;
             }
+            const planConsolidado = consolidarLineasPlan(planBorrador);
+            if (!planConsolidado.length && planBorrador.length) {
+                alert('No se pudo consolidar el plan. Revisa los códigos de los materiales.');
+                return;
+            }
 
             const boton = document.getElementById('btn-guardar-plan');
             const contenido = boton.innerHTML;
@@ -1690,7 +1756,7 @@
             boton.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Guardando...';
 
             try {
-                planProyectoActual = (await guardarPlanProyectoSeguro(proyectoActual.proyecto, planBorrador)).map(copiarLineaPlan);
+                planProyectoActual = (await guardarPlanProyectoSeguro(proyectoActual.proyecto, planConsolidado)).map(copiarLineaPlan);
                 editandoPlan = false;
                 document.getElementById('plan-editor').classList.add('hidden');
                 document.getElementById('plan-vista').classList.remove('hidden');
@@ -2306,7 +2372,6 @@
             if (!panel) return;
             panel.classList.remove('hidden');
             if (tab === 'historial') renderMovimientosProyecto();
-            if (tab === 'servicios' && window.cargarServiciosProyecto) window.cargarServiciosProyecto();
             if (tab === 'reporte') renderReporteAlcance();
             document.querySelectorAll('.tab-proyecto').forEach(item => {
                 const activo = item.dataset.tab === tab;
@@ -2539,9 +2604,9 @@ ${proyecto}`);
 
         cargarProyectos();
     </script>
-<script src="AL.proyectos.js?v=53"></script>
-<script src="AL.proyectos-servicios.js?v=54"></script>
+<script src="AL.proyectos.js?v=153"></script>
 
-<script src="skilled-performance.js?v=53" defer></script>
-</body>
+
+<script src="crm-v78-fixes.js?v=153" defer></script><script src="skilled-performance.js?v=153" defer></script>
+<script src="crm-v83-shell.js?v=153" defer></script></body>
 </html>

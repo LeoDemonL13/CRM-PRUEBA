@@ -1,10 +1,10 @@
 {
-  "name": "Skilled CRM",
-  "short_name": "Skilled CRM",
+  "name": "Nexus Obsidian CRM",
+  "short_name": "Nexus CRM",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#060814",
-  "theme_color": "#060814",
+  "background_color": "#050507",
+  "theme_color": "#0b0b10",
   "icons": [
     {
       "src": "/favicon-192x192.png",

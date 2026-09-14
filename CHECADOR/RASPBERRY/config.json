@@ -1,0 +1,33 @@
+{
+  "device_name": "Checador Principal",
+  "device_code": "PEGAR_CODIGO_GENERADO_EN_RH",
+  "device_token": "PEGAR_TOKEN_GENERADO_EN_RH",
+  "sync_url": "https://pibvfosvufbwbnwfwbmw.supabase.co/functions/v1/checador-sync",
+  "timezone": "America/Mexico_City",
+  "port": 8787,
+  "sync_continuous": true,
+  "sync_interval_seconds": 300,
+  "weekly_sync_time": "18:00",
+  "admin_pin": "Skilled2026",
+  "fingerprint": {
+    "enabled": false,
+    "serial_port": "/dev/serial0",
+    "baudrate": 57600
+  },
+  "face": {
+    "enabled": false,
+    "provider": "local"
+  },
+  "bind_host": "127.0.0.1",
+  "offline_queue": "sqlite_wal",
+  "incident_reasons": [
+    "transporte",
+    "luto",
+    "casamiento",
+    "enfermedad",
+    "permiso",
+    "retardo",
+    "falta",
+    "otro"
+  ]
+}

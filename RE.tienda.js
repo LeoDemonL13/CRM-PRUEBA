@@ -56,7 +56,7 @@ return `<tr><td class="n">${String(absoluteIndex+1).padStart(2,'0')}</td><td cla
 }).join('');
 const isLast=pageIndex===pageCount-1;
 return `<section class="sheet">
-<div class="top"><div class="brand"><img src="logo-reporte.png" alt="Skilled"></div><div class="doc"><h1>HOJA DE COMPRA</h1><p>Recepción · Skilled Proyectos Industriales</p></div></div>
+<div class="top"><div class="brand"><img src="logo-reporte.png" alt="Skilled"></div><div class="doc"><h1>HOJA DE COMPRA</h1><p>Recepción · Nexus Obsidian</p></div></div>
 <div class="stripe"></div>
 <div class="meta"><div><label>Folio</label><strong>${esc(group.folio)}</strong></div><div><label>Fecha requerida</label><strong>${date(group.fechaRequerida)}</strong></div><div><label>Solicitado por</label><strong>${esc(group.solicitadoPor||'—')}</strong></div><div><label>Responsable</label><strong>${esc(group.responsableCompra||'—')}</strong></div></div>
 <div class="summary"><strong>Lista de adquisición · ${group.items.length} partida${group.items.length===1?'':'s'}</strong><span>${pageCount>1?`Página ${pageIndex+1} de ${pageCount} · `:''}Verificar cantidad y precio antes de recibir</span></div>

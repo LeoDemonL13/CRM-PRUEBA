@@ -1,6 +1,6 @@
 window.SKILLED_CONFIG=Object.assign({
-  supabaseUrl:'https://cuxnzqbszzrfnrinxbdp.supabase.co',
-  supabasePublishableKey:'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF',
+  supabaseUrl:'https://pibvfosvufbwbnwfwbmw.supabase.co',
+  supabasePublishableKey:'sb_publishable_wBuo5rXuwnytiH9HLqLzBw__SdFx7NP',
   skillLocalAiUrl:'',
   skillLocalTtsUrl:'',
   skillMeetingBridgeUrl:'',

@@ -201,7 +201,7 @@
             <div class="overflow-y-auto flex-1 lista-scroll">
                 <div class="skilled-sidebar-brand border-b border-[#161f38] flex items-center justify-between gap-2">
                     <a href="${homeHref}" title="Ir al inicio" class="skilled-sidebar-logo-link">
-                        <img src="logo-reporte.png" alt="Skilled Logo" class="skilled-sidebar-logo h-9 w-auto object-contain">
+                        <img src="logo-reporte.png" alt="Nexus Obsidian" class="skilled-sidebar-logo h-9 w-auto object-contain">
                     </a>
                     <button type="button" class="skilled-sidebar-collapse" data-sidebar-collapse title="Minimizar menú" aria-label="Minimizar menú">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
@@ -349,7 +349,7 @@
         });
     }
 
-    const badgeCacheKey = 'skilled_sidebar_badges_v151';
+    const badgeCacheKey = 'skilled_sidebar_badges_v70';
     let badgeUpdatePromise = null;
     function renderRequestBadges(data = {}) {
         const setBadge = (href, count, color = 'bg-blue-600') => {
@@ -388,14 +388,7 @@
                 if (typeof window.SkilledDB.listUnreadNotifications === 'function') {
                     const notifications = await window.SkilledDB.listUnreadNotifications();
                     data.serviceCount = notifications.filter(item => item.tipo === 'servicio_proximo_pago').length;
-                }
-                if (typeof window.SkilledDB.listMaterialRequests === 'function' || typeof window.SkilledDB.listMaterialAdjustments === 'function') {
-                    const [requests, adjustments] = await Promise.all([
-                        typeof window.SkilledDB.listMaterialRequests === 'function' ? window.SkilledDB.listMaterialRequests() : Promise.resolve([]),
-                        typeof window.SkilledDB.listMaterialAdjustments === 'function' ? window.SkilledDB.listMaterialAdjustments() : Promise.resolve([])
-                    ]);
-                    data.materialCount = (Array.isArray(requests) ? requests : []).filter(item => String(item.estado || '').toLowerCase() === 'pendiente').length
-                        + (Array.isArray(adjustments) ? adjustments : []).filter(item => String(item.estado || '').toLowerCase() === 'pendiente').length;
+                    data.materialCount = notifications.length - data.serviceCount;
                 }
                 if (sidebarProfileKey() === 'compras' && typeof window.SkilledDB.listQuotationRequests === 'function') {
                     const quotations = await window.SkilledDB.listQuotationRequests({});
@@ -419,12 +412,6 @@
         if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout:2400 });
         else setTimeout(run, 1200);
     }
-    function refreshRequestBadges() {
-        try { sessionStorage.removeItem(badgeCacheKey); } catch (_) {}
-        return updateRequestBadge(true);
-    }
-    window.addEventListener('skilled:requestbadges', refreshRequestBadges);
-    window.addEventListener('focus', () => refreshRequestBadges());
 
     const headerIcons = {
         refresh: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"></path><path d="M20 4v7h-7"></path></svg>',
@@ -575,6 +562,8 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         if (window.SkilledTheme?.toggleLight) return window.SkilledTheme.toggleLight();
         setTheme(!lightThemeEnabled());
     };
+
+    window.addEventListener('skilled:themechange', () => requestAnimationFrame(updateThemeButtons));
 
     function headerActionContainer(header) {
         const children = [...header.children];
@@ -1189,7 +1178,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         if(!copy){copy=document.createElement('div');copy.className='skilled-mobile-header-copy';const toggle=header.querySelector('[data-sidebar-mobile-toggle]');if(toggle?.nextSibling)header.insertBefore(copy,toggle.nextSibling);else if(toggle)header.appendChild(copy);else header.prepend(copy)}
         const profileLabels={administrador:'Administración',jefe_almacen:'Jefe de Almacén',almacen:'Almacén',compras:'Compras',rh:'Recursos Humanos',finanzas:'Finanzas',gerente_general:'Gerencia General',subgerente:'Subgerencia',sky_demo:'Skill · Presentación',tsi:'TSI',proyectos:'Proyectos',planeacion:'Planeación',coordinacion:'Coordinación',logistica:'Logística',recepcion:'Recepción',consulta:'Consulta'};
         const profile=sidebarProfileKey();let section=currentFile().replace(/\.html?$/i,'').replace(/^[A-Z]{2}\./i,'').replace(/[._-]+/g,' ').trim();section=section?section.charAt(0).toUpperCase()+section.slice(1):'Inicio';
-        const markup=`<strong>${safeHtml(profileLabels[profile]||'Skilled CRM')}</strong><span>${safeHtml(section)}</span>`;
+        const markup=`<strong>${safeHtml(profileLabels[profile]||'Nexus Obsidian CRM')}</strong><span>${safeHtml(section)}</span>`;
         if(copy.innerHTML!==markup)copy.innerHTML=markup;
     }
 
@@ -1305,7 +1294,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
     async function openSkyFromUi(question='') {
         if(!skyAllowed())return false;
         try{
-            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=150');
+            if(!window.SkilledSky)await loadOptionalScript('skilled-sky.js?v=152');
             window.SkilledSky?.open?.();
             if(question)setTimeout(()=>window.SkilledSky?.query?.(question),120);
             return Boolean(window.SkilledSky);
@@ -1354,7 +1343,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
             button.remove();
             syncMobileDock();
             try {
-                await loadOptionalScript('skilled-chat.js?v=150');
+                await loadOptionalScript('skilled-chat.js?v=152');
                 window.SkilledChat?.open?.();
             } catch (_) {
                 createLazyChatButton();
@@ -1390,7 +1379,7 @@ body.tema-claro.skilled-mobile-search-open .skilled-global-search-input{backgrou
         const load = async () => {
             if (document.hidden || window.SkilledChat || !document.getElementById('chat-open')) return;
             document.getElementById('chat-open')?.remove();
-            try { await loadOptionalScript('skilled-chat.js?v=150'); } catch (_) { createLazyChatButton(); }
+            try { await loadOptionalScript('skilled-chat.js?v=152'); } catch (_) { createLazyChatButton(); }
             syncMobileDock();
         };
         if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout:7000 });

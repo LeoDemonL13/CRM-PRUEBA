@@ -1,4 +1,4 @@
-# Manual de puesta en producción — Skilled CRM V107
+# Manual de puesta en producción — Nexus Obsidian CRM V107
 
 ## Objetivo
 Pasar el CRM desde el entorno de prueba a una operación real, manteniendo el frontend separado del backend, con control de versiones, respaldos, permisos y un dominio estable.

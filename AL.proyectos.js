@@ -282,7 +282,7 @@ const button=[...document.querySelectorAll('button')].find(item=>String(item.get
 const previous=button?.textContent;if(button){button.disabled=true;button.textContent='Generando Excel…'}
 try{
 await ensureExcel();
-const workbook=new ExcelJS.Workbook();workbook.creator='Skilled Proyectos Industriales';workbook.created=new Date();workbook.modified=new Date();
+const workbook=new ExcelJS.Workbook();workbook.creator='Nexus Obsidian';workbook.created=new Date();workbook.modified=new Date();
 const sheet=workbook.addWorksheet('Reporte de alcance',{views:[{state:'frozen',ySplit:12,showGridLines:false}]});
 const totalColumns=3+columns.length*2;const lastColumn=sheet.getColumn(totalColumns).letter;
 sheet.properties.defaultRowHeight=18;sheet.pageSetup={paperSize:1,orientation:totalColumns>7?'landscape':'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.25,right:.25,top:.35,bottom:.35,header:.15,footer:.15}};
@@ -299,7 +299,7 @@ for(const [category,items] of groups){sheet.mergeCells(row,1,row,totalColumns);c
 sheet.mergeCells(row,1,row+1,1);sheet.mergeCells(row,2,row+1,2);sheet.mergeCells(row,3,row+1,3);sheet.getCell(row,1).value='Pos.';sheet.getCell(row,2).value='Código';sheet.getCell(row,3).value='Descripción';let col=4;for(const metric of columns){sheet.mergeCells(row,col,row,col+1);sheet.getCell(row,col).value=labelColumn(metric);sheet.getCell(row+1,col).value='Cantidad';sheet.getCell(row+1,col+1).value='Unidad';col+=2}for(let r=row;r<=row+1;r+=1){for(let c=1;c<=totalColumns;c+=1){const metricIndex=c>=4?Math.floor((c-4)/2):-1;const metric=metricIndex>=0?columns[metricIndex]:null;setCell(sheet.getCell(r,c),{font:{name:'Arial',size:9,bold:true,color:{argb:metric?columnColor(metric):BRAND.navy}},fill:{type:'pattern',pattern:'solid',fgColor:{argb:BRAND.light}},alignment:{horizontal:'center',vertical:'middle',wrapText:true},border:borderStyle()})}}sheet.getRow(row).height=22;sheet.getRow(row+1).height=20;row+=2;
 items.forEach((item,index)=>{sheet.getCell(row,1).value=index+1;sheet.getCell(row,2).value=text(item.codigo);sheet.getCell(row,3).value=text(item.descripcion);let c=4;for(const metric of columns){sheet.getCell(row,c).value=Number(item[metric]||0);sheet.getCell(row,c+1).value=text(item.unidad);setCell(sheet.getCell(row,c),{font:{name:'Arial',size:9,bold:true,color:{argb:columnColor(metric)}},alignment:{horizontal:'center',vertical:'middle'},border:borderStyle(),numFmt:'0.00'});setCell(sheet.getCell(row,c+1),{font:{name:'Arial',size:9,color:{argb:columnColor(metric)}},alignment:{horizontal:'center',vertical:'middle'},border:borderStyle()});c+=2}for(let base=1;base<=3;base+=1)setCell(sheet.getCell(row,base),{font:{name:'Arial',size:9,color:{argb:base===3?BRAND.navy:BRAND.slate}},alignment:{horizontal:base===1?'center':'left',vertical:'middle',wrapText:true},border:borderStyle(),fill:index%2?{type:'pattern',pattern:'solid',fgColor:{argb:BRAND.soft}}:undefined});sheet.getRow(row).height=32;row+=1});row+=2}
 sheet.getColumn(1).width=7;sheet.getColumn(2).width=22;sheet.getColumn(3).width=52;for(let c=4;c<=totalColumns;c+=2){sheet.getColumn(c).width=13;sheet.getColumn(c+1).width=13}
-sheet.headerFooter.oddFooter='&LSkilled Proyectos Industriales&CReporte de alcance&R Página &P de &N';sheet.pageSetup.printArea=`A1:${lastColumn}${Math.max(1,row-1)}`;
+sheet.headerFooter.oddFooter='&LNexus Obsidian&CReporte de alcance&R Página &P de &N';sheet.pageSetup.printArea=`A1:${lastColumn}${Math.max(1,row-1)}`;
 const buffer=await workbook.xlsx.writeBuffer();const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=`Reporte_Alcance_${safeName(projectValue('proyecto','idProyecto'))}.xlsx`;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }catch(error){console.error(error);alert(`No se pudo generar el Excel: ${error.message}`)}finally{if(button){button.disabled=false;button.textContent=previous||'Descargar Excel'}}
 }
@@ -315,7 +315,7 @@ function addReportHeader(doc,logo,orientation){
 }
 function addReportFooter(doc){
     const pages=doc.getNumberOfPages();const slate=rgb(BRAND.slate),blue=rgb(BRAND.blue);
-    for(let page=1;page<=pages;page+=1){doc.setPage(page);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();doc.setDrawColor(...blue);doc.setLineWidth(.2);doc.line(12,h-10,w-12,h-10);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...slate);doc.text('Skilled Proyectos Industriales · Reporte de alcance',12,h-6);doc.text(`Página ${page} de ${pages}`,w-12,h-6,{align:'right'})}
+    for(let page=1;page<=pages;page+=1){doc.setPage(page);const w=doc.internal.pageSize.getWidth(),h=doc.internal.pageSize.getHeight();doc.setDrawColor(...blue);doc.setLineWidth(.2);doc.line(12,h-10,w-12,h-10);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...slate);doc.text('Nexus Obsidian · Reporte de alcance',12,h-6);doc.text(`Página ${page} de ${pages}`,w-12,h-6,{align:'right'})}
 }
 async function exportPdf(){
     const data=selectedData();const columns=selectedColumns();

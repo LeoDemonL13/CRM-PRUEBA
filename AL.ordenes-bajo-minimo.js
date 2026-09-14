@@ -91,7 +91,7 @@ doc.line(14,height-15,196,height-15);
 doc.setFont('helvetica','normal');
 doc.setFontSize(7);
 doc.setTextColor(100,116,139);
-doc.text('Skilled Proyectos Industriales · Documento generado por el CRM',14,height-9);
+doc.text('Nexus Obsidian · Documento generado por el CRM',14,height-9);
 doc.text(`Página ${page}`,196,height-9,{align:'right'});
 }
 });
