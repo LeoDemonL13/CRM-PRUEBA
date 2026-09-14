@@ -29,6 +29,198 @@ create table if not exists public.crm_migraciones(
 );
 
 commit;
+begin;
+
+create table if not exists public.crm_cotizador_solicitudes(
+    id uuid primary key default gen_random_uuid(),
+    folio text not null unique,
+    nombre_contacto text not null,
+    empresa text not null,
+    correo text,
+    telefono text,
+    solicitud jsonb not null,
+    solicitud_hash text not null,
+    estado text not null default 'nueva',
+    horas_adicionales numeric(12,2) not null default 0,
+    costo_horas numeric(14,2) not null default 0,
+    estimacion_base numeric(14,2) not null default 0,
+    estimacion_min numeric(14,2) not null default 0,
+    estimacion_max numeric(14,2) not null default 0,
+    notas_internas text,
+    estimacion_actualizada_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint crm_cotizador_solicitudes_estado_v150_check check(estado in('nueva','revision','contactado','propuesta','ganada','perdida','archivada')),
+    constraint crm_cotizador_solicitudes_horas_v150_check check(horas_adicionales>=0 and horas_adicionales<=10000),
+    constraint crm_cotizador_solicitudes_estimados_v150_check check(costo_horas>=0 and estimacion_base>=0 and estimacion_min>=0 and estimacion_max>=0)
+);
+
+create index if not exists crm_cotizador_solicitudes_created_v150_idx on public.crm_cotizador_solicitudes(created_at desc);
+create index if not exists crm_cotizador_solicitudes_estado_v150_idx on public.crm_cotizador_solicitudes(estado,created_at desc);
+create index if not exists crm_cotizador_solicitudes_contacto_v150_idx on public.crm_cotizador_solicitudes(lower(empresa),lower(nombre_contacto));
+create index if not exists crm_cotizador_solicitudes_hash_v150_idx on public.crm_cotizador_solicitudes(solicitud_hash,created_at desc);
+
+create table if not exists public.crm_cotizador_configuracion(
+    id smallint primary key default 1,
+    configuracion jsonb not null default '{}'::jsonb,
+    updated_by uuid references auth.users(id) on delete set null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint crm_cotizador_configuracion_unica_v150_check check(id=1)
+);
+
+create or replace function public.crm_cotizador_touch_v150()
+returns trigger
+language plpgsql
+set search_path=public
+as $$
+begin
+    new.updated_at=now();
+    return new;
+end;
+$$;
+
+drop trigger if exists crm_cotizador_solicitudes_touch_v150 on public.crm_cotizador_solicitudes;
+create trigger crm_cotizador_solicitudes_touch_v150 before update on public.crm_cotizador_solicitudes for each row execute function public.crm_cotizador_touch_v150();
+drop trigger if exists crm_cotizador_configuracion_touch_v150 on public.crm_cotizador_configuracion;
+create trigger crm_cotizador_configuracion_touch_v150 before update on public.crm_cotizador_configuracion for each row execute function public.crm_cotizador_touch_v150();
+
+create or replace function public.crm_usuario_tiene_rol(p_roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path=public,auth
+as $$
+    select exists(
+        select 1
+        from public.perfiles_usuario p
+        where p.id=auth.uid()
+          and p.activo=true
+          and lower(btrim(coalesce(p.rol,'')))=any(select lower(btrim(item)) from unnest(p_roles) item)
+    );
+$$;
+
+revoke all on function public.crm_usuario_tiene_rol(text[]) from public,anon;
+grant execute on function public.crm_usuario_tiene_rol(text[]) to authenticated,service_role;
+
+
+alter table public.crm_cotizador_solicitudes enable row level security;
+alter table public.crm_cotizador_configuracion enable row level security;
+
+drop policy if exists crm_cotizador_solicitudes_admin_v150 on public.crm_cotizador_solicitudes;
+create policy crm_cotizador_solicitudes_admin_v150 on public.crm_cotizador_solicitudes for all to authenticated
+using(public.crm_usuario_tiene_rol(array['administrador']))
+with check(public.crm_usuario_tiene_rol(array['administrador']));
+
+drop policy if exists crm_cotizador_configuracion_admin_v150 on public.crm_cotizador_configuracion;
+create policy crm_cotizador_configuracion_admin_v150 on public.crm_cotizador_configuracion for all to authenticated
+using(public.crm_usuario_tiene_rol(array['administrador']))
+with check(public.crm_usuario_tiene_rol(array['administrador']));
+
+revoke all on public.crm_cotizador_solicitudes from public,anon;
+revoke all on public.crm_cotizador_configuracion from public,anon;
+grant select,update on public.crm_cotizador_solicitudes to authenticated;
+grant select,insert,update on public.crm_cotizador_configuracion to authenticated;
+
+create or replace function public.crm_crear_solicitud_cotizador_v150(p_solicitud jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public,pg_temp
+as $$
+declare
+    v_contact jsonb;
+    v_project jsonb;
+    v_profiles jsonb;
+    v_features jsonb;
+    v_clean jsonb;
+    v_name text;
+    v_company text;
+    v_email text;
+    v_phone text;
+    v_objective text;
+    v_hash text;
+    v_folio text;
+    v_existing public.crm_cotizador_solicitudes%rowtype;
+    v_id uuid;
+begin
+    if p_solicitud is null or jsonb_typeof(p_solicitud)<>'object' then
+        raise exception using errcode='22023',message='La solicitud no tiene un formato válido.';
+    end if;
+    if length(p_solicitud::text)>90000 then
+        raise exception using errcode='22023',message='La solicitud supera el tamaño permitido.';
+    end if;
+
+    v_contact:=coalesce(p_solicitud->'contact','{}'::jsonb);
+    v_project:=coalesce(p_solicitud->'project','{}'::jsonb);
+    v_profiles:=coalesce(p_solicitud->'profiles','[]'::jsonb);
+    v_features:=coalesce(p_solicitud->'features','[]'::jsonb);
+
+    if jsonb_typeof(v_contact)<>'object' or jsonb_typeof(v_project)<>'object' or jsonb_typeof(v_profiles)<>'array' or jsonb_typeof(v_features)<>'array' then
+        raise exception using errcode='22023',message='Los datos de la solicitud no tienen un formato válido.';
+    end if;
+    if jsonb_array_length(v_profiles)<1 or jsonb_array_length(v_profiles)>50 then
+        raise exception using errcode='22023',message='La solicitud debe incluir entre 1 y 50 perfiles.';
+    end if;
+    if jsonb_array_length(v_features)>180 then
+        raise exception using errcode='22023',message='La solicitud incluye demasiadas funciones.';
+    end if;
+    if exists(select 1 from jsonb_array_elements(v_features) item where jsonb_typeof(item)<>'string' or length(item#>>'{}')>100) then
+        raise exception using errcode='22023',message='La lista de funciones no es válida.';
+    end if;
+
+    v_name:=left(btrim(coalesce(v_contact->>'name','')),120);
+    v_company:=left(btrim(coalesce(v_contact->>'company','')),140);
+    v_email:=left(lower(btrim(coalesce(v_contact->>'email',''))),160);
+    v_phone:=left(btrim(coalesce(v_contact->>'phone','')),30);
+    v_objective:=btrim(coalesce(v_project->>'objective',''));
+
+    if v_name='' then raise exception using errcode='22023',message='El nombre completo es obligatorio.'; end if;
+    if v_company='' then raise exception using errcode='22023',message='La empresa o negocio es obligatorio.'; end if;
+    if v_email='' and v_phone='' then raise exception using errcode='22023',message='Captura al menos un correo o teléfono.'; end if;
+    if v_email<>'' and v_email!~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$' then
+        raise exception using errcode='22023',message='El correo electrónico no tiene un formato válido.';
+    end if;
+    if length(v_objective)<15 or length(v_objective)>1800 then
+        raise exception using errcode='22023',message='Describe con más detalle el objetivo del programa.';
+    end if;
+
+    v_clean:=p_solicitud-'estimacion'-'estimate'-'pricing'-'precios'-'costos';
+    v_clean:=jsonb_set(v_clean,'{contact,name}',to_jsonb(v_name),true);
+    v_clean:=jsonb_set(v_clean,'{contact,company}',to_jsonb(v_company),true);
+    v_clean:=jsonb_set(v_clean,'{contact,email}',to_jsonb(v_email),true);
+    v_clean:=jsonb_set(v_clean,'{contact,phone}',to_jsonb(v_phone),true);
+    v_hash:=md5(v_clean::text);
+
+    select * into v_existing
+    from public.crm_cotizador_solicitudes
+    where solicitud_hash=v_hash and created_at>now()-interval '10 minutes'
+    order by created_at desc
+    limit 1;
+    if found then
+        return jsonb_build_object('ok',true,'folio',v_existing.folio,'created_at',v_existing.created_at,'duplicada',true);
+    end if;
+
+    v_id:=gen_random_uuid();
+    v_folio:='COT-'||to_char(current_date,'YYYYMMDD')||'-'||upper(substr(replace(v_id::text,'-',''),1,6));
+    insert into public.crm_cotizador_solicitudes(id,folio,nombre_contacto,empresa,correo,telefono,solicitud,solicitud_hash,estado,created_at,updated_at)
+    values(v_id,v_folio,v_name,v_company,nullif(v_email,''),nullif(v_phone,''),v_clean,v_hash,'nueva',now(),now());
+
+    return jsonb_build_object('ok',true,'folio',v_folio,'created_at',now(),'duplicada',false);
+end;
+$$;
+
+revoke all on function public.crm_crear_solicitud_cotizador_v150(jsonb) from public;
+grant execute on function public.crm_crear_solicitud_cotizador_v150(jsonb) to anon,authenticated,service_role;
+
+notify pgrst,'reload schema';
+
+insert into public.crm_migraciones(version,aplicada_at)
+values('CRM-V150-COTIZADOR-PROGRAMAS-PUBLICO-PRIVADO-2026-08-31',now())
+on conflict(version) do update set aplicada_at=excluded.aplicada_at;
+
+commit;
 
 
 begin;

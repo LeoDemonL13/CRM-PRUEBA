@@ -1,0 +1,10 @@
+window.SKILLED_CONFIG=Object.assign({
+  supabaseUrl:'https://cuxnzqbszzrfnrinxbdp.supabase.co',
+  supabasePublishableKey:'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF',
+  skillLocalAiUrl:'',
+  skillLocalTtsUrl:'',
+  skillMeetingBridgeUrl:'',
+  skillMeetingBridgeToken:'',
+  skillMeetingEmailMode:'auto',
+  deploymentMode:'cloud'
+},window.SKILLED_CONFIG||{});

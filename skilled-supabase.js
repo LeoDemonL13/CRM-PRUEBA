@@ -1,0 +1,8073 @@
+
+(function () {
+    'use strict';
+
+    const runtimeConfig = window.SKILLED_CONFIG && typeof window.SKILLED_CONFIG === 'object' ? window.SKILLED_CONFIG : {};
+    const SUPABASE_URL = textConfig(runtimeConfig.supabaseUrl) || 'https://cuxnzqbszzrfnrinxbdp.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = textConfig(runtimeConfig.supabasePublishableKey) || 'sb_publishable_eAnp6imD2nOqrtL_A-xrSA_p-bmoLQF';
+    const SKILL_LOCAL_AI_URL = textConfig(runtimeConfig.skillLocalAiUrl).replace(/\/$/, '');
+    const SKILL_LOCAL_TTS_URL = textConfig(runtimeConfig.skillLocalTtsUrl);
+    function textConfig(value) { return String(value ?? '').trim(); }
+    const MAX_MATERIALS_PER_WAREHOUSE_POSITION = 7;
+    const DEFAULT_FETCH_TIMEOUT_MS = 18000;
+    const LONG_FETCH_TIMEOUT_MS = 35000;
+
+    async function skilledFetch(input, init = {}) {
+        const url = typeof input === 'string' ? input : String(input?.url || input || '');
+        const timeoutMs = /\/(functions|storage)\/v1\//i.test(url) ? LONG_FETCH_TIMEOUT_MS : DEFAULT_FETCH_TIMEOUT_MS;
+        const controller = new AbortController();
+        const externalSignal = init?.signal;
+        let externalAbort = null;
+        if (externalSignal) {
+            if (externalSignal.aborted) controller.abort(externalSignal.reason);
+            else {
+                externalAbort = () => controller.abort(externalSignal.reason);
+                externalSignal.addEventListener('abort', externalAbort, { once:true });
+            }
+        }
+        const timer = window.setTimeout(() => {
+            try { controller.abort(new DOMException('Tiempo de espera agotado.', 'TimeoutError')); } catch (_) { controller.abort(); }
+        }, timeoutMs);
+        try {
+            return await window.fetch(input, { ...init, signal: controller.signal });
+        } catch (error) {
+            if (controller.signal.aborted && !(externalSignal && externalSignal.aborted)) {
+                throw new Error('La consulta con Supabase excedió el tiempo de espera. Revisa la conexión y vuelve a intentarlo.');
+            }
+            throw error;
+        } finally {
+            window.clearTimeout(timer);
+            if (externalSignal && externalAbort) externalSignal.removeEventListener('abort', externalAbort);
+        }
+    }
+
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+        throw new Error('No se pudo cargar la librería de Supabase.');
+    }
+
+    const client = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY,
+        {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true
+            },
+            global: {
+                fetch: skilledFetch
+            }
+        }
+    );
+
+    window.skilledSupabase = client;
+
+    function text(value) {
+        return String(value ?? '').trim();
+    }
+
+    function number(value) {
+        if (typeof value === 'string') {
+            value = value.replace(/[$,\s]/g, '');
+        }
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function lower(value) {
+        return text(value).toLocaleLowerCase('es-MX');
+    }
+
+    function normalizeCurrencyCode(value) {
+        const currency = text(value).toUpperCase();
+        return ['MXN', 'USD', 'EUR'].includes(currency) ? currency : 'MXN';
+    }
+
+    function isCableCategory(value) {
+        const category = lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        return category === 'cable' || category === 'cables';
+    }
+
+    function normalizeStockLevels(minimumValue, mediumValue, maximumValue) {
+        const minimum = Math.max(0, number(minimumValue));
+        let maximum = Math.max(0, number(maximumValue));
+        if (maximum <= 0) maximum = minimum > 0 ? minimum * 2 : 1;
+        if (maximum < minimum) maximum = minimum;
+        let medium = Math.max(0, number(mediumValue));
+        if (medium <= 0) medium = (minimum + maximum) / 2;
+        medium = Math.min(maximum, Math.max(minimum, medium));
+        return { minimum, medium, maximum };
+    }
+
+    function boolean(value) {
+        if (typeof value === 'boolean') return value;
+        return ['true', '1', 'si', 'sí', 'yes'].includes(lower(value));
+    }
+
+    function parseWarehouseLocationCode(value) {
+        const raw = text(value).toUpperCase().replace(/\s+/g, '');
+        const match = raw.match(/^(\d{2})-([1-9]\d*)-([A-Z])([1-9]\d*)$/);
+        if (!match) return null;
+        const rack = Number(match[1]);
+        const zone = Number(match[2]);
+        const floor = match[3];
+        const sequence = Number(match[4]);
+        if (rack < 1 || rack > 20 || zone < 1 || sequence < 1) return null;
+        const rackCode = String(rack).padStart(2, '0');
+        return {
+            codigo: `${rackCode}-${zone}-${floor}${sequence}`,
+            base: `${rackCode}-${zone}-${floor}`,
+            rack,
+            zona: zone,
+            piso: floor,
+            consecutivo: sequence
+        };
+    }
+
+    function normalizeWarehouseLocationCode(value) {
+        const parsed = parseWarehouseLocationCode(value);
+        return parsed ? parsed.codigo : '';
+    }
+
+    function validateWarehouseLocationAgainstStructure(value, warehouseId, locations = []) {
+        const raw = text(value);
+        if (!raw) return { ok: true, codigo: '', parsed: null, location: null };
+        const parsed = parseWarehouseLocationCode(raw);
+        if (!parsed) {
+            return {
+                ok: false,
+                error: 'La ubicación debe usar el formato RR-Z-PISO+CONSECUTIVO, por ejemplo 01-1-A1.'
+            };
+        }
+        const location = (Array.isArray(locations) ? locations : []).find(item =>
+            Number(item.almacen_id ?? item.almacenId) === Number(warehouseId) &&
+            lower(item.codigo) === lower(parsed.base)
+        );
+        if (!location) {
+            return {
+                ok: false,
+                error: `No existe la estructura ${parsed.base} en el almacén seleccionado.`
+            };
+        }
+        const capacity = Math.max(1, number(location.columnas ?? location.capacidadConsecutivos) || 1);
+        if (parsed.consecutivo > capacity) {
+            return {
+                ok: false,
+                error: `${parsed.base} admite consecutivos del 1 al ${capacity}.`
+            };
+        }
+        return { ok: true, codigo: parsed.codigo, parsed, location };
+    }
+
+    function errorMessage(error) {
+        if (!error) return 'Error desconocido en Supabase.';
+        return error.message || error.details || error.hint || String(error);
+    }
+
+    function assertNoError(error, fallback) {
+        if (error) throw new Error(errorMessage(error) || fallback);
+    }
+
+    function withOperationTimeout(value, milliseconds = 15000, message = 'La operación excedió el tiempo de espera.') {
+        let timer = 0;
+        const timeout = new Promise((_, reject) => {
+            timer = window.setTimeout(() => reject(new Error(message)), milliseconds);
+        });
+        return Promise.race([Promise.resolve(value), timeout]).finally(() => window.clearTimeout(timer));
+    }
+
+    async function collectRows(builderFactory, pageSize = 1000) {
+        const rows = [];
+        let from = 0;
+        const maxPages = 50;
+
+        for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+            const { data, error } = await builderFactory().range(from, from + pageSize - 1);
+            assertNoError(error);
+            const page = Array.isArray(data) ? data : [];
+            rows.push(...page);
+            if (page.length < pageSize) return rows;
+            from += pageSize;
+        }
+
+        throw new Error('La consulta devolvió demasiados bloques de datos y fue detenida para evitar una carga infinita.');
+    }
+
+    function warehouseFromDb(row) {
+        return {
+            id: Number(row.id),
+            nombre: text(row.nombre),
+            tipo: text(row.tipo),
+            ubicacion: text(row.ubicacion),
+            encargado: text(row.encargado),
+            estado: text(row.estado) || 'Activo',
+            notas: text(row.notas)
+        };
+    }
+
+    const warehouseSnapshot = { at: 0, data: null, promise: null };
+    const WAREHOUSE_SNAPSHOT_TTL = 15000;
+
+    function invalidateWarehouseSnapshot() {
+        warehouseSnapshot.at = 0;
+        warehouseSnapshot.data = null;
+        warehouseSnapshot.promise = null;
+    }
+
+    async function listWarehouses(options = {}) {
+        const force = options.refresh === true;
+        const now = Date.now();
+        let warehouses;
+        if (!force && Array.isArray(warehouseSnapshot.data) && now - warehouseSnapshot.at < WAREHOUSE_SNAPSHOT_TTL) {
+            warehouses = warehouseSnapshot.data;
+        } else {
+            if (!force && warehouseSnapshot.promise) {
+                warehouses = await warehouseSnapshot.promise;
+            } else {
+                const promise = collectRows(() => client.from('almacenes').select('*').order('nombre', { ascending: true }))
+                    .then(rows => rows.map(warehouseFromDb));
+                warehouseSnapshot.promise = promise;
+                try {
+                    warehouses = await promise;
+                    warehouseSnapshot.data = warehouses;
+                    warehouseSnapshot.at = Date.now();
+                } finally {
+                    if (warehouseSnapshot.promise === promise) warehouseSnapshot.promise = null;
+                }
+            }
+        }
+        const rows = options.activeOnly === true
+            ? warehouses.filter(item => lower(item.estado) === 'activo')
+            : warehouses;
+        return rows.slice();
+    }
+
+    async function saveWarehouse(warehouse, originalName = '') {
+        const row = {
+            nombre: text(warehouse.nombre),
+            tipo: text(warehouse.tipo) || null,
+            ubicacion: text(warehouse.ubicacion) || null,
+            encargado: text(warehouse.encargado) || null,
+            estado: text(warehouse.estado) || 'Activo',
+            notas: text(warehouse.notas) || null,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.nombre) throw new Error('El nombre del almacén es obligatorio.');
+
+        const original = text(originalName);
+        if (original) {
+            const { error } = await client.from('almacenes').update(row).eq('nombre', original);
+            assertNoError(error, 'No se pudo actualizar el almacén.');
+        } else {
+            const { error } = await client.from('almacenes').insert(row);
+            assertNoError(error, 'No se pudo crear el almacén.');
+        }
+        invalidateWarehouseSnapshot();
+        invalidateMaterialSnapshot();
+        return { ok: true, nombre: row.nombre };
+    }
+
+    async function deleteWarehouse(name) {
+        const nombre = text(name);
+        if (!nombre) throw new Error('Falta el nombre del almacén.');
+
+        const { data: warehouse, error: warehouseError } = await client
+            .from('almacenes')
+            .select('id,nombre')
+            .eq('nombre', nombre)
+            .maybeSingle();
+        assertNoError(warehouseError);
+        if (!warehouse) return { ok: true, nombre };
+
+        const { count, error: countError } = await client
+            .from('existencias_almacen')
+            .select('id', { count: 'exact', head: true })
+            .eq('almacen_id', warehouse.id);
+        assertNoError(countError);
+        if ((count || 0) > 0) {
+            throw new Error('Este almacén tiene materiales asignados. Cámbialo a Inactivo en lugar de eliminarlo.');
+        }
+
+        const { error } = await client.from('almacenes').delete().eq('id', warehouse.id);
+        assertNoError(error, 'No se pudo eliminar el almacén.');
+        invalidateWarehouseSnapshot();
+        invalidateMaterialSnapshot();
+        return { ok: true, nombre };
+    }
+
+    function warehouseLocationFromDb(row, warehouseById = new Map()) {
+        const warehouse = warehouseById.get(Number(row.almacen_id)) || {};
+        return {
+            id: Number(row.id),
+            almacenId: Number(row.almacen_id),
+            almacenNombre: text(warehouse.nombre),
+            nombre: text(row.nombre),
+            codigo: text(row.codigo),
+            tipo: text(row.tipo) || 'Estante',
+            nota: text(row.nota),
+            filas: Math.max(1, number(row.filas) || 1),
+            columnas: Math.max(1, number(row.columnas) || 1),
+            estado: text(row.estado) || 'Activo',
+            etiqueta: [text(row.codigo), text(row.nombre)].filter(Boolean).join(' — ') || text(row.nombre)
+        };
+    }
+
+    async function listWarehouseLocations(options = {}) {
+        const warehouseId = Number(options.almacenId ?? options.warehouseId ?? 0);
+        const activeOnly = options.activeOnly === true;
+        let query = client
+            .from('ubicaciones_almacen')
+            .select('*')
+            .order('nombre', { ascending: true });
+        if (warehouseId) query = query.eq('almacen_id', warehouseId);
+        if (activeOnly) query = query.eq('estado', 'Activo');
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las ubicaciones del almacén.');
+        const warehouses = await listWarehouses();
+        const warehouseById = new Map(warehouses.map(row => [Number(row.id), row]));
+        return (Array.isArray(data) ? data : []).map(row => warehouseLocationFromDb(row, warehouseById));
+    }
+
+    async function saveWarehouseLocation(location, originalId = 0) {
+        const row = {
+            almacen_id: Number(location.almacenId ?? location.warehouseId ?? 0),
+            nombre: text(location.nombre),
+            codigo: text(location.codigo) || null,
+            tipo: text(location.tipo) || 'Estante',
+            nota: text(location.nota) || null,
+            filas: 1,
+            columnas: Math.max(1, Math.trunc(number(location.columnas ?? location.capacidadConsecutivos) || 20)),
+            estado: text(location.estado) || 'Activo',
+            updated_at: new Date().toISOString()
+        };
+        if (!row.almacen_id) throw new Error('Selecciona el almacén de la ubicación.');
+        if (!row.nombre) throw new Error('El nombre de la ubicación es obligatorio.');
+        if (['rack', 'piso', 'zona'].includes(lower(row.tipo))) {
+            const baseMatch = text(row.codigo).toUpperCase().match(/^(\d{2})-([1-9]\d*)-([A-Z])$/);
+            if (!baseMatch || Number(baseMatch[1]) < 1 || Number(baseMatch[1]) > 20) {
+                throw new Error('El código base debe usar RR-Z-P, por ejemplo 01-1-A, con rack del 01 al 20.');
+            }
+            row.codigo = `${baseMatch[1]}-${Number(baseMatch[2])}-${baseMatch[3]}`;
+        }
+
+        let data;
+        let error;
+        const id = Number(originalId || location.id || 0);
+        if (id) {
+            ({ data, error } = await client
+                .from('ubicaciones_almacen')
+                .update(row)
+                .eq('id', id)
+                .select('*')
+                .single());
+        } else {
+            ({ data, error } = await client
+                .from('ubicaciones_almacen')
+                .insert(row)
+                .select('*')
+                .single());
+        }
+        if (error && error.code === '23505') {
+            throw new Error('Ya existe una ubicación con ese nombre o código dentro del almacén.');
+        }
+        assertNoError(error, 'No se pudo guardar la ubicación del almacén.');
+        const warehouse = (await listWarehouses()).find(item => Number(item.id) === row.almacen_id);
+        return warehouseLocationFromDb(data, new Map(warehouse ? [[Number(warehouse.id), warehouse]] : []));
+    }
+
+    async function saveWarehouseLocationsBulk(items = [], options = {}) {
+        const input = Array.isArray(items) ? items : [];
+        const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {};
+        if (!input.length) return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
+        const rows = input.map(item => ({
+            almacen_id: Number(item.almacenId ?? item.warehouseId ?? 0),
+            nombre: text(item.nombre),
+            codigo: text(item.codigo).toUpperCase() || null,
+            tipo: text(item.tipo) || 'Rack',
+            nota: text(item.nota) || null,
+            filas: 1,
+            columnas: Math.max(1, Math.trunc(number(item.columnas ?? item.capacidadConsecutivos) || 20)),
+            estado: text(item.estado) || 'Activo',
+            updated_at: new Date().toISOString()
+        }));
+        rows.forEach(row => {
+            if (!row.almacen_id) throw new Error('Falta el almacén en una ubicación.');
+            if (!row.nombre || !row.codigo) throw new Error('Nombre y código son obligatorios para generar la estructura.');
+            const baseMatch = row.codigo.match(/^(\d{2})-([1-9]\d*)-([A-Z])$/);
+            if (!baseMatch || Number(baseMatch[1]) < 1 || Number(baseMatch[1]) > 20) {
+                throw new Error(`El código base ${row.codigo} no cumple el formato RR-Z-P, por ejemplo 01-1-A.`);
+            }
+        });
+
+        const byWarehouse = new Map();
+        rows.forEach(row => {
+            if (!byWarehouse.has(row.almacen_id)) byWarehouse.set(row.almacen_id, []);
+            byWarehouse.get(row.almacen_id).push(row);
+        });
+
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
+        let processed = 0;
+        const total = rows.length;
+        const same = (existing, row) =>
+            text(existing.nombre) === text(row.nombre) &&
+            lower(existing.codigo) === lower(row.codigo) &&
+            lower(existing.tipo) === lower(row.tipo) &&
+            text(existing.nota) === text(row.nota) &&
+            Math.max(1, Math.trunc(number(existing.columnas) || 1)) === row.columnas &&
+            lower(existing.estado) === lower(row.estado);
+
+        onProgress({ stage: 'loading', processed, total, inserted, updated, unchanged });
+
+        for (const [warehouseId, warehouseRows] of byWarehouse.entries()) {
+            const current = await listWarehouseLocations({ warehouseId });
+            const existingByCode = new Map(current.map(item => [lower(item.codigo), item]));
+            const toInsert = [];
+            const toUpdate = [];
+            let warehouseUnchanged = 0;
+
+            warehouseRows.forEach(row => {
+                const existing = existingByCode.get(lower(row.codigo));
+                if (!existing) toInsert.push(row);
+                else if (same(existing, row)) {
+                    unchanged += 1;
+                    warehouseUnchanged += 1;
+                } else toUpdate.push({ id: existing.id, row });
+            });
+
+            processed += warehouseUnchanged;
+            onProgress({ stage: 'saving', processed, total, inserted, updated, unchanged });
+
+            const insertChunkSize = 250;
+            for (let index = 0; index < toInsert.length; index += insertChunkSize) {
+                const chunk = toInsert.slice(index, index + insertChunkSize);
+                const { error } = await client.from('ubicaciones_almacen').insert(chunk);
+                if (error?.code === '23505') {
+                    for (const row of chunk) {
+                        const { error: oneError } = await client.from('ubicaciones_almacen').insert(row);
+                        if (oneError?.code === '23505') {
+                            const { error: updateError } = await client
+                                .from('ubicaciones_almacen')
+                                .update(row)
+                                .eq('almacen_id', row.almacen_id)
+                                .eq('codigo', row.codigo);
+                            assertNoError(updateError, `No se pudo actualizar ${row.codigo}.`);
+                            updated += 1;
+                        } else {
+                            assertNoError(oneError, `No se pudo guardar ${row.codigo}.`);
+                            inserted += 1;
+                        }
+                        processed += 1;
+                        onProgress({ stage: 'saving', processed, total, inserted, updated, unchanged });
+                    }
+                } else {
+                    assertNoError(error, 'No se pudo guardar el bloque de ubicaciones.');
+                    inserted += chunk.length;
+                    processed += chunk.length;
+                    onProgress({ stage: 'saving', processed, total, inserted, updated, unchanged });
+                }
+            }
+
+            const updateConcurrency = 12;
+            for (let index = 0; index < toUpdate.length; index += updateConcurrency) {
+                const chunk = toUpdate.slice(index, index + updateConcurrency);
+                await Promise.all(chunk.map(async item => {
+                    const { error } = await client
+                        .from('ubicaciones_almacen')
+                        .update(item.row)
+                        .eq('id', item.id);
+                    assertNoError(error, `No se pudo actualizar ${item.row.codigo}.`);
+                }));
+                updated += chunk.length;
+                processed += chunk.length;
+                onProgress({ stage: 'saving', processed, total, inserted, updated, unchanged });
+            }
+        }
+
+        onProgress({ stage: 'done', processed: total, total, inserted, updated, unchanged });
+        return { inserted, updated, unchanged, total };
+    }
+
+    async function deleteWarehouseRack(warehouseId, rackNumber) {
+        const id = Number(warehouseId);
+        const rack = Math.trunc(number(rackNumber));
+        if (!id) throw new Error('Almacén no válido.');
+        if (rack < 1 || rack > 20) throw new Error('El rack debe estar entre 01 y 20.');
+        const rackCode = String(rack).padStart(2, '0');
+        const pattern = `${rackCode}-%`;
+
+        const { data: cleared, error: clearError } = await client
+            .from('existencias_almacen')
+            .update({ ubicacion: null })
+            .eq('almacen_id', id)
+            .like('ubicacion', pattern)
+            .select('material_codigo');
+        assertNoError(clearError, `No se pudieron liberar los materiales del rack ${rackCode}.`);
+
+        const { data: removed, error: deleteError } = await client
+            .from('ubicaciones_almacen')
+            .delete()
+            .eq('almacen_id', id)
+            .like('codigo', pattern)
+            .select('id');
+        assertNoError(deleteError, `No se pudo eliminar el rack ${rackCode}.`);
+
+        return {
+            ok: true,
+            rack: rackCode,
+            materialsCleared: Array.isArray(cleared) ? cleared.length : 0,
+            locationsDeleted: Array.isArray(removed) ? removed.length : 0
+        };
+    }
+
+    async function deleteWarehouseLocation(id) {
+        const locationId = Number(id);
+        if (!locationId) throw new Error('Ubicación no válida.');
+        const { error } = await client.from('ubicaciones_almacen').delete().eq('id', locationId);
+        assertNoError(error, 'No se pudo eliminar la ubicación del almacén.');
+        return { ok: true, id: locationId };
+    }
+
+    function materialFromDb(row, inventories = [], warehouseById = new Map()) {
+        const imagen = text(row.imagen_url);
+        const descripcion = text(row.descripcion);
+        const warehouses = inventories.map(inv => {
+            const warehouse = warehouseById.get(Number(inv.almacen_id)) || {};
+            const levels = normalizeStockLevels(inv.stock_minimo, inv.stock_medio, inv.stock_maximo);
+            return {
+                id: Number(inv.almacen_id),
+                nombre: text(warehouse.nombre),
+                tipo: text(warehouse.tipo),
+                estado: text(warehouse.estado),
+                ubicacionAlmacen: text(warehouse.ubicacion),
+                stock: number(inv.stock),
+                stockMinimo: levels.minimum,
+                stock_minimo: levels.minimum,
+                stockMedio: levels.medium,
+                stock_medio: levels.medium,
+                stockMaximo: levels.maximum,
+                stock_maximo: levels.maximum,
+                ubicacion: text(inv.ubicacion)
+            };
+        }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+        const totalStock = warehouses.length
+            ? warehouses.reduce((sum, item) => sum + number(item.stock), 0)
+            : number(row.stock);
+        const fallbackLevels = normalizeStockLevels(row.stock_minimo, row.stock_medio, row.stock_maximo);
+        const totalMinimum = warehouses.length
+            ? warehouses.reduce((sum, item) => sum + number(item.stockMinimo), 0)
+            : fallbackLevels.minimum;
+        const totalMedium = warehouses.length
+            ? warehouses.reduce((sum, item) => sum + number(item.stockMedio), 0)
+            : fallbackLevels.medium;
+        const totalMaximum = warehouses.length
+            ? warehouses.reduce((sum, item) => sum + number(item.stockMaximo), 0)
+            : fallbackLevels.maximum;
+        const firstWarehouse = warehouses[0] || null;
+
+        return {
+            codigo: text(row.codigo),
+            catalogado: true,
+            esCatalogado: true,
+            es_catalogado: true,
+            esNoListado: false,
+            es_no_listado: false,
+            descripcion,
+            desc: descripcion,
+            categoria: text(row.categoria),
+            esCable: isCableCategory(row.categoria),
+            es_cable: isCableCategory(row.categoria),
+            tipoCable: isCableCategory(row.categoria) ? text(row.tipo_cable) : '',
+            tipo_cable: isCableCategory(row.categoria) ? text(row.tipo_cable) : '',
+            tamano: isCableCategory(row.categoria) ? text(row.tamano_mm2) : '',
+            tamano_mm2: isCableCategory(row.categoria) ? text(row.tamano_mm2) : '',
+            unidad: text(row.unidad),
+            stock: totalStock,
+            stockMinimo: totalMinimum,
+            stock_minimo: totalMinimum,
+            stockMedio: totalMedium,
+            stock_medio: totalMedium,
+            stockMaximo: totalMaximum,
+            stock_maximo: totalMaximum,
+            precio: number(row.precio),
+            monedaCosto: normalizeCurrencyCode(row.moneda_costo),
+            moneda_costo: normalizeCurrencyCode(row.moneda_costo),
+            marca: text(row.marca),
+            codigoMarca: text(row.codigo_marca),
+            codigo_marca: text(row.codigo_marca),
+            proveedor: text(row.proveedor),
+            contactoProveedor: text(row.contacto_proveedor),
+            contacto_proveedor: text(row.contacto_proveedor),
+            modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : text(row.modismos).split(/[,;\n]+/).map(text).filter(Boolean),
+            imagen,
+            urlImagen: imagen,
+            imagen_url: imagen,
+            almacenes: warehouses,
+            almacenId: firstWarehouse ? firstWarehouse.id : null,
+            almacenNombre: firstWarehouse ? firstWarehouse.nombre : '',
+            almacen: firstWarehouse ? firstWarehouse.nombre : '',
+            esIncompleto: boolean(row.es_incompleto),
+            es_incompleto: boolean(row.es_incompleto),
+            origenAlta: text(row.origen_alta),
+            origen_alta: text(row.origen_alta),
+            createdAt: row.created_at || '',
+            created_at: row.created_at || '',
+            updatedAt: row.updated_at || '',
+            updated_at: row.updated_at || '',
+            camposPendientes: Array.isArray(row.campos_pendientes) ? row.campos_pendientes : [],
+            campos_pendientes: Array.isArray(row.campos_pendientes) ? row.campos_pendientes : [],
+            activo: row.activo !== false
+        };
+    }
+
+    function materialToDb(material) {
+        const categoria = text(material.categoria);
+        const cable = isCableCategory(categoria);
+        const tipoCable = cable ? text(material.tipoCable ?? material.tipo_cable) : '';
+        const tamanoCable = cable ? text(material.tamano ?? material.tamano_mm2) : '';
+        const unidadOriginal = text(material.unidad);
+        const unidad = cable ? 'METRO' : unidadOriginal;
+        const precio = number(material.precio);
+        const monedaCosto = normalizeCurrencyCode(material.monedaCosto ?? material.moneda_costo ?? material.moneda);
+        const imagen = text(material.imagen ?? material.urlImagen ?? material.imagen_url);
+        const pendientes = [];
+        if (!categoria) pendientes.push('categoria');
+        if (!unidad) pendientes.push('unidad');
+        if (!text(material.codigoMarca ?? material.codigo_marca)) pendientes.push('codigo_marca');
+        if (cable && !tipoCable) pendientes.push('tipo_cable');
+        if (cable && !tamanoCable) pendientes.push('tamano_mm2');
+        if (precio <= 0) pendientes.push('precio');
+        if (!imagen) pendientes.push('imagen');
+        return {
+            codigo: text(material.codigo),
+            descripcion: text(material.descripcion ?? material.desc),
+            categoria: categoria || null,
+            tipo_cable: tipoCable || null,
+            tamano_mm2: tamanoCable || null,
+            unidad: unidad || null,
+            precio,
+            moneda_costo: monedaCosto,
+            marca: text(material.marca) || null,
+            codigo_marca: text(material.codigoMarca ?? material.codigo_marca) || null,
+            proveedor: text(material.proveedor) || null,
+            contacto_proveedor: text(material.contactoProveedor ?? material.contacto_proveedor) || null,
+            modismos: Array.isArray(material.modismos)
+                ? material.modismos.map(text).filter(Boolean)
+                : text(material.modismos ?? material.modismosTexto).split(/[,;\n]+/).map(text).filter(Boolean),
+            imagen_url: imagen || null,
+            es_incompleto: pendientes.length > 0,
+            origen_alta: text(material.origenAlta ?? material.origen_alta) || null,
+            campos_pendientes: pendientes,
+            activo: material.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+    }
+
+    function matchesMaterial(material, query) {
+        const values = [
+            material?.codigo,
+            material?.descripcion,
+            material?.desc,
+            material?.categoria,
+            material?.unidad,
+            material?.tipoCable,
+            material?.tipo_cable,
+            material?.tamano,
+            material?.tamano_mm2,
+            material?.marca,
+            material?.codigoMarca,
+            material?.codigo_marca,
+            material?.monedaCosto,
+            material?.moneda_costo,
+            material?.proveedor,
+            material?.contactoProveedor,
+            material?.contacto_proveedor,
+            ...(Array.isArray(material?.modismos) ? material.modismos : [])
+        ];
+        if (window.SkilledSearch?.matches) return window.SkilledSearch.matches(values, query);
+        const value = lower(query);
+        if (!value) return true;
+        return values.some(item => lower(item).includes(value));
+    }
+
+    async function loadInventoryContext() {
+        const [warehouses, inventories] = await Promise.all([
+            collectRows(() => client.from('almacenes').select('*').order('nombre', { ascending: true })),
+            collectRows(() => client.from('existencias_almacen').select('*').order('id', { ascending: true }))
+        ]);
+        const warehouseById = new Map(warehouses.map(row => [Number(row.id), warehouseFromDb(row)]));
+        const inventoriesByMaterial = new Map();
+        inventories.forEach(row => {
+            const key = text(row.material_codigo);
+            if (!inventoriesByMaterial.has(key)) inventoriesByMaterial.set(key, []);
+            inventoriesByMaterial.get(key).push(row);
+        });
+        return { warehouseById, inventoriesByMaterial, inventories };
+    }
+
+    const materialSnapshot = { at: 0, data: null, promise: null };
+    const MATERIAL_SNAPSHOT_TTL = 8000;
+
+    function invalidateMaterialSnapshot() {
+        materialSnapshot.at = 0;
+        materialSnapshot.data = null;
+        materialSnapshot.promise = null;
+    }
+
+    async function getMaterialSnapshot(force = false) {
+        const now = Date.now();
+        if (!force && Array.isArray(materialSnapshot.data) && now - materialSnapshot.at < MATERIAL_SNAPSHOT_TTL) {
+            return materialSnapshot.data;
+        }
+        if (!force && materialSnapshot.promise) return materialSnapshot.promise;
+
+        const promise = Promise.all([
+            collectRows(() => client.from('materiales').select('*').order('codigo', { ascending: true })),
+            loadInventoryContext()
+        ]).then(([rows, context]) => rows.map(row => materialFromDb(
+            row,
+            context.inventoriesByMaterial.get(text(row.codigo)) || [],
+            context.warehouseById
+        )));
+
+        materialSnapshot.promise = promise;
+        try {
+            const data = await promise;
+            materialSnapshot.data = data;
+            materialSnapshot.at = Date.now();
+            return data;
+        } finally {
+            if (materialSnapshot.promise === promise) materialSnapshot.promise = null;
+        }
+    }
+
+    async function listMaterials(options = {}) {
+        const warehouseId = Number(options.warehouseId || options.almacenId || 0);
+        const all = await getMaterialSnapshot(options.refresh === true);
+        let materials = options.includeInactive === true
+            ? all
+            : all.filter(material => material.activo !== false);
+        if (warehouseId) {
+            materials = materials.filter(material => material.almacenes.some(item => item.id === warehouseId));
+        }
+        return materials.slice();
+    }
+
+    function cableRollFromDb(row) {
+        const initial = number(row.metros_iniciales);
+        const available = number(row.metros_disponibles);
+        return {
+            id: Number(row.id),
+            materialCodigo: text(row.material_codigo),
+            material_codigo: text(row.material_codigo),
+            almacenId: Number(row.almacen_id),
+            almacen_id: Number(row.almacen_id),
+            almacenNombre: text(row.almacen_nombre),
+            codigoRollo: text(row.codigo_rollo),
+            codigo_rollo: text(row.codigo_rollo),
+            metrosIniciales: initial,
+            metros_iniciales: initial,
+            metrosDisponibles: available,
+            metros_disponibles: available,
+            porcentajeDisponible: initial > 0 ? Math.max(0, Math.min(100, available / initial * 100)) : 0,
+            estado: text(row.estado) || (available <= 0 ? 'agotado' : available < initial ? 'abierto' : 'cerrado'),
+            ubicacion: text(row.ubicacion),
+            notas: text(row.notas),
+            origen: text(row.origen),
+            activo: row.activo !== false,
+            createdAt: row.created_at || '',
+            updatedAt: row.updated_at || ''
+        };
+    }
+
+    async function listCableRolls(materialCode = '', warehouseId = 0, options = {}) {
+        const params = {
+            p_material_codigo: text(materialCode) || null,
+            p_almacen_id: Number(warehouseId) || null,
+            p_incluir_inactivos: options.includeInactive === true
+        };
+        const { data, error } = await client.rpc('crm_listar_rollos_cable', params);
+        assertNoError(error, 'No se pudieron consultar los rollos de cable. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return (Array.isArray(data) ? data : []).map(cableRollFromDb);
+    }
+
+    async function saveCableRoll(payload = {}) {
+        const materialCode = text(payload.materialCodigo ?? payload.material_codigo);
+        const warehouseId = Number((payload.almacenId ?? payload.almacen_id) || 0);
+        const rollCode = text(payload.codigoRollo ?? payload.codigo_rollo);
+        const initial = number(payload.metrosIniciales ?? payload.metros_iniciales);
+        const availableValue = payload.metrosDisponibles ?? payload.metros_disponibles;
+        const available = text(availableValue) === '' ? initial : number(availableValue);
+        if (!materialCode) throw new Error('Selecciona el material de cable.');
+        if (!warehouseId) throw new Error('Selecciona el almacén del rollo.');
+        if (!rollCode) throw new Error('Captura el código o identificador del rollo.');
+        if (!(initial > 0)) throw new Error('Los metros iniciales del rollo deben ser mayores a cero.');
+        if (available < 0 || available > initial) throw new Error('Los metros disponibles deben estar entre 0 y los metros iniciales.');
+        const { data, error } = await client.rpc('crm_guardar_rollo_cable', {
+            p_id: Number(payload.id) || null,
+            p_material_codigo: materialCode,
+            p_almacen_id: warehouseId,
+            p_codigo_rollo: rollCode,
+            p_metros_iniciales: initial,
+            p_metros_disponibles: available,
+            p_ubicacion: text(payload.ubicacion) || null,
+            p_notas: text(payload.notas) || null
+        });
+        assertNoError(error, 'No se pudo guardar el rollo de cable. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return cableRollFromDb(data || {});
+    }
+
+    async function deleteCableRoll(id) {
+        const rollId = Number(id);
+        if (!rollId) throw new Error('Rollo no válido.');
+        const { data, error } = await client.rpc('crm_eliminar_rollo_cable', { p_id: rollId });
+        assertNoError(error, 'No se pudo retirar el rollo de cable.');
+        return data && typeof data === 'object' ? data : { ok: true, id: rollId };
+    }
+
+    async function listWarehouseInventory(options = {}) {
+        const warehouseId = Number(options.warehouseId ?? options.almacenId ?? 0);
+        if (!warehouseId) throw new Error('Selecciona un almacén válido.');
+        const materials = await listMaterials({ warehouseId, includeInactive: options.includeInactive === true });
+        return materials.map(material => {
+            const inventory = (material.almacenes || []).find(item => Number(item.id) === warehouseId) || {};
+            return {
+                codigo: text(material.codigo),
+                descripcion: text(material.descripcion ?? material.desc),
+                categoria: text(material.categoria),
+                unidad: text(material.unidad),
+                marca: text(material.marca),
+                imagen: text(material.imagen ?? material.imagen_url),
+                almacenId: warehouseId,
+                almacenNombre: text(inventory.nombre),
+                stock: number(inventory.stock),
+                stockMinimo: number(inventory.stockMinimo ?? inventory.stock_minimo),
+                stockMedio: number(inventory.stockMedio ?? inventory.stock_medio),
+                stockMaximo: number(inventory.stockMaximo ?? inventory.stock_maximo),
+                ubicacion: text(inventory.ubicacion),
+                material
+            };
+        }).sort((a, b) => a.descripcion.localeCompare(b.descripcion, 'es'));
+    }
+
+    async function assignWarehouseMaterialLocation(payload = {}) {
+        const code = text(payload.codigo ?? payload.materialCodigo ?? payload.material_codigo);
+        const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? payload.almacen_id ?? 0);
+        let location = text(payload.ubicacion ?? payload.location);
+        if (!code) throw new Error('Falta el código del material.');
+        if (!warehouseId) throw new Error('Selecciona un almacén válido.');
+
+        if (location) {
+            const structures = await listWarehouseLocations({ warehouseId, activeOnly: true });
+            const check = validateWarehouseLocationAgainstStructure(location, warehouseId, structures);
+            if (!check.ok) throw new Error(check.error);
+            location = check.codigo;
+
+            const { data: occupants, error: occupantsError } = await client
+                .from('existencias_almacen')
+                .select('material_codigo')
+                .eq('almacen_id', warehouseId)
+                .eq('ubicacion', location)
+                .neq('material_codigo', code)
+                .limit(MAX_MATERIALS_PER_WAREHOUSE_POSITION);
+            assertNoError(occupantsError, 'No se pudo verificar la capacidad de la posición.');
+            if ((occupants || []).length >= MAX_MATERIALS_PER_WAREHOUSE_POSITION) {
+                throw new Error(`${location} ya contiene ${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.`);
+            }
+        }
+
+        const { data, error } = await client
+            .from('existencias_almacen')
+            .update({ ubicacion: location || null, updated_at: new Date().toISOString() })
+            .eq('material_codigo', code)
+            .eq('almacen_id', warehouseId)
+            .select('material_codigo,almacen_id,stock,stock_minimo,stock_medio,stock_maximo,ubicacion')
+            .maybeSingle();
+        assertNoError(error, 'No se pudo asignar la ubicación del material.');
+        if (!data) throw new Error('El material no tiene existencias registradas en este almacén.');
+        return {
+            codigo: text(data.material_codigo),
+            almacenId: Number(data.almacen_id),
+            stock: number(data.stock),
+            stockMinimo: number(data.stock_minimo),
+            stockMedio: number(data.stock_medio),
+            stockMaximo: number(data.stock_maximo),
+            ubicacion: text(data.ubicacion)
+        };
+    }
+
+    async function assignWarehouseMaterialsLocation(payload = {}) {
+        const codes = [...new Set(Array.isArray(payload.codigos) ? payload.codigos.map(text).filter(Boolean) : [])];
+        const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? payload.almacen_id ?? 0);
+        let location = text(payload.ubicacion ?? payload.location);
+        if (!codes.length) throw new Error('Selecciona al menos un material.');
+        if (!warehouseId) throw new Error('Selecciona un almacén válido.');
+        if (location) {
+            const structures = await listWarehouseLocations({ warehouseId, activeOnly: true });
+            const check = validateWarehouseLocationAgainstStructure(location, warehouseId, structures);
+            if (!check.ok) throw new Error(check.error);
+            location = check.codigo;
+            const { data: occupants, error: occupantsError } = await client
+                .from('existencias_almacen')
+                .select('material_codigo')
+                .eq('almacen_id', warehouseId)
+                .eq('ubicacion', location);
+            assertNoError(occupantsError, 'No se pudo verificar la capacidad de la posición.');
+            const selected = new Set(codes.map(lower));
+            const external = (occupants || []).filter(row => !selected.has(lower(row.material_codigo)));
+            if (external.length + codes.length > MAX_MATERIALS_PER_WAREHOUSE_POSITION) {
+                throw new Error(`${location} admite un máximo de ${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.`);
+            }
+        }
+        const { data, error } = await client
+            .from('existencias_almacen')
+            .update({ ubicacion: location || null, updated_at: new Date().toISOString() })
+            .in('material_codigo', codes)
+            .eq('almacen_id', warehouseId)
+            .select('material_codigo,almacen_id,stock,stock_minimo,stock_medio,stock_maximo,ubicacion');
+        assertNoError(error, 'No se pudieron actualizar las ubicaciones de los materiales.');
+        return (data || []).map(row => ({
+            codigo: text(row.material_codigo),
+            almacenId: Number(row.almacen_id),
+            stock: number(row.stock),
+            stockMinimo: number(row.stock_minimo),
+            stockMedio: number(row.stock_medio),
+            stockMaximo: number(row.stock_maximo),
+            ubicacion: text(row.ubicacion)
+        }));
+    }
+
+    async function resolveWarehouseId(material) {
+        const direct = Number(material.almacenId ?? material.almacen_id ?? 0);
+        if (direct) return direct;
+        const name = text(material.almacenNombre ?? material.almacen);
+        if (!name) return 0;
+        const { data, error } = await client
+            .from('almacenes')
+            .select('id')
+            .ilike('nombre', name)
+            .limit(1)
+            .maybeSingle();
+        assertNoError(error);
+        return data ? Number(data.id) : 0;
+    }
+
+    async function ensureCategoryExists(categoryName) {
+        const name = text(categoryName);
+        if (!name) return;
+        const { error } = await client.from('categorias_materiales').upsert({
+            nombre: name,
+            activo: true,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'nombre' });
+        assertNoError(error, 'No se pudo registrar la categoría del material.');
+    }
+
+    async function saveMaterial(material, originalCode = '') {
+        const row = materialToDb(material);
+        if (!row.codigo || !row.descripcion || !row.categoria || !row.unidad) {
+            throw new Error('Código, descripción, categoría y unidad son obligatorios.');
+        }
+
+        const original = text(originalCode);
+        const warehouseId = await resolveWarehouseId(material);
+        await ensureCategoryExists(row.categoria);
+
+        if (original) {
+            const { error } = await client.from('materiales').update(row).eq('codigo', original);
+            assertNoError(error, 'No se pudo actualizar el material.');
+        } else {
+            const { error } = await client.from('materiales').upsert({
+                ...row,
+                activo: true,
+                stock: 0,
+                stock_minimo: 0
+            }, { onConflict: 'codigo' });
+            assertNoError(error, 'No se pudo crear o reactivar el material.');
+        }
+
+        if (warehouseId) {
+            const levels = normalizeStockLevels(
+                material.stockMinimoAlmacen ?? material.stockMinimo ?? material.stock_minimo,
+                material.stockMedioAlmacen ?? material.stockMedio ?? material.stock_medio,
+                material.stockMaximoAlmacen ?? material.stockMaximo ?? material.stock_maximo
+            );
+            const inventoryRow = {
+                material_codigo: row.codigo,
+                almacen_id: warehouseId,
+                stock: number(material.stockAlmacen ?? material.stock),
+                stock_minimo: levels.minimum,
+                stock_medio: levels.medium,
+                stock_maximo: levels.maximum,
+                ubicacion: text(material.ubicacionAlmacen) || null,
+                updated_at: new Date().toISOString()
+            };
+            const { error } = await client
+                .from('existencias_almacen')
+                .upsert(inventoryRow, { onConflict: 'material_codigo,almacen_id' });
+            assertNoError(error, 'El material se guardó, pero no se pudo asignar al almacén.');
+        }
+
+        invalidateMaterialSnapshot();
+        const all = await listMaterials({ refresh: true });
+        return all.find(item => item.codigo === row.codigo) || materialFromDb(row);
+    }
+
+    async function deleteMaterial(code) {
+        const codigo = text(code);
+        if (!codigo) throw new Error('Falta el código del material.');
+        const { error } = await client
+            .from('materiales')
+            .update({ activo: false, updated_at: new Date().toISOString() })
+            .eq('codigo', codigo);
+        assertNoError(error, 'No se pudo retirar el material del catálogo.');
+        invalidateMaterialSnapshot();
+        return { ok: true, codigo, eliminadoLogicamente: true };
+    }
+
+    async function importMaterials(products, onProgress, options = {}) {
+        const input = Array.isArray(products) ? products : [];
+        const progress = typeof onProgress === 'function' ? onProgress : function () {};
+        const defaultWarehouseId = Number(options.almacenId ?? options.warehouseId ?? 0);
+        progress(5, 'Consultando catálogo, almacenes, ubicaciones, existencias y rollos...');
+
+        const [current, warehouses, inventories, locations] = await Promise.all([
+            collectRows(() => client.from('materiales').select('*').order('codigo', { ascending: true })),
+            collectRows(() => client.from('almacenes').select('*').order('nombre', { ascending: true })),
+            collectRows(() => client.from('existencias_almacen').select('*').order('id', { ascending: true })),
+            collectRows(() => client.from('ubicaciones_almacen').select('*').order('codigo', { ascending: true }))
+        ]);
+
+        const warehouseByName = new Map(warehouses.map(row => [lower(row.nombre), Number(row.id)]));
+        const warehouseIds = new Set(warehouses.map(row => Number(row.id)));
+        if (!warehouses.length) throw new Error('Primero registra al menos un almacén.');
+
+        const currentByCode = new Map(current.map(row => [lower(row.codigo), row]));
+        const inventoryByKey = new Map(inventories.map(row => [`${lower(row.material_codigo)}\u0000${Number(row.almacen_id)}`, row]));
+        const inventoryByLocation = new Map();
+        inventories.filter(row => text(row.ubicacion)).forEach(row => {
+            const key = `${Number(row.almacen_id)}\u0000${lower(row.ubicacion)}`;
+            if (!inventoryByLocation.has(key)) inventoryByLocation.set(key, new Set());
+            inventoryByLocation.get(key).add(lower(row.material_codigo));
+        });
+        const materialInputByCode = new Map();
+        const inventoryInputByKey = new Map();
+        const rollInputByKey = new Map();
+        const locationInputByKey = new Map();
+        const errors = [];
+        let omitted = 0;
+
+        input.forEach((source, index) => {
+            const product = { ...source };
+            const code = text(product.codigo);
+            const description = text(product.descripcion ?? product.desc);
+            const category = text(product.categoria);
+            const cable = isCableCategory(category);
+            const fileRow = Number(product.filaArchivo) || index + 1;
+            if (!code || !description) {
+                omitted += 1;
+                errors.push({ fila: fileRow, codigo: code, error: 'Código y descripción son obligatorios.' });
+                return;
+            }
+            if (!category) {
+                omitted += 1;
+                errors.push({ fila: fileRow, codigo: code, error: 'La categoría es obligatoria.' });
+                return;
+            }
+            if (cable) {
+                product.unidad = 'METRO';
+                if (!text(product.tipoCable ?? product.tipo_cable)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Para Cable/Cables, captura el tipo de cable.' }); return; }
+                if (!text(product.tamano ?? product.tamano_mm2)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Para Cable/Cables, captura el tamaño mm²/AWG.' }); return; }
+            } else {
+                product.tipoCable = '';
+                product.tipo_cable = '';
+                product.tamano = '';
+                product.tamano_mm2 = '';
+                product.codigoRollo = '';
+                product.codigo_rollo = '';
+                product.metrosInicialesRollo = '';
+                product.metros_iniciales_rollo = '';
+                product.metrosDisponiblesRollo = '';
+                product.metros_disponibles_rollo = '';
+            }
+
+            const warehouseId = Number(product.almacenId ?? product.almacen_id ?? 0) ||
+                warehouseByName.get(lower(product.almacen ?? product.almacenNombre)) ||
+                defaultWarehouseId;
+            if (!warehouseId || !warehouseIds.has(warehouseId)) {
+                omitted += 1;
+                errors.push({ fila: fileRow, codigo: code, error: 'Selecciona un almacén válido para esta fila.' });
+                return;
+            }
+
+            const locationCheck = validateWarehouseLocationAgainstStructure(
+                product.ubicacionAlmacen ?? product.ubicacion,
+                warehouseId,
+                locations
+            );
+            if (!locationCheck.ok) {
+                omitted += 1;
+                errors.push({ fila: fileRow, codigo: code, error: locationCheck.error });
+                return;
+            }
+
+            if (locationCheck.codigo) {
+                const locationKey = `${warehouseId}\u0000${lower(locationCheck.codigo)}`;
+                const existingCodes = new Set(inventoryByLocation.get(locationKey) || []);
+                const inputCodes = new Set(locationInputByKey.get(locationKey) || []);
+                const codeKey = lower(code);
+                const combined = new Set([...existingCodes, ...inputCodes]);
+                combined.add(codeKey);
+                if (combined.size > MAX_MATERIALS_PER_WAREHOUSE_POSITION) {
+                    omitted += 1;
+                    errors.push({ fila: fileRow, codigo: code, error: `${locationCheck.codigo} admite un máximo de ${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.` });
+                    return;
+                }
+                inputCodes.add(codeKey);
+                locationInputByKey.set(locationKey, inputCodes);
+            }
+
+            const rollCode = cable ? text(product.codigoRollo ?? product.codigo_rollo) : '';
+            const initialRaw = cable ? (product.metrosInicialesRollo ?? product.metros_iniciales_rollo ?? '') : '';
+            const availableRaw = cable ? (product.metrosDisponiblesRollo ?? product.metros_disponibles_rollo ?? '') : '';
+            const stockInitial = number(product.stockInicial ?? product.stock ?? product.stock_inicial);
+            if (cable && (rollCode || text(initialRaw) || text(availableRaw) || stockInitial > 0)) {
+                const initial = number(initialRaw || stockInitial);
+                const available = text(availableRaw) === '' ? initial : number(availableRaw);
+                if (!rollCode) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'El cable con existencia debe indicar Código de rollo.' }); return; }
+                if (!(initial > 0)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Los metros iniciales del rollo deben ser mayores a cero.' }); return; }
+                if (available < 0 || available > initial) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:'Los metros disponibles del rollo deben quedar entre 0 y los metros iniciales.' }); return; }
+                const rollKey = `${lower(code)}\u0000${warehouseId}\u0000${lower(rollCode)}`;
+                if (rollInputByKey.has(rollKey)) { omitted += 1; errors.push({ fila:fileRow,codigo:code,error:`El rollo ${rollCode} está repetido para el mismo material y almacén.` }); return; }
+                rollInputByKey.set(rollKey, {
+                    materialCode: code, warehouseId, rollCode, initial, available,
+                    location: locationCheck.codigo || text(product.ubicacionAlmacen ?? product.ubicacion),
+                    notes: text(product.notasRollo ?? product.notas_rollo), fileRow
+                });
+            }
+
+            const inventoryKey = `${lower(code)}\u0000${warehouseId}`;
+            if (inventoryInputByKey.has(inventoryKey) && !cable) {
+                omitted += 1;
+                errors.push({ fila: fileRow, codigo: code, error: 'El mismo SKU está repetido para el mismo almacén.' });
+                return;
+            }
+
+            const codeKey = lower(code);
+            if (!materialInputByCode.has(codeKey)) materialInputByCode.set(codeKey, product);
+            if (!inventoryInputByKey.has(inventoryKey)) {
+                inventoryInputByKey.set(inventoryKey, { product, code, warehouseId, location: locationCheck.codigo, fileRow, cable });
+            }
+        });
+
+        const materialRows = [];
+        let created = 0;
+        let updated = 0;
+        materialInputByCode.forEach((product, key) => {
+            const existing = currentByCode.get(key);
+            const row = materialToDb(product);
+            if (existing) {
+                row.codigo = existing.codigo;
+                row.stock = number(existing.stock);
+                row.stock_minimo = number(existing.stock_minimo);
+                if (!row.codigo_marca && text(existing.codigo_marca)) {
+                    row.codigo_marca = text(existing.codigo_marca);
+                    row.campos_pendientes = (row.campos_pendientes || []).filter(field => field !== 'codigo_marca');
+                    row.es_incompleto = row.campos_pendientes.length > 0;
+                }
+                if (!text(product.monedaCosto ?? product.moneda_costo ?? product.moneda)) {
+                    row.moneda_costo = normalizeCurrencyCode(existing.moneda_costo);
+                }
+                updated += 1;
+            } else {
+                row.stock = 0;
+                row.stock_minimo = 0;
+                created += 1;
+            }
+            materialRows.push(row);
+        });
+
+        const canonicalCodeByLower = new Map(materialRows.map(row => [lower(row.codigo), row.codigo]));
+        const inventoryRows = [];
+        inventoryInputByKey.forEach(entry => {
+            const canonicalCode = canonicalCodeByLower.get(lower(entry.code)) || entry.code;
+            const existingInventory = inventoryByKey.get(`${lower(canonicalCode)}\u0000${entry.warehouseId}`);
+            const levels = normalizeStockLevels(
+                text(entry.product.stockMinimo ?? entry.product.stock_minimo) === '' ? existingInventory?.stock_minimo : (entry.product.stockMinimo ?? entry.product.stock_minimo),
+                text(entry.product.stockMedio ?? entry.product.stock_medio) === '' ? existingInventory?.stock_medio : (entry.product.stockMedio ?? entry.product.stock_medio),
+                text(entry.product.stockMaximo ?? entry.product.stock_maximo) === '' ? existingInventory?.stock_maximo : (entry.product.stockMaximo ?? entry.product.stock_maximo)
+            );
+            inventoryRows.push({
+                material_codigo: canonicalCode,
+                almacen_id: entry.warehouseId,
+                stock: entry.cable ? number(existingInventory?.stock) : (existingInventory ? number(existingInventory.stock) : number(entry.product.stockInicial ?? entry.product.stock ?? entry.product.stock_inicial)),
+                stock_minimo: levels.minimum,
+                stock_medio: levels.medium,
+                stock_maximo: levels.maximum,
+                ubicacion: entry.location || existingInventory?.ubicacion || null,
+                updated_at: new Date().toISOString()
+            });
+        });
+
+        const chunkSize = 200;
+        for (let startIndex = 0; startIndex < materialRows.length; startIndex += chunkSize) {
+            const chunk = materialRows.slice(startIndex, startIndex + chunkSize);
+            const { error } = await client.from('materiales').upsert(chunk, { onConflict: 'codigo' });
+            assertNoError(error, 'No se pudo importar el catálogo.');
+            const completed = Math.min(materialRows.length, startIndex + chunk.length);
+            progress(15 + Math.round((completed / Math.max(1, materialRows.length)) * 40), `Guardando materiales (${completed}/${materialRows.length})...`);
+        }
+
+        for (let startIndex = 0; startIndex < inventoryRows.length; startIndex += chunkSize) {
+            const chunk = inventoryRows.slice(startIndex, startIndex + chunkSize);
+            const { error } = await client.from('existencias_almacen').upsert(chunk, { onConflict: 'material_codigo,almacen_id' });
+            assertNoError(error, 'Los materiales se guardaron, pero falló su asignación al almacén o ubicación.');
+            const completed = Math.min(inventoryRows.length, startIndex + chunk.length);
+            progress(58 + Math.round((completed / Math.max(1, inventoryRows.length)) * 22), `Asignando almacenes y ubicaciones (${completed}/${inventoryRows.length})...`);
+        }
+
+        const rolls = [...rollInputByKey.values()];
+        if (rolls.length) {
+            const groups = new Set(rolls.map(item => `${lower(item.materialCode)}\u0000${item.warehouseId}`));
+            for (const group of groups) {
+                const [materialKey, warehouseText] = group.split('\u0000');
+                const canonical = canonicalCodeByLower.get(materialKey) || rolls.find(item => lower(item.materialCode) === materialKey)?.materialCode;
+                const warehouseId = Number(warehouseText);
+                await client.from('cable_rollos').update({ activo:false, updated_at:new Date().toISOString() }).eq('material_codigo', canonical).eq('almacen_id', warehouseId).eq('origen','migracion_stock').eq('activo',true);
+            }
+            const rollRows = rolls.map(item => ({
+                material_codigo: canonicalCodeByLower.get(lower(item.materialCode)) || item.materialCode,
+                almacen_id: item.warehouseId,
+                codigo_rollo: item.rollCode,
+                metros_iniciales: item.initial,
+                metros_disponibles: item.available,
+                ubicacion: item.location || null,
+                notas: item.notes || null,
+                origen: 'importacion',
+                activo: true,
+                updated_at: new Date().toISOString()
+            }));
+            for (let startIndex = 0; startIndex < rollRows.length; startIndex += chunkSize) {
+                const chunk = rollRows.slice(startIndex, startIndex + chunkSize);
+                const { error } = await client.from('cable_rollos').upsert(chunk, { onConflict: 'material_codigo,almacen_id,codigo_rollo' });
+                assertNoError(error, 'Los materiales se importaron, pero falló el control de rollos de cable. Ejecuta SQL_MAESTRO_CRM.sql.');
+                const completed = Math.min(rollRows.length, startIndex + chunk.length);
+                progress(82 + Math.round((completed / Math.max(1, rollRows.length)) * 15), `Guardando rollos de cable (${completed}/${rollRows.length})...`);
+            }
+        }
+
+        try { await client.rpc('recalcular_todos_los_stocks'); } catch (_) {}
+        if (rolls.length) {
+            const rollGroups = new Map();
+            rolls.forEach(item => rollGroups.set(`${lower(item.materialCode)}\u0000${item.warehouseId}`, item));
+            for (const item of rollGroups.values()) {
+                const canonical = canonicalCodeByLower.get(lower(item.materialCode)) || item.materialCode;
+                const { error } = await client.rpc('crm_recalcular_stock_rollos_cable', { p_material_codigo: canonical, p_almacen_id: item.warehouseId });
+                assertNoError(error, 'No se pudo sincronizar el metraje de los rollos con el inventario.');
+            }
+        }
+
+        invalidateMaterialSnapshot();
+        progress(100, 'Importación terminada.');
+        return { ok:true, estado:'completado', total:input.length, creados:created, actualizados:updated, omitidos:omitted, rollos:rolls.length, errores:errors };
+    }
+
+    function movementFromDb(row) {
+        const esNoListado = boolean(row.es_no_listado);
+        const codigo = text(row.material_codigo || row.codigo_manual);
+        return {
+            id: row.id,
+            requestId: text(row.request_id),
+            request_id: text(row.request_id),
+            fecha: row.fecha || row.created_at || '',
+            tipo: lower(row.tipo),
+            tipo_movimiento: lower(row.tipo),
+            ajusteAccion: text(row.ajuste_accion),
+            ajuste_accion: text(row.ajuste_accion),
+            codigo,
+            material_codigo: text(row.material_codigo),
+            codigoManual: text(row.codigo_manual),
+            codigo_manual: text(row.codigo_manual),
+            descripcion: text(row.descripcion),
+            desc: text(row.descripcion),
+            cantidad: number(row.cantidad),
+            unidad: text(row.unidad),
+            categoria: text(row.categoria_manual),
+            esNoListado,
+            es_no_listado: esNoListado,
+            proyecto: text(row.proyecto),
+            proyectoDestino: text(row.proyecto_destino),
+            proyecto_destino: text(row.proyecto_destino),
+            traspasoModo: text(row.traspaso_modo),
+            traspaso_modo: text(row.traspaso_modo),
+            ubicacionPendiente: boolean(row.ubicacion_pendiente),
+            ubicacion_pendiente: boolean(row.ubicacion_pendiente),
+            ubicacion: text(row.ubicacion),
+            ordenCompra: text(row.orden_compra),
+            orden_compra: text(row.orden_compra),
+            fechaOrdenCompra: text(row.fecha_orden_compra),
+            fecha_orden_compra: text(row.fecha_orden_compra),
+            referencia: text(row.referencia),
+            bodegaOrigen: text(row.bodega_origen),
+            bodega_origen: text(row.bodega_origen),
+            bodegaDestino: text(row.bodega_destino),
+            bodega_destino: text(row.bodega_destino),
+            motivo: text(row.motivo),
+            precio: number(row.precio_unitario),
+            precio_unitario: number(row.precio_unitario),
+            recibeNombre: text(row.recibe_nombre),
+            recibe_nombre: text(row.recibe_nombre),
+            recibeTipo: text(row.recibe_tipo),
+            recibe_tipo: text(row.recibe_tipo),
+            folioEntrega: text(row.folio_entrega),
+            folio_entrega: text(row.folio_entrega),
+            alcance: text(row.alcance) || 'sin_plan',
+            stockFuente: text(row.stock_fuente) || 'general',
+            stock_fuente: text(row.stock_fuente) || 'general',
+            cantidadStockProyecto: number(row.cantidad_stock_proyecto),
+            cantidad_stock_proyecto: number(row.cantidad_stock_proyecto),
+            cantidadStockGeneral: number(row.cantidad_stock_general),
+            cantidad_stock_general: number(row.cantidad_stock_general),
+            cantidadDentroPlan: number(row.cantidad_dentro_plan),
+            cantidad_dentro_plan: number(row.cantidad_dentro_plan),
+            cantidadFueraPlan: number(row.cantidad_fuera_plan),
+            cantidad_fuera_plan: number(row.cantidad_fuera_plan),
+            origenEntrada: text(row.origen_entrada),
+            origen_entrada: text(row.origen_entrada),
+            tomarDelAlmacen: boolean(row.tomar_del_almacen),
+            tomar_del_almacen: boolean(row.tomar_del_almacen)
+        };
+    }
+
+    async function listMovements(options = {}) {
+        const project = text(options.project ?? options.proyecto);
+        const rows = await collectRows(() => {
+            let query = client
+                .from('movimientos')
+                .select('*')
+                .order('fecha', { ascending: true });
+            if (project) query = query.eq('proyecto', project);
+            return query;
+        });
+        const mapped = rows.map(movementFromDb);
+        if (project) {
+            try {
+                const plan = await listProjectPlanV12(project);
+                const planCodes = new Set(plan.map(line => lower(line.codigo)));
+                mapped.forEach(item => {
+                    item.dentroPlan = planCodes.has(lower(item.codigo));
+                    item.dentro_plan = item.dentroPlan;
+                });
+            } catch (error) {
+                mapped.forEach(item => {
+                    item.dentroPlan = null;
+                    item.dentro_plan = null;
+                });
+            }
+        }
+        return mapped;
+    }
+
+    async function listRecentMovements(limit = 12) {
+        const maxRows = Math.max(1, Math.min(100, Number(limit) || 12));
+        const { data, error } = await client
+            .from('movimientos')
+            .select('*')
+            .order('fecha', { ascending: false })
+            .limit(maxRows);
+        assertNoError(error, 'No se pudieron consultar los movimientos recientes.');
+        return (Array.isArray(data) ? data : []).map(movementFromDb);
+    }
+
+    async function listMovementGroups(options = {}) {
+        const rows = await listMovements(options);
+        const groups = new Map();
+
+        rows.forEach(row => {
+            const key = row.requestId || `mov-${row.id}`;
+            if (!groups.has(key)) {
+                groups.set(key, {
+                    requestId: key,
+                    tipo_movimiento: row.tipo,
+                    tipo: row.tipo,
+                    motivo: row.motivo,
+                    fecha: row.fecha,
+                    proyecto: row.proyecto || '',
+                    proyectoDestino: row.proyectoDestino || '',
+                    proyecto_destino: row.proyectoDestino || '',
+                    traspasoModo: row.traspasoModo || '',
+                    traspaso_modo: row.traspasoModo || '',
+                    referencia: row.referencia || '',
+                    ordenCompra: row.ordenCompra || '',
+                    orden_compra: row.ordenCompra || '',
+                    fechaOrdenCompra: row.fechaOrdenCompra || '',
+                    fecha_orden_compra: row.fechaOrdenCompra || '',
+                    bodegaOrigen: row.bodegaOrigen || '',
+                    bodega_origen: row.bodegaOrigen || '',
+                    bodegaDestino: row.bodegaDestino || '',
+                    bodega_destino: row.bodegaDestino || '',
+                    ubicacion: row.ubicacion || '',
+                    ubicacionPendiente: Boolean(row.ubicacionPendiente),
+                    ubicacion_pendiente: Boolean(row.ubicacionPendiente),
+                    recibeNombre: row.recibeNombre || '',
+                    recibeTipo: row.recibeTipo || '',
+                    folioEntrega: row.folioEntrega || row.referencia || row.requestId || '',
+                    productos: []
+                });
+            }
+
+            const group = groups.get(key);
+            if (row.tipo === 'traspaso' || row.tipo === 'prestamo') {
+                group.tipo_movimiento = row.tipo;
+                group.tipo = row.tipo;
+                group.proyecto = row.proyecto || group.proyecto;
+                group.proyectoDestino = row.proyectoDestino || group.proyectoDestino;
+                group.proyecto_destino = row.proyectoDestino || group.proyecto_destino;
+                group.traspasoModo = row.traspasoModo || group.traspasoModo;
+                group.traspaso_modo = row.traspasoModo || group.traspaso_modo;
+                group.bodegaOrigen = row.bodegaOrigen || group.bodegaOrigen;
+                group.bodega_origen = row.bodegaOrigen || group.bodega_origen;
+                group.bodegaDestino = row.bodegaDestino || group.bodegaDestino;
+                group.bodega_destino = row.bodegaDestino || group.bodega_destino;
+            }
+            if (!group.proyecto && row.proyecto) group.proyecto = row.proyecto;
+            if (!group.proyectoDestino && row.proyectoDestino) {
+                group.proyectoDestino = row.proyectoDestino;
+                group.proyecto_destino = row.proyectoDestino;
+            }
+            if (!group.bodegaOrigen && row.bodegaOrigen) {
+                group.bodegaOrigen = row.bodegaOrigen;
+                group.bodega_origen = row.bodegaOrigen;
+            }
+            if (!group.bodegaDestino && row.bodegaDestino) {
+                group.bodegaDestino = row.bodegaDestino;
+                group.bodega_destino = row.bodegaDestino;
+            }
+            if (!group.referencia && row.referencia) group.referencia = row.referencia;
+            if (!group.ordenCompra && row.ordenCompra) {
+                group.ordenCompra = row.ordenCompra;
+                group.orden_compra = row.ordenCompra;
+            }
+
+            group.productos.push({
+                tipo: row.tipo,
+                ajusteAccion: row.ajusteAccion || null,
+                ajuste_accion: row.ajusteAccion || null,
+                producto: {
+                    codigo: row.codigo,
+                    desc: row.descripcion,
+                    descripcion: row.descripcion,
+                    unidad: row.unidad,
+                    categoria: row.categoria,
+                    esNoListado: row.esNoListado,
+                    es_no_listado: row.esNoListado
+                },
+                codigo: row.codigo,
+                descripcion: row.descripcion,
+                cantidad: row.cantidad,
+                proyecto: row.proyecto,
+                proyectoDestino: row.proyectoDestino,
+                proyecto_destino: row.proyectoDestino,
+                traspasoModo: row.traspasoModo,
+                traspaso_modo: row.traspasoModo,
+                ubicacion: row.ubicacion,
+                ubicacionPendiente: row.ubicacionPendiente,
+                ubicacion_pendiente: row.ubicacionPendiente,
+                ordenCompra: row.ordenCompra,
+                orden_compra: row.ordenCompra,
+                fechaOrdenCompra: row.fechaOrdenCompra,
+                fecha_orden_compra: row.fechaOrdenCompra,
+                referencia: row.referencia,
+                bodegaOrigen: row.bodegaOrigen,
+                bodega_origen: row.bodegaOrigen,
+                bodegaDestino: row.bodegaDestino,
+                bodega_destino: row.bodegaDestino,
+                esNoListado: row.esNoListado,
+                es_no_listado: row.esNoListado,
+                unidad: row.unidad,
+                alcance: row.alcance,
+                stockFuente: row.stockFuente,
+                stock_fuente: row.stockFuente,
+                cantidadStockProyecto: row.cantidadStockProyecto,
+                cantidad_stock_proyecto: row.cantidadStockProyecto,
+                cantidadStockGeneral: row.cantidadStockGeneral,
+                cantidad_stock_general: row.cantidadStockGeneral,
+                cantidadDentroPlan: row.cantidadDentroPlan,
+                cantidad_dentro_plan: row.cantidadDentroPlan,
+                cantidadFueraPlan: row.cantidadFueraPlan,
+                cantidad_fuera_plan: row.cantidadFueraPlan,
+                origenEntrada: row.origenEntrada,
+                origen_entrada: row.origenEntrada
+            });
+        });
+
+        return Array.from(groups.values()).sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+    }
+
+    async function registerMovement(payload) {
+        const products = Array.isArray(payload.productos) ? payload.productos : [];
+        if (!products.length) throw new Error('Agrega al menos un material.');
+
+        const requestId = text(payload.requestId) ||
+            (window.crypto && typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+        const type = lower(payload.tipo_movimiento ?? payload.tipo);
+        const dateValue = payload.fecha ? new Date(payload.fecha) : new Date();
+        const isoDate = Number.isNaN(dateValue.getTime())
+            ? new Date().toISOString()
+            : dateValue.toISOString();
+
+        const normalizedProducts = products.map(item => {
+            const product = item.producto || {};
+            const codigo = text(item.codigo ?? product.codigo);
+            const catalogado = boolean(product.catalogado ?? product.esCatalogado ?? product.es_catalogado);
+            const marcadoNoListado = boolean(
+                item.esNoListado ?? item.es_no_listado ?? product.esNoListado ?? product.es_no_listado
+            );
+            const esNoListado = catalogado ? false : (marcadoNoListado || /^NL-[A-Z0-9_-]+$/i.test(codigo));
+            const descripcion = text(item.descripcion ?? item.desc ?? product.descripcion ?? product.desc);
+            const unidad = text(item.unidad ?? product.unidad);
+            const categoria = text(item.categoria ?? product.categoria);
+            const precio = number(item.precio ?? item.precio_unitario ?? product.precio);
+            const monedaCosto = normalizeCurrencyCode(item.monedaCosto ?? item.moneda_costo ?? product.monedaCosto ?? product.moneda_costo ?? product.moneda);
+            const codigoMarca = text(item.codigoMarca ?? item.codigo_marca ?? product.codigoMarca ?? product.codigo_marca);
+
+            return {
+                ...item,
+                cantidad: number(item.cantidad),
+                precio,
+                precio_unitario: precio,
+                monedaCosto,
+                moneda_costo: monedaCosto,
+                esNoListado,
+                es_no_listado: esNoListado,
+                descripcion,
+                unidad,
+                categoria,
+                codigoMarca,
+                codigo_marca: codigoMarca,
+                producto: {
+                    ...product,
+                    codigo,
+                    desc: descripcion,
+                    descripcion,
+                    unidad,
+                    categoria,
+                    codigoMarca,
+                    codigo_marca: codigoMarca,
+                    precio,
+                    monedaCosto,
+                    moneda_costo: monedaCosto,
+                    esNoListado,
+                    es_no_listado: esNoListado
+                },
+                codigo,
+                fechaOrdenCompra: text(item.fechaOrdenCompra ?? item.fecha_orden_compra ?? payload.fechaOrdenCompra ?? payload.fecha_orden_compra),
+                fecha_orden_compra: text(item.fechaOrdenCompra ?? item.fecha_orden_compra ?? payload.fechaOrdenCompra ?? payload.fecha_orden_compra),
+                referencia: text(item.referencia ?? payload.referencia),
+                bodegaOrigen: text(item.bodegaOrigen ?? item.bodega_origen),
+                bodegaDestino: text(item.bodegaDestino ?? item.bodega_destino)
+            };
+        });
+
+        const purchaseTotals = new Map();
+        normalizedProducts.forEach(item => {
+            const id = Number(item.solicitudCompraId ?? item.solicitud_compra_id ?? 0);
+            if (!id) return;
+            purchaseTotals.set(id, number(purchaseTotals.get(id)) + number(item.cantidad));
+        });
+        let purchaseById = new Map();
+        if (type === 'entrada' && purchaseTotals.size) {
+            const requests = await listPurchaseRequests({});
+            purchaseById = new Map(requests.map(request => [Number(request.id), request]));
+            purchaseTotals.forEach((quantity, id) => {
+                const request = purchaseById.get(id);
+                if (!request) throw new Error(`La solicitud de compra ${id} ya no existe o no está disponible.`);
+                const pending = Math.max(0, number(request.cantidadSolicitada) - number(request.cantidadRecibida));
+                if (quantity > pending + 0.000001) {
+                    throw new Error(`La recepción de ${request.materialCodigo} excede lo pendiente de la orden. Pendiente: ${pending} ${request.unidad || ''}.`);
+                }
+                const itemOrder = normalizedProducts.find(item => Number(item.solicitudCompraId ?? item.solicitud_compra_id ?? 0) === id)?.ordenCompra;
+                if (text(itemOrder) && text(request.ordenCompra) && lower(itemOrder) !== lower(request.ordenCompra)) {
+                    throw new Error(`El material ${request.materialCodigo} pertenece a la orden ${request.ordenCompra}, no a ${itemOrder}.`);
+                }
+            });
+        }
+
+        let { data, error } = await client.rpc('crm_registrar_movimientos_v33', {
+            p_request_id: requestId,
+            p_tipo: type,
+            p_motivo: text(payload.motivo),
+            p_fecha: isoDate,
+            p_productos: normalizedProducts
+        });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) {
+            ({ data, error } = await client.rpc('crm_registrar_movimientos_v12141', {
+                p_request_id: requestId,
+                p_tipo: type,
+                p_motivo: text(payload.motivo),
+                p_fecha: isoDate,
+                p_productos: normalizedProducts
+            }));
+        }
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) {
+            ({ data, error } = await client.rpc('registrar_movimientos', {
+                p_request_id: requestId,
+                p_tipo: type,
+                p_motivo: text(payload.motivo),
+                p_fecha: isoDate,
+                p_productos: normalizedProducts
+            }));
+        }
+        assertNoError(error, 'No se pudo registrar el movimiento.');
+
+        for (const item of normalizedProducts.filter(product => product.esNoListado)) {
+            try {
+                await createIncompleteMaterial({
+                    codigo: item.codigo,
+                    descripcion: item.descripcion,
+                    categoria: item.categoria,
+                    unidad: item.unidad,
+                    precio: item.precio,
+                    monedaCosto: item.monedaCosto,
+                    codigoMarca: item.codigoMarca,
+                    origen: 'movimiento_no_listado'
+                });
+            } catch (syncError) {
+                console.warn('El movimiento se registró, pero no se pudo sincronizar el material no enlistado con el catálogo.', syncError);
+            }
+        }
+
+        const commonPurchaseDate = text(payload.fechaOrdenCompra ?? payload.fecha_orden_compra ?? normalizedProducts.find(item => item.fechaOrdenCompra)?.fechaOrdenCompra);
+        const commonReference = text(payload.referencia ?? normalizedProducts.find(item => item.referencia)?.referencia);
+        if (commonPurchaseDate || commonReference) {
+            const metadata = {};
+            if (commonPurchaseDate) metadata.fecha_orden_compra = commonPurchaseDate;
+            if (commonReference) metadata.referencia = commonReference;
+            const { error: metadataError } = await client
+                .from('movimientos')
+                .update(metadata)
+                .eq('request_id', requestId);
+            assertNoError(metadataError, 'El movimiento se guardó, pero no se pudieron guardar la fecha de la orden o la referencia.');
+        }
+
+        if (type === 'entrada' && purchaseTotals.size) {
+            for (const [purchaseRequestId, receivedNow] of purchaseTotals.entries()) {
+                const request = purchaseById.get(purchaseRequestId);
+                if (!request) continue;
+                const received = number(request.cantidadRecibida) + number(receivedNow);
+                const requested = number(request.cantidadSolicitada);
+                await updatePurchaseRequest(purchaseRequestId, {
+                    cantidadRecibida: Math.min(requested, received),
+                    estado: received >= requested ? 'recibida' : 'parcial'
+                });
+            }
+        }
+
+        invalidateMaterialSnapshot();
+        return data && typeof data === 'object'
+            ? data
+            : { ok: true, registrados: normalizedProducts.length, requestId };
+    }
+
+    async function getProjectsRaw() {
+        return collectRows(() =>
+            client.from('proyectos').select('*').order('numero_proyecto', { ascending: true })
+        );
+    }
+
+    async function getProjectMaterialsRaw() {
+        return collectRows(() =>
+            client.from('proyecto_materiales').select('*').order('id', { ascending: true })
+        );
+    }
+
+
+    async function getProjectManualMaterialsRaw() {
+        return collectRows(() =>
+            client.from('proyecto_materiales_no_listados').select('*').order('id', { ascending: true })
+        );
+    }
+
+    function consumedAmount(row) {
+        const type = lower(row.tipo);
+        if (type === 'salida') return number(row.cantidad);
+        if (type === 'reingreso') return -number(row.cantidad);
+        if (type === 'ajuste' && lower(row.ajuste_accion) === 'disminuir') {
+            return number(row.cantidad);
+        }
+        return 0;
+    }
+
+    async function listProjects() {
+        const [projects, listedLines, manualLines, movements, materials] = await Promise.all([
+            getProjectsRaw(),
+            getProjectMaterialsRaw(),
+            getProjectManualMaterialsRaw(),
+            collectRows(() => client.from('movimientos').select('*').order('fecha', { ascending: true })),
+            collectRows(() => client.from('materiales').select('codigo,precio').order('codigo', { ascending: true }))
+        ]);
+
+        const toolAssignments = await listToolAssignments({}).catch(() => []);
+        const toolRentByProject = new Map();
+        toolAssignments.filter(item => lower(item.destinoTipo) === 'proyecto' && lower(item.estadoDb) !== 'cancelada').forEach(item => { const key=text(item.proyecto); if(!key)return; const charge=toolRentalCharge(item); if(normalizeCurrencyCode(charge.moneda||'MXN')!=='MXN')return; toolRentByProject.set(key,(toolRentByProject.get(key)||0)+number(charge.total)); });
+        const priceByCode = new Map(materials.map(row => [text(row.codigo), number(row.precio)]));
+        const linesByProject = new Map();
+        const movesByProject = new Map();
+        const allLines = [
+            ...listedLines.map(row => ({ ...row, es_no_listado: false })),
+            ...manualLines.map(row => ({ ...row, es_no_listado: true }))
+        ];
+
+        allLines.forEach(row => {
+            const key = text(row.proyecto_numero);
+            if (!linesByProject.has(key)) linesByProject.set(key, []);
+            linesByProject.get(key).push(row);
+        });
+
+        movements.forEach(row => {
+            const key = text(row.proyecto);
+            if (!key) return;
+            if (!movesByProject.has(key)) movesByProject.set(key, []);
+            movesByProject.get(key).push(row);
+        });
+
+        return projects.map(project => {
+            const projectNumber = text(project.numero_proyecto);
+            const projectLines = linesByProject.get(projectNumber) || [];
+            const projectMoves = movesByProject.get(projectNumber) || [];
+            const planCodes = new Set();
+            const planPriceByCode = new Map();
+
+            const planned = projectLines.reduce((sum, row) => {
+                const code = text(row.es_no_listado ? row.codigo_manual : row.material_codigo);
+                if (code) planCodes.add(lower(code));
+                const linePrice = number(row.precio_unitario) || priceByCode.get(code) || 0;
+                if (code && linePrice > 0) planPriceByCode.set(lower(code), linePrice);
+                return sum + number(row.cantidad_planeada);
+            }, 0);
+
+            const plannedCost = projectLines.reduce((sum, row) => {
+                const code = text(row.es_no_listado ? row.codigo_manual : row.material_codigo);
+                const price = number(row.precio_unitario) || priceByCode.get(code) || 0;
+                return sum + number(row.cantidad_planeada) * price;
+            }, 0);
+
+            const costByCode = new Map();
+
+            projectMoves.forEach(row => {
+                const code = text(row.material_codigo || row.codigo_manual);
+                if (!code) return;
+
+                const key = lower(code);
+                if (!costByCode.has(key)) {
+                    costByCode.set(key, {
+                        code,
+                        entrada: 0,
+                        entregadoNeto: 0,
+                        precio: 0,
+                        movimientos: 0
+                    });
+                }
+
+                const item = costByCode.get(key);
+                const type = lower(row.tipo);
+                const qty = number(row.cantidad);
+
+                if (type === 'entrada') {
+                    item.entrada += qty;
+                }
+
+                item.entregadoNeto += consumedAmount(row);
+                item.movimientos += 1;
+
+                const movementPrice = number(row.precio_unitario);
+                const planPrice = planPriceByCode.get(key) || 0;
+                const catalogPrice = priceByCode.get(code) || priceByCode.get(item.code) || 0;
+                item.precio = movementPrice || item.precio || planPrice || catalogPrice || 0;
+            });
+
+            let consumed = 0;
+            let consumedCost = 0;
+            let enteredCost = 0;
+            let realProjectCost = 0;
+            let outsidePlanCost = 0;
+            let outsidePlanMoves = 0;
+            let usesEntriesAsCost = false;
+
+            costByCode.forEach(item => {
+                const delivered = Math.max(0, number(item.entregadoNeto));
+                const entered = Math.max(0, number(item.entrada));
+                const price = number(item.precio);
+                const realQty = Math.max(entered, delivered);
+
+                consumed += delivered;
+                consumedCost += delivered * price;
+                enteredCost += entered * price;
+                realProjectCost += realQty * price;
+
+                if (entered > delivered) usesEntriesAsCost = true;
+
+                if (!planCodes.has(lower(item.code))) {
+                    outsidePlanCost += realQty * price;
+                    outsidePlanMoves += item.movimientos;
+                }
+            });
+
+            const dates = projectMoves
+                .map(row => row.fecha || row.created_at)
+                .filter(Boolean)
+                .sort();
+
+            const toolRentalCost = number(toolRentByProject.get(projectNumber));
+            const projectTotalWithTools = realProjectCost + toolRentalCost;
+
+            return {
+                proyecto: projectNumber,
+                idProyecto: projectNumber,
+                nombreProyecto: text(project.nombre_proyecto),
+                cliente: text(project.cliente),
+                ordenCompra: text(project.orden_compra),
+                planta: text(project.planta),
+                nave: text(project.nave),
+                responsableSkilled: text(project.responsable_skilled),
+                fechaAsignacion: project.fecha_asignacion || '',
+                fechaEntrega: project.fecha_entrega || '',
+                estado: text(project.estado),
+                tipoControl: text(project.tipo_control) === 'presupuesto' ? 'presupuesto' : 'materiales',
+                tipo_control: text(project.tipo_control) === 'presupuesto' ? 'presupuesto' : 'materiales',
+                presupuestoPlaneado: Math.max(0, number(project.presupuesto_planeado)),
+                presupuesto_planeado: Math.max(0, number(project.presupuesto_planeado)),
+                lineas: projectLines.length,
+                planeado: planned,
+                consumido: consumed,
+                costoPlaneado: text(project.tipo_control) === 'presupuesto' ? Math.max(0, number(project.presupuesto_planeado)) : plannedCost,
+
+                costoConsumido: projectTotalWithTools,
+                costoRealProyecto: projectTotalWithTools,
+                costoMateriales: realProjectCost,
+                costoRentaHerramientas: toolRentalCost,
+                costoHerramientas: toolRentalCost,
+                costoIngresado: enteredCost,
+                costoEntregado: consumedCost,
+                costoFueraPlan: outsidePlanCost,
+                movimientosFueraPlan: outsidePlanMoves,
+                usaCostoEntradas: usesEntriesAsCost,
+
+                avance: text(project.tipo_control) === 'presupuesto'
+                    ? (number(project.presupuesto_planeado) > 0 ? projectTotalWithTools / number(project.presupuesto_planeado) * 100 : 0)
+                    : (planned > 0 ? consumed / planned * 100 : 0),
+                movimientos: projectMoves.length,
+                cantidadMovimientos: projectMoves.length,
+                costoMovimientos: realProjectCost,
+                ultimoMovimiento: dates.length ? dates[dates.length - 1] : ''
+            };
+        });
+    }
+
+    async function listProjectLines() {
+        const [projects, listedLines, manualLines, movements, materials] = await Promise.all([
+            getProjectsRaw(),
+            getProjectMaterialsRaw(),
+            getProjectManualMaterialsRaw(),
+            collectRows(() => client.from('movimientos').select('*').order('fecha', { ascending: true })),
+            collectRows(() => client.from('materiales').select('codigo,precio').order('codigo', { ascending: true }))
+        ]);
+
+        const lines = [
+            ...listedLines.map(row => ({ ...row, es_no_listado: false })),
+            ...manualLines.map(row => ({ ...row, es_no_listado: true }))
+        ];
+        const priceByCode = new Map(materials.map(row => [text(row.codigo), number(row.precio)]));
+        const consumedByLine = new Map();
+
+        movements.forEach(row => {
+            const amount = consumedAmount(row);
+            if (!amount) return;
+            const code = text(row.material_codigo || row.codigo_manual);
+            const key = `${text(row.proyecto)}\u0000${code}`;
+            consumedByLine.set(key, (consumedByLine.get(key) || 0) + amount);
+        });
+
+        if (!lines.length) {
+            return projects.map(project => ({
+                proyecto: text(project.numero_proyecto),
+                linea: '',
+                codigo: '',
+                planeado: 0,
+                consumido: 0,
+                costoPlaneado: 0,
+                costoConsumido: 0
+            }));
+        }
+
+        return lines.map((row, index) => {
+            const project = text(row.proyecto_numero);
+            const code = text(row.es_no_listado ? row.codigo_manual : row.material_codigo);
+            const planned = number(row.cantidad_planeada);
+            const consumed = Math.max(0, consumedByLine.get(`${project}\u0000${code}`) || 0);
+            const price = number(row.precio_unitario) || priceByCode.get(code) || 0;
+            return {
+                proyecto: project,
+                linea: row.id || index + 1,
+                codigo: code,
+                descripcion: text(row.descripcion),
+                esNoListado: boolean(row.es_no_listado),
+                planeado: planned,
+                consumido: consumed,
+                costoPlaneado: planned * price,
+                costoConsumido: consumed * price
+            };
+        });
+    }
+
+    async function listProjectPlan(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+
+        const [lineResult, manualResult, materials] = await Promise.all([
+            client
+                .from('proyecto_materiales')
+                .select('*')
+                .eq('proyecto_numero', project)
+                .order('id', { ascending: true }),
+            client
+                .from('proyecto_materiales_no_listados')
+                .select('*')
+                .eq('proyecto_numero', project)
+                .order('id', { ascending: true }),
+            listMaterials()
+        ]);
+
+        assertNoError(lineResult.error, 'No se pudo consultar el plan del proyecto.');
+        assertNoError(manualResult.error, 'No se pudieron consultar los materiales no enlistados.');
+        const materialByCode = new Map(materials.map(item => [text(item.codigo), item]));
+
+        const listed = (lineResult.data || []).map(row => {
+            const material = materialByCode.get(text(row.material_codigo)) || {
+                codigo: text(row.material_codigo),
+                descripcion: text(row.material_codigo),
+                desc: text(row.material_codigo),
+                unidad: text(row.unidad),
+                precio: number(row.precio_unitario),
+                stock: 0,
+                imagen: ''
+            };
+
+            return {
+                id: row.id,
+                proyecto: text(row.proyecto_numero),
+                codigo: text(row.material_codigo),
+                cantidadPlaneada: number(row.cantidad_planeada),
+                cantidadEntregada: number(row.cantidad_entregada),
+                cantidadSobrante: number(row.cantidad_sobrante),
+                unidad: text(row.unidad) || text(material.unidad),
+                precioUnitario: number(row.precio_unitario) || number(material.precio),
+                observaciones: text(row.observaciones),
+                esNoListado: false,
+                material
+            };
+        });
+
+        const manual = (manualResult.data || []).map(row => {
+            const material = {
+                codigo: text(row.codigo_manual),
+                descripcion: text(row.descripcion),
+                desc: text(row.descripcion),
+                categoria: text(row.categoria),
+                unidad: text(row.unidad),
+                precio: number(row.precio_unitario),
+                stock: 0,
+                imagen: '',
+                esNoListado: true
+            };
+            return {
+                id: row.id,
+                proyecto: text(row.proyecto_numero),
+                codigo: text(row.codigo_manual),
+                cantidadPlaneada: number(row.cantidad_planeada),
+                cantidadEntregada: number(row.cantidad_entregada),
+                cantidadSobrante: number(row.cantidad_sobrante),
+                unidad: text(row.unidad),
+                precioUnitario: number(row.precio_unitario),
+                observaciones: text(row.observaciones),
+                esNoListado: true,
+                material
+            };
+        });
+
+        return [...listed, ...manual];
+    }
+
+    async function listProjectDeliveryPlan(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+
+        const [plan, movements] = await Promise.all([
+            listProjectPlan(project),
+            listMovements({ project })
+        ]);
+
+        const deliveredByCode = new Map();
+        movements
+            .filter(row => lower(row.tipo) === 'salida')
+            .forEach(row => {
+                const code = text(row.codigo);
+                const key = lower(code);
+                deliveredByCode.set(key, (deliveredByCode.get(key) || 0) + number(row.cantidad));
+            });
+
+        return plan.map(line => {
+            const planned = number(line.cantidadPlaneada);
+            const delivered = deliveredByCode.get(lower(line.codigo)) || 0;
+            return {
+                ...line,
+                planeado: planned,
+                entregado: delivered,
+                pendiente: Math.max(0, planned - delivered),
+                descripcion: text(line.material?.descripcion ?? line.material?.desc ?? line.codigo),
+                categoria: text(line.material?.categoria),
+                unidad: text(line.unidad ?? line.material?.unidad)
+            };
+        });
+    }
+
+    async function saveProjectPlan(projectNumber, lines) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+
+        const input = Array.isArray(lines) ? lines : [];
+        const listed = new Map();
+        const manual = new Map();
+        const catalogMaterials = await listMaterials();
+        const catalogCodes = new Set(catalogMaterials.map(item => lower(item.codigo)));
+
+        input.forEach(line => {
+            const material = line.material || {};
+            const code = text(line.codigo ?? material.codigo);
+            const markedManual = boolean(
+                line.esNoListado ?? line.es_no_listado ?? material.esNoListado ?? material.es_no_listado
+            );
+            const esNoListado = markedManual || !catalogCodes.has(lower(code));
+            if (!code) throw new Error('Uno de los materiales no tiene código o referencia.');
+
+            const planned = number(line.cantidadPlaneada ?? line.cantidad_planeada);
+            if (planned <= 0) {
+                throw new Error(`La cantidad planeada de ${code} debe ser mayor a cero.`);
+            }
+
+            if (esNoListado) {
+                const descripcion = text(line.descripcion ?? material.descripcion ?? material.desc);
+                if (!descripcion) throw new Error(`Escribe la descripción del material no enlistado ${code}.`);
+                manual.set(lower(code), {
+                    proyecto_numero: project,
+                    codigo_manual: code,
+                    descripcion,
+                    categoria: text(line.categoria ?? material.categoria) || null,
+                    cantidad_planeada: planned,
+                    cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada),
+                    cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante),
+                    unidad: text(line.unidad ?? material.unidad) || null,
+                    precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio),
+                    observaciones: text(line.observaciones ?? line.notas) || null,
+                    updated_at: new Date().toISOString()
+                });
+            } else {
+                listed.set(lower(code), {
+                    proyecto_numero: project,
+                    material_codigo: code,
+                    cantidad_planeada: planned,
+                    cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada),
+                    cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante),
+                    unidad: text(line.unidad ?? material.unidad) || null,
+                    precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio),
+                    observaciones: text(line.observaciones ?? line.notas) || null,
+                    updated_at: new Date().toISOString()
+                });
+            }
+        });
+
+        const [listedExistingResult, manualExistingResult] = await Promise.all([
+            client.from('proyecto_materiales').select('material_codigo').eq('proyecto_numero', project),
+            client.from('proyecto_materiales_no_listados').select('codigo_manual').eq('proyecto_numero', project)
+        ]);
+        assertNoError(listedExistingResult.error, 'No se pudo consultar el plan actual.');
+        assertNoError(manualExistingResult.error, 'No se pudo consultar el plan manual actual.');
+
+        const listedRows = Array.from(listed.values());
+        const manualRows = Array.from(manual.values());
+        if (listedRows.length) {
+            const { error } = await client
+                .from('proyecto_materiales')
+                .upsert(listedRows, { onConflict: 'proyecto_numero,material_codigo' });
+            assertNoError(error, 'No se pudo guardar el plan del proyecto.');
+        }
+        if (manualRows.length) {
+            const { error } = await client
+                .from('proyecto_materiales_no_listados')
+                .upsert(manualRows, { onConflict: 'proyecto_numero,codigo_manual' });
+            assertNoError(error, 'No se pudieron guardar los materiales no enlistados.');
+        }
+
+        const keepListed = new Set(listedRows.map(row => lower(row.material_codigo)));
+        for (const row of (listedExistingResult.data || [])) {
+            if (!keepListed.has(lower(row.material_codigo))) {
+                const { error } = await client
+                    .from('proyecto_materiales')
+                    .delete()
+                    .eq('proyecto_numero', project)
+                    .eq('material_codigo', row.material_codigo);
+                assertNoError(error, `No se pudo quitar ${row.material_codigo} del plan.`);
+            }
+        }
+
+        const keepManual = new Set(manualRows.map(row => lower(row.codigo_manual)));
+        for (const row of (manualExistingResult.data || [])) {
+            if (!keepManual.has(lower(row.codigo_manual))) {
+                const { error } = await client
+                    .from('proyecto_materiales_no_listados')
+                    .delete()
+                    .eq('proyecto_numero', project)
+                    .eq('codigo_manual', row.codigo_manual);
+                assertNoError(error, `No se pudo quitar ${row.codigo_manual} del plan.`);
+            }
+        }
+
+        return listProjectPlan(project);
+    }
+
+    function missingProjectSchemaColumn(error) {
+        const message = errorMessage(error);
+        const patterns = [
+            /Could not find the ['"]([^'"]+)['"] column of ['"]proyectos['"] in the schema cache/i,
+            /column ['"]?([^'"\s]+)['"]? of relation ['"]?proyectos['"]? does not exist/i,
+            /column ['"]?([^'"\s]+)['"]? does not exist/i
+        ];
+        for (const pattern of patterns) {
+            const match = message.match(pattern);
+            if (match?.[1]) return match[1];
+        }
+        return '';
+    }
+
+    async function persistProjectWithSchemaCompatibility(row, original = '') {
+        const working = { ...row };
+        const removable = new Set(['tipo_control', 'presupuesto_planeado', 'presupuesto_materiales', 'presupuesto_sueldos', 'updated_at']);
+        const omitted = [];
+
+        for (let attempt = 0; attempt < 7; attempt += 1) {
+            const result = original
+                ? await client.from('proyectos').update(working).eq('numero_proyecto', original)
+                : await client.from('proyectos').insert(working);
+
+            if (!result.error) return { omitted };
+
+            const column = missingProjectSchemaColumn(result.error);
+            if (!column || !removable.has(column) || !Object.prototype.hasOwnProperty.call(working, column)) {
+                assertNoError(result.error, original ? 'No se pudo actualizar el proyecto.' : 'No se pudo crear el proyecto.');
+            }
+
+            if ((column === 'tipo_control' || column === 'presupuesto_planeado') && row.tipo_control === 'presupuesto') {
+                throw new Error(`La base todavía no tiene la columna ${column}. Ejecuta SQL_MAESTRO_CRM V30 antes de crear proyectos por presupuesto.`);
+            }
+
+            delete working[column];
+            omitted.push(column);
+        }
+
+        throw new Error('No se pudo adaptar la creación del proyecto al esquema actual de Supabase. Ejecuta SQL_MAESTRO_CRM V30.');
+    }
+
+    async function saveProject(project, originalNumber = '') {
+        const original = text(originalNumber);
+        const row = {
+            numero_proyecto: text(project.proyecto ?? project.numero_proyecto),
+            nombre_proyecto: text(project.nombreProyecto ?? project.nombre_proyecto),
+            cliente: text(project.cliente),
+            orden_compra: text(project.ordenCompra ?? project.orden_compra) || null,
+            planta: text(project.planta),
+            nave: text(project.nave) || null,
+            responsable_skilled: text(project.responsableSkilled ?? project.responsable_skilled),
+            fecha_asignacion: project.fechaAsignacion ?? project.fecha_asignacion ?? null,
+            fecha_entrega: project.fechaEntrega ?? project.fecha_entrega ?? null,
+            tipo_control: text(project.tipoControl ?? project.tipo_control) === 'presupuesto' ? 'presupuesto' : 'materiales',
+            updated_at: new Date().toISOString()
+        };
+        if (row.tipo_control === 'presupuesto') {
+            row.presupuesto_planeado = Math.max(0, number(project.presupuestoPlaneado ?? project.presupuesto_planeado));
+        }
+
+        if (!row.numero_proyecto || !row.nombre_proyecto || !row.cliente || !row.planta ||
+            !row.responsable_skilled || !row.fecha_asignacion || !row.fecha_entrega) {
+            throw new Error('Completa todos los campos obligatorios del proyecto.');
+        }
+        if (row.fecha_entrega < row.fecha_asignacion) {
+            throw new Error('La fecha de entrega no puede ser anterior a la fecha de asignación.');
+        }
+
+        const compatibility = await persistProjectWithSchemaCompatibility(row, original);
+
+        if (original && original !== row.numero_proyecto) {
+            const { error: movementError } = await client
+                .from('movimientos')
+                .update({ proyecto: row.numero_proyecto })
+                .eq('proyecto', original);
+            assertNoError(movementError, 'El proyecto se actualizó, pero no sus movimientos relacionados.');
+        }
+
+        return { ok: true, proyecto: row.numero_proyecto, columnasOmitidas: compatibility.omitted };
+    }
+
+    async function deleteProject(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+        const { error } = await client
+            .from('proyectos')
+            .delete()
+            .eq('numero_proyecto', project);
+        assertNoError(error, 'No se pudo eliminar el proyecto.');
+        return { ok: true, proyecto: project };
+    }
+
+
+    function categoryFromDb(row) {
+        return {
+            nombre: text(row.nombre),
+            imagen: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            descripcion: text(row.descripcion),
+            activo: row.activo !== false
+        };
+    }
+
+    async function listCategories(options = {}) {
+        const rows = await collectRows(() =>
+            client.from('categorias_materiales').select('*').order('nombre', { ascending: true })
+        );
+        const categories = rows.map(categoryFromDb);
+        return options.includeInactive === true ? categories : categories.filter(item => item.activo !== false);
+    }
+
+    async function saveCategory(category, originalName = '') {
+        const row = {
+            nombre: text(category.nombre),
+            imagen_url: text(category.imagen ?? category.imagen_url) || null,
+            descripcion: text(category.descripcion) || null,
+            activo: category.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.nombre) throw new Error('El nombre de la categoría es obligatorio.');
+
+        const original = text(originalName);
+        if (original && lower(original) !== lower(row.nombre)) {
+            const { error: insertError } = await client.from('categorias_materiales').insert(row);
+            assertNoError(insertError, 'No se pudo renombrar la categoría.');
+            const { error: materialError } = await client
+                .from('materiales')
+                .update({ categoria: row.nombre, updated_at: new Date().toISOString() })
+                .eq('categoria', original);
+            assertNoError(materialError, 'La categoría se creó, pero no se actualizaron sus materiales.');
+            const { error: deleteError } = await client.from('categorias_materiales').delete().eq('nombre', original);
+            assertNoError(deleteError, 'La categoría se renombró, pero no se pudo retirar el nombre anterior.');
+        } else {
+            const { error } = await client
+                .from('categorias_materiales')
+                .upsert(row, { onConflict: 'nombre' });
+            assertNoError(error, 'No se pudo guardar la categoría.');
+        }
+        return categoryFromDb(row);
+    }
+
+    async function deleteCategory(name, options = {}) {
+        const nombre = text(name);
+        if (!nombre) throw new Error('Falta el nombre de la categoría.');
+        const withMaterials = options.withMaterials === true || options.eliminarMateriales === true;
+
+        const { count, error: countError } = await client
+            .from('materiales')
+            .select('codigo', { count: 'exact', head: true })
+            .eq('categoria', nombre)
+            .neq('activo', false);
+        assertNoError(countError);
+
+        if ((count || 0) > 0 && !withMaterials) {
+            throw new Error('La categoría contiene materiales. Confirma que deseas retirarla junto con sus materiales.');
+        }
+
+        if (withMaterials && (count || 0) > 0) {
+            const { error: materialsError } = await client
+                .from('materiales')
+                .update({ activo: false, updated_at: new Date().toISOString() })
+                .eq('categoria', nombre);
+            assertNoError(materialsError, 'No se pudieron retirar los materiales de la categoría.');
+        }
+
+        const { error } = await client
+            .from('categorias_materiales')
+            .update({ activo: false, updated_at: new Date().toISOString() })
+            .eq('nombre', nombre);
+        assertNoError(error, 'No se pudo retirar la categoría.');
+        return { ok: true, nombre, materialesRetirados: withMaterials ? Number(count || 0) : 0 };
+    }
+
+    async function deletePurchaseRequests(ids = []) {
+        const requestIds = (Array.isArray(ids) ? ids : [ids]).map(Number).filter(Boolean);
+        if (!requestIds.length) throw new Error('Selecciona al menos una solicitud de compra.');
+        const { error } = await client.from('solicitudes_compra').delete().in('id', requestIds);
+        if (error?.code === '23503') throw new Error('La orden tiene recepciones o referencias relacionadas y no puede borrarse. Cancélala para conservar la trazabilidad.');
+        assertNoError(error, 'No se pudo eliminar la orden de compra.');
+        return { ok: true, ids: requestIds };
+    }
+
+    async function runTestCleanupRpc(functionName, args = {}, errorMessage = 'No se pudo eliminar el registro de prueba.') {
+        const { data, error } = await client.rpc(functionName, args);
+        if (error && ['PGRST202', '42883'].includes(error.code)) {
+            throw new Error('La limpieza segura todavía no está instalada. Ejecuta la versión más reciente de SQL_MAESTRO_CRM.sql y vuelve a intentarlo.');
+        }
+        if (error?.code === '42501') throw new Error(error.message || 'Tu perfil no tiene permiso para eliminar registros de prueba.');
+        if (error && /DELETE requires a WHERE clause/i.test(String(error.message || ''))) {
+            throw new Error('La base de datos todavía tiene la versión anterior de la limpieza. Ejecuta SQL_MAESTRO_CRM.sql y vuelve a intentarlo.');
+        }
+        assertNoError(error, errorMessage);
+        return data && typeof data === 'object' ? data : { ok: true };
+    }
+
+    async function removeStoragePaths(bucket, paths = []) {
+        const cleanPaths = [...new Set((Array.isArray(paths) ? paths : [paths]).map(text).filter(Boolean))];
+        if (!cleanPaths.length) return { ok: true, eliminados: 0, errores: [] };
+        const errors = [];
+        let deleted = 0;
+        for (let i = 0; i < cleanPaths.length; i += 100) {
+            const batch = cleanPaths.slice(i, i + 100);
+            const { data, error } = await client.storage.from(bucket).remove(batch);
+            if (error) {
+                errors.push(error.message || String(error));
+                continue;
+            }
+            deleted += Array.isArray(data) ? data.length : batch.length;
+        }
+        return { ok: errors.length === 0, eliminados: deleted, errores: errors };
+    }
+
+    async function deletePurchaseRequestsTest(ids = []) {
+        const requestIds = (Array.isArray(ids) ? ids : [ids]).map(Number).filter(Boolean);
+        if (!requestIds.length) throw new Error('Selecciona al menos una orden de compra.');
+        const result = await runTestCleanupRpc('crm_eliminar_orden_compra_prueba', { p_ids: requestIds }, 'No se pudo eliminar la orden de compra de prueba.');
+        const storage = await removeStoragePaths('ordenes-compra', result?.pdf_paths || result?.pdfPaths || []);
+        return { ...result, pdf_eliminados: storage.eliminados, advertencia_storage: storage.errores.join(' | ') || null };
+    }
+
+    async function deleteAllPurchaseOrdersTest(password) {
+        const result = await runTestCleanupRpc('crm_borrar_ordenes_compra_prueba', { p_clave: text(password) }, 'No se pudieron borrar las órdenes de compra de prueba.');
+        const storage = await removeStoragePaths('ordenes-compra', result?.pdf_paths || result?.pdfPaths || []);
+        return { ...result, pdf_eliminados: storage.eliminados, advertencia_storage: storage.errores.join(' | ') || null };
+    }
+
+    async function deleteMovementTest(payload = {}) {
+        const requestId = text(payload.requestId ?? payload.request_id);
+        const movementId = Number(payload.id ?? payload.movimientoId ?? payload.movimiento_id ?? 0) || null;
+        if (!requestId && !movementId) throw new Error('Falta identificar el movimiento.');
+        return runTestCleanupRpc('crm_eliminar_movimiento_prueba', { p_request_id: requestId || null, p_movimiento_id: movementId }, 'No se pudo eliminar el movimiento de prueba.');
+    }
+
+
+    async function deleteMovementHistoryTest(password) {
+        return runTestCleanupRpc('crm_borrar_historial_movimientos', { p_clave: text(password) }, 'No se pudo borrar el historial de movimientos.');
+    }
+
+    async function deleteToolUnitsTest(password) {
+        return runTestCleanupRpc('crm_borrar_unidades_herramientas', { p_clave: text(password) }, 'No se pudieron borrar las unidades de herramientas.');
+    }
+
+    async function deleteMaterialRequestTest(id) {
+        const requestId = Number(id);
+        if (!requestId) throw new Error('Solicitud de material no válida.');
+        return runTestCleanupRpc('crm_eliminar_solicitud_material_prueba', { p_id: requestId }, 'No se pudo eliminar la solicitud de material de prueba.');
+    }
+
+    async function deleteMaterialAdjustmentTest(id) {
+        const adjustmentId = Number(id);
+        if (!adjustmentId) throw new Error('Reajuste no válido.');
+        return runTestCleanupRpc('crm_eliminar_reajuste_material_prueba', { p_id: adjustmentId }, 'No se pudo eliminar el reajuste de prueba.');
+    }
+
+    async function deleteToolHistoryTest(id) {
+        const historyId = Number(id);
+        if (!historyId) throw new Error('Evento de historial no válido.');
+        return runTestCleanupRpc('crm_eliminar_historial_herramienta_prueba', { p_id: historyId }, 'No se pudo eliminar el evento de historial de prueba.');
+    }
+
+    async function deleteToolTest(id) {
+        const toolId = Number(id);
+        if (!toolId) throw new Error('Herramienta no válida.');
+        return runTestCleanupRpc('crm_eliminar_herramienta_prueba', { p_id: toolId }, 'No se pudo eliminar la herramienta de prueba.');
+    }
+
+    async function deleteToolUnitTest(id) {
+        const unitId = Number(id);
+        if (!unitId) throw new Error('Unidad de herramienta no válida.');
+        return runTestCleanupRpc('crm_eliminar_unidad_herramienta_prueba', { p_id: unitId }, 'No se pudo eliminar la unidad de herramienta de prueba.');
+    }
+
+    async function deleteToolAssignmentTest(id) {
+        const assignmentId = Number(id);
+        if (!assignmentId) throw new Error('Asignación de herramienta no válida.');
+        return runTestCleanupRpc('crm_eliminar_asignacion_herramienta_prueba', { p_id: assignmentId }, 'No se pudo eliminar la asignación de herramienta de prueba.');
+    }
+
+    async function deleteProjectTest(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+        return runTestCleanupRpc('crm_eliminar_proyecto_prueba', { p_proyecto: project }, 'No se pudo eliminar el proyecto de prueba.');
+    }
+
+    async function deleteVehicleTest(id) {
+        const vehicleId = Number(id);
+        if (!vehicleId) throw new Error('Vehículo no válido.');
+        return runTestCleanupRpc('crm_eliminar_vehiculo_prueba', { p_id: vehicleId }, 'No se pudo eliminar el vehículo de prueba.');
+    }
+
+    async function updateWarehouseInventoryLevels(payloads = []) {
+        const source = Array.isArray(payloads) ? payloads : [payloads];
+        const rows = source.map(payload => {
+            const code = text(payload.codigo ?? payload.materialCodigo ?? payload.material_codigo);
+            const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? payload.almacen_id ?? 0);
+            if (!code || !warehouseId) return null;
+            const levels = normalizeStockLevels(payload.stockMinimo, payload.stockMedio, payload.stockMaximo);
+            return {
+                codigo: code,
+                almacen_id: warehouseId,
+                stock_minimo: levels.minimum,
+                stock_medio: levels.medium,
+                stock_maximo: levels.maximum
+            };
+        }).filter(Boolean);
+        if (!rows.length) return { actualizados: 0, omitidos: source.length };
+
+        const { data, error } = await client.rpc('crm_actualizar_niveles_stock_lote', { p_items: rows });
+        if (!error) {
+            invalidateMaterialSnapshot();
+            return { actualizados: Number(data) || 0, omitidos: Math.max(0, source.length - rows.length) };
+        }
+
+        const message = errorMessage(error);
+        if (!/crm_actualizar_niveles_stock_lote|function|schema cache|PGRST202/i.test(message)) {
+            throw new Error(`No se pudieron actualizar los niveles de stock. ${message}`);
+        }
+
+        let updated = 0;
+        for (const row of rows) {
+            const { data: item, error: itemError } = await client
+                .from('existencias_almacen')
+                .update({
+                    stock_minimo: row.stock_minimo,
+                    stock_medio: row.stock_medio,
+                    stock_maximo: row.stock_maximo,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('material_codigo', row.codigo)
+                .eq('almacen_id', row.almacen_id)
+                .select('material_codigo')
+                .maybeSingle();
+            assertNoError(itemError, 'No se pudieron actualizar los niveles de stock.');
+            if (item) updated += 1;
+        }
+        invalidateMaterialSnapshot();
+        return { actualizados: updated, omitidos: Math.max(0, source.length - rows.length) };
+    }
+
+    async function listLowStock(options = {}) {
+        const warehouseId = Number(options.warehouseId ?? options.almacenId ?? 0);
+        const category = lower(options.categoria);
+        const search = lower(options.buscar ?? options.search);
+        const materials = await listMaterials();
+        const rows = [];
+
+        materials.forEach(material => {
+            const inventories = Array.isArray(material.almacenes) ? material.almacenes : [];
+            if (!inventories.length) {
+                const minimum = number(material.stockMinimo);
+                const maximum = number(material.stockMaximo);
+                if (minimum <= 0) return;
+                rows.push({
+                    ...material,
+                    almacenId: null,
+                    almacenNombre: 'Sin almacén asignado',
+                    stockAlmacen: 0,
+                    stockMinimoAlmacen: minimum,
+                    stockMedioAlmacen: number(material.stockMedio),
+                    stockMaximoAlmacen: maximum,
+                    cantidadReposicionSugerida: Math.max(1, maximum || minimum),
+                    estadoStock: 'agotado'
+                });
+                return;
+            }
+            inventories.forEach(inventory => {
+                const stock = number(inventory.stock);
+                const levels = normalizeStockLevels(inventory.stockMinimo, inventory.stockMedio, inventory.stockMaximo);
+                const minimum = levels.minimum;
+                if (warehouseId && Number(inventory.id) !== warehouseId) return;
+                if (minimum <= 0 || stock >= minimum) return;
+                rows.push({
+                    ...material,
+                    almacenId: Number(inventory.id),
+                    almacenNombre: text(inventory.nombre),
+                    ubicacionAlmacen: text(inventory.ubicacion),
+                    stockAlmacen: stock,
+                    stockMinimoAlmacen: minimum,
+                    stockMedioAlmacen: levels.medium,
+                    stockMaximoAlmacen: levels.maximum,
+                    cantidadReposicionSugerida: Math.max(0, levels.maximum - stock),
+                    estadoStock: stock <= 0 ? 'agotado' : 'bajo'
+                });
+            });
+        });
+
+        return rows.filter(row => {
+            if (category && lower(row.categoria) !== category) return false;
+            if (search) {
+                const values = [row.codigo, row.descripcion, row.desc, row.categoria, row.almacenNombre, row.marca, row.codigoMarca, row.codigo_marca, row.proveedor, row.contactoProveedor, row.contacto_proveedor, row.unidad, row.tipoCable, row.tipo_cable, row.tamano, row.tamano_mm2, ...(Array.isArray(row.modismos) ? row.modismos : [])];
+                const hay = window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, search) : values.some(value => lower(value).includes(search));
+                if (!hay) return false;
+            }
+            return true;
+        }).sort((a, b) => {
+            if (a.estadoStock !== b.estadoStock) return a.estadoStock === 'agotado' ? -1 : 1;
+            return text(a.descripcion).localeCompare(text(b.descripcion), 'es');
+        });
+    }
+
+    async function listProjectOptions() {
+        const rows = await getProjectsRaw();
+        return rows.map(row => ({
+            proyecto: text(row.numero_proyecto),
+            numeroProyecto: text(row.numero_proyecto),
+            nombreProyecto: text(row.nombre_proyecto),
+            cliente: text(row.cliente),
+            planta: text(row.planta),
+            nave: text(row.nave),
+            ordenCompra: text(row.orden_compra),
+            responsableSkilled: text(row.responsable_skilled)
+        }));
+    }
+
+
+    function purchaseRequestFromDb(row, warehouseById = new Map()) {
+        const warehouse = warehouseById.get(Number(row.almacen_id)) || {};
+        return {
+            id: Number(row.id),
+            folio: text(row.folio),
+            materialCodigo: text(row.material_codigo),
+            codigo: text(row.material_codigo),
+            codigoMarcaModelo: text(row.codigo_marca_modelo),
+            codigo_marca_modelo: text(row.codigo_marca_modelo),
+            descripcion: text(row.descripcion),
+            categoria: text(row.categoria),
+            unidad: text(row.unidad),
+            almacenId: row.almacen_id == null ? null : Number(row.almacen_id),
+            almacenNombre: text(warehouse.nombre) || text(row.almacen_nombre),
+            existenciaActual: number(row.existencia_actual),
+            stockMinimo: number(row.stock_minimo),
+            stockMedio: number(row.stock_medio),
+            stockMaximo: number(row.stock_maximo),
+            cantidadSolicitada: number(row.cantidad_solicitada),
+            cantidadRecibida: number(row.cantidad_recibida),
+            prioridad: text(row.prioridad) || 'normal',
+            estado: text(row.estado) || 'pendiente',
+            proveedor: text(row.proveedor),
+            contactoProveedor: text(row.contacto_proveedor),
+            contacto_proveedor: text(row.contacto_proveedor),
+            grupoOrden: text(row.grupo_orden),
+            grupo_orden: text(row.grupo_orden),
+            pdfUrl: text(row.pdf_url),
+            pdf_url: text(row.pdf_url),
+            pdfPath: text(row.pdf_path),
+            pdf_path: text(row.pdf_path),
+            pdfNombre: text(row.pdf_nombre),
+            pdf_nombre: text(row.pdf_nombre),
+            pdfFirmaRevisionAt: text(row.pdf_firma_revision_at),
+            pdf_firma_revision_at: text(row.pdf_firma_revision_at),
+            metodoPago: text(row.metodo_pago),
+            metodo_pago: text(row.metodo_pago),
+            condicionesPago: text(row.condiciones_pago),
+            condiciones_pago: text(row.condiciones_pago),
+            ordenEnviadaAt: text(row.orden_enviada_at),
+            orden_enviada_at: text(row.orden_enviada_at),
+            ordenEnvioCanal: text(row.orden_envio_canal),
+            orden_envio_canal: text(row.orden_envio_canal),
+            ordenEnvioDestinatario: text(row.orden_envio_destinatario),
+            orden_envio_destinatario: text(row.orden_envio_destinatario),
+            ordenEnvioMessageId: text(row.orden_envio_message_id),
+            orden_envio_message_id: text(row.orden_envio_message_id),
+            ordenCompra: text(row.orden_compra),
+            fechaOrdenCompra: text(row.fecha_orden_compra),
+            referencia: text(row.referencia),
+            motivo: text(row.motivo),
+            solicitadoPor: text(row.solicitado_por),
+            fechaRequerida: text(row.fecha_requerida),
+            estadoCompras: text(row.estado_compras) || 'no_revisada',
+            estado_compras: text(row.estado_compras) || 'no_revisada',
+            cotizacionId: text(row.cotizacion_id),
+            cotizacion_id: text(row.cotizacion_id),
+            cotizacionItemId: Number(row.cotizacion_item_id || 0) || null,
+            cotizacion_item_id: Number(row.cotizacion_item_id || 0) || null,
+            proveedorId: Number(row.proveedor_id || 0) || null,
+            proveedor_id: Number(row.proveedor_id || 0) || null,
+            precioCotizado: number(row.precio_cotizado),
+            precio_cotizado: number(row.precio_cotizado),
+            moneda: text(row.moneda) || 'MXN',
+            origenSolicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            origen_solicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            justificacionExcepcion: text(row.justificacion_excepcion),
+            justificacion_excepcion: text(row.justificacion_excepcion),
+            proyectoNumero: text(row.proyecto_numero),
+            proyecto_numero: text(row.proyecto_numero),
+            plazoEntregaDias: number(row.plazo_entrega_dias),
+            plazo_entrega_dias: number(row.plazo_entrega_dias),
+            motivoNoViable: text(row.motivo_no_viable),
+            motivo_no_viable: text(row.motivo_no_viable),
+            fechaCompra: text(row.fecha_compra),
+            fecha_compra: text(row.fecha_compra),
+            revisadaPor: text(row.revisada_por),
+            revisadaAt: text(row.revisada_at),
+            direccionEntregaId: row.direccion_entrega_id == null ? null : Number(row.direccion_entrega_id),
+            direccion_entrega_id: row.direccion_entrega_id == null ? null : Number(row.direccion_entrega_id),
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function generatePurchaseRequestFolio() {
+        const now = new Date();
+        const pad = value => String(value).padStart(2, '0');
+        const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+        const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+        const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+        return `SC-${date}-${time}-${random}`;
+    }
+
+    async function countActivePurchaseRequests() {
+        const { count, error } = await client
+            .from('solicitudes_compra')
+            .select('id', { count: 'exact', head: true })
+            .in('estado', ['pendiente', 'autorizada', 'ordenada', 'parcial']);
+        assertNoError(error, 'No se pudo consultar el total de compras pendientes.');
+        return Number(count) || 0;
+    }
+
+    async function listPurchaseRequests(options = {}) {
+        let query = client
+            .from('solicitudes_compra')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        const status = text(options.estado ?? options.status);
+        const warehouseId = Number(options.almacenId ?? options.warehouseId ?? 0);
+        const activeOnly = Boolean(options.activeOnly);
+        const quotationId = text(options.cotizacionId ?? options.quotationId);
+        if (status) query = query.eq('estado', status);
+        if (warehouseId) query = query.eq('almacen_id', warehouseId);
+        if (quotationId) query = query.eq('cotizacion_id', quotationId);
+        if (activeOnly) query = query.in('estado', ['pendiente', 'autorizada', 'ordenada', 'parcial']);
+
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las solicitudes de compra.');
+        const warehouses = await listWarehouses();
+        const warehouseById = new Map(warehouses.map(row => [Number(row.id), row]));
+        return (Array.isArray(data) ? data : []).map(row => purchaseRequestFromDb(row, warehouseById));
+    }
+
+    async function listPurchaseOrderItems(orderNumber) {
+        const order = text(orderNumber);
+        if (!order) throw new Error('Escribe la orden de compra de los materiales.');
+        const { data, error } = await client
+            .from('solicitudes_compra')
+            .select('*')
+            .ilike('orden_compra', order)
+            .neq('estado', 'cancelada')
+            .order('created_at', { ascending: true });
+        assertNoError(error, 'No se pudo consultar la orden de compra.');
+        const rows = Array.isArray(data) ? data : [];
+        if (!rows.length) return [];
+        const [materials, warehouses] = await Promise.all([listMaterials(), listWarehouses()]);
+        const byCode = new Map(materials.map(item => [lower(item.codigo), item]));
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        return rows.map(row => {
+            const material = byCode.get(lower(row.material_codigo)) || {
+                codigo: text(row.material_codigo),
+                descripcion: text(row.descripcion),
+                desc: text(row.descripcion),
+                categoria: text(row.categoria),
+                unidad: text(row.unidad),
+                precio: 0,
+                stock: 0,
+                imagen: ''
+            };
+            const requested = number(row.cantidad_solicitada);
+            const received = number(row.cantidad_recibida);
+            const warehouse = warehouseById.get(Number(row.almacen_id)) || {};
+            return {
+                id: Number(row.id),
+                folio: text(row.folio),
+                ordenCompra: text(row.orden_compra),
+                fechaOrdenCompra: text(row.fecha_orden_compra),
+                referencia: text(row.referencia),
+                proveedor: text(row.proveedor),
+                contactoProveedor: text(row.contacto_proveedor),
+                solicitadoPor: text(row.solicitado_por),
+                prioridad: text(row.prioridad) || 'normal',
+                motivo: text(row.motivo),
+                estado: text(row.estado),
+                cantidadSolicitada: requested,
+                cantidadRecibida: received,
+                pendiente: Math.max(0, requested - received),
+                stockMinimo: number(row.stock_minimo),
+                stockMedio: number(row.stock_medio),
+                stockMaximo: number(row.stock_maximo),
+                almacenId: row.almacen_id == null ? null : Number(row.almacen_id),
+                almacenNombre: text(warehouse.nombre) || text(row.almacen_nombre),
+                categoria: text(row.categoria) || text(material.categoria),
+                unidad: text(row.unidad) || text(material.unidad),
+                descripcion: text(row.descripcion) || text(material.descripcion ?? material.desc),
+                codigoMarcaModelo: text(row.codigo_marca_modelo) || text(material.codigoMarca ?? material.codigo_marca),
+                codigo_marca_modelo: text(row.codigo_marca_modelo) || text(material.codigoMarca ?? material.codigo_marca),
+                material
+            };
+        });
+    }
+
+    async function createPurchaseRequest(payload) {
+        const materialCode = text(payload.materialCodigo ?? payload.codigo);
+        const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? 0) || null;
+        const description = text(payload.descripcion ?? payload.desc);
+        const quantity = number(payload.cantidadSolicitada ?? payload.cantidad);
+        if (!materialCode || !description) throw new Error('Falta el material para crear la solicitud.');
+        if (quantity <= 0) throw new Error('La cantidad solicitada debe ser mayor a cero.');
+
+        let existingQuery = client
+            .from('solicitudes_compra')
+            .select('id,folio,estado')
+            .eq('material_codigo', materialCode)
+            .in('estado', ['pendiente', 'autorizada', 'ordenada', 'parcial'])
+            .limit(1);
+        existingQuery = warehouseId
+            ? existingQuery.eq('almacen_id', warehouseId)
+            : existingQuery.is('almacen_id', null);
+        const { data: existing, error: existingError } = await existingQuery.maybeSingle();
+        assertNoError(existingError);
+        if (existing) {
+            throw new Error(`Ya existe una solicitud activa para este material (${existing.folio}).`);
+        }
+
+        const row = {
+            folio: generatePurchaseRequestFolio(),
+            material_codigo: materialCode,
+            descripcion: description,
+            categoria: text(payload.categoria) || null,
+            unidad: text(payload.unidad) || null,
+            almacen_id: warehouseId,
+            almacen_nombre: text(payload.almacenNombre) || null,
+            existencia_actual: number(payload.existenciaActual ?? payload.stockActual),
+            stock_minimo: number(payload.stockMinimo),
+            stock_medio: number(payload.stockMedio),
+            stock_maximo: number(payload.stockMaximo),
+            cantidad_solicitada: quantity,
+            cantidad_recibida: 0,
+            prioridad: ['normal', 'urgente'].includes(lower(payload.prioridad)) ? lower(payload.prioridad) : 'normal',
+            estado: 'pendiente',
+            proveedor: text(payload.proveedor) || null,
+            contacto_proveedor: text(payload.contactoProveedor ?? payload.contacto_proveedor) || null,
+            orden_compra: text(payload.ordenCompra ?? payload.orden_compra) || null,
+            grupo_orden: text(payload.grupoOrden ?? payload.grupo_orden) || null,
+            pdf_url: text(payload.pdfUrl ?? payload.pdf_url) || null,
+            pdf_path: text(payload.pdfPath ?? payload.pdf_path) || null,
+            pdf_nombre: text(payload.pdfNombre ?? payload.pdf_nombre) || null,
+            motivo: text(payload.motivo) || null,
+            solicitado_por: text(payload.solicitadoPor) || null,
+            fecha_requerida: text(payload.fechaRequerida) || null,
+            fecha_orden_compra: text(payload.fechaOrdenCompra ?? payload.fecha_orden_compra) || null,
+            referencia: text(payload.referencia) || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        const { data, error } = await client
+            .from('solicitudes_compra')
+            .insert(row)
+            .select('*')
+            .single();
+        if (error && error.code === '23505') {
+            throw new Error('Ya existe una solicitud activa para este material y almacén.');
+        }
+        assertNoError(error, 'No se pudo crear la solicitud de compra.');
+        const warehouses = await listWarehouses();
+        return purchaseRequestFromDb(data, new Map(warehouses.map(item => [Number(item.id), item])));
+    }
+
+    async function createPurchaseRequests(payloads = []) {
+        const input = Array.isArray(payloads) ? payloads : [];
+        if (!input.length) throw new Error('Selecciona al menos un material.');
+        const normalized = input.map(payload => {
+            const materialCode = text(payload.materialCodigo ?? payload.codigo);
+            const description = text(payload.descripcion ?? payload.desc);
+            const quantity = number(payload.cantidadSolicitada ?? payload.cantidad);
+            const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? 0) || null;
+            if (!materialCode || !description) throw new Error('Existe un material sin código o descripción.');
+            if (quantity <= 0) throw new Error(`La cantidad de ${materialCode} debe ser mayor a cero.`);
+            return { payload, materialCode, description, quantity, warehouseId };
+        });
+        const codes = [...new Set(normalized.map(item => item.materialCode))];
+        const { data: existingRows, error: existingError } = await client
+            .from('solicitudes_compra')
+            .select('id,folio,material_codigo,almacen_id,estado')
+            .in('material_codigo', codes)
+            .in('estado', ['pendiente', 'autorizada', 'ordenada', 'parcial']);
+        assertNoError(existingError, 'No se pudieron validar las solicitudes activas.');
+        const conflict = normalized.find(item => (existingRows || []).some(row => lower(row.material_codigo) === lower(item.materialCode) && Number(row.almacen_id || 0) === Number(item.warehouseId || 0)));
+        if (conflict) {
+            const request = (existingRows || []).find(row => lower(row.material_codigo) === lower(conflict.materialCode) && Number(row.almacen_id || 0) === Number(conflict.warehouseId || 0));
+            throw new Error(`Ya existe una solicitud activa para ${conflict.materialCode}${request?.folio ? ` (${request.folio})` : ''}.`);
+        }
+        const now = new Date().toISOString();
+        const rows = normalized.map(({ payload, materialCode, description, quantity, warehouseId }) => ({
+            folio: generatePurchaseRequestFolio(),
+            material_codigo: materialCode,
+            descripcion: description,
+            categoria: text(payload.categoria) || null,
+            unidad: text(payload.unidad) || null,
+            almacen_id: warehouseId,
+            almacen_nombre: text(payload.almacenNombre) || null,
+            existencia_actual: number(payload.existenciaActual ?? payload.stockActual),
+            stock_minimo: number(payload.stockMinimo),
+            stock_medio: number(payload.stockMedio),
+            stock_maximo: number(payload.stockMaximo),
+            cantidad_solicitada: quantity,
+            cantidad_recibida: number(payload.cantidadRecibida),
+            prioridad: lower(payload.prioridad) === 'urgente' ? 'urgente' : 'normal',
+            estado: text(payload.estado) || 'pendiente',
+            proveedor: text(payload.proveedor) || null,
+            contacto_proveedor: text(payload.contactoProveedor ?? payload.contacto_proveedor) || null,
+            orden_compra: text(payload.ordenCompra ?? payload.orden_compra) || null,
+            grupo_orden: text(payload.grupoOrden ?? payload.grupo_orden) || null,
+            pdf_url: text(payload.pdfUrl ?? payload.pdf_url) || null,
+            pdf_path: text(payload.pdfPath ?? payload.pdf_path) || null,
+            pdf_nombre: text(payload.pdfNombre ?? payload.pdf_nombre) || null,
+            motivo: text(payload.motivo) || null,
+            solicitado_por: text(payload.solicitadoPor) || null,
+            fecha_requerida: text(payload.fechaRequerida) || null,
+            fecha_orden_compra: text(payload.fechaOrdenCompra ?? payload.fecha_orden_compra) || null,
+            referencia: text(payload.referencia) || null,
+            created_at: now,
+            updated_at: now
+        }));
+        const { data, error } = await client.from('solicitudes_compra').insert(rows).select('*');
+        assertNoError(error, 'No se pudieron crear las solicitudes de la orden de compra.');
+        const warehouses = await listWarehouses();
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        return (data || []).map(row => purchaseRequestFromDb(row, warehouseById));
+    }
+
+    async function uploadPurchaseOrderPdf(orderNumber, file, requestIds = [], options = {}) {
+        const order = text(orderNumber) || `OC-${Date.now()}`;
+        if (!(file instanceof Blob)) throw new Error('El archivo PDF no es válido.');
+        if (file.size > 10 * 1024 * 1024) throw new Error('El PDF no puede superar 10 MB.');
+        const normalized = order.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'ORDEN';
+        const now = new Date();
+        const path = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${normalized}_${Date.now()}.pdf`;
+        const { error } = await client.storage.from('ordenes-compra').upload(path, file, {
+            contentType: 'application/pdf',
+            cacheControl: '3600',
+            upsert: false
+        });
+        assertNoError(error, 'No se pudo guardar el PDF de la orden de compra.');
+        const { data } = client.storage.from('ordenes-compra').getPublicUrl(path);
+        const url = text(data?.publicUrl);
+        if (!url) throw new Error('No se pudo obtener la dirección del PDF.');
+        const ids = (Array.isArray(requestIds) ? requestIds : [requestIds]).map(Number).filter(Boolean);
+        if (ids.length) {
+            const updatePayload = {
+                pdf_url: url,
+                pdf_path: path,
+                pdf_nombre: `${normalized}.pdf`,
+                updated_at: new Date().toISOString()
+            };
+            if (text(options?.signatureRevision)) updatePayload.pdf_firma_revision_at = text(options.signatureRevision);
+            const { error: updateError } = await client.from('solicitudes_compra').update(updatePayload).in('id', ids);
+            assertNoError(updateError, 'El PDF se guardó, pero no se pudo asociar a las solicitudes.');
+        }
+        return { url, path, nombre: `${normalized}.pdf` };
+    }
+
+    async function getPurchaseOrderPdfUrl(request = {}) {
+        const direct = text(request.pdfUrl ?? request.pdf_url);
+        if (direct) return direct;
+        const path = text(request.pdfPath ?? request.pdf_path);
+        if (!path) return '';
+        const { data } = client.storage.from('ordenes-compra').getPublicUrl(path);
+        return text(data?.publicUrl);
+    }
+
+    async function updatePurchaseRequest(id, changes = {}) {
+        const requestId = Number(id);
+        if (!requestId) throw new Error('Solicitud de compra no válida.');
+        const row = { updated_at: new Date().toISOString() };
+        if ('cantidadSolicitada' in changes) row.cantidad_solicitada = number(changes.cantidadSolicitada);
+        if ('cantidadRecibida' in changes) row.cantidad_recibida = number(changes.cantidadRecibida);
+        if ('prioridad' in changes) row.prioridad = lower(changes.prioridad) === 'urgente' ? 'urgente' : 'normal';
+        if ('estado' in changes) row.estado = lower(changes.estado);
+        if ('proveedor' in changes) row.proveedor = text(changes.proveedor) || null;
+        if ('contactoProveedor' in changes || 'contacto_proveedor' in changes) row.contacto_proveedor = text(changes.contactoProveedor ?? changes.contacto_proveedor) || null;
+        if ('grupoOrden' in changes || 'grupo_orden' in changes) row.grupo_orden = text(changes.grupoOrden ?? changes.grupo_orden) || null;
+        if ('pdfUrl' in changes || 'pdf_url' in changes) row.pdf_url = text(changes.pdfUrl ?? changes.pdf_url) || null;
+        if ('pdfPath' in changes || 'pdf_path' in changes) row.pdf_path = text(changes.pdfPath ?? changes.pdf_path) || null;
+        if ('pdfNombre' in changes || 'pdf_nombre' in changes) row.pdf_nombre = text(changes.pdfNombre ?? changes.pdf_nombre) || null;
+        if ('ordenCompra' in changes) row.orden_compra = text(changes.ordenCompra) || null;
+        if ('fechaOrdenCompra' in changes || 'fecha_orden_compra' in changes) row.fecha_orden_compra = text(changes.fechaOrdenCompra ?? changes.fecha_orden_compra) || null;
+        if ('referencia' in changes) row.referencia = text(changes.referencia) || null;
+        if ('motivo' in changes) row.motivo = text(changes.motivo) || null;
+        if ('solicitadoPor' in changes) row.solicitado_por = text(changes.solicitadoPor) || null;
+        if ('fechaRequerida' in changes) row.fecha_requerida = text(changes.fechaRequerida) || null;
+        if ('estadoCompras' in changes || 'estado_compras' in changes) {
+            row.estado_compras = lower(changes.estadoCompras ?? changes.estado_compras) || 'no_revisada';
+            row.revisada_at = new Date().toISOString();
+        }
+        if ('motivoNoViable' in changes || 'motivo_no_viable' in changes) row.motivo_no_viable = text(changes.motivoNoViable ?? changes.motivo_no_viable) || null;
+        if ('fechaCompra' in changes || 'fecha_compra' in changes) row.fecha_compra = text(changes.fechaCompra ?? changes.fecha_compra) || null;
+        if ('direccionEntregaId' in changes || 'direccion_entrega_id' in changes) row.direccion_entrega_id = Number(changes.direccionEntregaId ?? changes.direccion_entrega_id) || null;
+        if ('metodoPago' in changes || 'metodo_pago' in changes) row.metodo_pago = text(changes.metodoPago ?? changes.metodo_pago) || null;
+        if ('condicionesPago' in changes || 'condiciones_pago' in changes) row.condiciones_pago = text(changes.condicionesPago ?? changes.condiciones_pago) || null;
+
+        if (row.cantidad_solicitada != null && row.cantidad_solicitada <= 0) {
+            throw new Error('La cantidad solicitada debe ser mayor a cero.');
+        }
+        const validStatus = ['pendiente', 'autorizada', 'ordenada', 'parcial', 'recibida', 'cancelada'];
+        if (row.estado && !validStatus.includes(row.estado)) throw new Error('Estado de solicitud no válido.');
+        const validPurchaseStatus = ['no_revisada','en_revision','compra_realizada','no_viable'];
+        if (row.estado_compras && !validPurchaseStatus.includes(row.estado_compras)) throw new Error('Estado de Compras no válido.');
+        if (row.estado_compras === 'no_viable' && !row.motivo_no_viable) throw new Error('Captura el motivo por el que no se podrá realizar la compra.');
+
+        const { data, error } = await client
+            .from('solicitudes_compra')
+            .update(row)
+            .eq('id', requestId)
+            .select('*')
+            .single();
+        assertNoError(error, 'No se pudo actualizar la solicitud de compra.');
+        const warehouses = await listWarehouses();
+        return purchaseRequestFromDb(data, new Map(warehouses.map(item => [Number(item.id), item])));
+    }
+
+
+    async function updatePurchaseRequests(ids = [], changes = {}) {
+        const requestIds = (Array.isArray(ids) ? ids : [ids]).map(Number).filter(Boolean);
+        if (!requestIds.length) throw new Error('No hay solicitudes para actualizar.');
+        const row = { updated_at: new Date().toISOString() };
+        if ('prioridad' in changes) row.prioridad = lower(changes.prioridad) === 'urgente' ? 'urgente' : 'normal';
+        if ('estado' in changes) row.estado = lower(changes.estado);
+        if ('proveedor' in changes) row.proveedor = text(changes.proveedor) || null;
+        if ('contactoProveedor' in changes || 'contacto_proveedor' in changes) row.contacto_proveedor = text(changes.contactoProveedor ?? changes.contacto_proveedor) || null;
+        if ('ordenCompra' in changes || 'orden_compra' in changes) row.orden_compra = text(changes.ordenCompra ?? changes.orden_compra) || null;
+        if ('fechaOrdenCompra' in changes || 'fecha_orden_compra' in changes) row.fecha_orden_compra = text(changes.fechaOrdenCompra ?? changes.fecha_orden_compra) || null;
+        if ('referencia' in changes) row.referencia = text(changes.referencia) || null;
+        if ('motivo' in changes) row.motivo = text(changes.motivo) || null;
+        if ('solicitadoPor' in changes) row.solicitado_por = text(changes.solicitadoPor) || null;
+        if ('fechaRequerida' in changes) row.fecha_requerida = text(changes.fechaRequerida) || null;
+        if ('estadoCompras' in changes || 'estado_compras' in changes) {
+            row.estado_compras = lower(changes.estadoCompras ?? changes.estado_compras) || 'no_revisada';
+            row.revisada_at = new Date().toISOString();
+        }
+        if ('motivoNoViable' in changes || 'motivo_no_viable' in changes) row.motivo_no_viable = text(changes.motivoNoViable ?? changes.motivo_no_viable) || null;
+        if ('fechaCompra' in changes || 'fecha_compra' in changes) row.fecha_compra = text(changes.fechaCompra ?? changes.fecha_compra) || null;
+        if ('direccionEntregaId' in changes || 'direccion_entrega_id' in changes) row.direccion_entrega_id = Number(changes.direccionEntregaId ?? changes.direccion_entrega_id) || null;
+        if ('metodoPago' in changes || 'metodo_pago' in changes) row.metodo_pago = text(changes.metodoPago ?? changes.metodo_pago) || null;
+        if ('condicionesPago' in changes || 'condiciones_pago' in changes) row.condiciones_pago = text(changes.condicionesPago ?? changes.condiciones_pago) || null;
+        const validStatus = ['pendiente', 'autorizada', 'ordenada', 'parcial', 'recibida', 'cancelada'];
+        if (row.estado && !validStatus.includes(row.estado)) throw new Error('Estado de solicitud no válido.');
+        const validPurchaseStatus = ['no_revisada','en_revision','compra_realizada','no_viable'];
+        if (row.estado_compras && !validPurchaseStatus.includes(row.estado_compras)) throw new Error('Estado de Compras no válido.');
+        if (row.estado_compras === 'no_viable' && !row.motivo_no_viable) throw new Error('Captura el motivo por el que no se podrá realizar la compra.');
+        const { data, error } = await client.from('solicitudes_compra').update(row).in('id', requestIds).select('*');
+        assertNoError(error, 'No se pudo actualizar la orden de compra.');
+        const warehouses = await listWarehouses();
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        return (data || []).map(item => purchaseRequestFromDb(item, warehouseById));
+    }
+
+    async function transferProjectMaterials(payload = {}) {
+        const sourceProject = text(payload.proyectoOrigen ?? payload.sourceProject);
+        const mode = lower(payload.modo ?? payload.mode);
+        const destinationProject = text(payload.proyectoDestino ?? payload.destinationProject);
+        const destinationWarehouse = text(payload.almacenDestino ?? payload.destinationWarehouse);
+        let destinationWarehouseId = Number(payload.almacenDestinoId ?? payload.destinationWarehouseId ?? 0) || null;
+        if (!sourceProject) throw new Error('Selecciona el proyecto de origen.');
+        if (!['almacen', 'proyecto'].includes(mode)) throw new Error('Selecciona el tipo de traspaso.');
+        if (mode === 'proyecto' && !destinationProject) throw new Error('Selecciona el proyecto de destino.');
+        if (mode === 'almacen' && !destinationWarehouseId) {
+            const warehouses = await listWarehouses({ activeOnly: true });
+            const warehouse = warehouses.find(item => lower(item.nombre) === lower(destinationWarehouse));
+            destinationWarehouseId = Number(warehouse?.id || 0) || null;
+        }
+        if (mode === 'almacen' && !destinationWarehouseId) throw new Error('Selecciona el almacén de destino.');
+        const products = (Array.isArray(payload.productos) ? payload.productos : []).map(item => ({
+            codigo: text(item.codigo ?? item.producto?.codigo),
+            descripcion: text(item.descripcion ?? item.producto?.descripcion ?? item.producto?.desc),
+            unidad: text(item.unidad ?? item.producto?.unidad),
+            cantidad: number(item.cantidad),
+            cantidadDentroPlan: number(item.cantidadDentroPlan ?? item.cantidad_dentro_plan),
+            cantidadFueraPlan: number(item.cantidadFueraPlan ?? item.cantidad_fuera_plan),
+            alcance: text(item.alcance)
+        })).filter(item => item.codigo && item.cantidad > 0);
+        if (!products.length) throw new Error('Agrega al menos un material.');
+        const requestId = text(payload.requestId) || (window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        const { data, error } = await client.rpc('crm_transferir_material_proyecto', {
+            p_request_id: requestId,
+            p_proyecto_origen: sourceProject,
+            p_modo: mode,
+            p_proyecto_destino: mode === 'proyecto' ? destinationProject : null,
+            p_almacen_destino_id: mode === 'almacen' ? destinationWarehouseId : null,
+            p_motivo: text(payload.motivo),
+            p_productos: products
+        });
+        assertNoError(error, 'No se pudo registrar el traspaso de sobrantes del proyecto.');
+        return data || { ok: true, requestId, registrados: products.length, modo: mode };
+    }
+
+    async function loanProjectMaterials(payload = {}) {
+        const sourceProject = text(payload.proyectoOrigen ?? payload.sourceProject);
+        const destinationType = lower(payload.destinoTipo ?? payload.destinationType) || 'proyecto';
+        const destinationProject = text(payload.proyectoDestino ?? payload.destinationProject);
+        const destinationWarehouseName = text(payload.almacenDestino ?? payload.destinationWarehouse);
+        let destinationWarehouseId = Number(payload.almacenDestinoId ?? payload.destinationWarehouseId ?? 0) || null;
+        if (!sourceProject) throw new Error('Selecciona el proyecto que prestará el material.');
+        if (!['proyecto', 'almacen'].includes(destinationType)) throw new Error('Selecciona si el préstamo irá a otro proyecto o al almacén general.');
+        if (destinationType === 'proyecto' && !destinationProject) throw new Error('Selecciona el proyecto que recibirá el préstamo.');
+        if (destinationType === 'proyecto' && lower(sourceProject) === lower(destinationProject)) throw new Error('El proyecto de destino debe ser diferente al proyecto de origen.');
+        if (destinationType === 'almacen' && !destinationWarehouseId) {
+            const warehouses = await listWarehouses({ activeOnly: true });
+            const warehouse = warehouses.find(item => lower(item.nombre) === lower(destinationWarehouseName));
+            destinationWarehouseId = Number(warehouse?.id || 0) || null;
+        }
+        if (destinationType === 'almacen' && !destinationWarehouseId) throw new Error('Selecciona el almacén que recibirá el préstamo.');
+        const products = (Array.isArray(payload.productos) ? payload.productos : []).map(item => ({
+            codigo: text(item.codigo ?? item.producto?.codigo),
+            descripcion: text(item.descripcion ?? item.producto?.descripcion ?? item.producto?.desc),
+            unidad: text(item.unidad ?? item.producto?.unidad),
+            cantidad: number(item.cantidad)
+        })).filter(item => item.codigo && item.cantidad > 0);
+        if (!products.length) throw new Error('Agrega al menos un material reservado al préstamo.');
+        const requestId = text(payload.requestId) || (window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        const { data, error } = await client.rpc('crm_prestar_material_proyecto_v12141', {
+            p_request_id: requestId,
+            p_proyecto_origen: sourceProject,
+            p_destino_tipo: destinationType,
+            p_proyecto_destino: destinationType === 'proyecto' ? destinationProject : null,
+            p_almacen_destino_id: destinationType === 'almacen' ? destinationWarehouseId : null,
+            p_motivo: text(payload.motivo),
+            p_productos: products
+        });
+        assertNoError(error, 'No se pudo registrar el préstamo de material reservado.');
+        return data || {
+            ok: true,
+            requestId,
+            registrados: products.length,
+            destinoTipo: destinationType,
+            proyectoOrigen: sourceProject,
+            proyectoDestino: destinationType === 'proyecto' ? destinationProject : '',
+            almacenDestino: destinationType === 'almacen' ? destinationWarehouseName : ''
+        };
+    }
+
+    function toolPendingFields(source = {}) {
+        const explicit = Array.isArray(source.campos_pendientes)
+            ? source.campos_pendientes.map(text).filter(Boolean)
+            : Array.isArray(source.camposPendientes)
+                ? source.camposPendientes.map(text).filter(Boolean)
+                : [];
+        if (explicit.length) return [...new Set(explicit)];
+        const pending = [];
+        if (!text(source.clasificacion)) pending.push('clasificacion');
+        if (!text(source.marca)) pending.push('marca');
+        if (!text(source.modelo)) pending.push('modelo');
+        if (!text(source.uso)) pending.push('uso');
+        if (!text(source.imagen_url ?? source.imagen ?? source.imagenUrl)) pending.push('imagen');
+        return pending;
+    }
+
+    function toolFromDb(row, units = []) {
+        const activeUnits = units.filter(unit => unit.activo !== false && lower(unit.estado) !== 'baja');
+        const counts = activeUnits.reduce((result, unit) => {
+            const state = lower(unit.estado) || 'disponible';
+            result.total += number(unit.cantidad) || 1;
+            if (state === 'disponible') result.disponibles += number(unit.cantidad) || 1;
+            else if (state === 'asignada') result.asignadas += number(unit.cantidad) || 1;
+            else result.otros += number(unit.cantidad) || 1;
+            return result;
+        }, { total: 0, disponibles: 0, asignadas: 0, otros: 0 });
+        const pending = toolPendingFields(row);
+        const incomplete = boolean(row.es_incompleta) || pending.length > 0 && lower(row.origen_alta) === 'herramienta_no_listada';
+        return {
+            id: Number(row.id),
+            sku: text(row.sku),
+            descripcion: text(row.descripcion),
+            desc: text(row.descripcion),
+            clasificacion: text(row.clasificacion),
+            marca: text(row.marca),
+            modelo: text(row.modelo),
+            uso: text(row.uso) || 'OTRO',
+            tipoAlimentacion: text(row.tipo_alimentacion),
+            tipo_alimentacion: text(row.tipo_alimentacion),
+            costoAdquisicion: number(row.costo_adquisicion),
+            costo_adquisicion: number(row.costo_adquisicion),
+            monedaAdquisicion: normalizeCurrencyCode(row.moneda_adquisicion || 'MXN'),
+            moneda_adquisicion: normalizeCurrencyCode(row.moneda_adquisicion || 'MXN'),
+            rentaMensualPct: number(row.renta_mensual_pct) || 10,
+            renta_mensual_pct: number(row.renta_mensual_pct) || 10,
+            proveedorMantenimiento: text(row.proveedor_mantenimiento),
+            proveedor_mantenimiento: text(row.proveedor_mantenimiento),
+            contactoMantenimiento: text(row.contacto_mantenimiento),
+            contacto_mantenimiento: text(row.contacto_mantenimiento),
+            telefonoMantenimiento: text(row.telefono_mantenimiento),
+            telefono_mantenimiento: text(row.telefono_mantenimiento),
+            emailMantenimiento: text(row.email_mantenimiento),
+            email_mantenimiento: text(row.email_mantenimiento),
+            unidad: text(row.unidad) || 'pieza',
+            piezasPorUnidad: number(row.piezas_por_unidad) || 1,
+            piezas_por_unidad: number(row.piezas_por_unidad) || 1,
+            serializada: row.serializada !== false,
+            imagen: text(row.imagen_url),
+            imagenUrl: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            esKit: row.es_kit === true,
+            es_kit: row.es_kit === true,
+            kitComponentes: (()=>{const value=row.kit_componentes;if(Array.isArray(value))return value;try{return typeof value==='string'?JSON.parse(value):[]}catch(_){return[]}})(),
+            kit_componentes: (()=>{const value=row.kit_componentes;if(Array.isArray(value))return value;try{return typeof value==='string'?JSON.parse(value):[]}catch(_){return[]}})(),
+            esIncompleta: incomplete,
+            es_incompleta: incomplete,
+            origenAlta: text(row.origen_alta),
+            origen_alta: text(row.origen_alta),
+            camposPendientes: pending,
+            campos_pendientes: pending,
+            activo: row.activo !== false,
+            unidades: activeUnits,
+            ...counts,
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listTools(options = {}) {
+        const [tools, units] = await Promise.all([
+            collectRows(() => client.from('herramientas_catalogo').select('*').order('descripcion', { ascending: true })),
+            collectRows(() => client.from('herramientas_unidades').select('*').order('id', { ascending: true }))
+        ]);
+        const unitsByTool = new Map();
+        units.forEach(unit => {
+            const id = Number(unit.herramienta_id);
+            if (!unitsByTool.has(id)) unitsByTool.set(id, []);
+            unitsByTool.get(id).push(unit);
+        });
+        let rows = tools.map(tool => toolFromDb(tool, unitsByTool.get(Number(tool.id)) || []));
+        if (options.includeInactive !== true) rows = rows.filter(tool => tool.activo !== false);
+        return rows;
+    }
+
+    async function saveTool(tool = {}, originalId = 0) {
+        const incompleteMode = boolean(tool.esIncompleta ?? tool.es_incompleta ?? tool.incomplete);
+        const draft = {
+            clasificacion: text(tool.clasificacion),
+            marca: text(tool.marca),
+            modelo: text(tool.modelo),
+            uso: text(tool.uso),
+            imagen_url: text(tool.imagen ?? tool.imagenUrl ?? tool.imagen_url)
+        };
+        const pending = incompleteMode ? toolPendingFields(draft) : [];
+        const row = {
+            sku: text(tool.sku),
+            descripcion: text(tool.descripcion ?? tool.desc),
+            clasificacion: draft.clasificacion || null,
+            marca: draft.marca || null,
+            modelo: draft.modelo || null,
+            uso: draft.uso || 'OTRO',
+            tipo_alimentacion: /electrica|eléctrica/i.test(`${draft.uso} ${draft.clasificacion}`) ? text(tool.tipoAlimentacion ?? tool.tipo_alimentacion).toUpperCase() || null : null,
+            costo_adquisicion: Math.max(0, number(tool.costoAdquisicion ?? tool.costo_adquisicion)),
+            moneda_adquisicion: normalizeCurrencyCode(tool.monedaAdquisicion ?? tool.moneda_adquisicion ?? 'MXN'),
+            renta_mensual_pct: Math.max(0, number(tool.rentaMensualPct ?? tool.renta_mensual_pct) || 10),
+            proveedor_mantenimiento: text(tool.proveedorMantenimiento ?? tool.proveedor_mantenimiento) || null,
+            contacto_mantenimiento: text(tool.contactoMantenimiento ?? tool.contacto_mantenimiento) || null,
+            telefono_mantenimiento: text(tool.telefonoMantenimiento ?? tool.telefono_mantenimiento) || null,
+            email_mantenimiento: text(tool.emailMantenimiento ?? tool.email_mantenimiento) || null,
+            unidad: text(tool.unidad) || 'pieza',
+            piezas_por_unidad: Math.max(.0001, number(tool.piezasPorUnidad ?? tool.piezas_por_unidad) || 1),
+            serializada: tool.serializada !== false,
+            imagen_url: draft.imagen_url || null,
+            es_kit: tool.esKit === true || tool.es_kit === true,
+            kit_componentes: (tool.esKit === true || tool.es_kit === true) ? (Array.isArray(tool.kitComponentes ?? tool.kit_componentes) ? (tool.kitComponentes ?? tool.kit_componentes).map(item=>({tipo:text(item.tipo)||'Otro',descripcion:text(item.descripcion),cantidad:Math.max(1,Math.floor(number(item.cantidad)||1)),serializada:item.serializada===true})) .filter(item=>item.descripcion) : []) : [],
+            es_incompleta: incompleteMode && pending.length > 0,
+            origen_alta: incompleteMode ? (text(tool.origenAlta ?? tool.origen_alta) || 'herramienta_no_listada') : null,
+            campos_pendientes: incompleteMode ? pending : [],
+            activo: tool.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.sku || !row.descripcion) throw new Error('SKU y descripción son obligatorios.');
+        if (!incompleteMode && !row.clasificacion) throw new Error('La clasificación es obligatoria.');
+        if (/electrica|eléctrica/i.test(`${row.uso} ${row.clasificacion}`) && !row.tipo_alimentacion) throw new Error('Indica si la herramienta eléctrica es inalámbrica o alámbrica.');
+        const id = Number(originalId || tool.id || 0);
+        let result;
+        if (id) result = await client.from('herramientas_catalogo').update(row).eq('id', id).select('*').single();
+        else result = await client.from('herramientas_catalogo').insert({ ...row, created_at: new Date().toISOString() }).select('*').single();
+        if (result.error?.code === '23505') throw new Error('Ya existe una herramienta con ese SKU.');
+        assertNoError(result.error, 'No se pudo guardar la herramienta.');
+        return toolFromDb(result.data, []);
+    }
+
+    async function createIncompleteTool(payload = {}) {
+        return saveTool({
+            sku: payload.sku,
+            descripcion: payload.descripcion ?? payload.desc,
+            clasificacion: payload.clasificacion,
+            marca: payload.marca,
+            modelo: payload.modelo,
+            uso: payload.uso,
+            unidad: payload.unidad || 'pieza',
+            piezasPorUnidad: payload.piezasPorUnidad || 1,
+            serializada: payload.serializada !== false,
+            imagen: payload.imagen,
+            esIncompleta: true,
+            origenAlta: text(payload.origenAlta ?? payload.origen_alta) || 'herramienta_no_listada'
+        });
+    }
+
+    async function setToolActive(id, active) {
+        const toolId = Number(id);
+        if (!toolId) throw new Error('Herramienta no válida.');
+        const { data, error } = await client.from('herramientas_catalogo').update({ activo: Boolean(active), updated_at: new Date().toISOString() }).eq('id', toolId).select('*').single();
+        assertNoError(error, 'No se pudo actualizar la herramienta.');
+        return toolFromDb(data, []);
+    }
+
+    async function deleteTool(id) {
+        const toolId = Number(id);
+        if (!toolId) throw new Error('Herramienta no válida.');
+        const { count, error: countError } = await client.from('herramientas_unidades').select('id', { count: 'exact', head: true }).eq('herramienta_id', toolId);
+        assertNoError(countError, 'No se pudo validar la herramienta.');
+        if ((count || 0) > 0) throw new Error('Esta herramienta ya tiene unidades físicas. Elimina primero sus unidades o desactiva la herramienta.');
+        const { error } = await client.from('herramientas_catalogo').delete().eq('id', toolId);
+        assertNoError(error, 'No se pudo eliminar la herramienta.');
+        return { ok: true, id: toolId };
+    }
+
+    async function importTools(rows = []) {
+        const input = Array.isArray(rows) ? rows : [];
+        if (!input.length) throw new Error('El archivo no contiene herramientas.');
+        const normalized = input.map(item => {
+            const clasificacion = text(item.clasificacion ?? item.Clasificación ?? item.Clasificacion);
+            const marca = text(item.marca ?? item.Marca);
+            const modelo = text(item.modelo ?? item.Modelo);
+            const uso = text(item.uso ?? item.Uso) || 'OTRO';
+            const imagen = text(item.imagen ?? item['URL de imagen'] ?? item.imagen_url);
+            const markedIncomplete = boolean(item.esIncompleta ?? item.es_incompleta ?? item['Información incompleta']);
+            const pending = markedIncomplete ? toolPendingFields({ clasificacion, marca, modelo, uso, imagen_url: imagen }) : [];
+            return {
+                sku: text(item.sku ?? item.SKU),
+                descripcion: text(item.descripcion ?? item.Descripción ?? item.Descripcion),
+                clasificacion: clasificacion || null,
+                marca: marca || null,
+                modelo: modelo || null,
+                uso,
+                tipo_alimentacion: /electrica|eléctrica/i.test(`${uso} ${clasificacion}`) ? text(item.tipoAlimentacion ?? item.tipo_alimentacion ?? item['Alimentación eléctrica'] ?? item['Alimentacion electrica']).toUpperCase() || null : null,
+                costo_adquisicion: Math.max(0, number(item.costoAdquisicion ?? item.costo_adquisicion ?? item['Costo adquisición'] ?? item['Costo adquisicion'])),
+                moneda_adquisicion: normalizeCurrencyCode(item.monedaAdquisicion ?? item.moneda_adquisicion ?? item.Moneda ?? 'MXN'),
+                renta_mensual_pct: Math.max(0, number(item.rentaMensualPct ?? item.renta_mensual_pct ?? item['Renta mensual %']) || 10),
+                proveedor_mantenimiento: text(item.proveedorMantenimiento ?? item.proveedor_mantenimiento ?? item['Proveedor mantenimiento']) || null,
+                contacto_mantenimiento: text(item.contactoMantenimiento ?? item.contacto_mantenimiento ?? item['Contacto mantenimiento']) || null,
+                telefono_mantenimiento: text(item.telefonoMantenimiento ?? item.telefono_mantenimiento ?? item['Teléfono mantenimiento'] ?? item['Telefono mantenimiento']) || null,
+                email_mantenimiento: text(item.emailMantenimiento ?? item.email_mantenimiento ?? item['Correo mantenimiento']) || null,
+                unidad: text(item.unidad ?? item.Unidad) || 'pieza',
+                piezas_por_unidad: Math.max(.0001, number(item.piezasPorUnidad ?? item['Piezas por unidad'] ?? item.piezas_por_unidad) || 1),
+                serializada: boolean(item.serializada ?? item.Serializada ?? true),
+                imagen_url: imagen || null,
+                es_kit: boolean(item.esKit ?? item.es_kit ?? item.Kit ?? item['Es kit']),
+                kit_componentes: (()=>{const raw=item.kitComponentes ?? item.kit_componentes ?? item['Componentes del kit'];if(Array.isArray(raw))return raw;const value=text(raw);if(!value)return[];return value.split('|').map(part=>{const [cantidad,tipo,...rest]=part.split(':');const descripcion=rest.join(':').trim()||tipo?.trim()||'';const qty=Math.max(1,Math.floor(number(cantidad)||1));return{tipo:(rest.length?text(tipo):'Otro')||'Otro',descripcion,cantidad:qty,serializada:false}}).filter(x=>x.descripcion)})(),
+                es_incompleta: markedIncomplete && pending.length > 0,
+                origen_alta: markedIncomplete ? 'importacion_incompleta' : null,
+                campos_pendientes: markedIncomplete ? pending : [],
+                activo: true,
+                updated_at: new Date().toISOString()
+            };
+        });
+        const invalid = normalized.find(item => !item.sku || !item.descripcion || (!item.clasificacion && !item.es_incompleta));
+        if (invalid) throw new Error('Todas las filas normales deben incluir SKU, descripción y clasificación. Las filas incompletas deben marcarse como “Sí”.');
+        const electricMissing = normalized.find(item => /electrica|eléctrica/i.test(`${item.uso} ${item.clasificacion || ''}`) && !item.tipo_alimentacion);
+        if (electricMissing) throw new Error(`La herramienta eléctrica ${electricMissing.sku || ''} debe indicar si es inalámbrica o alámbrica.`);
+        const { data, error } = await client.from('herramientas_catalogo').upsert(normalized, { onConflict: 'sku' }).select('*');
+        assertNoError(error, 'No se pudieron importar las herramientas.');
+        return (data || []).map(item => toolFromDb(item, []));
+    }
+
+    function toolUnitFromDb(row, toolById = new Map(), warehouseById = new Map(), locationById = new Map()) {
+        const tool = toolById.get(Number(row.herramienta_id)) || {};
+        const warehouse = warehouseById.get(Number(row.almacen_id)) || {};
+        const location = locationById.get(Number(row.ubicacion_id)) || {};
+        return {
+            id: Number(row.id),
+            herramientaId: Number(row.herramienta_id),
+            herramienta_id: Number(row.herramienta_id),
+            codigoInterno: text(row.codigo_interno),
+            codigo_interno: text(row.codigo_interno),
+            numeroSerie: text(row.numero_serie),
+            numero_serie: text(row.numero_serie),
+            cantidad: number(row.cantidad) || 1,
+            almacenId: row.almacen_id == null ? null : Number(row.almacen_id),
+            almacenNombre: text(warehouse.nombre),
+            ubicacionId: row.ubicacion_id == null ? null : Number(row.ubicacion_id),
+            ubicacionNombre: text(location.nombre),
+            ubicacionCodigo: text(location.codigo),
+            fechaAdquisicion: text(row.fecha_adquisicion),
+            costoAdquisicion: number(row.costo_adquisicion),
+            vidaUtilMeses: row.vida_util_meses == null ? null : Number(row.vida_util_meses),
+            complementos: text(row.complementos),
+            observaciones: text(row.observaciones),
+            estado: text(row.estado) || 'disponible',
+            asignadoA: text(row.asignado_a),
+            proyecto: text(row.proyecto),
+            activo: row.activo !== false,
+            herramienta: {
+                id: Number(tool.id),
+                sku: text(tool.sku),
+                descripcion: text(tool.descripcion),
+                clasificacion: text(tool.clasificacion),
+                marca: text(tool.marca),
+                modelo: text(tool.modelo),
+                uso: text(tool.uso) || 'OTRO',
+                tipoAlimentacion: text(tool.tipo_alimentacion),
+                costoAdquisicion: number(tool.costo_adquisicion),
+                monedaAdquisicion: normalizeCurrencyCode(tool.moneda_adquisicion || 'MXN'),
+                rentaMensualPct: number(tool.renta_mensual_pct) || 10,
+                proveedorMantenimiento: text(tool.proveedor_mantenimiento),
+                contactoMantenimiento: text(tool.contacto_mantenimiento),
+                telefonoMantenimiento: text(tool.telefono_mantenimiento),
+                emailMantenimiento: text(tool.email_mantenimiento),
+                unidad: text(tool.unidad) || 'pieza',
+                serializada: tool.serializada !== false,
+                imagen: text(tool.imagen_url),
+                esIncompleta: boolean(tool.es_incompleta),
+                es_incompleta: boolean(tool.es_incompleta),
+                origenAlta: text(tool.origen_alta),
+                camposPendientes: toolPendingFields(tool)
+            },
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listToolUnits(options = {}) {
+        const [units, tools, warehouses, locations] = await Promise.all([
+            collectRows(() => client.from('herramientas_unidades').select('*').order('id', { ascending: true })),
+            collectRows(() => client.from('herramientas_catalogo').select('*').order('descripcion', { ascending: true })),
+            listWarehouses(),
+            listWarehouseLocations()
+        ]);
+        const toolById = new Map(tools.map(item => [Number(item.id), item]));
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        const locationById = new Map(locations.map(item => [Number(item.id), item]));
+        let rows = units.map(item => toolUnitFromDb(item, toolById, warehouseById, locationById));
+        if (options.includeInactive !== true) rows = rows.filter(item => item.activo !== false && item.estado !== 'baja');
+        const toolId = Number(options.herramientaId ?? options.toolId ?? 0);
+        if (toolId) rows = rows.filter(item => item.herramientaId === toolId);
+        return rows;
+    }
+
+    async function nextToolUnitCode(toolId) {
+        const id = Number(toolId);
+        if (!id) return `HTA-${Date.now()}`;
+        const [{ data: tool, error: toolError }, { data: units, error: unitsError }] = await Promise.all([
+            client.from('herramientas_catalogo').select('sku').eq('id', id).single(),
+            client.from('herramientas_unidades').select('codigo_interno').eq('herramienta_id', id)
+        ]);
+        assertNoError(toolError, 'No se encontró la herramienta.');
+        assertNoError(unitsError, 'No se pudo generar el código de la unidad.');
+        const prefix = text(tool.sku);
+        const maximum = (units || []).reduce((current, row) => {
+            const match = text(row.codigo_interno).match(/-(\d+)$/);
+            return match ? Math.max(current, Number(match[1]) || 0) : current;
+        }, 0);
+        return `${prefix}-${String(maximum + 1).padStart(6, '0')}`;
+    }
+
+    async function saveToolUnit(unit = {}, originalId = 0) {
+        const toolId = Number(unit.herramientaId ?? unit.herramienta_id ?? 0);
+        if (!toolId) throw new Error('Selecciona una herramienta.');
+        const { data: toolDefinition, error: toolDefinitionError } = await client
+            .from('herramientas_catalogo')
+            .select('serializada,costo_adquisicion,moneda_adquisicion')
+            .eq('id', toolId)
+            .single();
+        assertNoError(toolDefinitionError, 'No se encontró la herramienta seleccionada.');
+        const serialized = toolDefinition?.serializada !== false;
+        const serial = text(unit.numeroSerie ?? unit.numero_serie);
+        if (serialized && !serial) throw new Error('El número de serie es obligatorio para esta herramienta.');
+        const id = Number(originalId || unit.id || 0);
+        const code = text(unit.codigoInterno ?? unit.codigo_interno) || await nextToolUnitCode(toolId);
+        const row = {
+            herramienta_id: toolId,
+            codigo_interno: code,
+            numero_serie: serial || null,
+            cantidad: serialized ? 1 : Math.max(.0001, number(unit.cantidad) || 1),
+            almacen_id: Number(unit.almacenId ?? unit.almacen_id ?? 0) || null,
+            ubicacion_id: Number(unit.ubicacionId ?? unit.ubicacion_id ?? 0) || null,
+            fecha_adquisicion: text(unit.fechaAdquisicion ?? unit.fecha_adquisicion) || null,
+            costo_adquisicion: Math.max(0, number(unit.costoAdquisicion ?? unit.costo_adquisicion) || number(toolDefinition.costo_adquisicion)),
+            vida_util_meses: text(unit.vidaUtilMeses ?? unit.vida_util_meses) === '' ? null : Math.max(0, Math.trunc(number(unit.vidaUtilMeses ?? unit.vida_util_meses))),
+            complementos: text(unit.complementos) || null,
+            observaciones: text(unit.observaciones) || null,
+            estado: ['disponible', 'asignada', 'mantenimiento', 'baja'].includes(lower(unit.estado)) ? lower(unit.estado) : 'disponible',
+            asignado_a: text(unit.asignadoA ?? unit.asignado_a) || null,
+            proyecto: text(unit.proyecto) || null,
+            activo: unit.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        let result;
+        if (id) result = await client.from('herramientas_unidades').update(row).eq('id', id).select('*').single();
+        else result = await client.from('herramientas_unidades').insert({ ...row, created_at: new Date().toISOString() }).select('*').single();
+        if (result.error?.code === '23505') throw new Error('El código interno o número de serie ya está registrado.');
+        assertNoError(result.error, 'No se pudo guardar la unidad de herramienta.');
+        const [tools, warehouses, locations] = await Promise.all([listTools({ includeInactive: true }), listWarehouses(), listWarehouseLocations()]);
+        return toolUnitFromDb(result.data, new Map(tools.map(item => [item.id, item])), new Map(warehouses.map(item => [item.id, item])), new Map(locations.map(item => [item.id, item])));
+    }
+
+    async function setToolUnitStatus(id, status, detail = '') {
+        const unitId = Number(id);
+        const state = lower(status);
+        if (!unitId || !['disponible', 'asignada', 'mantenimiento', 'baja'].includes(state)) throw new Error('Unidad o estado no válido.');
+        const { data, error } = await client.rpc('crm_cambiar_estado_herramienta', {
+            p_unidad_id: unitId,
+            p_estado: state,
+            p_detalle: text(detail) || null
+        });
+        assertNoError(error, 'No se pudo actualizar la unidad.');
+        return data;
+    }
+
+    async function deleteToolUnit(id) {
+        const unitId = Number(id);
+        if (!unitId) throw new Error('Unidad no válida.');
+        const { count, error: assignmentError } = await client.from('herramientas_asignaciones').select('id', { count: 'exact', head: true }).eq('unidad_id', unitId);
+        assertNoError(assignmentError, 'No se pudo validar el historial de la unidad.');
+        if ((count || 0) > 0) throw new Error('Esta unidad tiene historial de asignaciones. Cámbiala a Baja para conservar la trazabilidad.');
+        const { error } = await client.from('herramientas_unidades').delete().eq('id', unitId);
+        assertNoError(error, 'No se pudo eliminar la unidad.');
+        return { ok: true, id: unitId };
+    }
+
+    async function listPendingLocations(options = {}) {
+        let query = client.from('ubicaciones_pendientes').select('*,almacenes(nombre)').order('created_at', { ascending: false });
+        const status = text(options.estado ?? options.status) || 'pendiente';
+        if (status) query = query.eq('estado', status);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las ubicaciones pendientes.');
+        return (data || []).map(item => ({
+            id: Number(item.id), requestId: text(item.request_id), codigo: text(item.material_codigo), almacenId: Number(item.almacen_id || 0), almacenNombre: text(item.almacenes?.nombre), proyectoOrigen: text(item.proyecto_origen), cantidad: number(item.cantidad), estado: text(item.estado), createdAt: text(item.created_at)
+        }));
+    }
+
+
+    async function createIncompleteMaterial(payload = {}) {
+        const code = text(payload.codigo);
+        const description = text(payload.descripcion ?? payload.desc);
+        const rawCategory = text(payload.categoria);
+        const rawUnit = text(payload.unidad);
+        const category = rawCategory || 'Sin clasificar';
+        const unit = rawUnit || 'pieza';
+        const price = number(payload.precio);
+        const currency = normalizeCurrencyCode(payload.monedaCosto ?? payload.moneda_costo ?? payload.moneda);
+        const brandCode = text(payload.codigoMarca ?? payload.codigo_marca ?? payload.modelo);
+        const origin = text(payload.origen ?? payload.origenAlta) || 'alta_manual';
+        if (!code || !description) throw new Error('Código y descripción son obligatorios.');
+
+        async function readMaterial(codigo) {
+            const result = await client.from('materiales').select('*').eq('codigo', codigo).maybeSingle();
+            assertNoError(result.error, 'No se pudo consultar el catálogo.');
+            return result.data ? materialFromDb(result.data) : null;
+        }
+
+        async function saveDirect(existing = null) {
+            const payloadDb = {
+                codigo: code,
+                descripcion: description || text(existing?.descripcion) || code,
+                categoria: category || text(existing?.categoria) || 'Sin clasificar',
+                unidad: unit || text(existing?.unidad) || 'pieza',
+                precio: price || number(existing?.precio),
+                codigo_marca: brandCode || text(existing?.codigo_marca) || null,
+                moneda_costo: currency || normalizeCurrencyCode(existing?.moneda_costo) || 'MXN',
+                es_incompleto: true,
+                origen_alta: origin,
+                activo: true,
+                updated_at: new Date().toISOString()
+            };
+            let result;
+            if (existing) result = await client.from('materiales').update(payloadDb).eq('codigo', code).select('*').maybeSingle();
+            else result = await client.from('materiales').insert(payloadDb).select('*').maybeSingle();
+            assertNoError(result.error, existing ? 'No se pudo actualizar el material incompleto.' : 'No se pudo crear el material incompleto.');
+            invalidateMaterialSnapshot();
+            return materialFromDb(result.data);
+        }
+
+        const currentResult = await client.from('materiales').select('*').eq('codigo', code).maybeSingle();
+        assertNoError(currentResult.error, 'No se pudo consultar el catálogo.');
+        const existing = currentResult.data || null;
+        if (existing) {
+            const needsBrand = brandCode && text(existing.codigo_marca) !== brandCode;
+            const needsCurrency = currency && normalizeCurrencyCode(existing.moneda_costo) !== currency;
+            const needsOrigin = origin && text(existing.origen_alta) !== origin;
+            if (!needsBrand && !needsCurrency && !needsOrigin) return materialFromDb(existing);
+        }
+
+        const rpcArgs = {
+            p_codigo: code,
+            p_descripcion: description || text(existing?.descripcion) || code,
+            p_categoria: category || text(existing?.categoria) || 'Sin clasificar',
+            p_unidad: unit || text(existing?.unidad) || 'pieza',
+            p_precio: price || number(existing?.precio),
+            p_codigo_marca: brandCode || text(existing?.codigo_marca) || null,
+            p_moneda_costo: currency || normalizeCurrencyCode(existing?.moneda_costo) || 'MXN',
+            p_origen: origin
+        };
+        const rpcNames = ['crm_crear_material_incompleto_v78','crm_crear_material_incompleto_v76','crear_material_incompleto'];
+        let lastError = null;
+        for (const name of rpcNames) {
+            const args = name === 'crear_material_incompleto'
+                ? { p_codigo: rpcArgs.p_codigo, p_descripcion: rpcArgs.p_descripcion, p_categoria: rpcArgs.p_categoria, p_unidad: rpcArgs.p_unidad, p_precio: rpcArgs.p_precio, p_codigo_marca: rpcArgs.p_codigo_marca, p_origen: rpcArgs.p_origen }
+                : rpcArgs;
+            const rpcResult = await client.rpc(name, args);
+            if (!rpcResult.error) {
+                const finalCode = text(rpcResult.data?.codigo || rpcResult.data || code);
+                const saved = await readMaterial(finalCode);
+                if (!saved) throw new Error('El material se guardó, pero no pudo recuperarse del catálogo.');
+                invalidateMaterialSnapshot();
+                return saved;
+            }
+            lastError = rpcResult.error;
+            const codeValue = text(rpcResult.error.code);
+            const message = lower(rpcResult.error.message || '');
+            if (!['PGRST202','42883','42501'].includes(codeValue) && !message.includes('permission denied for function')) break;
+        }
+
+        const lastCode = text(lastError?.code);
+        const lastMessage = lower(lastError?.message || '');
+        if (lastCode === '42501' || lastMessage.includes('permission denied for function')) {
+            try { return await saveDirect(existing); }
+            catch (_) { throw new Error('Supabase no autorizó el material incompleto. Ejecuta SQL_MAESTRO_CRM.sql para reparar permisos de plan de materiales.'); }
+        }
+        if (['PGRST202','42883','PGRST204','42703'].includes(lastCode)) throw new Error('Falta aplicar SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql para registrar materiales incompletos.');
+        assertNoError(lastError, 'No se pudo crear el material incompleto.');
+    }
+    async function syncProjectUnlistedMaterials(projectNumber = '') {
+        let query = client.from('proyecto_materiales_no_listados').select('*').order('id', { ascending: true });
+        const project = text(projectNumber);
+        if (project) query = query.eq('proyecto_numero', project);
+        const manualResult = await query;
+        if (manualResult.error) {
+            const code = text(manualResult.error.code);
+            const message = lower(manualResult.error.message || manualResult.error.details || '');
+            if (['42P01','PGRST205','PGRST204'].includes(code) || message.includes('does not exist') || message.includes('not found')) return { revisados: 0, creados: 0, requiereSql: false };
+            return { revisados: 0, creados: 0, requiereSql: true, error: errorMessage(manualResult.error) };
+        }
+        const rows = manualResult.data || [];
+        if (!rows.length) return { revisados: 0, creados: 0, requiereSql: false };
+        const catalogResult = await client.from('materiales').select('codigo');
+        if (catalogResult.error) return { revisados: rows.length, creados: 0, requiereSql: true, error: errorMessage(catalogResult.error) };
+        const catalog = new Set((catalogResult.data || []).map(row => lower(row.codigo)));
+        let created = 0;
+        let requiresSql = false;
+        let lastError = '';
+        for (const row of rows) {
+            const code = text(row.codigo_manual);
+            if (!code || catalog.has(lower(code))) continue;
+            try {
+                const material = await createIncompleteMaterial({
+                    codigo: code,
+                    descripcion: text(row.descripcion) || code,
+                    categoria: text(row.categoria),
+                    unidad: text(row.unidad),
+                    precio: number(row.precio_unitario),
+                    monedaCosto: normalizeCurrencyCode(row.moneda_costo),
+                    codigoMarca: text(row.codigo_marca),
+                    origen: 'proyecto_no_listado_legacy'
+                });
+                catalog.add(lower(material.codigo || code));
+                created += 1;
+            } catch (error) {
+                requiresSql = true;
+                lastError = errorMessage(error);
+            }
+        }
+        return { revisados: rows.length, creados: created, requiereSql: requiresSql, error: lastError };
+    }
+    async function listProjectPlanV12(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+        const [lineResult, manualResult, materials] = await Promise.all([
+            client.from('proyecto_materiales').select('*').eq('proyecto_numero', project).order('id', { ascending: true }),
+            client.from('proyecto_materiales_no_listados').select('*').eq('proyecto_numero', project).order('id', { ascending: true }),
+            listMaterials()
+        ]);
+        assertNoError(lineResult.error, 'No se pudo consultar el plan del proyecto.');
+        const manualMissing = manualResult.error && ['42P01','PGRST205','PGRST204'].includes(text(manualResult.error.code));
+        if (manualResult.error && !manualMissing) assertNoError(manualResult.error, 'No se pudieron consultar los materiales no enlistados del proyecto.');
+        const materialByCode = new Map(materials.map(item => [lower(item.codigo), item]));
+        const listedCodes = new Set((lineResult.data || []).map(row => lower(row.material_codigo)));
+        const listed = (lineResult.data || []).map(row => {
+            const material = materialByCode.get(lower(row.material_codigo)) || {
+                codigo: text(row.material_codigo), descripcion: text(row.material_codigo), desc: text(row.material_codigo), unidad: text(row.unidad), precio: number(row.precio_unitario), stock: 0, imagen: ''
+            };
+            return {
+                id: row.id, proyecto: text(row.proyecto_numero), codigo: text(row.material_codigo), cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), monedaCosto: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), moneda_costo: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), observaciones: text(row.observaciones), esNoListado: false, esIncompleto: boolean(material.esIncompleto ?? material.es_incompleto), estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material
+            };
+        });
+        const manual = (manualMissing ? [] : (manualResult.data || [])).filter(row => !listedCodes.has(lower(row.codigo_manual))).map(row => {
+            const code = text(row.codigo_manual);
+            const material = materialByCode.get(lower(code)) || {
+                codigo: code, descripcion: text(row.descripcion) || code, desc: text(row.descripcion) || code, categoria: text(row.categoria), codigoMarca: text(row.codigo_marca), codigo_marca: text(row.codigo_marca), unidad: text(row.unidad) || 'pieza', precio: number(row.precio_unitario), monedaCosto: normalizeCurrencyCode(row.moneda_costo), moneda_costo: normalizeCurrencyCode(row.moneda_costo), stock: 0, imagen: '', esIncompleto: true, es_incompleto: true
+            };
+            return {
+                id: `manual-${row.id}`, legacyId: row.id, proyecto: text(row.proyecto_numero), codigo: code, cantidadPlaneada: number(row.cantidad_planeada), cantidadEntregada: number(row.cantidad_entregada), cantidadSobrante: number(row.cantidad_sobrante), unidad: text(row.unidad) || text(material.unidad), precioUnitario: number(row.precio_unitario) || number(material.precio), monedaCosto: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), moneda_costo: normalizeCurrencyCode(row.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), observaciones: text(row.observaciones), esNoListado: true, es_no_listado: true, esIncompleto: true, estadoSolicitud: text(row.estado_solicitud) || 'pendiente', estado_solicitud: text(row.estado_solicitud) || 'pendiente', aprobadaPor: text(row.aprobada_por), aprobadaAt: row.aprobada_at || null, rechazoMotivo: text(row.rechazo_motivo), material: { ...material, esNoListado: true, es_no_listado: true, esIncompleto: true }
+            };
+        });
+        return [...listed, ...manual];
+    }
+
+    async function listProjectMovementPlan(projectNumber, options = {}) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+        const [plan, movements, materials] = await Promise.all([
+            listProjectPlanV12(project),
+            listMovements({ project }),
+            listMaterials()
+        ]);
+        const materialByCode = new Map(materials.map(item => [lower(item.codigo), item]));
+        const sums = new Map();
+        movements.forEach(movement => {
+            const key = lower(movement.codigo);
+            if (!key) return;
+            if (!sums.has(key)) sums.set(key, { entradas: 0, salidas: 0, reingresos: 0, ajustesMas: 0, ajustesMenos: 0, movimientos: [] });
+            const bucket = sums.get(key);
+            const type = lower(movement.tipo);
+            if (type === 'entrada') bucket.entradas += number(movement.cantidad);
+            if (type === 'salida') bucket.salidas += number(movement.cantidad);
+            if (type === 'reingreso') bucket.reingresos += number(movement.cantidad);
+            if (type === 'ajuste' && lower(movement.ajusteAccion) === 'aumentar') bucket.ajustesMas += number(movement.cantidad);
+            if (type === 'ajuste' && lower(movement.ajusteAccion) === 'disminuir') bucket.ajustesMenos += number(movement.cantidad);
+            bucket.movimientos.push(movement);
+        });
+        const planCodes = new Set(plan.map(line => lower(line.codigo)));
+        const rows = plan.map(line => {
+            const bucket = sums.get(lower(line.codigo)) || { entradas: 0, salidas: 0, reingresos: 0, ajustesMas: 0, ajustesMenos: 0 };
+            const requested = number(line.cantidadPlaneada);
+            const delivered = Math.max(0, bucket.salidas + bucket.ajustesMenos - bucket.reingresos);
+            return {
+                ...line,
+                requerido: requested,
+                planeado: requested,
+                ingresado: bucket.entradas + bucket.ajustesMas,
+                entregado: delivered,
+                reingresado: bucket.reingresos,
+                pendiente: Math.max(0, requested - delivered),
+                descripcion: text(line.material?.descripcion ?? line.material?.desc ?? line.codigo),
+                categoria: text(line.material?.categoria),
+                unidad: text(line.unidad ?? line.material?.unidad),
+                solicitudAprobada: lower(line.estadoSolicitud) === 'aprobada',
+                fueraPlan: false,
+                fuera_plan: false
+            };
+        });
+        if (options.includeOutsidePlan) {
+            sums.forEach((bucket, key) => {
+                if (planCodes.has(key)) return;
+                const first = bucket.movimientos?.[0] || {};
+                const code = text(first.codigo || first.material_codigo || first.codigo_manual);
+                if (!code) return;
+                const material = materialByCode.get(key) || {
+                    codigo: code,
+                    descripcion: text(first.descripcion) || code,
+                    desc: text(first.descripcion) || code,
+                    categoria: text(first.categoria),
+                    unidad: text(first.unidad),
+                    precio: number(first.precio),
+                    stock: 0,
+                    almacenes: []
+                };
+                const delivered = Math.max(0, bucket.salidas + bucket.ajustesMenos - bucket.reingresos);
+                rows.push({
+                    id: `fuera-${code}`,
+                    proyecto: project,
+                    codigo: code,
+                    cantidadPlaneada: 0,
+                    cantidadEntregada: delivered,
+                    cantidadSobrante: 0,
+                    unidad: text(material.unidad || first.unidad),
+                    precioUnitario: number(first.precio) || number(material.precio),
+                    observaciones: 'Material fuera del plan original',
+                    esNoListado: boolean(material.esNoListado ?? material.es_no_listado),
+                    esIncompleto: boolean(material.esIncompleto ?? material.es_incompleto),
+                    estadoSolicitud: 'aprobada',
+                    estado_solicitud: 'aprobada',
+                    material,
+                    requerido: 0,
+                    planeado: 0,
+                    ingresado: bucket.entradas + bucket.ajustesMas,
+                    entregado: delivered,
+                    reingresado: bucket.reingresos,
+                    pendiente: 0,
+                    descripcion: text(material.descripcion ?? material.desc ?? code),
+                    categoria: text(material.categoria),
+                    solicitudAprobada: true,
+                    fueraPlan: true,
+                    fuera_plan: true
+                });
+            });
+        }
+        return rows;
+    }
+    async function saveProjectPlanV12(projectNumber, lines) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+        const rawInput = Array.isArray(lines) ? lines : [];
+        const groupedInput = new Map();
+        for (const source of rawInput) {
+            const sourceMaterial = source?.material || {};
+            const sourceCode = text(source?.codigo ?? sourceMaterial.codigo);
+            const key = lower(sourceCode);
+            if (!key) {
+                groupedInput.set(`__missing_${groupedInput.size}`, { ...source });
+                continue;
+            }
+            if (!groupedInput.has(key)) {
+                groupedInput.set(key, { ...source, codigo: sourceCode });
+                continue;
+            }
+            const current = groupedInput.get(key);
+            current.cantidadPlaneada = number(current.cantidadPlaneada ?? current.cantidad_planeada) + number(source.cantidadPlaneada ?? source.cantidad_planeada);
+            current.cantidadEntregada = number(current.cantidadEntregada ?? current.cantidad_entregada) + number(source.cantidadEntregada ?? source.cantidad_entregada);
+            current.cantidadSobrante = number(current.cantidadSobrante ?? current.cantidad_sobrante) + number(source.cantidadSobrante ?? source.cantidad_sobrante);
+            const notes = [text(current.observaciones ?? current.notas), text(source.observaciones ?? source.notas)].filter(Boolean);
+            current.observaciones = [...new Set(notes)].join(' · ');
+            if (!current.material && sourceMaterial) current.material = sourceMaterial;
+            if (!current.unidad && source.unidad) current.unidad = source.unidad;
+            if (!number(current.precioUnitario ?? current.precio_unitario) && number(source.precioUnitario ?? source.precio_unitario)) current.precioUnitario = number(source.precioUnitario ?? source.precio_unitario);
+            current.esNoListado = boolean(current.esNoListado ?? current.es_no_listado) || boolean(source.esNoListado ?? source.es_no_listado);
+        }
+        const input = [...groupedInput.values()];
+        const [currentResult, legacyResult, catalog] = await Promise.all([
+            client.from('proyecto_materiales').select('material_codigo,estado_solicitud,aprobada_por,aprobada_at,rechazo_motivo').eq('proyecto_numero', project),
+            client.from('proyecto_materiales_no_listados').select('*').eq('proyecto_numero', project),
+            listMaterials()
+        ]);
+        assertNoError(currentResult.error, 'No se pudo consultar el plan actual.');
+        const legacyMissing = legacyResult.error && ['42P01','PGRST205','PGRST204'].includes(text(legacyResult.error.code));
+        if (legacyResult.error && !legacyMissing) assertNoError(legacyResult.error, 'No se pudieron consultar los materiales no enlistados actuales.');
+        const currentByCode = new Map((currentResult.data || []).map(row => [lower(row.material_codigo), row]));
+        const legacyRows = legacyMissing ? [] : (legacyResult.data || []);
+        const legacyByCode = new Map(legacyRows.map(row => [lower(row.codigo_manual), row]));
+        const catalogByCode = new Map(catalog.map(item => [lower(item.codigo), item]));
+        const listedRows = [];
+        const manualRows = [];
+        for (const line of input) {
+            const sourceMaterial = line.material || {};
+            let code = text(line.codigo ?? sourceMaterial.codigo);
+            let material = catalogByCode.get(lower(code)) || sourceMaterial;
+            if (!code) throw new Error('Uno de los materiales no tiene código o referencia.');
+            if (!catalogByCode.has(lower(code))) {
+                material = await createIncompleteMaterial({ codigo: code, descripcion: text(line.descripcion ?? sourceMaterial.descripcion ?? sourceMaterial.desc) || code, categoria: text(line.categoria ?? sourceMaterial.categoria), unidad: text(line.unidad ?? sourceMaterial.unidad), precio: number(line.precioUnitario ?? sourceMaterial.precio), monedaCosto: normalizeCurrencyCode(line.monedaCosto ?? line.moneda_costo ?? sourceMaterial.monedaCosto ?? sourceMaterial.moneda_costo), codigoMarca: text(line.codigoMarca ?? line.codigo_marca ?? sourceMaterial.codigoMarca ?? sourceMaterial.codigo_marca), origen: 'plan_proyecto' });
+                code = material.codigo;
+                catalogByCode.set(lower(code), material);
+            }
+            const planned = number(line.cantidadPlaneada ?? line.cantidad_planeada);
+            if (planned <= 0) throw new Error(`La cantidad requerida de ${code} debe ser mayor a cero.`);
+            const legacy = legacyByCode.get(lower(code));
+            const keepLegacy = Boolean(line.esNoListado ?? line.es_no_listado) || (legacy && !currentByCode.has(lower(code)));
+            if (keepLegacy && !legacyMissing) {
+                manualRows.push({
+                    proyecto_numero: project, codigo_manual: code, descripcion: text(line.descripcion ?? material.descripcion ?? material.desc) || code, categoria: text(line.categoria ?? material.categoria) || null, codigo_marca: text(line.codigoMarca ?? line.codigo_marca ?? material.codigoMarca ?? material.codigo_marca) || null, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada ?? legacy?.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante ?? legacy?.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), moneda_costo: normalizeCurrencyCode(line.monedaCosto ?? line.moneda_costo ?? material.monedaCosto ?? material.moneda_costo), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: text(legacy?.estado_solicitud) || text(line.estadoSolicitud) || 'pendiente', aprobada_por: legacy?.aprobada_por || null, aprobada_at: legacy?.aprobada_at || null, rechazo_motivo: legacy?.rechazo_motivo || null, updated_at: new Date().toISOString()
+                });
+            } else {
+                const current = currentByCode.get(lower(code));
+                listedRows.push({ proyecto_numero: project, material_codigo: code, cantidad_planeada: planned, cantidad_entregada: number(line.cantidadEntregada ?? line.cantidad_entregada), cantidad_sobrante: number(line.cantidadSobrante ?? line.cantidad_sobrante), unidad: text(line.unidad ?? material.unidad) || null, precio_unitario: number(line.precioUnitario ?? line.precio_unitario ?? material.precio), observaciones: text(line.observaciones ?? line.notas) || null, estado_solicitud: current ? (text(current.estado_solicitud) || 'pendiente') : 'pendiente', aprobada_por: current?.aprobada_por || null, aprobada_at: current?.aprobada_at || null, rechazo_motivo: current?.rechazo_motivo || null, updated_at: new Date().toISOString() });
+            }
+        }
+        if (listedRows.length) {
+            const result = await client.from('proyecto_materiales').upsert(listedRows, { onConflict: 'proyecto_numero,material_codigo' });
+            assertNoError(result.error, 'No se pudo guardar el plan del proyecto.');
+        }
+        if (manualRows.length && !legacyMissing) {
+            const result = await client.from('proyecto_materiales_no_listados').upsert(manualRows, { onConflict: 'proyecto_numero,codigo_manual' });
+            assertNoError(result.error, 'No se pudieron conservar los materiales no enlistados anteriores.');
+        }
+        const keepListed = new Set(listedRows.map(row => lower(row.material_codigo)));
+        const keepManual = new Set(manualRows.map(row => lower(row.codigo_manual)));
+        for (const existing of (currentResult.data || [])) {
+            if (!keepListed.has(lower(existing.material_codigo))) {
+                const result = await client.from('proyecto_materiales').delete().eq('proyecto_numero', project).eq('material_codigo', existing.material_codigo);
+                assertNoError(result.error, `No se pudo quitar ${existing.material_codigo} del plan.`);
+            }
+        }
+        if (!legacyMissing) {
+            for (const existing of legacyRows) {
+                if (!keepManual.has(lower(existing.codigo_manual))) {
+                    const result = await client.from('proyecto_materiales_no_listados').delete().eq('id', existing.id);
+                    assertNoError(result.error, `No se pudo quitar ${existing.codigo_manual} del plan.`);
+                }
+            }
+        }
+        return listProjectPlanV12(project);
+    }
+
+    async function listMaterialRequests(options = {}) {
+        const project = text(options.project ?? options.proyecto);
+        const status = lower(options.status ?? options.estado);
+        const [projects, materials, lines] = await Promise.all([
+            getProjectsRaw(),
+            listMaterials(),
+            collectRows(() => {
+                let query = client.from('proyecto_materiales').select('*').order('updated_at', { ascending: false });
+                if (project) query = query.eq('proyecto_numero', project);
+                if (status) query = query.eq('estado_solicitud', status);
+                return query;
+            })
+        ]);
+        const projectByNumber = new Map(projects.map(row => [text(row.numero_proyecto), row]));
+        const materialByCode = new Map(materials.map(row => [lower(row.codigo), row]));
+        return lines.map(row => ({
+            id: row.id,
+            proyecto: text(row.proyecto_numero),
+            proyectoNombre: text(projectByNumber.get(text(row.proyecto_numero))?.nombre_proyecto),
+            codigo: text(row.material_codigo),
+            material: materialByCode.get(lower(row.material_codigo)) || { codigo: text(row.material_codigo), desc: text(row.material_codigo) },
+            cantidad: number(row.cantidad_planeada),
+            unidad: text(row.unidad),
+            estado: text(row.estado_solicitud) || 'pendiente',
+            aprobadaPor: text(row.aprobada_por),
+            aprobadaAt: row.aprobada_at || null,
+            rechazoMotivo: text(row.rechazo_motivo),
+            updatedAt: row.updated_at || row.created_at
+        }));
+    }
+
+    async function setMaterialRequestStatus(projectNumber, materialCode, status, options = {}) {
+        const project = text(projectNumber);
+        const code = text(materialCode);
+        const state = lower(status);
+        if (!['pendiente','aprobada','rechazada','reajuste_pendiente'].includes(state)) {
+            throw new Error('Estado de solicitud no válido.');
+        }
+        const row = {
+            estado_solicitud: state,
+            aprobada_por: state === 'aprobada' ? (text(options.usuario) || 'Almacén') : null,
+            aprobada_at: state === 'aprobada' ? new Date().toISOString() : null,
+            rechazo_motivo: state === 'rechazada' ? (text(options.motivo) || 'Solicitud rechazada') : null,
+            updated_at: new Date().toISOString()
+        };
+        const { error } = await client.from('proyecto_materiales').update(row)
+            .eq('proyecto_numero', project).eq('material_codigo', code);
+        assertNoError(error, 'No se pudo actualizar la solicitud de material.');
+        return { ok: true, proyecto: project, codigo: code, estado: state };
+    }
+
+    async function approveMaterialProjectRequests(projectNumber, options = {}) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Selecciona un proyecto válido.');
+        const now = new Date().toISOString();
+        const row = {
+            estado_solicitud: 'aprobada',
+            aprobada_por: text(options.usuario) || 'Almacén',
+            aprobada_at: now,
+            rechazo_motivo: null,
+            updated_at: now
+        };
+        const { data, error } = await client.from('proyecto_materiales')
+            .update(row)
+            .eq('proyecto_numero', project)
+            .eq('estado_solicitud', 'pendiente')
+            .select('id,material_codigo');
+        assertNoError(error, 'No se pudieron aprobar las solicitudes del proyecto.');
+        return { ok: true, proyecto: project, actualizadas: Array.isArray(data) ? data.length : 0, materiales: Array.isArray(data) ? data : [] };
+    }
+
+    async function createMaterialAdjustment(payload = {}) {
+        const project = text(payload.proyecto ?? payload.project);
+        const code = text(payload.codigo ?? payload.materialCodigo);
+        const previous = number(payload.cantidadAnterior);
+        const proposed = number(payload.cantidadPropuesta);
+        const reason = text(payload.motivo);
+        if (!project || !code) throw new Error('Falta el proyecto o el material.');
+        if (proposed <= 0) throw new Error('La nueva cantidad debe ser mayor a cero.');
+        if (!reason) throw new Error('Explica el motivo del reajuste.');
+        const { data: line, error: lineError } = await client.from('proyecto_materiales')
+            .select('estado_solicitud,cantidad_planeada')
+            .eq('proyecto_numero', project).eq('material_codigo', code).single();
+        assertNoError(lineError, 'No se encontró la solicitud a reajustar.');
+        const { data, error } = await client.from('reajustes_solicitud_material').insert({
+            proyecto_numero: project,
+            material_codigo: code,
+            cantidad_anterior: previous || number(line.cantidad_planeada),
+            cantidad_propuesta: proposed,
+            motivo: reason,
+            estado_anterior: text(line.estado_solicitud) || 'pendiente',
+            solicitado_por: text(payload.solicitadoPor) || 'Almacén'
+        }).select('*').single();
+        assertNoError(error, 'No se pudo registrar el reajuste.');
+        await setMaterialRequestStatus(project, code, 'reajuste_pendiente');
+        await client.from('notificaciones_sistema').insert({
+            tipo: 'reajuste_solicitud_material',
+            titulo: `Reajuste solicitado · ${project}`,
+            mensaje: `${code}: ${previous || number(line.cantidad_planeada)} → ${proposed}. ${reason}`,
+            proyecto_numero: project,
+            material_codigo: code,
+            entidad_id: data.id
+        });
+        return data;
+    }
+
+    async function listMaterialAdjustments(options = {}) {
+        const status = lower(options.status ?? options.estado);
+        const project = text(options.project ?? options.proyecto);
+        const rows = await collectRows(() => {
+            let query = client.from('reajustes_solicitud_material').select('*').order('created_at', { ascending: false });
+            if (status) query = query.eq('estado', status);
+            if (project) query = query.eq('proyecto_numero', project);
+            return query;
+        });
+        return rows.map(row => ({
+            id: row.id,
+            proyecto: text(row.proyecto_numero),
+            codigo: text(row.material_codigo),
+            cantidadAnterior: number(row.cantidad_anterior),
+            cantidadPropuesta: number(row.cantidad_propuesta),
+            motivo: text(row.motivo),
+            estadoAnterior: text(row.estado_anterior),
+            estado: text(row.estado),
+            solicitadoPor: text(row.solicitado_por),
+            createdAt: row.created_at
+        }));
+    }
+
+    async function resolveMaterialAdjustment(id, approve, options = {}) {
+        const adjustmentId = Number(id);
+        const { data: adjustment, error: getError } = await client.from('reajustes_solicitud_material')
+            .select('*').eq('id', adjustmentId).single();
+        assertNoError(getError, 'No se encontró el reajuste.');
+        if (text(adjustment.estado) !== 'pendiente') throw new Error('Este reajuste ya fue resuelto.');
+        if (approve) {
+            const { error: lineError } = await client.from('proyecto_materiales').update({
+                cantidad_planeada: number(adjustment.cantidad_propuesta),
+                estado_solicitud: 'aprobada',
+                aprobada_por: text(options.usuario) || 'Almacén',
+                aprobada_at: new Date().toISOString(),
+                rechazo_motivo: null,
+                updated_at: new Date().toISOString()
+            }).eq('proyecto_numero', adjustment.proyecto_numero).eq('material_codigo', adjustment.material_codigo);
+            assertNoError(lineError, 'No se pudo aplicar el reajuste.');
+        } else {
+            await setMaterialRequestStatus(adjustment.proyecto_numero, adjustment.material_codigo, adjustment.estado_anterior || 'pendiente');
+        }
+        const { error } = await client.from('reajustes_solicitud_material').update({
+            estado: approve ? 'aprobada' : 'rechazada',
+            resuelto_por: text(options.usuario) || 'Almacén',
+            resuelto_at: new Date().toISOString()
+        }).eq('id', adjustmentId);
+        assertNoError(error, 'No se pudo resolver el reajuste.');
+        await client.from('notificaciones_sistema').update({ leida: true }).eq('entidad_id', adjustmentId).eq('tipo', 'reajuste_solicitud_material');
+        return { ok: true, id: adjustmentId, aprobado: Boolean(approve) };
+    }
+
+    async function listUnreadNotifications() {
+        try { await client.rpc('crm_generar_alertas_vehiculos_v145'); } catch (_) {}
+        const { data, error } = await client.from('notificaciones_sistema').select('*')
+            .eq('leida', false).order('created_at', { ascending: false });
+        assertNoError(error, 'No se pudieron consultar las notificaciones.');
+        return data || [];
+    }
+
+
+    function vehicleFromDb(row, warehouseById = new Map()) {
+        const warehouse = warehouseById.get(Number(row.almacen_base_id)) || {};
+        return {
+            id: Number(row.id),
+            numeroEconomico: text(row.numero_economico),
+            numero_economico: text(row.numero_economico),
+            nombreVehiculo: text(row.numero_economico),
+            nombre_vehiculo: text(row.numero_economico),
+            apodo: text(row.apodo),
+            placas: text(row.placas),
+            vin: text(row.vin),
+            marca: text(row.marca),
+            modelo: text(row.modelo),
+            anio: row.anio == null ? null : Number(row.anio),
+            tipo: text(row.tipo) || 'pickup',
+            color: text(row.color),
+            combustible: text(row.combustible),
+            combustibleGrado: text(row.combustible_grado),
+            combustible_grado: text(row.combustible_grado),
+            numeroMotor: text(row.numero_motor),
+            numero_motor: text(row.numero_motor),
+            cilindros: row.cilindros == null ? null : Math.max(0, Math.trunc(number(row.cilindros))),
+            transmision: text(row.transmision),
+            capacidadCarga: number(row.capacidad_carga),
+            capacidad_carga: number(row.capacidad_carga),
+            capacidadPersonas: Math.max(0, Math.trunc(number(row.capacidad_personas))),
+            capacidad_personas: Math.max(0, Math.trunc(number(row.capacidad_personas))),
+            distribucionAsientos: Array.isArray(row.distribucion_asientos?.filas)
+                ? row.distribucion_asientos.filas.map(item => Math.max(1, Math.trunc(number(item))))
+                : Array.isArray(row.distribucion_asientos)
+                    ? row.distribucion_asientos.map(item => Math.max(1, Math.trunc(number(item))))
+                    : [],
+            distribucion_asientos: row.distribucion_asientos || {},
+            kilometraje: number(row.kilometraje),
+            propiedad: text(row.propiedad) || 'empresa',
+            estado: text(row.estado) || 'disponible',
+            almacenBaseId: row.almacen_base_id == null ? null : Number(row.almacen_base_id),
+            almacenBaseNombre: text(warehouse.nombre),
+            ubicacionBaseTipo: text(row.ubicacion_base_tipo),
+            ubicacion_base_tipo: text(row.ubicacion_base_tipo),
+            ubicacionBaseReferencia: text(row.ubicacion_base_referencia),
+            ubicacion_base_referencia: text(row.ubicacion_base_referencia),
+            ubicacionBaseNombre: text(row.ubicacion_base_nombre) || text(warehouse.nombre),
+            ubicacion_base_nombre: text(row.ubicacion_base_nombre) || text(warehouse.nombre),
+            proyecto: text(row.proyecto),
+            asignadoA: text(row.asignado_a),
+            asignado_a: text(row.asignado_a),
+            responsable: text(row.responsable),
+            aseguradora: text(row.aseguradora),
+            polizaSeguro: text(row.poliza_seguro),
+            poliza_seguro: text(row.poliza_seguro),
+            vigenciaSeguro: text(row.vigencia_seguro),
+            vigencia_seguro: text(row.vigencia_seguro),
+            avisoSeguroDias: Math.max(1, Math.trunc(number(row.aviso_seguro_dias) || 30)),
+            aviso_seguro_dias: Math.max(1, Math.trunc(number(row.aviso_seguro_dias) || 30)),
+            tarjetaCirculacion: text(row.tarjeta_circulacion),
+            tarjeta_circulacion: text(row.tarjeta_circulacion),
+            vigenciaTarjeta: text(row.vigencia_tarjeta),
+            vigencia_tarjeta: text(row.vigencia_tarjeta),
+            ultimaVerificacion: text(row.ultima_verificacion),
+            ultima_verificacion: text(row.ultima_verificacion),
+            proximaVerificacion: text(row.proxima_verificacion),
+            proxima_verificacion: text(row.proxima_verificacion),
+            engomado: text(row.engomado),
+            fechaAdquisicion: text(row.fecha_adquisicion),
+            fecha_adquisicion: text(row.fecha_adquisicion),
+            costoAdquisicion: number(row.costo_adquisicion),
+            costo_adquisicion: number(row.costo_adquisicion),
+            imagen: text(row.imagen_url),
+            imagenUrl: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            notas: text(row.notas),
+            activo: row.activo !== false,
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listVehicles(options = {}) {
+        const [rows, warehouses] = await Promise.all([
+            collectRows(() => client.from('vehiculos').select('*').order('numero_economico', { ascending: true })),
+            listWarehouses()
+        ]);
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        let vehicles = rows.map(row => vehicleFromDb(row, warehouseById));
+        if (options.includeInactive !== true) vehicles = vehicles.filter(item => item.activo !== false);
+        const status = lower(options.estado ?? options.status);
+        const project = text(options.proyecto ?? options.project);
+        if (status) vehicles = vehicles.filter(item => lower(item.estado) === status);
+        if (project) vehicles = vehicles.filter(item => lower(item.proyecto) === lower(project));
+        return vehicles;
+    }
+
+    function normalizeDbDate(value, label = 'fecha') {
+        const raw = text(value);
+        if (!raw) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+        const match = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+        if (!match) throw new Error(`La ${label} no tiene un formato válido.`);
+        const day = String(match[1]).padStart(2, '0');
+        const month = String(match[2]).padStart(2, '0');
+        const iso = `${match[3]}-${month}-${day}`;
+        const parsed = new Date(`${iso}T00:00:00`);
+        if (Number.isNaN(parsed.getTime()) || parsed.getUTCDate() !== Number(day) || parsed.getUTCMonth() + 1 !== Number(month)) {
+            throw new Error(`La ${label} no es válida.`);
+        }
+        return iso;
+    }
+
+    async function saveVehicle(vehicle = {}, originalId = 0) {
+        const currentYear = new Date().getFullYear() + 1;
+        const year = text(vehicle.anio) === '' ? null : Math.trunc(number(vehicle.anio));
+        if (!text(vehicle.numeroEconomico ?? vehicle.numero_economico)) throw new Error('El nombre del vehículo es obligatorio.');
+        if (!text(vehicle.marca) || !text(vehicle.modelo)) throw new Error('Marca y modelo son obligatorios.');
+        if (year != null && (year < 1950 || year > currentYear)) throw new Error('El año del vehículo no es válido.');
+        const status = lower(vehicle.estado) || 'disponible';
+        const allowedStatuses = new Set(['disponible', 'asignado', 'taller', 'fuera_servicio']);
+        if (!allowedStatuses.has(status)) throw new Error('Selecciona un estado válido para el vehículo.');
+        const plates = text(vehicle.placas).toUpperCase();
+        const vin = text(vehicle.vin).toUpperCase();
+        if (vin && vin.length < 6) throw new Error('El VIN o número de serie debe contener al menos 6 caracteres.');
+        if (status === 'asignado' && !text(vehicle.proyecto) && !text(vehicle.asignadoA ?? vehicle.asignado_a)) {
+            throw new Error('Indica el proyecto o la persona a la que está asignado el vehículo.');
+        }
+        const peopleCapacity = Math.max(0, Math.trunc(number(vehicle.capacidadPersonas ?? vehicle.capacidad_personas)));
+        const rawLayout = Array.isArray(vehicle.distribucionAsientos ?? vehicle.distribucion_asientos)
+            ? (vehicle.distribucionAsientos ?? vehicle.distribucion_asientos)
+            : Array.isArray((vehicle.distribucionAsientos ?? vehicle.distribucion_asientos)?.filas)
+                ? (vehicle.distribucionAsientos ?? vehicle.distribucion_asientos).filas
+                : [];
+        const seatRows = rawLayout.map(item => Math.trunc(number(item))).filter(item => item > 0 && item <= 10);
+        if (seatRows.length && seatRows.reduce((sum, item) => sum + item, 0) !== peopleCapacity) {
+            throw new Error('La distribución de asientos debe sumar la capacidad total de personas.');
+        }
+        const row = {
+            numero_economico: text(vehicle.numeroEconomico ?? vehicle.numero_economico),
+            apodo: text(vehicle.apodo) || null,
+            placas: plates || null,
+            vin: vin || null,
+            marca: text(vehicle.marca),
+            modelo: text(vehicle.modelo),
+            anio: year,
+            tipo: lower(vehicle.tipo) || 'pickup',
+            color: text(vehicle.color) || null,
+            combustible: lower(vehicle.combustible) || null,
+            combustible_grado: lower(vehicle.combustibleGrado ?? vehicle.combustible_grado) || null,
+            numero_motor: text(vehicle.numeroMotor ?? vehicle.numero_motor).toUpperCase() || null,
+            cilindros: text(vehicle.cilindros) === '' ? null : Math.max(0, Math.trunc(number(vehicle.cilindros))),
+            transmision: lower(vehicle.transmision) || null,
+            capacidad_carga: Math.max(0, number(vehicle.capacidadCarga ?? vehicle.capacidad_carga)),
+            capacidad_personas: peopleCapacity,
+            distribucion_asientos: { version: 1, filas: seatRows },
+            kilometraje: Math.max(0, number(vehicle.kilometraje)),
+            propiedad: lower(vehicle.propiedad) || 'empresa',
+            estado: status,
+            almacen_base_id: Number(vehicle.almacenBaseId ?? vehicle.almacen_base_id ?? 0) || null,
+            ubicacion_base_tipo: lower(vehicle.ubicacionBaseTipo ?? vehicle.ubicacion_base_tipo) || null,
+            ubicacion_base_referencia: text(vehicle.ubicacionBaseReferencia ?? vehicle.ubicacion_base_referencia) || null,
+            ubicacion_base_nombre: text(vehicle.ubicacionBaseNombre ?? vehicle.ubicacion_base_nombre) || null,
+            proyecto: text(vehicle.proyecto) || null,
+            asignado_a: text(vehicle.asignadoA ?? vehicle.asignado_a) || null,
+            responsable: text(vehicle.responsable) || null,
+            aseguradora: text(vehicle.aseguradora) || null,
+            poliza_seguro: text(vehicle.polizaSeguro ?? vehicle.poliza_seguro) || null,
+            vigencia_seguro: normalizeDbDate(vehicle.vigenciaSeguro ?? vehicle.vigencia_seguro, 'vigencia del seguro'),
+            aviso_seguro_dias: Math.max(1, Math.min(180, Math.trunc(number(vehicle.avisoSeguroDias ?? vehicle.aviso_seguro_dias) || 30))),
+            tarjeta_circulacion: text(vehicle.tarjetaCirculacion ?? vehicle.tarjeta_circulacion) || null,
+            vigencia_tarjeta: normalizeDbDate(vehicle.vigenciaTarjeta ?? vehicle.vigencia_tarjeta, 'vigencia de la tarjeta de circulación'),
+            ultima_verificacion: normalizeDbDate(vehicle.ultimaVerificacion ?? vehicle.ultima_verificacion, 'última verificación'),
+            proxima_verificacion: normalizeDbDate(vehicle.proximaVerificacion ?? vehicle.proxima_verificacion, 'fecha de verificación'),
+            engomado: text(vehicle.engomado) || null,
+            fecha_adquisicion: normalizeDbDate(vehicle.fechaAdquisicion ?? vehicle.fecha_adquisicion, 'fecha de adquisición'),
+            costo_adquisicion: Math.max(0, number(vehicle.costoAdquisicion ?? vehicle.costo_adquisicion)),
+            imagen_url: text(vehicle.imagen ?? vehicle.imagenUrl ?? vehicle.imagen_url) || null,
+            notas: text(vehicle.notas) || null,
+            activo: vehicle.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        if (row.estado === 'disponible') {
+            row.proyecto = null;
+            row.asignado_a = null;
+        }
+        const id = Number(originalId || vehicle.id || 0);
+        let result = await client.rpc('crm_guardar_vehiculo', { p_id: id || null, p_datos: row });
+        if (result.error) {
+            const rpcError = result.error;
+            const direct = id
+                ? await client.from('vehiculos').update(row).eq('id', id).select('*').maybeSingle()
+                : await client.from('vehiculos').insert({ ...row, created_at: new Date().toISOString() }).select('*').maybeSingle();
+            if (!direct.error && direct.data) result = direct;
+            else if (['PGRST202', '42883'].includes(rpcError.code)) result = direct;
+        }
+        if (result.error?.code === '23505') throw new Error('El nombre del vehículo, las placas o el VIN ya están registrados.');
+        if (result.error?.code === '42P01') throw new Error('La tabla de vehículos no está instalada. Ejecuta SQL_MAESTRO_CRM.sql.');
+        if (result.error?.code === '42501') throw new Error('Tu perfil no tiene permiso para guardar o editar vehículos.');
+        if (result.error?.code === '22P02') throw new Error('Uno de los campos numéricos o de fecha contiene un valor inválido.');
+        if (result.error?.code === 'PGRST116') throw new Error('No se pudo editar el vehículo. Ejecuta SQL_MAESTRO_CRM.sql para actualizar permisos y vuelve a intentarlo.');
+        assertNoError(result.error, 'No se pudo guardar el vehículo.');
+        if (!result.data) throw new Error(id ? 'El vehículo no pudo actualizarse. Verifica permisos y ejecuta la versión más reciente de SQL_MAESTRO_CRM.sql.' : 'El vehículo no pudo registrarse.');
+        const warehouses = await listWarehouses();
+        const resultRow = Array.isArray(result.data) ? result.data[0] : result.data;
+        return vehicleFromDb(resultRow, new Map(warehouses.map(item => [Number(item.id), item])));
+    }
+
+    async function setVehicleActive(id, active) {
+        const vehicleId = Number(id);
+        if (!vehicleId) throw new Error('Vehículo no válido.');
+        const { data, error } = await client.from('vehiculos').update({ activo: Boolean(active), updated_at: new Date().toISOString() }).eq('id', vehicleId).select('*').single();
+        assertNoError(error, 'No se pudo actualizar el vehículo.');
+        return vehicleFromDb(data);
+    }
+
+    async function deleteVehicle(id) {
+        const vehicleId = Number(id);
+        if (!vehicleId) throw new Error('Vehículo no válido.');
+        const { count, error: tripError } = await client.from('vehiculos_viajes').select('id', { count: 'exact', head: true }).eq('vehiculo_id', vehicleId);
+        if (tripError && tripError.code !== '42P01') assertNoError(tripError);
+        if ((count || 0) > 0) throw new Error('El vehículo tiene viajes registrados. Desactívalo para conservar su historial.');
+        const { error } = await client.from('vehiculos').delete().eq('id', vehicleId);
+        assertNoError(error, 'No se pudo eliminar el vehículo.');
+        return { ok: true, id: vehicleId };
+    }
+
+    function vehicleTripFromDb(row) {
+        const vehicle = row.vehiculos || row.vehiculo || {};
+        const passengers = Array.isArray(row.vehiculos_viaje_pasajeros) ? row.vehiculos_viaje_pasajeros : [];
+        return {
+            id: Number(row.id),
+            folio: text(row.folio),
+            vehiculoId: Number(row.vehiculo_id),
+            vehiculo: {
+                id: Number(vehicle.id || row.vehiculo_id || 0),
+                numeroEconomico: text(vehicle.numero_economico),
+                placas: text(vehicle.placas),
+                marca: text(vehicle.marca),
+                modelo: text(vehicle.modelo),
+                apodo: text(vehicle.apodo),
+                anio: vehicle.anio == null ? null : Number(vehicle.anio),
+                tipo: text(vehicle.tipo) || 'pickup',
+                color: text(vehicle.color),
+                vin: text(vehicle.vin),
+                combustible: text(vehicle.combustible),
+                combustibleGrado: text(vehicle.combustible_grado),
+                numeroMotor: text(vehicle.numero_motor),
+                cilindros: vehicle.cilindros == null ? null : Math.max(0, Math.trunc(number(vehicle.cilindros))),
+                aseguradora: text(vehicle.aseguradora),
+                polizaSeguro: text(vehicle.poliza_seguro),
+                vigenciaSeguro: text(vehicle.vigencia_seguro),
+                tarjetaCirculacion: text(vehicle.tarjeta_circulacion),
+                vigenciaTarjeta: text(vehicle.vigencia_tarjeta),
+                ultimaVerificacion: text(vehicle.ultima_verificacion),
+                proximaVerificacion: text(vehicle.proxima_verificacion),
+                engomado: text(vehicle.engomado),
+                kilometraje: number(vehicle.kilometraje),
+                capacidadPersonas: Math.max(0, Math.trunc(number(vehicle.capacidad_personas))),
+                distribucionAsientos: Array.isArray(vehicle.distribucion_asientos?.filas) ? vehicle.distribucion_asientos.filas : []
+            },
+            fechaSalida: text(row.fecha_salida),
+            fechaRegresoEstimada: text(row.fecha_regreso_estimada),
+            fechaRegresoReal: text(row.fecha_regreso_real),
+            conductor: text(row.conductor),
+            conductorPersonalId: row.conductor_personal_id == null ? null : Number(row.conductor_personal_id),
+            ciudadEstado: text(row.ciudad_estado),
+            proyecto: text(row.proyecto),
+            destino: text(row.destino),
+            motivo: text(row.motivo),
+            kilometrajeSalida: number(row.kilometraje_salida),
+            kilometrajeRegreso: row.kilometraje_regreso == null ? null : number(row.kilometraje_regreso),
+            estado: text(row.estado) || 'en_curso',
+            observaciones: text(row.observaciones),
+            estadoBaseSnapshot: row.estado_base_snapshot || {},
+            danosSalida: Array.isArray(row.danos_salida) ? row.danos_salida : [],
+            danosEntrada: Array.isArray(row.danos_entrada) ? row.danos_entrada : [],
+            combustibleSalida: row.combustible_salida == null ? null : number(row.combustible_salida),
+            combustibleRegreso: row.combustible_regreso == null ? null : number(row.combustible_regreso),
+            vidaLlantasSalida: row.vida_llantas_salida == null ? null : number(row.vida_llantas_salida),
+            vidaLlantasRegreso: row.vida_llantas_regreso == null ? null : number(row.vida_llantas_regreso),
+            checklistSalida: row.checklist_salida || {},
+            checklistEntrada: row.checklist_entrada || {},
+            elaboroFirma: text(row.elaboro_firma),
+            autorizoNombre: text(row.autorizo_nombre),
+            autorizoFirma: text(row.autorizo_firma),
+            autorizoFirmaSlot: row.autorizo_firma_slot == null ? null : Number(row.autorizo_firma_slot),
+            responsableModo: text(row.responsable_modo),
+            responsablePersonalId: row.responsable_personal_id == null ? null : Number(row.responsable_personal_id),
+            responsableNombre: text(row.responsable_nombre),
+            responsableEmpresa: text(row.responsable_empresa),
+            responsableFirma: text(row.responsable_firma),
+            responsableFirmadoAt: text(row.responsable_firmado_at),
+            politicasAceptadas: row.politicas_aceptadas === true,
+            pasajeros: passengers.map(item => ({
+                id: Number(item.id),
+                nombre: text(item.nombre),
+                puesto: text(item.puesto),
+                contacto: text(item.contacto),
+                asiento: text(item.asiento)
+            })),
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function vehicleBaseLocationFromDb(row){return{id:Number(row.id),tipo:text(row.tipo)||'sede',nombre:text(row.nombre),direccion:text(row.direccion),notas:text(row.notas),activo:row.activo!==false};}
+    async function listVehicleBaseLocations(options={}){let query=client.from('vehiculos_ubicaciones_base').select('*').order('tipo').order('nombre');if(options.includeInactive!==true)query=query.eq('activo',true);const {data,error}=await query;if(error?.code==='42P01')return[];assertNoError(error,'No se pudieron consultar las ubicaciones base de vehículos.');return(data||[]).map(vehicleBaseLocationFromDb);}
+    async function saveVehicleBaseLocation(payload={}){const type=lower(payload.tipo||payload.type);const name=text(payload.nombre||payload.name);if(!type||!name)throw new Error('Tipo y nombre de ubicación base son obligatorios.');const {data,error}=await client.rpc('crm_guardar_ubicacion_base_vehiculo_v145',{p_tipo:type,p_nombre:name,p_direccion:text(payload.direccion||payload.address)||null,p_notas:text(payload.notas||payload.notes)||null});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de administrar ubicaciones base.');assertNoError(error,'No se pudo guardar la ubicación base.');const row=Array.isArray(data)?data[0]:data;return row?vehicleBaseLocationFromDb(row):null;}
+
+    function vehicleMaintenancePlanFromDb(row) {
+        return {
+            id: Number(row.id), vehiculoId: Number(row.vehiculo_id), vehiculo_id: Number(row.vehiculo_id), nombre: text(row.nombre),
+            tipo: text(row.tipo) || 'preventivo', criterio: text(row.criterio) || 'kilometraje',
+            proximoKm: row.proximo_km == null ? null : number(row.proximo_km), proximo_km: row.proximo_km == null ? null : number(row.proximo_km),
+            proximaFecha: text(row.proxima_fecha), proxima_fecha: text(row.proxima_fecha), avisoKm: Math.max(0, number(row.aviso_km)), aviso_km: Math.max(0, number(row.aviso_km)),
+            avisoDias: Math.max(0, Math.trunc(number(row.aviso_dias))), aviso_dias: Math.max(0, Math.trunc(number(row.aviso_dias))),
+            intervaloKm: row.intervalo_km == null ? null : number(row.intervalo_km), intervalo_km: row.intervalo_km == null ? null : number(row.intervalo_km),
+            intervaloDias: row.intervalo_dias == null ? null : Math.trunc(number(row.intervalo_dias)), intervalo_dias: row.intervalo_dias == null ? null : Math.trunc(number(row.intervalo_dias)),
+            prioridad: text(row.prioridad) || 'normal', proveedorSugerido: text(row.proveedor_sugerido), proveedor_sugerido: text(row.proveedor_sugerido),
+            notas: text(row.notas), activo: row.activo !== false, createdAt: text(row.created_at), updatedAt: text(row.updated_at)
+        };
+    }
+    function vehicleMaintenanceHistoryFromDb(row) {
+        return {id:Number(row.id),vehiculoId:Number(row.vehiculo_id),vehiculo_id:Number(row.vehiculo_id),planId:row.plan_id==null?null:Number(row.plan_id),plan_id:row.plan_id==null?null:Number(row.plan_id),tipo:text(row.tipo),descripcion:text(row.descripcion),fecha:text(row.fecha),odometro:row.odometro==null?null:number(row.odometro),proveedor:text(row.proveedor),costo:number(row.costo),comprobante:text(row.comprobante),resultado:text(row.resultado),notas:text(row.notas),createdAt:text(row.created_at),updatedAt:text(row.updated_at)};
+    }
+    async function listVehicleMaintenancePlans(options = {}) {
+        let query=client.from('vehiculos_mantenimiento_planes').select('*').order('activo',{ascending:false}).order('proxima_fecha',{ascending:true,nullsFirst:false}).order('id',{ascending:false});
+        const vehicleId=Number(options.vehiculoId??options.vehicleId??0);if(vehicleId)query=query.eq('vehiculo_id',vehicleId);if(options.includeInactive!==true)query=query.eq('activo',true);
+        const {data,error}=await query;if(error?.code==='42P01')return[];assertNoError(error,'No se pudieron consultar los mantenimientos programados.');return(data||[]).map(vehicleMaintenancePlanFromDb);
+    }
+    async function saveVehicleMaintenancePlan(payload = {}, originalId = 0) {
+        const vehicleId=Number(payload.vehiculoId??payload.vehicleId??payload.vehiculo_id??0);if(!vehicleId)throw new Error('Selecciona un vehículo.');if(!text(payload.nombre))throw new Error('Captura el mantenimiento o reparación requerida.');
+        const body={vehiculo_id:vehicleId,nombre:text(payload.nombre),tipo:lower(payload.tipo)||'preventivo',criterio:lower(payload.criterio)||'kilometraje',proximo_km:text(payload.proximoKm??payload.proximo_km)||null,proxima_fecha:normalizeDbDate(payload.proximaFecha??payload.proxima_fecha,'fecha programada'),aviso_km:Math.max(0,number(payload.avisoKm??payload.aviso_km)||0),aviso_dias:Math.max(0,Math.trunc(number(payload.avisoDias??payload.aviso_dias)||0)),intervalo_km:text(payload.intervaloKm??payload.intervalo_km)||null,intervalo_dias:text(payload.intervaloDias??payload.intervalo_dias)||null,prioridad:lower(payload.prioridad)||'normal',proveedor_sugerido:text(payload.proveedorSugerido??payload.proveedor_sugerido)||null,notas:text(payload.notas)||null,activo:payload.activo!==false};
+        const id=Number(originalId||payload.id||0);const {data,error}=await client.rpc('crm_guardar_mantenimiento_vehiculo_v145',{p_id:id||null,p_datos:body});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de usar mantenimiento vehicular.');assertNoError(error,'No se pudo guardar el mantenimiento.');const row=Array.isArray(data)?data[0]:data;return row?vehicleMaintenancePlanFromDb(row):null;
+    }
+    async function completeVehicleMaintenance(id,payload={}) {
+        const planId=Number(id);if(!planId)throw new Error('Mantenimiento no válido.');const body={fecha:normalizeDbDate(payload.fecha||new Date().toISOString().slice(0,10),'fecha del mantenimiento'),odometro:text(payload.odometro)||null,proveedor:text(payload.proveedor)||null,costo:Math.max(0,number(payload.costo)),comprobante:text(payload.comprobante)||null,resultado:text(payload.resultado)||null,notas:text(payload.notas)||null};const {data,error}=await client.rpc('crm_completar_mantenimiento_vehiculo_v145',{p_id:planId,p_datos:body});if(error&&['PGRST202','42883'].includes(String(error.code||'')))throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de completar mantenimientos.');assertNoError(error,'No se pudo completar el mantenimiento.');return data||{ok:true};
+    }
+    async function setVehicleMaintenanceActive(id,active) {const planId=Number(id);if(!planId)throw new Error('Mantenimiento no válido.');const {data,error}=await client.from('vehiculos_mantenimiento_planes').update({activo:Boolean(active),updated_at:new Date().toISOString()}).eq('id',planId).select('*').single();assertNoError(error,'No se pudo actualizar el mantenimiento.');return vehicleMaintenancePlanFromDb(data);}
+    async function listVehicleMaintenanceHistory(options={}) {let query=client.from('vehiculos_mantenimiento_historial').select('*').order('fecha',{ascending:false}).order('id',{ascending:false});const vehicleId=Number(options.vehiculoId??options.vehicleId??0);if(vehicleId)query=query.eq('vehiculo_id',vehicleId);if(Number(options.limit||0)>0)query=query.limit(Math.min(1000,Number(options.limit)));const {data,error}=await query;if(error?.code==='42P01')return[];assertNoError(error,'No se pudo consultar el historial de mantenimiento.');return(data||[]).map(vehicleMaintenanceHistoryFromDb);}
+    async function syncVehicleAlerts(){const {data,error}=await client.rpc('crm_generar_alertas_vehiculos_v145');if(error&&['PGRST202','42883'].includes(String(error.code||'')))return 0;assertNoError(error,'No se pudieron sincronizar los avisos vehiculares.');return Number(data||0);}
+
+    async function listVehicleAuthorizedDrivers(vehicleId) {
+        const id = Number(vehicleId);
+        if (!id) return [];
+        const { data, error } = await client.rpc('crm_conductores_vehiculo_v148', { p_vehiculo_id: id });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) return [];
+        assertNoError(error, 'No se pudieron consultar los conductores autorizados.');
+        return (data || []).map(row => ({
+            personalId: Number(row.personal_id),
+            numeroEmpleado: text(row.numero_empleado),
+            nombre: text(row.nombre_completo),
+            puesto: text(row.puesto),
+            departamento: text(row.departamento),
+            autorizado: row.autorizado === true
+        }));
+    }
+
+    async function saveVehicleAuthorizedDrivers(vehicleId, personalIds = []) {
+        const id = Number(vehicleId);
+        if (!id) throw new Error('Vehículo no válido.');
+        const ids = [...new Set((personalIds || []).map(Number).filter(Boolean))];
+        const { data, error } = await client.rpc('crm_guardar_conductores_vehiculo_v148', { p_vehiculo_id: id, p_personal_ids: ids });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de administrar conductores autorizados.');
+        assertNoError(error, 'No se pudieron guardar los conductores autorizados.');
+        return Number(data || 0);
+    }
+
+    async function saveVehicleTripResponsiva(payload = {}) {
+        const vehicleId = Number(payload.vehiculoId ?? payload.vehicleId ?? 0);
+        if (!vehicleId) throw new Error('Selecciona el vehículo de la salida.');
+        const body = {
+            vehiculo_id: vehicleId,
+            fecha_salida: text(payload.fechaSalida ?? payload.departureAt) || new Date().toISOString(),
+            fecha_regreso_estimada: text(payload.fechaRegresoEstimada ?? payload.expectedReturnAt) || null,
+            conductor_personal_id: Number(payload.conductorPersonalId ?? payload.driverPersonalId ?? 0) || null,
+            proyecto: text(payload.proyecto ?? payload.project) || null,
+            destino: text(payload.destino ?? payload.destination),
+            ciudad_estado: text(payload.ciudadEstado ?? payload.cityState) || null,
+            motivo: text(payload.motivo ?? payload.purpose) || null,
+            kilometraje_salida: Math.max(0, number(payload.kilometrajeSalida ?? payload.startMileage)),
+            combustible_salida: payload.combustibleSalida === '' || payload.combustibleSalida == null ? null : Math.max(0, Math.min(1, number(payload.combustibleSalida))),
+            vida_llantas_salida: payload.vidaLlantasSalida === '' || payload.vidaLlantasSalida == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantasSalida))),
+            checklist_salida: payload.checklistSalida || {},
+            danos_salida: Array.isArray(payload.danosSalida) ? payload.danosSalida : [],
+            observaciones: text(payload.observaciones ?? payload.notes) || null,
+            elaboro_firma: text(payload.elaboroFirma),
+            autorizo_firma_slot: payload.autorizoFirmaSlot == null || payload.autorizoFirmaSlot === '' ? null : Number(payload.autorizoFirmaSlot),
+            autorizo_firma_manual: text(payload.autorizoFirmaManual),
+            responsable_modo: text(payload.responsableModo) || 'mismo_elaboro',
+            responsable_personal_id: Number(payload.responsablePersonalId || 0) || null,
+            responsable_nombre: text(payload.responsableNombre) || null,
+            responsable_empresa: text(payload.responsableEmpresa) || null,
+            responsable_firma: text(payload.responsableFirma) || null,
+            politicas_aceptadas: payload.politicasAceptadas === true,
+            pasajeros: normalizePassengerList(payload.pasajeros ?? payload.passengers)
+        };
+        const { data, error } = await client.rpc('crm_guardar_salida_vehiculo_v148', { p_datos: body });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de usar la responsiva vehicular.');
+        assertNoError(error, 'No se pudo autorizar la salida del vehículo.');
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? vehicleTripFromDb(row) : null;
+    }
+
+    async function closeVehicleTripResponsiva(id, payload = {}) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Salida no válida.');
+        const body = {
+            fecha_regreso_real: text(payload.fechaRegresoReal ?? payload.returnAt) || new Date().toISOString(),
+            kilometraje_regreso: Math.max(0, number(payload.kilometrajeRegreso ?? payload.endMileage)),
+            combustible_regreso: payload.combustibleRegreso === '' || payload.combustibleRegreso == null ? null : Math.max(0, Math.min(1, number(payload.combustibleRegreso))),
+            vida_llantas_regreso: payload.vidaLlantasRegreso === '' || payload.vidaLlantasRegreso == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantasRegreso))),
+            checklist_entrada: payload.checklistEntrada || {},
+            danos_entrada: Array.isArray(payload.danosEntrada) ? payload.danosEntrada : [],
+            observaciones: text(payload.observaciones ?? payload.notes) || null,
+            actualizar_estado_base: payload.actualizarEstadoBase !== false
+        };
+        const { data, error } = await client.rpc('crm_cerrar_salida_vehiculo_v148', { p_viaje_id: tripId, p_datos: body });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de registrar el regreso.');
+        assertNoError(error, 'No se pudo cerrar la responsiva vehicular.');
+        const fuelAmount = number(payload.gastoGasolina ?? payload.fuelAmount);
+        const tolls = number(payload.casetas ?? payload.tolls);
+        const row = Array.isArray(data) ? data[0] : data;
+        const vehicleId = Number(row?.vehiculo_id || 0);
+        const mileage = number(row?.kilometraje_regreso);
+        if (fuelAmount > 0 && vehicleId) await saveVehicleExpense({ vehiculoId: vehicleId, viajeId: tripId, fecha: new Date().toISOString().slice(0,10), tipo: 'gasolina', litros: payload.litrosGasolina ?? payload.fuelLiters, importe: fuelAmount, odometro: mileage, proveedor: payload.proveedorGasolina ?? payload.fuelVendor, comprobante: payload.comprobante ?? payload.receipt, notas: 'Registrado al finalizar la responsiva.' });
+        if (tolls > 0 && vehicleId) await saveVehicleExpense({ vehiculoId: vehicleId, viajeId: tripId, fecha: new Date().toISOString().slice(0,10), tipo: 'casetas', importe: tolls, odometro: mileage, comprobante: payload.comprobante ?? payload.receipt, notas: 'Casetas registradas al finalizar la responsiva.' });
+        return row ? vehicleTripFromDb(row) : null;
+    }
+
+    async function signVehicleTripResponsible(id, signatureDataUrl, options = {}) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Salida no válida.');
+        const signature = text(signatureDataUrl);
+        if (!signature) throw new Error('Captura la firma del Responsable asignado.');
+        const { data, error } = await client.rpc('crm_firmar_responsable_salida_v148', {
+            p_viaje_id: tripId,
+            p_firma: signature,
+            p_nombre: text(options.nombre) || null,
+            p_empresa: text(options.empresa) || null
+        });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de completar firmas vehiculares.');
+        assertNoError(error, 'No se pudo guardar la firma del Responsable asignado.');
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? vehicleTripFromDb(row) : null;
+    }
+
+    async function createVehicleResponsibleSignatureLink(id) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Salida no válida.');
+        const { data, error } = await client.rpc('crm_crear_enlace_firma_vehiculo_v148', { p_viaje_id: tripId });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de generar enlaces de firma.');
+        assertNoError(error, 'No se pudo generar el enlace de firma.');
+        return data || {};
+    }
+
+    async function getVehicleSignaturePortal(token) {
+        const value = text(token);
+        if (!value) return { ok:false, estado:'invalido', mensaje:'Falta el token de firma.' };
+        const { data, error } = await client.rpc('crm_portal_firma_vehiculo_v148', { p_token: value });
+        assertNoError(error, 'No se pudo consultar la responsiva.');
+        return data || { ok:false };
+    }
+
+    async function signVehicleSignaturePortal(token, payload = {}) {
+        const value = text(token);
+        if (!value) throw new Error('Falta el token de firma.');
+        const { data, error } = await client.rpc('crm_portal_firmar_vehiculo_v148', {
+            p_token: value,
+            p_nombre: text(payload.nombre),
+            p_empresa: text(payload.empresa) || null,
+            p_firma: text(payload.firma)
+        });
+        assertNoError(error, 'No se pudo registrar la firma.');
+        return data || { ok:true };
+    }
+
+    function vehicleBaseStateFromDb(row) {
+        const damages = Array.isArray(row?.danos) ? row.danos : [];
+        return {
+            id: Number(row?.id || 0),
+            vehiculoId: Number(row?.vehiculo_id || 0),
+            combustibleTipo: text(row?.combustible_tipo),
+            combustibleGrado: text(row?.combustible_grado),
+            combustibleNivelReferencia: row?.combustible_nivel_referencia == null ? null : number(row.combustible_nivel_referencia),
+            vidaLlantas: row?.vida_llantas == null ? null : number(row.vida_llantas),
+            presionDelIzq: row?.presion_del_izq == null ? null : number(row.presion_del_izq),
+            presionDelDer: row?.presion_del_der == null ? null : number(row.presion_del_der),
+            presionTrasIzq: row?.presion_tras_izq == null ? null : number(row.presion_tras_izq),
+            presionTrasDer: row?.presion_tras_der == null ? null : number(row.presion_tras_der),
+            kilometrajeReferencia: row?.kilometraje_referencia == null ? null : number(row.kilometraje_referencia),
+            ultimaVerificacion: text(row?.ultima_verificacion),
+            proximoServicioFecha: text(row?.proximo_servicio_fecha),
+            proximoServicioKm: row?.proximo_servicio_km == null ? null : number(row.proximo_servicio_km),
+            responsable: text(row?.responsable),
+            condicionGeneral: text(row?.condicion_general) || 'buena',
+            danos: damages,
+            observaciones: text(row?.observaciones),
+            actualizadoPor: text(row?.actualizado_por_nombre),
+            updatedAt: text(row?.updated_at),
+            createdAt: text(row?.created_at)
+        };
+    }
+
+    async function listVehicleBaseStates(options = {}) {
+        let query = client.from('vehiculos_estado_base').select('*').order('updated_at', { ascending: false });
+        const vehicleId = Number(options.vehiculoId ?? options.vehicleId ?? 0);
+        if (vehicleId) query = query.eq('vehiculo_id', vehicleId);
+        const { data, error } = await query;
+        if (error?.code === '42P01') return [];
+        assertNoError(error, 'No se pudo consultar el estado base de los vehículos.');
+        return (data || []).map(vehicleBaseStateFromDb);
+    }
+
+    async function saveVehicleBaseState(payload = {}) {
+        const vehicleId = Number(payload.vehiculoId ?? payload.vehicleId ?? 0);
+        if (!vehicleId) throw new Error('Selecciona un vehículo para guardar su estado base.');
+        const body = {
+            combustible_tipo: lower(payload.combustibleTipo ?? payload.fuelType) || null,
+            combustible_grado: lower(payload.combustibleGrado ?? payload.fuelGrade) || null,
+            combustible_nivel_referencia: payload.combustibleNivelReferencia === '' || payload.combustibleNivelReferencia == null ? null : Math.max(0, Math.min(1, number(payload.combustibleNivelReferencia))),
+            vida_llantas: payload.vidaLlantas === '' || payload.vidaLlantas == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantas))),
+            presion_del_izq: payload.presionDelIzq === '' || payload.presionDelIzq == null ? null : Math.max(0, number(payload.presionDelIzq)),
+            presion_del_der: payload.presionDelDer === '' || payload.presionDelDer == null ? null : Math.max(0, number(payload.presionDelDer)),
+            presion_tras_izq: payload.presionTrasIzq === '' || payload.presionTrasIzq == null ? null : Math.max(0, number(payload.presionTrasIzq)),
+            presion_tras_der: payload.presionTrasDer === '' || payload.presionTrasDer == null ? null : Math.max(0, number(payload.presionTrasDer)),
+            kilometraje_referencia: payload.kilometrajeReferencia === '' || payload.kilometrajeReferencia == null ? null : Math.max(0, number(payload.kilometrajeReferencia)),
+            ultima_verificacion: normalizeDbDate(payload.ultimaVerificacion, 'última verificación'),
+            proximo_servicio_fecha: normalizeDbDate(payload.proximoServicioFecha, 'próximo servicio'),
+            proximo_servicio_km: payload.proximoServicioKm === '' || payload.proximoServicioKm == null ? null : Math.max(0, number(payload.proximoServicioKm)),
+            responsable: text(payload.responsable) || null,
+            condicion_general: lower(payload.condicionGeneral) || 'buena',
+            danos: Array.isArray(payload.danos) ? payload.danos : [],
+            observaciones: text(payload.observaciones) || null
+        };
+        const { data, error } = await client.rpc('crm_guardar_estado_base_vehiculo_v148', { p_vehiculo_id: vehicleId, p_datos: body });
+        if (error && ['PGRST202', '42883'].includes(String(error.code || ''))) throw new Error('Actualiza la base con SQL_MAESTRO_2_ACTUALIZACION_V150.sql antes de usar Estado base.');
+        assertNoError(error, 'No se pudo guardar el estado base del vehículo.');
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? vehicleBaseStateFromDb(row) : null;
+    }
+
+    async function listVehicleBaseStateHistory(vehicleId, limit = 50) {
+        const id = Number(vehicleId);
+        if (!id) return [];
+        const { data, error } = await client.from('vehiculos_estado_base_historial').select('*').eq('vehiculo_id', id).order('created_at', { ascending: false }).limit(Math.min(200, Math.max(1, Number(limit) || 50)));
+        if (error?.code === '42P01') return [];
+        assertNoError(error, 'No se pudo consultar el historial del estado base.');
+        return data || [];
+    }
+
+    async function listVehicleTrips(options = {}) {
+        let query = client.from('vehiculos_viajes').select('*,vehiculos(*),vehiculos_viaje_pasajeros(*)').order('fecha_salida', { ascending: false });
+        const vehicleId = Number(options.vehiculoId ?? options.vehicleId ?? 0);
+        const status = lower(options.estado ?? options.status);
+        const project = text(options.proyecto ?? options.project);
+        if (vehicleId) query = query.eq('vehiculo_id', vehicleId);
+        if (status) query = query.eq('estado', status);
+        if (project) query = query.eq('proyecto', project);
+        const { data, error } = await query;
+        if (error?.code === '42P01') throw new Error('El control diario de vehículos todavía no está instalado. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudieron consultar los viajes.');
+        return (data || []).map(vehicleTripFromDb);
+    }
+
+    function normalizePassengerList(value) {
+        if (Array.isArray(value)) return value.map(item => typeof item === 'string' ? { nombre: text(item) } : item).filter(item => text(item?.nombre));
+        return text(value).split(/[\n,;]+/).map(nombre => ({ nombre: text(nombre) })).filter(item => item.nombre);
+    }
+
+    async function saveVehicleTrip(payload = {}, originalId = 0) {
+        const vehicleId = Number(payload.vehiculoId ?? payload.vehicleId ?? 0);
+        if (!vehicleId) throw new Error('Selecciona el vehículo de la salida.');
+        const driver = text(payload.conductor ?? payload.driver);
+        const destination = text(payload.destino ?? payload.destination);
+        if (!driver || !destination) throw new Error('Conductor y destino son obligatorios.');
+        const id = Number(originalId || payload.id || 0);
+        if (!id) {
+            const { count, error: activeError } = await client.from('vehiculos_viajes').select('id', { count: 'exact', head: true }).eq('vehiculo_id', vehicleId).eq('estado', 'en_curso');
+            if (activeError?.code !== '42P01') assertNoError(activeError);
+            if ((count || 0) > 0) throw new Error('Este vehículo ya tiene una salida activa. Registra primero su regreso.');
+        }
+        let baseSnapshot = null;
+        if (!id) {
+            const baseResult = await client.from('vehiculos_estado_base').select('*').eq('vehiculo_id', vehicleId).maybeSingle();
+            if (!baseResult.error && baseResult.data) baseSnapshot = baseResult.data;
+        }
+        const row = {
+            vehiculo_id: vehicleId,
+            fecha_salida: text(payload.fechaSalida ?? payload.departureAt) || new Date().toISOString(),
+            fecha_regreso_estimada: text(payload.fechaRegresoEstimada ?? payload.expectedReturnAt) || null,
+            conductor: driver,
+            proyecto: text(payload.proyecto ?? payload.project) || null,
+            destino: destination,
+            motivo: text(payload.motivo ?? payload.purpose) || null,
+            kilometraje_salida: Math.max(0, number(payload.kilometrajeSalida ?? payload.startMileage)),
+            observaciones: text(payload.observaciones ?? payload.notes) || null,
+            estado_base_snapshot: payload.estadoBaseSnapshot || baseSnapshot || {},
+            danos_salida: Array.isArray(payload.danosSalida) ? payload.danosSalida : (Array.isArray(baseSnapshot?.danos) ? baseSnapshot.danos : []),
+            combustible_salida: payload.combustibleSalida === '' || payload.combustibleSalida == null ? (baseSnapshot?.combustible_nivel_referencia ?? null) : Math.max(0, Math.min(1, number(payload.combustibleSalida))),
+            vida_llantas_salida: payload.vidaLlantasSalida === '' || payload.vidaLlantasSalida == null ? (baseSnapshot?.vida_llantas ?? null) : Math.max(0, Math.min(100, number(payload.vidaLlantasSalida))),
+            estado: 'en_curso',
+            updated_at: new Date().toISOString()
+        };
+        let result;
+        if (id) result = await client.from('vehiculos_viajes').update(row).eq('id', id).select('*').single();
+        else result = await client.from('vehiculos_viajes').insert({ ...row, created_at: new Date().toISOString() }).select('*').single();
+        if (result.error?.code === '42P01') throw new Error('El control diario de vehículos todavía no está instalado. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(result.error, 'No se pudo registrar la salida del vehículo.');
+        const tripId = Number(result.data.id);
+        const passengers = normalizePassengerList(payload.pasajeros ?? payload.passengers);
+        const { error: clearError } = await client.from('vehiculos_viaje_pasajeros').delete().eq('viaje_id', tripId);
+        assertNoError(clearError, 'No se pudo actualizar la lista de pasajeros.');
+        if (passengers.length) {
+            const { error: passengersError } = await client.from('vehiculos_viaje_pasajeros').insert(passengers.map(item => ({
+                viaje_id: tripId,
+                nombre: text(item.nombre),
+                puesto: text(item.puesto) || null,
+                contacto: text(item.contacto) || null,
+                asiento: text(item.asiento) || null
+            })));
+            assertNoError(passengersError, 'La salida se creó, pero no se pudieron guardar los pasajeros.');
+        }
+        await client.from('vehiculos').update({
+            estado: 'asignado',
+            proyecto: row.proyecto,
+            asignado_a: driver,
+            responsable: driver,
+            kilometraje: Math.max(0, row.kilometraje_salida),
+            updated_at: new Date().toISOString()
+        }).eq('id', vehicleId);
+        return (await listVehicleTrips({ vehicleId })).find(item => item.id === tripId) || vehicleTripFromDb(result.data);
+    }
+
+    function vehicleExpenseFromDb(row) {
+        const vehicle = row.vehiculos || row.vehiculo || {};
+        return {
+            id: Number(row.id),
+            vehiculoId: Number(row.vehiculo_id),
+            viajeId: row.viaje_id == null ? null : Number(row.viaje_id),
+            fecha: text(row.fecha),
+            tipo: text(row.tipo) || 'gasolina',
+            litros: number(row.litros),
+            importe: number(row.importe),
+            odometro: number(row.odometro),
+            proveedor: text(row.proveedor),
+            comprobante: text(row.comprobante),
+            notas: text(row.notas),
+            vehiculo: { id: Number(vehicle.id || row.vehiculo_id || 0), numeroEconomico: text(vehicle.numero_economico), placas: text(vehicle.placas), marca: text(vehicle.marca), modelo: text(vehicle.modelo) },
+            createdAt: text(row.created_at)
+        };
+    }
+
+    async function listVehicleExpenses(options = {}) {
+        let query = client.from('vehiculos_gastos').select('*,vehiculos(id,numero_economico,placas,marca,modelo)').order('fecha', { ascending: false }).order('id', { ascending: false });
+        const vehicleId = Number(options.vehiculoId ?? options.vehicleId ?? 0);
+        const tripId = Number(options.viajeId ?? options.tripId ?? 0);
+        const type = lower(options.tipo ?? options.type);
+        if (vehicleId) query = query.eq('vehiculo_id', vehicleId);
+        if (tripId) query = query.eq('viaje_id', tripId);
+        if (type) query = query.eq('tipo', type);
+        const { data, error } = await query;
+        if (error?.code === '42P01') throw new Error('El control de gastos vehiculares todavía no está instalado. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(error, 'No se pudieron consultar los gastos vehiculares.');
+        return (data || []).map(vehicleExpenseFromDb);
+    }
+
+    async function saveVehicleExpense(payload = {}, originalId = 0) {
+        const vehicleId = Number(payload.vehiculoId ?? payload.vehicleId ?? 0);
+        if (!vehicleId) throw new Error('Selecciona un vehículo.');
+        const amount = Math.max(0, number(payload.importe ?? payload.amount));
+        if (amount <= 0) throw new Error('El importe debe ser mayor a cero.');
+        const row = {
+            vehiculo_id: vehicleId,
+            viaje_id: Number(payload.viajeId ?? payload.tripId ?? 0) || null,
+            fecha: normalizeDbDate((payload.fecha ?? payload.date) || new Date().toISOString().slice(0, 10), 'fecha del gasto'),
+            tipo: lower(payload.tipo ?? payload.type) || 'gasolina',
+            litros: Math.max(0, number(payload.litros ?? payload.liters)) || null,
+            importe: amount,
+            odometro: Math.max(0, number(payload.odometro ?? payload.mileage)) || null,
+            proveedor: text(payload.proveedor ?? payload.vendor) || null,
+            comprobante: text(payload.comprobante ?? payload.receipt) || null,
+            notas: text(payload.notas ?? payload.notes) || null,
+            updated_at: new Date().toISOString()
+        };
+        const id = Number(originalId || payload.id || 0);
+        let result;
+        if (id) result = await client.from('vehiculos_gastos').update(row).eq('id', id).select('*').single();
+        else result = await client.from('vehiculos_gastos').insert({ ...row, created_at: new Date().toISOString() }).select('*').single();
+        assertNoError(result.error, 'No se pudo guardar el gasto vehicular.');
+        if (row.odometro) await client.from('vehiculos').update({ kilometraje: row.odometro, updated_at: new Date().toISOString() }).eq('id', vehicleId).lt('kilometraje', row.odometro);
+        return vehicleExpenseFromDb(result.data);
+    }
+
+    async function closeVehicleTrip(id, payload = {}) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Viaje no válido.');
+        const { data: trip, error: tripError } = await client.from('vehiculos_viajes').select('*').eq('id', tripId).single();
+        assertNoError(tripError, 'No se encontró la salida.');
+        const endMileage = Math.max(number(trip.kilometraje_salida), number(payload.kilometrajeRegreso ?? payload.endMileage));
+        const update = {
+            fecha_regreso_real: text(payload.fechaRegresoReal ?? payload.returnAt) || new Date().toISOString(),
+            kilometraje_regreso: endMileage,
+            estado: 'finalizado',
+            danos_entrada: Array.isArray(payload.danosEntrada) ? payload.danosEntrada : (Array.isArray(trip.danos_salida) ? trip.danos_salida : []),
+            combustible_regreso: payload.combustibleRegreso === '' || payload.combustibleRegreso == null ? null : Math.max(0, Math.min(1, number(payload.combustibleRegreso))),
+            vida_llantas_regreso: payload.vidaLlantasRegreso === '' || payload.vidaLlantasRegreso == null ? null : Math.max(0, Math.min(100, number(payload.vidaLlantasRegreso))),
+            observaciones: [text(trip.observaciones), text(payload.observaciones ?? payload.notes)].filter(Boolean).join(' | ') || null,
+            updated_at: new Date().toISOString()
+        };
+        const { error } = await client.from('vehiculos_viajes').update(update).eq('id', tripId);
+        assertNoError(error, 'No se pudo registrar el regreso del vehículo.');
+        await client.from('vehiculos').update({ estado: 'disponible', proyecto: null, asignado_a: null, responsable: null, kilometraje: endMileage, updated_at: new Date().toISOString() }).eq('id', Number(trip.vehiculo_id));
+        const fuelAmount = number(payload.gastoGasolina ?? payload.fuelAmount);
+        if (fuelAmount > 0) await saveVehicleExpense({ vehiculoId: trip.vehiculo_id, viajeId: tripId, fecha: new Date().toISOString().slice(0, 10), tipo: 'gasolina', litros: payload.litrosGasolina ?? payload.fuelLiters, importe: fuelAmount, odometro: endMileage, proveedor: payload.proveedorGasolina ?? payload.fuelVendor, comprobante: payload.comprobante ?? payload.receipt, notas: 'Registrado al finalizar la salida.' });
+        const tolls = number(payload.casetas ?? payload.tolls);
+        if (tolls > 0) await saveVehicleExpense({ vehiculoId: trip.vehiculo_id, viajeId: tripId, fecha: new Date().toISOString().slice(0, 10), tipo: 'casetas', importe: tolls, odometro: endMileage, comprobante: payload.comprobante ?? payload.receipt, notas: 'Casetas registradas al finalizar la salida.' });
+        return (await listVehicleTrips({ vehicleId: trip.vehiculo_id })).find(item => item.id === tripId);
+    }
+
+    async function deleteVehicleTrip(id) {
+        const tripId = Number(id);
+        if (!tripId) throw new Error('Viaje no válido.');
+        const { data: trip } = await client.from('vehiculos_viajes').select('vehiculo_id,estado').eq('id', tripId).maybeSingle();
+        const { error } = await client.from('vehiculos_viajes').delete().eq('id', tripId);
+        assertNoError(error, 'No se pudo eliminar el viaje.');
+        if (trip?.estado === 'en_curso') await client.from('vehiculos').update({ estado: 'disponible', proyecto: null, asignado_a: null, responsable: null, updated_at: new Date().toISOString() }).eq('id', Number(trip.vehiculo_id));
+        return { ok: true, id: tripId };
+    }
+
+    async function deleteVehicleExpense(id) {
+        const expenseId = Number(id);
+        if (!expenseId) throw new Error('Gasto no válido.');
+        const { error } = await client.from('vehiculos_gastos').delete().eq('id', expenseId);
+        assertNoError(error, 'No se pudo eliminar el gasto.');
+        return { ok: true, id: expenseId };
+    }
+
+    async function listProjectToolPlan(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) return [];
+        const { data, error } = await client.from('proyecto_herramientas').select('*,herramientas_catalogo(*)').eq('proyecto_numero', project).order('id', { ascending: true });
+        assertNoError(error, 'No se pudo consultar el plan de herramientas del proyecto.');
+        return (data || []).map(row => ({
+            id: Number(row.id),
+            proyecto: text(row.proyecto_numero),
+            herramientaId: Number(row.herramienta_id),
+            cantidadRequerida: number(row.cantidad_requerida) || 1,
+            prioridad: text(row.prioridad) || 'normal',
+            observaciones: text(row.observaciones),
+            herramienta: toolFromDb(row.herramientas_catalogo || {}, [])
+        }));
+    }
+
+    async function saveProjectToolPlan(projectNumber, lines = []) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Falta el número del proyecto.');
+        const normalized = (Array.isArray(lines) ? lines : []).map(line => ({
+            proyecto_numero: project,
+            herramienta_id: Number(line.herramientaId ?? line.herramienta_id ?? line.herramienta?.id),
+            cantidad_requerida: Math.max(.0001, number(line.cantidadRequerida ?? line.cantidad_requerida) || 1),
+            prioridad: lower(line.prioridad) || 'normal',
+            observaciones: text(line.observaciones) || null,
+            updated_at: new Date().toISOString()
+        })).filter(line => line.herramienta_id);
+        const ids = new Set(normalized.map(line => line.herramienta_id));
+        const { data: current, error: currentError } = await client.from('proyecto_herramientas').select('id,herramienta_id').eq('proyecto_numero', project);
+        assertNoError(currentError, 'No se pudo consultar la selección actual de herramientas.');
+        for (const row of current || []) {
+            if (!ids.has(Number(row.herramienta_id))) {
+                const { error } = await client.from('proyecto_herramientas').delete().eq('id', row.id);
+                assertNoError(error, 'No se pudo quitar una herramienta del proyecto.');
+            }
+        }
+        if (normalized.length) {
+            const { error } = await client.from('proyecto_herramientas').upsert(normalized, { onConflict: 'proyecto_numero,herramienta_id' });
+            assertNoError(error, 'No se pudo guardar la selección de herramientas del proyecto.');
+        }
+        return listProjectToolPlan(project);
+    }
+
+    function toolAssignmentFromDb(row) {
+        const unit = row.herramientas_unidades || row.unidad || {};
+        const tool = unit.herramientas_catalogo || unit.herramienta || {};
+        const due = text(row.fecha_devolucion_estimada);
+        const active = text(row.estado) === 'activa';
+        const overdue = active && due && due < new Date().toISOString().slice(0, 10);
+        return {
+            id: Number(row.id),
+            grupoId: text(row.grupo_id),
+            unidadId: Number(row.unidad_id),
+            destinoTipo: text(row.destino_tipo),
+            proyecto: text(row.proyecto_numero),
+            personaNombre: text(row.persona_nombre),
+            personaContacto: text(row.persona_contacto),
+            responsableEntrega: text(row.responsable_entrega),
+            fechaAsignacion: text(row.fecha_asignacion),
+            fechaDevolucionEstimada: due,
+            fechaDevolucionReal: text(row.fecha_devolucion_real),
+            estado: overdue ? 'vencida' : (text(row.estado) || 'activa'),
+            estadoDb: text(row.estado) || 'activa',
+            condicionSalida: text(row.condicion_salida),
+            condicionEntrada: text(row.condicion_entrada),
+            accesoriosSalida: text(row.accesorios_salida),
+            observaciones: text(row.observaciones),
+            observacionesDevolucion: text(row.observaciones_devolucion),
+            costoAdquisicionSnapshot: number(row.costo_adquisicion_snapshot),
+            rentaMensualPctSnapshot: number(row.renta_mensual_pct_snapshot) || 10,
+            unidad: {
+                id: Number(unit.id),
+                codigoInterno: text(unit.codigo_interno),
+                numeroSerie: text(unit.numero_serie),
+                estado: text(unit.estado),
+                cantidad: number(unit.cantidad) || 1,
+                fechaAdquisicion: text(unit.fecha_adquisicion),
+                costoAdquisicion: number(unit.costo_adquisicion),
+                almacenId: unit.almacen_id == null ? null : Number(unit.almacen_id),
+                ubicacionId: unit.ubicacion_id == null ? null : Number(unit.ubicacion_id),
+                herramienta: {
+                    id: Number(tool.id),
+                    sku: text(tool.sku),
+                    descripcion: text(tool.descripcion),
+                    marca: text(tool.marca),
+                    modelo: text(tool.modelo),
+                    clasificacion: text(tool.clasificacion),
+                    tipoAlimentacion: text(tool.tipo_alimentacion),
+                    costoAdquisicion: number(tool.costo_adquisicion),
+                    monedaAdquisicion: normalizeCurrencyCode(tool.moneda_adquisicion || 'MXN'),
+                    rentaMensualPct: number(row.renta_mensual_pct_snapshot) || number(tool.renta_mensual_pct) || 10,
+                    proveedorMantenimiento: text(tool.proveedor_mantenimiento),
+                    contactoMantenimiento: text(tool.contacto_mantenimiento),
+                    telefonoMantenimiento: text(tool.telefono_mantenimiento),
+                    emailMantenimiento: text(tool.email_mantenimiento),
+                    esIncompleta: boolean(tool.es_incompleta),
+                    camposPendientes: toolPendingFields(tool)
+                }
+            },
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function toolRentalMonths(assignment, asOf = new Date()) {
+        if (!assignment || lower(assignment.destinoTipo ?? assignment.destino_tipo) !== 'proyecto') return 0;
+        if (lower(assignment.estadoDb ?? assignment.estado) === 'cancelada') return 0;
+        const startText = text(assignment.fechaAsignacion ?? assignment.fecha_asignacion);
+        if (!startText) return 0;
+        const endText = text(assignment.fechaDevolucionReal ?? assignment.fecha_devolucion_real);
+        const start = new Date(`${startText.slice(0,10)}T12:00:00`);
+        const end = endText ? new Date(`${endText.slice(0,10)}T12:00:00`) : new Date(asOf);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+        return Math.max(1, Math.ceil(((end - start) / 86400000) / 30));
+    }
+
+    function toolRentalCharge(assignment, asOf = new Date()) {
+        const tool = assignment?.unidad?.herramienta || {};
+        const unit = assignment?.unidad || {};
+        const quantity = Math.max(.0001, number(unit.cantidad) || 1);
+        const cost = Math.max(0, number(assignment?.costoAdquisicionSnapshot) || (number(unit.costoAdquisicion) * quantity) || (number(tool.costoAdquisicion) * quantity));
+        const rate = Math.max(0, number(assignment?.rentaMensualPctSnapshot) || number(tool.rentaMensualPct) || 10);
+        const months = toolRentalMonths(assignment, asOf);
+        const monthly = cost * rate / 100;
+        return { meses: months, costoAdquisicion: cost, porcentaje: rate, mensual: monthly, total: monthly * months, moneda: normalizeCurrencyCode(tool.monedaAdquisicion || tool.moneda_adquisicion || 'MXN') };
+    }
+
+    async function getToolFinanceSummary() {
+        const [materials, tools, units, assignments] = await Promise.all([
+            listMaterials({}).catch(() => []),
+            listTools({ includeInactive: true }).catch(() => []),
+            listToolUnits({ includeInactive: true }).catch(() => []),
+            listToolAssignments({}).catch(() => [])
+        ]);
+        const sumByCurrency = (rows, valueFn, currencyFn) => rows.reduce((map,item)=>{const currency=normalizeCurrencyCode(currencyFn(item)||'MXN');map[currency]=(map[currency]||0)+Math.max(0,number(valueFn(item)));return map;},{});
+        const materialByCurrency = sumByCurrency(materials, item => Math.max(0, number(item.stock)) * Math.max(0, number(item.precio)), item => item.monedaCosto || item.moneda_costo || 'MXN');
+        const toolByCurrency = sumByCurrency(units.filter(item=>item.activo!==false&&lower(item.estado)!=='baja'), item => Math.max(.0001, number(item.cantidad)||1) * Math.max(0, number(item.costoAdquisicion) || number(item.herramienta?.costoAdquisicion)), item => item.herramienta?.monedaAdquisicion || 'MXN');
+        const materialInvestment = number(materialByCurrency.MXN);
+        const toolInvestment = number(toolByCurrency.MXN);
+        const missingToolCosts = units.filter(item=>item.activo!==false&&lower(item.estado)!=='baja'&&number(item.costoAdquisicion)<=0&&number(item.herramienta?.costoAdquisicion)<=0).length;
+        const rentals = assignments.filter(item => lower(item.destinoTipo) === 'proyecto' && lower(item.estadoDb) !== 'cancelada').map(item => {
+            const charge = toolRentalCharge(item);
+            return { asignacionId:item.id, proyecto:item.proyecto, estado:item.estadoDb, fechaAsignacion:item.fechaAsignacion, fechaDevolucionReal:item.fechaDevolucionReal, unidad:item.unidad?.codigoInterno, herramienta:item.unidad?.herramienta?.descripcion, sku:item.unidad?.herramienta?.sku, ...charge };
+        });
+        const rentalByCurrency = sumByCurrency(rentals, item => item.total, item => item.moneda || 'MXN');
+        const rentalIncome = number(rentalByCurrency.MXN);
+        const activeRentalIncome = rentals.filter(item => lower(item.estado) === 'activa' && normalizeCurrencyCode(item.moneda || 'MXN') === 'MXN').reduce((sum, item) => sum + number(item.total), 0);
+        const byProjectMap = new Map();
+        rentals.filter(item => normalizeCurrencyCode(item.moneda || 'MXN') === 'MXN').forEach(item => {
+            const key = text(item.proyecto) || 'Sin proyecto';
+            if (!byProjectMap.has(key)) byProjectMap.set(key, { proyecto:key, total:0, asignaciones:0, herramientas:0 });
+            const row = byProjectMap.get(key);
+            row.total += number(item.total); row.asignaciones += 1; row.herramientas += 1;
+        });
+        return { materialInvestment, toolInvestment, warehouseInvestment: materialInvestment + toolInvestment, rentalIncome, activeRentalIncome, missingToolCosts, materialByCurrency, toolByCurrency, rentalByCurrency, rentals, byProject:[...byProjectMap.values()].sort((a,b)=>b.total-a.total), tools, units, assignments };
+    }
+
+    async function listToolAssignments(options = {}) {
+        let query = client.from('herramientas_asignaciones').select('*,herramientas_unidades(*,herramientas_catalogo(*))').order('created_at', { ascending: false });
+        const project = text(options.proyecto ?? options.project);
+        const status = lower(options.estado ?? options.status);
+        const destinationType = lower(options.destinoTipo ?? options.destinationType);
+        const groupId = text(options.grupoId ?? options.groupId);
+        if (project) query = query.eq('proyecto_numero', project);
+        if (status && status !== 'vencida') query = query.eq('estado', status);
+        if (destinationType) query = query.eq('destino_tipo', destinationType);
+        if (groupId) query = query.eq('grupo_id', groupId);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las asignaciones de herramientas.');
+        let rows = (data || []).map(toolAssignmentFromDb);
+        if (status === 'vencida') rows = rows.filter(item => item.estado === 'vencida');
+        return rows;
+    }
+
+    async function assignToolUnits(payload = {}) {
+        const unitIds = (Array.isArray(payload.unidadIds ?? payload.unitIds) ? (payload.unidadIds ?? payload.unitIds) : []).map(Number).filter(Boolean);
+        const groupId = text(payload.grupoId) || (window.crypto?.randomUUID ? window.crypto.randomUUID() : null);
+        const { data, error } = await client.rpc('crm_asignar_herramientas', {
+            p_grupo_id: groupId,
+            p_destino_tipo: lower(payload.destinoTipo ?? payload.destinationType),
+            p_proyecto_numero: text(payload.proyecto ?? payload.project) || null,
+            p_persona_nombre: text(payload.personaNombre ?? payload.personName) || null,
+            p_persona_contacto: text(payload.personaContacto ?? payload.personContact) || null,
+            p_responsable_entrega: text(payload.responsableEntrega ?? payload.deliveredBy) || null,
+            p_fecha_asignacion: text(payload.fechaAsignacion ?? payload.assignmentDate) || new Date().toISOString().slice(0, 10),
+            p_fecha_devolucion_estimada: text(payload.fechaDevolucionEstimada ?? payload.expectedReturnDate) || null,
+            p_condicion_salida: text(payload.condicionSalida ?? payload.outCondition) || null,
+            p_accesorios_salida: text(payload.accesoriosSalida ?? payload.accessories) || null,
+            p_observaciones: text(payload.observaciones ?? payload.notes) || null,
+            p_unidades: unitIds
+        });
+        assertNoError(error, 'No se pudo registrar la asignación de herramientas.');
+        return data;
+    }
+
+    async function returnToolAssignment(id, payload = {}) {
+        const assignmentId = Number(id);
+        if (!assignmentId) throw new Error('Asignación no válida.');
+        const { data, error } = await client.rpc('crm_devolver_herramienta', {
+            p_asignacion_id: assignmentId,
+            p_condicion_entrada: text(payload.condicionEntrada ?? payload.condition) || null,
+            p_observaciones: text(payload.observaciones ?? payload.notes) || null
+        });
+        assertNoError(error, 'No se pudo registrar la devolución.');
+        return data;
+    }
+
+    async function cancelToolAssignment(id, reason = '') {
+        const assignmentId = Number(id);
+        if (!assignmentId) throw new Error('Asignación no válida.');
+        const { data, error } = await client.rpc('crm_cancelar_asignacion_herramienta', {
+            p_asignacion_id: assignmentId,
+            p_motivo: text(reason) || null
+        });
+        assertNoError(error, 'No se pudo cancelar la asignación.');
+        return data;
+    }
+
+
+    function toolHistoryFromDb(row) {
+        const unit = row.herramientas_unidades || row.unidad || {};
+        const tool = unit.herramientas_catalogo || row.herramientas_catalogo || row.herramienta || {};
+        return {
+            id: Number(row.id),
+            unidadId: row.unidad_id == null ? null : Number(row.unidad_id),
+            herramientaId: row.herramienta_id == null ? Number(tool.id || 0) || null : Number(row.herramienta_id),
+            asignacionId: row.asignacion_id == null ? null : Number(row.asignacion_id),
+            grupoId: text(row.grupo_id),
+            tipoEvento: text(row.tipo_evento),
+            estadoAnterior: text(row.estado_anterior),
+            estadoNuevo: text(row.estado_nuevo),
+            destinoTipo: text(row.destino_tipo),
+            proyecto: text(row.proyecto_numero),
+            personaNombre: text(row.persona_nombre),
+            responsable: text(row.responsable),
+            detalle: text(row.detalle),
+            fecha: row.fecha || row.created_at || '',
+            unidad: {
+                id: Number(unit.id || row.unidad_id || 0),
+                codigoInterno: text(unit.codigo_interno),
+                numeroSerie: text(unit.numero_serie),
+                estado: text(unit.estado),
+                almacenId: unit.almacen_id == null ? null : Number(unit.almacen_id),
+                ubicacionId: unit.ubicacion_id == null ? null : Number(unit.ubicacion_id),
+                herramienta: {
+                    id: Number(tool.id || row.herramienta_id || 0),
+                    sku: text(tool.sku),
+                    descripcion: text(tool.descripcion),
+                    marca: text(tool.marca),
+                    modelo: text(tool.modelo),
+                    clasificacion: text(tool.clasificacion),
+                    esIncompleta: boolean(tool.es_incompleta),
+                    camposPendientes: toolPendingFields(tool)
+                }
+            },
+            createdAt: text(row.created_at)
+        };
+    }
+
+    async function listToolHistory(options = {}) {
+        let query = client
+            .from('herramientas_historial')
+            .select('*,herramientas_unidades(*,herramientas_catalogo(*))')
+            .order('fecha', { ascending: false });
+        const unitId = Number(options.unidadId ?? options.unitId ?? 0);
+        const toolId = Number(options.herramientaId ?? options.toolId ?? 0);
+        const eventType = lower(options.tipoEvento ?? options.eventType);
+        const groupId = text(options.grupoId ?? options.groupId);
+        if (unitId) query = query.eq('unidad_id', unitId);
+        if (toolId) query = query.eq('herramienta_id', toolId);
+        if (eventType) query = query.eq('tipo_evento', eventType);
+        if (groupId) query = query.eq('grupo_id', groupId);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudo consultar el historial de herramientas.');
+        return (data || []).map(toolHistoryFromDb);
+    }
+
+    async function getToolAssignmentGroup(groupId) {
+        const id = text(groupId);
+        if (!id) return [];
+        return listToolAssignments({ grupoId: id });
+    }
+
+    async function getMyProfile() {
+        const { data: sessionData, error: sessionError } = await client.auth.getSession();
+        assertNoError(sessionError, 'No se pudo consultar la sesión.');
+        const user = sessionData?.session?.user;
+        if (!user) throw new Error('La sesión no está activa.');
+        const { data: profile, error } = await client.from('perfiles_usuario').select('*').eq('id', user.id).maybeSingle();
+        assertNoError(error, 'No se pudo consultar el perfil.');
+        return {
+            id: user.id,
+            email: text(user.email),
+            nombre: text(profile?.nombre) || text(user.user_metadata?.nombre) || text(user.email).split('@')[0],
+            rol: text(profile?.rol) || 'consulta',
+            activo: profile?.activo !== false,
+            telefono: text(profile?.telefono),
+            puesto: text(profile?.puesto),
+            departamento: text(profile?.departamento),
+            fotoUrl: text(profile?.foto_url),
+            uiPreferences: profile?.preferencias_ui && typeof profile.preferencias_ui === 'object' ? profile.preferencias_ui : {},
+            creadoAt: text(user.created_at),
+            ultimoAcceso: text(user.last_sign_in_at),
+            emailConfirmado: text(user.email_confirmed_at)
+        };
+    }
+
+    async function saveMyProfile(profile = {}) {
+        const { data, error } = await client.rpc('crm_guardar_mi_perfil', {
+            p_nombre: text(profile.nombre),
+            p_telefono: text(profile.telefono) || null,
+            p_puesto: text(profile.puesto) || null,
+            p_departamento: text(profile.departamento) || null,
+            p_foto_url: text(profile.fotoUrl ?? profile.foto_url) || null
+        });
+        assertNoError(error, 'No se pudo guardar el perfil.');
+        return data;
+    }
+
+    async function saveUiPreferences(preferences = {}) {
+        const { data, error } = await client.rpc('crm_guardar_preferencias_ui', { p_preferencias: preferences && typeof preferences === 'object' ? preferences : {} });
+        assertNoError(error, 'No se pudieron guardar las preferencias visuales.');
+        return data || {};
+    }
+
+    function normalizeSignatureSet(rows = []) {
+        const source = Array.isArray(rows) ? rows : [];
+        return [1,2,3].map(slot => {
+            const row = source.find(item => Number(item?.slot) === slot) || {};
+            return {
+                slot,
+                nombre: text(row?.nombre) || `Firma ${slot}`,
+                configurada: Boolean(row?.configurada || row?.firma_data_url || row?.firmaDataUrl),
+                firmaDataUrl: text(row?.firma_data_url ?? row?.firmaDataUrl),
+                actualizadaAt: text(row?.actualizada_at ?? row?.actualizadaAt),
+                predeterminada: Boolean(row?.predeterminada)
+            };
+        });
+    }
+
+    function resolveDefaultSignatureSlot(rows = [], preferred = 0) {
+        const signatures = normalizeSignatureSet(rows);
+        const requested = Math.max(1, Math.min(3, Number(preferred) || 1));
+        if (signatures.find(item => item.slot === requested)?.configurada) return requested;
+        const marked = signatures.find(item => item.predeterminada && item.configurada);
+        if (marked) return marked.slot;
+        return signatures.find(item => item.configurada)?.slot || requested;
+    }
+
+    async function getMySignatures() {
+        let primaryError = null;
+        try {
+            const { data, error } = await client.rpc('crm_mis_firmas_v128');
+            if (error) throw error;
+            const rows = Array.isArray(data?.firmas) ? data.firmas : Array.isArray(data) ? data : [];
+            const firmas = normalizeSignatureSet(rows);
+            const predeterminadaSlot = resolveDefaultSignatureSlot(firmas, data?.predeterminada_slot ?? data?.predeterminadaSlot);
+            return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===predeterminadaSlot && item.configurada})), predeterminadaSlot, fuente:'v128' };
+        } catch (error) {
+            primaryError = error;
+        }
+
+        try {
+            const { data: sessionData, error: sessionError } = await client.auth.getSession();
+            if (sessionError) throw sessionError;
+            const userId = sessionData?.session?.user?.id;
+            if (!userId) throw new Error('La sesión no está activa.');
+            let data = null;
+            let error = null;
+            ({ data, error } = await client
+                .from('perfiles_usuario')
+                .select('firma_data_url,firma_actualizada_at,firma_1_nombre,firma_2_data_url,firma_2_actualizada_at,firma_2_nombre,firma_3_data_url,firma_3_actualizada_at,firma_3_nombre,firma_predeterminada_slot')
+                .eq('id', userId)
+                .maybeSingle());
+            if (error && ['42703','PGRST204'].includes(text(error.code))) {
+                ({ data, error } = await client
+                    .from('perfiles_usuario')
+                    .select('firma_data_url,firma_actualizada_at,firma_1_nombre,firma_2_data_url,firma_2_actualizada_at,firma_2_nombre,firma_3_data_url,firma_3_actualizada_at,firma_3_nombre')
+                    .eq('id', userId)
+                    .maybeSingle());
+            }
+            if (error) throw error;
+            if (data) {
+                const firmas = normalizeSignatureSet([
+                    { slot:1,nombre:data.firma_1_nombre||'Firma 1',firma_data_url:data.firma_data_url,actualizada_at:data.firma_actualizada_at },
+                    { slot:2,nombre:data.firma_2_nombre||'Firma 2',firma_data_url:data.firma_2_data_url,actualizada_at:data.firma_2_actualizada_at },
+                    { slot:3,nombre:data.firma_3_nombre||'Firma 3',firma_data_url:data.firma_3_data_url,actualizada_at:data.firma_3_actualizada_at }
+                ]);
+                const predeterminadaSlot = resolveDefaultSignatureSlot(firmas, data.firma_predeterminada_slot || 1);
+                return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===predeterminadaSlot && item.configurada})), predeterminadaSlot, fuente:'perfil' };
+            }
+        } catch (_) {}
+
+        try {
+            const { data, error } = await client.rpc('crm_mis_firmas_v126');
+            if (error) throw error;
+            const rows = Array.isArray(data?.firmas) ? data.firmas : Array.isArray(data) ? data : [];
+            const firmas = normalizeSignatureSet(rows);
+            const predeterminadaSlot = resolveDefaultSignatureSlot(firmas, 1);
+            return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===predeterminadaSlot && item.configurada})), predeterminadaSlot, fuente:'v126' };
+        } catch (_) {}
+
+        try {
+            const { data, error } = await client.rpc('crm_mi_firma_v123');
+            if (error) throw error;
+            const firmas = normalizeSignatureSet([
+                { slot:1,nombre:'Firma 1',firma_data_url:data?.firma_data_url,actualizada_at:data?.actualizada_at }
+            ]);
+            return { firmas: firmas.map(item => ({...item,predeterminada:item.slot===1 && item.configurada})), predeterminadaSlot:1, fuente:'compatibilidad' };
+        } catch (error) {
+            const detail = text(primaryError?.message || error?.message);
+            throw new Error(detail ? `No se pudieron consultar tus firmas personales. ${detail}` : 'No se pudieron consultar tus firmas personales. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
+        }
+    }
+
+    async function getMySignature() {
+        const result = await getMySignatures();
+        const first = (result.firmas || []).find(item => item.configurada) || (result.firmas || [])[0] || {};
+        return {
+            configurada: Boolean(first.configurada),
+            firmaDataUrl: text(first.firmaDataUrl),
+            actualizadaAt: text(first.actualizadaAt),
+            slot: Number(first.slot || 1),
+            nombreFirma: text(first.nombre) || 'Firma 1'
+        };
+    }
+
+    async function saveMySignatureSlot(slot = 1, name = '', signatureDataUrl = '') {
+        const selectedSlot = Math.max(1, Math.min(3, Number(slot) || 1));
+        const value = text(signatureDataUrl);
+        const label = text(name) || `Firma ${selectedSlot}`;
+        let { data, error } = await client.rpc('crm_guardar_mi_firma_v128', {
+            p_slot: selectedSlot,
+            p_nombre: label,
+            p_firma_data: value || null
+        });
+        if (error) {
+            ({ data, error } = await client.rpc('crm_guardar_mi_firma_v126', {
+                p_slot: selectedSlot,
+                p_nombre: label,
+                p_firma_data: value || null
+            }));
+        }
+        if (error) {
+            if (selectedSlot === 1) {
+                const legacy = await client.rpc('crm_guardar_mi_firma_v123', { p_firma_data: value || null });
+                assertNoError(legacy.error, 'No se pudo guardar la firma personal. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
+                return legacy.data || {};
+            }
+            assertNoError(error, 'No se pudo guardar esta firma. Ejecuta SQL_MAESTRO_CRM.sql de V128 para habilitar las tres firmas y la predeterminada.');
+        }
+        return data || {};
+    }
+
+    async function setMyDefaultSignature(slot = 1) {
+        const selectedSlot = Math.max(1, Math.min(3, Number(slot) || 1));
+        const { data, error } = await client.rpc('crm_guardar_firma_predeterminada_v128', { p_slot:selectedSlot });
+        assertNoError(error, 'No se pudo establecer la firma predeterminada. Ejecuta SQL_MAESTRO_CRM.sql de V128.');
+        return data || {};
+    }
+
+    async function getMySigningSignature(signatureSlot = null) {
+        const rawSlot = Number(signatureSlot || 0);
+        const selectedSlot = rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null;
+        const { data, error } = await client.rpc('crm_mi_firma_para_documento_v133', { p_slot:selectedSlot });
+        assertNoError(error, 'No se pudo consultar la firma para documentos. Ejecuta SQL_MAESTRO_CRM.sql de V135.');
+        const options = (Array.isArray(data?.opciones) ? data.opciones : []).map(item => ({
+            slot:Number(item?.slot || 0),
+            nombre:text(item?.nombre) || `Firma ${Number(item?.slot || 0) || ''}`,
+            configurada:Boolean(item?.configurada),
+            predeterminada:Boolean(item?.predeterminada)
+        })).filter(item => item.slot >= 1 && item.slot <= 3);
+        return {
+            configurada:Boolean(data?.configurada || data?.firma_data_url),
+            slot:Number(data?.slot || 0),
+            nombre:text(data?.nombre),
+            firmaDataUrl:text(data?.firma_data_url),
+            actualizadaAt:text(data?.actualizada_at),
+            predeterminadaSlot:Number(data?.predeterminada_slot || 0),
+            predeterminada:Boolean(data?.predeterminada),
+            opciones:options,
+            fuente:'v133'
+        };
+    }
+
+    async function saveMySignature(signatureDataUrl = '') {
+        return saveMySignatureSlot(1, 'Firma 1', signatureDataUrl);
+    }
+
+    async function getPurchaseOrderAuthorship(order) {
+        const value = text(order);
+        if (!value) return { configurada:false, ordenCompra:'', userId:'', nombre:'', elaboradaAt:'', esMia:false };
+        const { data, error } = await client.rpc('co_autoria_orden_v124', { p_orden:value });
+        assertNoError(error, 'No se pudo consultar quién elaboró la orden. Ejecuta SQL_MAESTRO_CRM.sql de V124.');
+        return {
+            configurada: Boolean(data?.configurada),
+            ordenCompra: text(data?.orden_compra || value),
+            userId: text(data?.user_id),
+            nombre: text(data?.nombre),
+            elaboradaAt: text(data?.elaborada_at),
+            origen: text(data?.origen),
+            esMia: Boolean(data?.es_mia)
+        };
+    }
+
+    async function getPurchaseOrderSignatureState(order = '') {
+        const value = text(order);
+        const emptyAuth = { configurada:false, ordenCompra:value, userId:'', nombre:'', elaboradaAt:'', origen:'', esMia:false };
+        if (!value) return { signatures: [], authorship: emptyAuth, signedCount:0, fuente:'v144' };
+        const normalizeRows = rows => (Array.isArray(rows) ? rows : []).map(row => ({
+            id:Number(row?.id || 0),
+            ordenCompra:text(row?.orden_compra ?? row?.ordenCompra ?? value),
+            tipo:text(row?.tipo).toLowerCase(),
+            nombre:text(row?.nombre),
+            firmaDataUrl:text(row?.firma_data_url ?? row?.firmaDataUrl),
+            firmaSlot:Number(row?.firma_slot ?? row?.firmaSlot ?? 0),
+            firmaNombrePerfil:text(row?.firma_nombre_perfil ?? row?.firmaNombrePerfil),
+            userId:text(row?.user_id ?? row?.userId),
+            firmadoAt:text(row?.firmado_at ?? row?.firmadoAt),
+            updatedAt:text(row?.updated_at ?? row?.updatedAt)
+        })).filter(row => row.tipo);
+        let rpcError = null;
+        try {
+            const { data, error } = await client.rpc('co_estado_firmas_orden_v135', { p_orden:value });
+            if (error) throw error;
+            let signatures = normalizeRows(data?.firmas);
+            const incomplete = signatures.some(row => row.firmadoAt && (!row.firmaDataUrl || row.firmaDataUrl.length < 100));
+            if (incomplete) {
+                const direct = normalizeRows(await listPurchaseOrderSignatures(value));
+                const directMap = new Map(direct.map(row => [row.tipo,row]));
+                signatures = signatures.map(row => directMap.get(row.tipo)?.firmaDataUrl ? directMap.get(row.tipo) : row);
+                direct.forEach(row => { if (!signatures.some(item => item.tipo === row.tipo)) signatures.push(row); });
+            }
+            const a = data?.autoria || {};
+            const authorship = {
+                configurada:Boolean(a?.configurada),
+                ordenCompra:text(a?.orden_compra || value),
+                userId:text(a?.user_id),
+                nombre:text(a?.nombre),
+                elaboradaAt:text(a?.elaborada_at),
+                origen:text(a?.origen),
+                esMia:Boolean(a?.es_mia)
+            };
+            return { signatures, authorship, signedCount:Number(data?.firmadas_count || signatures.filter(x=>x.firmaDataUrl).length), revision:'V144', fuente:'v144-rpc' };
+        } catch (error) {
+            rpcError = error;
+        }
+        try {
+            const [signaturesRaw, authorshipRaw] = await Promise.all([
+                listPurchaseOrderSignatures(value),
+                getPurchaseOrderAuthorship(value).catch(() => emptyAuth)
+            ]);
+            const signatures = normalizeRows(signaturesRaw);
+            return { signatures, authorship:authorshipRaw || emptyAuth, signedCount:signatures.filter(row=>row.firmaDataUrl && row.firmaDataUrl.length>=100).length, revision:'V144', fuente:'v144-directo' };
+        } catch (fallbackError) {
+            const detail = text(rpcError?.message || fallbackError?.message);
+            throw new Error(detail ? `No se pudo recuperar el estado de firmas. ${detail}` : 'No se pudo recuperar el estado de firmas.');
+        }
+    }
+
+    async function claimLegacyPurchaseOrderAuthorship(order) {
+        const value = text(order);
+        if (!value) throw new Error('La orden de compra no tiene número.');
+        const { data, error } = await client.rpc('co_registrar_elaborador_legacy_v124', { p_orden:value });
+        assertNoError(error, 'No se pudo registrar el elaborador de esta orden anterior.');
+        return {
+            ok: Boolean(data?.ok),
+            ordenCompra: text(data?.orden_compra || value),
+            userId: text(data?.user_id),
+            nombre: text(data?.nombre),
+            elaboradaAt: text(data?.elaborada_at)
+        };
+    }
+
+    async function approvePurchaseOrderWithMySignature(order, type, signatureSlot = null) {
+        let selectedSlot = Number(signatureSlot || 0);
+        if (!(selectedSlot >= 1 && selectedSlot <= 3)) selectedSlot = Number((await getMySigningSignature(null))?.slot || 0);
+        if (!(selectedSlot >= 1 && selectedSlot <= 3)) throw new Error('No se pudo determinar qué firma personal utilizar.');
+        const { data, error } = await client.rpc('co_firmar_orden_con_mi_firma_v135', {
+            p_orden:text(order),
+            p_tipo:text(type).toLowerCase(),
+            p_firma_slot:selectedSlot
+        });
+        assertNoError(error, 'No se pudo aprobar y firmar la orden. Ejecuta SQL_MAESTRO_CRM.sql de V135.');
+        const row = data?.firma || data || {};
+        const signature = {
+            id:Number(row?.id || 0),
+            ordenCompra:text(row?.orden_compra || order),
+            tipo:text(row?.tipo || type).toLowerCase(),
+            nombre:text(row?.nombre),
+            firmaDataUrl:text(row?.firma_data_url),
+            firmaSlot:Number(row?.firma_slot || selectedSlot),
+            firmaNombrePerfil:text(row?.firma_nombre_perfil),
+            userId:text(row?.user_id),
+            firmadoAt:text(row?.firmado_at),
+            updatedAt:text(row?.updated_at)
+        };
+        if (!signature.id || !signature.firmaDataUrl || signature.firmaDataUrl.length < 100) throw new Error('Supabase no confirmó la imagen de la firma. La orden permanece sin firmar en la interfaz.');
+        const a = data?.autoria || {};
+        const authorship = {
+            configurada:Boolean(a?.configurada),
+            ordenCompra:text(a?.orden_compra || order),
+            userId:text(a?.user_id),
+            nombre:text(a?.nombre),
+            elaboradaAt:text(a?.elaborada_at),
+            origen:text(a?.origen),
+            esMia:Boolean(a?.es_mia)
+        };
+        return { ok:true, revision:text(data?.revision || 'V135'), signature, authorship, signedCount:Number(data?.firmadas_count || 0), firma_data_url:signature.firmaDataUrl, firma_slot:signature.firmaSlot, firma_nombre_perfil:signature.firmaNombrePerfil };
+    }
+
+    async function removeMyPurchaseOrderSignature(order, type) {
+        const { data, error } = await client.rpc('co_retirar_mi_firma_v123', { p_orden: text(order), p_tipo: text(type).toLowerCase() });
+        assertNoError(error, 'No se pudo retirar tu firma de la orden.');
+        return data || {};
+    }
+
+    async function reopenPurchaseOrderForChanges(order) {
+        const { data, error } = await client.rpc('co_reabrir_orden_para_cambios_v123', { p_orden: text(order) });
+        assertNoError(error, 'No se pudo reabrir la orden para cambios.');
+        return data || {};
+    }
+
+
+    function deliveryInfoFromDb(row) {
+        return {
+            id: Number(row.id),
+            nombre: text(row.nombre),
+            empresa: text(row.empresa),
+            direccion: text(row.direccion),
+            referencias: text(row.referencias),
+            diasRecepcion: Array.isArray(row.dias_recepcion) ? row.dias_recepcion.map(text).filter(Boolean) : [],
+            horarioRecepcion: text(row.horario_recepcion),
+            responsablePrincipal: text(row.responsable_principal),
+            receptoresAutorizados: Array.isArray(row.receptores_autorizados) ? row.receptores_autorizados.map(text).filter(Boolean) : [],
+            telefono: text(row.telefono),
+            email: text(row.email),
+            instrucciones: text(row.instrucciones),
+            activo: row.activo !== false,
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listDeliveryInfos(options = {}) {
+        let query = client.from('co_direcciones_entrega').select('*').order('nombre', { ascending: true });
+        if (options.activeOnly) query = query.eq('activo', true);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudo consultar la información de entrega.');
+        return (data || []).map(deliveryInfoFromDb);
+    }
+
+    async function saveDeliveryInfo(payload = {}) {
+        const row = {
+            nombre: text(payload.nombre),
+            empresa: text(payload.empresa) || null,
+            direccion: text(payload.direccion),
+            referencias: text(payload.referencias) || null,
+            dias_recepcion: Array.isArray(payload.diasRecepcion) ? payload.diasRecepcion.map(text).filter(Boolean) : [],
+            horario_recepcion: text(payload.horarioRecepcion) || null,
+            responsable_principal: text(payload.responsablePrincipal) || null,
+            receptores_autorizados: Array.isArray(payload.receptoresAutorizados) ? payload.receptoresAutorizados.map(text).filter(Boolean) : text(payload.receptoresAutorizados).split(/[,;\n]+/).map(text).filter(Boolean),
+            telefono: text(payload.telefono) || null,
+            email: text(payload.email) || null,
+            instrucciones: text(payload.instrucciones) || null,
+            activo: payload.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.nombre || !row.direccion) throw new Error('El nombre y la dirección de entrega son obligatorios.');
+        const id = Number(payload.id || 0);
+        const query = id
+            ? client.from('co_direcciones_entrega').update(row).eq('id', id)
+            : client.from('co_direcciones_entrega').insert(row);
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar la información de entrega.');
+        return deliveryInfoFromDb(data);
+    }
+
+    async function deleteDeliveryInfo(id) {
+        const value = Number(id);
+        if (!value) throw new Error('Registro de entrega no válido.');
+        const { error } = await client.from('co_direcciones_entrega').delete().eq('id', value);
+        assertNoError(error, 'No se pudo eliminar la información de entrega.');
+        return { ok: true, id: value };
+    }
+
+    function supplierRequestFromDb(row) {
+        return {
+            id: text(row.id),
+            numero: text(row.numero),
+            ordenCompra: text(row.orden_compra),
+            proveedorId: row.proveedor_id == null ? null : Number(row.proveedor_id),
+            proveedorNombre: text(row.proveedor_nombre),
+            proveedorContacto: text(row.proveedor_contacto),
+            proveedorEmail: text(row.proveedor_email),
+            proveedorTelefono: text(row.proveedor_telefono),
+            proveedorWhatsapp: text(row.proveedor_whatsapp),
+            direccionEntregaId: row.direccion_entrega_id == null ? null : Number(row.direccion_entrega_id),
+            asunto: text(row.asunto),
+            mensaje: text(row.mensaje),
+            estado: text(row.estado),
+            fechaEnvio: text(row.fecha_envio),
+            errorEnvio: text(row.error_envio),
+            fechaEnvioCorreo: text(row.fecha_envio_correo),
+            fechaEnvioWhatsapp: text(row.fecha_envio_whatsapp),
+            errorCorreo: text(row.error_correo),
+            errorWhatsapp: text(row.error_whatsapp),
+            emailMessageId: text(row.email_message_id),
+            whatsappMessageId: text(row.whatsapp_message_id),
+            whatsappManualEstado: text(row.whatsapp_manual_estado) || 'pendiente',
+            whatsappManualAt: text(row.whatsapp_manual_at),
+            whatsappManualNota: text(row.whatsapp_manual_nota),
+            cotizacionId: text(row.cotizacion_id),
+            tipo: text(row.tipo) || 'suministro',
+            items: Array.isArray(row.co_solicitud_proveedor_items) ? row.co_solicitud_proveedor_items.map(item => ({
+                id: Number(item.id),
+                solicitudCompraId: item.solicitud_compra_id == null ? null : Number(item.solicitud_compra_id),
+                materialCodigo: text(item.material_codigo),
+                descripcion: text(item.descripcion),
+                marca: text(item.marca),
+                unidad: text(item.unidad),
+                cantidad: number(item.cantidad),
+                costoUnitario: number(item.costo_unitario),
+                subtotal: number(item.subtotal)
+            })) : [],
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listSupplierRequests(options = {}) {
+        let query = client.from('co_solicitudes_proveedor').select('*,co_solicitud_proveedor_items(*)').order('created_at', { ascending: false });
+        if (text(options.orderNumber)) query = query.eq('orden_compra', text(options.orderNumber));
+        if (text(options.status)) query = query.eq('estado', text(options.status));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las solicitudes a proveedores.');
+        return (data || []).map(supplierRequestFromDb);
+    }
+
+    function nextSupplierRequestNumber() {
+        const now = new Date();
+        const pad = v => String(v).padStart(2, '0');
+        return `SP-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
+    }
+
+    async function createSupplierRequest(payload = {}) {
+        const orderNumber = text(payload.ordenCompra);
+        const providerName = text(payload.proveedorNombre);
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!orderNumber || !providerName || !items.length) throw new Error('La orden, el proveedor y los materiales son obligatorios.');
+        const header = {
+            numero: text(payload.numero) || nextSupplierRequestNumber(),
+            orden_compra: orderNumber,
+            proveedor_id: Number(payload.proveedorId || 0) || null,
+            proveedor_nombre: providerName,
+            proveedor_contacto: text(payload.proveedorContacto) || null,
+            proveedor_email: text(payload.proveedorEmail) || null,
+            proveedor_telefono: text(payload.proveedorTelefono) || null,
+            proveedor_whatsapp: text(payload.proveedorWhatsapp) || null,
+            direccion_entrega_id: Number(payload.direccionEntregaId || 0) || null,
+            asunto: text(payload.asunto) || `Solicitud de cotización y suministro · ${orderNumber}`,
+            mensaje: text(payload.mensaje) || null,
+            estado: text(payload.estado) || 'borrador',
+            cotizacion_id: text(payload.cotizacionId) || null,
+            tipo: ['suministro','cotizacion'].includes(text(payload.tipo)) ? text(payload.tipo) : 'suministro',
+            updated_at: new Date().toISOString()
+        };
+        const { data, error } = await client.from('co_solicitudes_proveedor').insert(header).select('*').single();
+        assertNoError(error, 'No se pudo crear la solicitud para el proveedor.');
+        const rows = items.map(item => ({
+            solicitud_id: data.id,
+            solicitud_compra_id: Number(item.solicitudCompraId || item.id || 0) || null,
+            material_codigo: text(item.materialCodigo ?? item.codigo) || null,
+            descripcion: text(item.descripcion),
+            marca: text(item.marca) || null,
+            unidad: text(item.unidad) || null,
+            cantidad: number(item.cantidad),
+            costo_unitario: number(item.costoUnitario ?? item.precio)
+        }));
+        const { error: itemError } = await client.from('co_solicitud_proveedor_items').insert(rows);
+        if (itemError) {
+            await client.from('co_solicitudes_proveedor').delete().eq('id', data.id);
+            throw new Error(errorMessage(itemError));
+        }
+        const { data: created, error: createdError } = await client.from('co_solicitudes_proveedor').select('*,co_solicitud_proveedor_items(*)').eq('id', data.id).single();
+        assertNoError(createdError, 'La solicitud se creó, pero no pudo recuperarse.');
+        return supplierRequestFromDb(created);
+    }
+
+    async function updateSupplierRequest(id, changes = {}) {
+        const requestId = text(id);
+        if (!requestId) throw new Error('Solicitud a proveedor no válida.');
+        const row = { updated_at: new Date().toISOString() };
+        if ('estado' in changes) row.estado = text(changes.estado);
+        if ('fechaEnvio' in changes) row.fecha_envio = text(changes.fechaEnvio) || null;
+        if ('errorEnvio' in changes) row.error_envio = text(changes.errorEnvio) || null;
+        if ('asunto' in changes) row.asunto = text(changes.asunto);
+        if ('mensaje' in changes) row.mensaje = text(changes.mensaje) || null;
+        if ('proveedorEmail' in changes) row.proveedor_email = text(changes.proveedorEmail) || null;
+        if ('proveedorTelefono' in changes) row.proveedor_telefono = text(changes.proveedorTelefono) || null;
+        if ('proveedorWhatsapp' in changes) row.proveedor_whatsapp = text(changes.proveedorWhatsapp) || null;
+        if ('fechaEnvioCorreo' in changes) row.fecha_envio_correo = text(changes.fechaEnvioCorreo) || null;
+        if ('fechaEnvioWhatsapp' in changes) row.fecha_envio_whatsapp = text(changes.fechaEnvioWhatsapp) || null;
+        if ('errorCorreo' in changes) row.error_correo = text(changes.errorCorreo) || null;
+        if ('errorWhatsapp' in changes) row.error_whatsapp = text(changes.errorWhatsapp) || null;
+        if ('emailMessageId' in changes) row.email_message_id = text(changes.emailMessageId) || null;
+        if ('whatsappMessageId' in changes) row.whatsapp_message_id = text(changes.whatsappMessageId) || null;
+        if ('whatsappManualEstado' in changes) row.whatsapp_manual_estado = text(changes.whatsappManualEstado) || 'pendiente';
+        if ('whatsappManualAt' in changes) row.whatsapp_manual_at = text(changes.whatsappManualAt) || null;
+        if ('whatsappManualNota' in changes) row.whatsapp_manual_nota = text(changes.whatsappManualNota) || null;
+        const { data, error } = await client.from('co_solicitudes_proveedor').update(row).eq('id', requestId).select('*,co_solicitud_proveedor_items(*)').single();
+        assertNoError(error, 'No se pudo actualizar la solicitud al proveedor.');
+        return supplierRequestFromDb(data);
+    }
+
+    async function sendSupplierRequest(id) {
+        const requestId = text(id);
+        if (!requestId) throw new Error('Solicitud a proveedor no válida.');
+        return contactSupplier({ solicitudId: requestId, canal: 'email' });
+    }
+
+    async function contactSupplier(payload = {}) {
+        const body = {
+            proveedorId: Number(payload.proveedorId || 0) || null,
+            solicitudId: text(payload.solicitudId) || null,
+            canal: text(payload.canal || payload.channel).toLowerCase(),
+            asunto: text(payload.asunto || payload.subject),
+            mensaje: text(payload.mensaje || payload.message),
+            modo: text(payload.modo || 'api')
+        };
+        if (!body.proveedorId && !body.solicitudId) throw new Error('Selecciona un proveedor o una solicitud.');
+        if (!['email','whatsapp'].includes(body.canal)) throw new Error('Selecciona correo o WhatsApp.');
+        const data = await invokeEdgeFunction('contactar-proveedor', body, { timeoutMs: 22000 });
+        if (data?.error) throw new Error(text(data.error));
+        return data;
+    }
+
+    async function sendSupplierWhatsApp(id) {
+        const requestId = text(id);
+        if (!requestId) throw new Error('Solicitud a proveedor no válida.');
+        return contactSupplier({ solicitudId: requestId, canal: 'whatsapp' });
+    }
+
+    async function supplierCommunicationStatus() {
+        return await invokeEdgeFunction('contactar-proveedor', { ping: true }, { timeoutMs: 9000 }) || {};
+    }
+
+    async function listSupplierCommunications(options = {}) {
+        let query = client.from('co_comunicaciones_proveedor').select('*').order('created_at', { ascending: false });
+        const providerId = Number(options.proveedorId || 0);
+        if (providerId) query = query.eq('proveedor_id', providerId);
+        if (text(options.solicitudId)) query = query.eq('solicitud_id', text(options.solicitudId));
+        if (text(options.canal)) query = query.eq('canal', text(options.canal));
+        if (Number(options.limit || 0) > 0) query = query.limit(Math.min(200, Number(options.limit)));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudo consultar el historial de comunicaciones.');
+        return (data || []).map(row => ({
+            id: Number(row.id),
+            proveedorId: row.proveedor_id == null ? null : Number(row.proveedor_id),
+            solicitudId: text(row.solicitud_id),
+            canal: text(row.canal),
+            modo: text(row.modo),
+            destinatario: text(row.destinatario),
+            asunto: text(row.asunto),
+            mensaje: text(row.mensaje),
+            estado: text(row.estado),
+            proveedorExternoId: text(row.proveedor_externo_id),
+            error: text(row.error),
+            enviadoAt: text(row.enviado_at),
+            createdAt: text(row.created_at)
+        }));
+    }
+
+    async function invokeEdgeFunction(name, body = {}, options = {}) {
+        const timeoutMs = Math.max(3000, Number(options.timeoutMs || 18000));
+        let firstError = null;
+        try {
+            const invocation = client.functions.invoke(name, { body });
+            const result = await Promise.race([
+                invocation,
+                new Promise((_, reject) => setTimeout(() => reject(new Error(`Tiempo de espera agotado al conectar con ${name}.`)), timeoutMs))
+            ]);
+            if (!result?.error) return result?.data;
+            firstError = result.error;
+        } catch (error) {
+            firstError = error;
+        }
+        try {
+            const { data: sessionData } = await client.auth.getSession();
+            const token = text(sessionData?.session?.access_token);
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/${encodeURIComponent(name)}`, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: {
+                    apikey: SUPABASE_PUBLISHABLE_KEY,
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body ?? {})
+            }).finally(() => clearTimeout(timer));
+            let payload = null;
+            try { payload = await response.json(); } catch (_) { payload = { error: await response.text().catch(() => '') }; }
+            if (!response.ok) {
+                const error = new Error(text(payload?.error || payload?.message) || `La función ${name} respondió HTTP ${response.status}.`);
+                error.status = response.status;
+                throw error;
+            }
+            return payload;
+        } catch (fallbackError) {
+            const first = text(firstError?.message || firstError);
+            const second = text(fallbackError?.message || fallbackError);
+            const error = new Error(second || first || `No se pudo conectar con ${name}.`);
+            error.code = /failed to fetch|failed to send|network|fetch|abort|tiempo de espera/i.test(`${first} ${second}`) ? 'edge_unreachable' : 'edge_error';
+            error.primary = firstError;
+            error.fallback = fallbackError;
+            throw error;
+        }
+    }
+
+    async function edgeFunctionErrorDetail(error, fallback = 'Servicio no disponible.') {
+        let message = text(error?.message) || fallback;
+        const response = error?.context;
+        if (response && typeof response.clone === 'function') {
+            try {
+                const clone = response.clone();
+                const payload = await clone.json();
+                message = text(payload?.error ?? payload?.message) || message;
+            } catch (_) {
+                try {
+                    const raw = await response.clone().text();
+                    if (text(raw)) message = text(raw).slice(0, 700);
+                } catch (_) {}
+            }
+            if (response.status === 404 && !/no existe|not found/i.test(message)) message = /proveedor|contact/i.test(fallback) ? 'La función contactar-proveedor todavía no está desplegada en Supabase.' : 'La función sky-transcribir todavía no está desplegada en Supabase.';
+            if (response.status === 401 && !/sesión|jwt|token/i.test(message)) message = 'La sesión no pudo autorizar el servicio de voz avanzada.';
+        }
+        return message;
+    }
+
+    async function edgeFunctionFailure(error, fallback = 'Servicio no disponible.') {
+        const message = await edgeFunctionErrorDetail(error, fallback);
+        const failure = new Error(message);
+        const response = error?.context;
+        const status = Number(response?.status) || 0;
+        failure.status = status;
+        if (status === 429 || /429|rate limit|too many requests|límite.*groq/i.test(message)) failure.code = 'rate_limit';
+        if (response?.headers?.get) {
+            const retry = Number(response.headers.get('retry-after'));
+            if (Number.isFinite(retry) && retry > 0) failure.retryAfterMs = retry * 1000;
+        }
+        return failure;
+    }
+
+    function skyVoiceStatusCode(message = '', available = false, configured = false) {
+        const value = text(message).toLowerCase();
+        if (available && configured) return 'ready';
+        if (/groq_api_key|openai_api_key|falta configurar.*clave|api key|requiere.*key/.test(value)) return 'missing_key';
+        if (/no está desplegada|not found|404|function.*not.*found|failed to send a request/.test(value)) return 'missing_function';
+        if (/sesión|jwt|token|unauthorized|401/.test(value)) return 'auth';
+        return available ? 'not_configured' : 'unavailable';
+    }
+
+    async function skyTranscriptionStatus() {
+        try {
+            const { data, error } = await client.functions.invoke('sky-transcribir', { body: { ping: true } });
+            if (error) {
+                const mensaje = await edgeFunctionErrorDetail(error, 'Servicio de voz no disponible.');
+                return { disponible: false, configurado: false, codigo: skyVoiceStatusCode(mensaje, false, false), mensaje };
+            }
+            const disponible = data?.ok === true;
+            const configurado = data?.configured === true;
+            const mensaje = text(data?.message);
+            return {
+                disponible,
+                configurado,
+                codigo: skyVoiceStatusCode(mensaje, disponible, configurado),
+                mensaje,
+                version: text(data?.version),
+                modelo: text(data?.model),
+                proveedor: text(data?.provider),
+                inteligenciaConfigurada: data?.intelligenceConfigured === true,
+                inteligenciaModelo: text(data?.intelligenceModel),
+                inteligenciaProveedor: text(data?.intelligenceProvider),
+                inteligenciaProveedores: Array.isArray(data?.intelligenceProviders) ? data.intelligenceProviders : []
+            };
+        } catch (error) {
+            const mensaje = errorMessage(error);
+            return { disponible: false, configurado: false, codigo: skyVoiceStatusCode(mensaje, false, false), mensaje };
+        }
+    }
+
+    async function transcribeSkyAudio(blob, options = {}) {
+        if (!(blob instanceof Blob) || blob.size <= 0) throw new Error('No se recibió audio para transcribir.');
+        const form = new FormData();
+        const ext = /ogg/i.test(blob.type) ? 'ogg' : /mp4|m4a/i.test(blob.type) ? 'm4a' : 'webm';
+        form.append('audio', blob, `sky-${Date.now()}.${ext}`);
+        form.append('profile', text(options.profile) || 'consulta');
+        form.append('context', text(options.context).slice(0, 1800));
+        const { data, error } = await client.functions.invoke('sky-transcribir', { body: form });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo transcribir el audio.');
+        const transcript = text(data?.text ?? data?.transcript);
+        if (!transcript) throw new Error(text(data?.error) || 'No se reconoció una frase en el audio.');
+        return { texto: transcript, duracionMs: Number(data?.durationMs) || 0, modelo: text(data?.model), proveedor: text(data?.provider) };
+    }
+
+    async function callLocalSkillService(url, body, options = {}) {
+        const target = text(url);
+        if (!target) throw new Error('Servicio local no configurado.');
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), Math.max(2000, Number(options.timeoutMs) || 12000));
+        try {
+            const response = await window.fetch(target, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body || {}),
+                signal: controller.signal
+            });
+            if (!response.ok) {
+                const detail = await response.text().catch(() => '');
+                throw new Error(text(detail) || `Servicio local respondió HTTP ${response.status}.`);
+            }
+            return response;
+        } finally {
+            window.clearTimeout(timer);
+        }
+    }
+
+    async function synthesizeSkillSpeech(value, options = {}) {
+        const input = text(value).slice(0, 2600);
+        if (!input) throw new Error('Falta el texto de la voz.');
+        const alias = text(options.voice || options.alias || 'Sarah').slice(0, 40) || 'Sarah';
+        if (SKILL_LOCAL_TTS_URL) {
+            try {
+                const response = await callLocalSkillService(SKILL_LOCAL_TTS_URL, { text: input, voice: alias }, { timeoutMs: 18000 });
+                const blob = await response.blob();
+                if (blob.size) return blob;
+            } catch (error) {
+                console.warn('SKILL TTS local:', error);
+            }
+        }
+        const { data, error } = await client.functions.invoke('skill-voz', { body: { text: input, voice: alias } });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo generar la voz personalizada.');
+        if (data instanceof Blob) return data;
+        if (data instanceof ArrayBuffer) return new Blob([data], { type: 'audio/mpeg' });
+        if (ArrayBuffer.isView(data)) return new Blob([data.buffer], { type: 'audio/mpeg' });
+        throw new Error(text(data?.error) || 'El servicio de voz no devolvió audio.');
+    }
+
+    async function interpretSkyQuery(value, options = {}) {
+        const input = text(value).slice(0, 1800);
+        if (!input) throw new Error('Falta la consulta a interpretar.');
+        const context = options.context && typeof options.context === 'object' ? {
+            lastIntent: text(options.context.lastIntent).slice(0, 80),
+            lastEntity: text(options.context.lastEntity).slice(0, 240),
+            lastQuery: text(options.context.lastQuery).slice(0, 500),
+            area: text(options.context.area).slice(0, 120),
+            turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-8).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : []
+        } : {};
+        if (SKILL_LOCAL_AI_URL) {
+            try {
+                const response = await callLocalSkillService(`${SKILL_LOCAL_AI_URL}/interpret`, { text: input, profile: text(options.profile) || 'consulta', context }, { timeoutMs: 14000 });
+                const local = await response.json();
+                if (local?.intent) return {
+                    intent: text(local.intent), query: text(local.query).slice(0, 1200) || input, entity: text(local.entity), recipient: text(local.recipient),
+                    message: text(local.message), clarification: text(local.clarification), confidence: Number(local.confidence) || 0,
+                    locationOnly: local.locationOnly === true, duracionMs: Number(local.durationMs) || 0, modelo: text(local.model), proveedor: text(local.provider || 'ollama-local')
+                };
+            } catch (error) { console.warn('SKILL IA local:', error); }
+        }
+        const { data, error } = await client.functions.invoke('sky-transcribir', {
+            body: { mode: 'interpret', text: input, profile: text(options.profile) || 'consulta', context }
+        });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar Skill IA.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill IA no devolvió una interpretación válida.');
+        return {
+            intent: text(data?.intent),
+            query: text(data?.query).slice(0, 1200) || input,
+            entity: text(data?.entity),
+            recipient: text(data?.recipient),
+            message: text(data?.message),
+            clarification: text(data?.clarification),
+            confidence: Number(data?.confidence) || 0,
+            locationOnly: data?.locationOnly === true,
+            duracionMs: Number(data?.durationMs) || 0,
+            modelo: text(data?.model),
+            proveedor: text(data?.provider)
+        };
+    }
+
+    async function parseSupplierQuotationDocumentV102(payload = {}) {
+        const raw = text(payload.text).slice(0, 60000);
+        if (!raw) throw new Error('El documento no contiene texto legible.');
+        const quotation = payload.quotation && typeof payload.quotation === 'object' ? {
+            folio: text(payload.quotation.folio).slice(0, 120),
+            reference: text(payload.quotation.reference).slice(0, 240),
+            items: Array.isArray(payload.quotation.items) ? payload.quotation.items.slice(0, 120).map(item => ({ id:Number(item?.id)||0, code:text(item?.code).slice(0,100), description:text(item?.description).slice(0,320), quantity:number(item?.quantity), unit:text(item?.unit).slice(0,50) })) : []
+        } : {};
+        const { data, error } = await client.functions.invoke('sky-transcribir', { body: { mode:'quotation_document', text:raw, filename:text(payload.filename).slice(0,260), profile:'compras', quotation } });
+        if (error) throw await edgeFunctionFailure(error, 'Skill no pudo interpretar el documento de cotización.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill no devolvió una lectura válida del documento.');
+        return { ok:true, providerName:text(data.providerName), rfc:text(data.rfc), reference:text(data.reference), currency:text(data.currency), validity:text(data.validity), deliveryDays:number(data.deliveryDays), rows:Array.isArray(data.rows)?data.rows:[], warnings:Array.isArray(data.warnings)?data.warnings.map(text).filter(Boolean):[], confidence:number(data.confidence), provider:text(data.provider), model:text(data.model) };
+    }
+
+    async function askSkyGeneral(value, options = {}) {
+        const input = text(value).slice(0, 1800);
+        if (!input) throw new Error('Falta la consulta para Skill.');
+        const context = options.context && typeof options.context === 'object' ? {
+            lastIntent: text(options.context.lastIntent).slice(0, 80),
+            lastEntity: text(options.context.lastEntity).slice(0, 240),
+            lastQuery: text(options.context.lastQuery).slice(0, 500),
+            area: text(options.context.area).slice(0, 120),
+            turns: Array.isArray(options.context.turns) ? options.context.turns.slice(-8).map(turn => ({ user: text(turn?.user).slice(0, 420), assistant: text(turn?.assistant).slice(0, 520) })) : [],
+            page: text(options.context.page).slice(0, 120),
+            crmContext: text(options.context.crmContext).slice(0, 5000)
+        } : {};
+        if (SKILL_LOCAL_AI_URL) {
+            try {
+                const response = await callLocalSkillService(`${SKILL_LOCAL_AI_URL}/chat`, { text: input, profile: text(options.profile) || 'consulta', context }, { timeoutMs: 22000 });
+                const local = await response.json();
+                if (text(local?.answer)) return { answer: text(local.answer), title: text(local.title) || 'Skill', detail: text(local.detail), model: text(local.model), provider: text(local.provider || 'ollama-local') };
+            } catch (error) { console.warn('SKILL chat local:', error); }
+        }
+        const { data, error } = await client.functions.invoke('sky-transcribir', {
+            body: { mode: 'chat', text: input, profile: text(options.profile) || 'consulta', context }
+        });
+        if (error) throw await edgeFunctionFailure(error, 'No se pudo usar la respuesta avanzada de Skill.');
+        if (data?.ok !== true) throw new Error(text(data?.error) || 'Skill no devolvió una respuesta válida.');
+        return { answer: text(data?.answer), title: text(data?.title), detail: text(data?.detail), model: text(data?.model), provider: text(data?.provider) };
+    }
+
+    function quotationRequestFromDb(row) {
+        return {
+            id: text(row.id),
+            folio: text(row.folio),
+            origen: text(row.origen) || 'bajo_minimo',
+            estado: text(row.estado) || 'solicitada',
+            prioridad: text(row.prioridad) || 'normal',
+            fechaRequerida: text(row.fecha_requerida),
+            solicitadoPor: text(row.solicitado_por),
+            referencia: text(row.referencia),
+            notas: text(row.notas),
+            revisadaPor: text(row.revisada_por),
+            revisadaAt: text(row.revisada_at),
+            aprobadaAt: text(row.aprobada_at),
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at),
+            items: Array.isArray(row.co_cotizacion_items) ? row.co_cotizacion_items.map(quotationItemFromDb) : []
+        };
+    }
+
+    function quotationOfferFromDb(row) {
+        const provider = row.co_proveedores || row.proveedor || null;
+        return {
+            id: Number(row.id),
+            itemId: Number(row.cotizacion_item_id),
+            proveedorId: row.proveedor_id == null ? null : Number(row.proveedor_id),
+            proveedorNombre: text(provider?.nombre_comercial || provider?.razon_social || row.proveedor_temporal_nombre),
+            proveedorContacto: text(provider?.contacto || row.proveedor_temporal_contacto),
+            proveedorEmail: text(provider?.email || row.proveedor_temporal_email),
+            proveedorTelefono: text(provider?.telefono || row.proveedor_temporal_telefono),
+            proveedorEvaluacion: number(provider?.evaluacion),
+            proveedorTiempoEntregaDias: number(provider?.tiempo_entrega_dias),
+            proveedorDiasCredito: number(provider?.dias_credito),
+            proveedorTemporalNombre: text(row.proveedor_temporal_nombre),
+            proveedorTemporalContacto: text(row.proveedor_temporal_contacto),
+            proveedorTemporalEmail: text(row.proveedor_temporal_email),
+            proveedorTemporalTelefono: text(row.proveedor_temporal_telefono),
+            precioUnitario: number(row.precio_unitario),
+            moneda: text(row.moneda) || 'MXN',
+            origenSolicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            origen_solicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            justificacionExcepcion: text(row.justificacion_excepcion),
+            justificacion_excepcion: text(row.justificacion_excepcion),
+            proyectoNumero: text(row.proyecto_numero),
+            proyecto_numero: text(row.proyecto_numero),
+            plazoEntregaDias: number(row.plazo_entrega_dias),
+            vigenciaHasta: text(row.vigencia_hasta),
+            cantidadMinima: number(row.cantidad_minima) || 1,
+            observaciones: text(row.observaciones),
+            origen: text(row.origen) || 'cotizacion',
+            estado: text(row.estado) || 'pendiente',
+            fechaSolicitud: text(row.fecha_solicitud),
+            fechaRespuesta: text(row.fecha_respuesta),
+            solicitudProveedorId: text(row.solicitud_proveedor_id),
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function quotationItemFromDb(row) {
+        return {
+            id: Number(row.id),
+            cotizacionId: text(row.cotizacion_id),
+            materialCodigo: text(row.material_codigo),
+            descripcion: text(row.descripcion),
+            marca: text(row.marca),
+            unidad: text(row.unidad),
+            cantidad: number(row.cantidad),
+            almacenId: row.almacen_id == null ? null : Number(row.almacen_id),
+            almacenNombre: text(row.almacen_nombre),
+            existenciaActual: number(row.existencia_actual),
+            stockMinimo: number(row.stock_minimo),
+            stockMedio: number(row.stock_medio),
+            stockMaximo: number(row.stock_maximo),
+            estado: text(row.estado) || 'pendiente',
+            proveedorSeleccionadoId: row.proveedor_seleccionado_id == null ? null : Number(row.proveedor_seleccionado_id),
+            ofertaSeleccionadaId: row.oferta_seleccionada_id == null ? null : Number(row.oferta_seleccionada_id),
+            ofertas: Array.isArray(row.co_cotizacion_ofertas) ? row.co_cotizacion_ofertas.map(quotationOfferFromDb) : [],
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function nextQuotationFolio() {
+        const now = new Date();
+        const pad = v => String(v).padStart(2, '0');
+        return `COT-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
+    }
+
+    async function listQuotationRequests(options = {}) {
+        let query = client.from('co_cotizaciones').select('*,co_cotizacion_items(*)').order('created_at', { ascending: false });
+        if (text(options.estado ?? options.status)) query = query.eq('estado', text(options.estado ?? options.status));
+        if (text(options.origen)) query = query.eq('origen', text(options.origen));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las cotizaciones. Ejecuta SQL_MAESTRO_CRM.sql si el módulo todavía no está instalado.');
+        return (data || []).map(quotationRequestFromDb);
+    }
+
+    async function getQuotationRequest(id) {
+        const requestId = text(id);
+        if (!requestId) throw new Error('Cotización no válida.');
+        const { data, error } = await client
+            .from('co_cotizaciones')
+            .select('*,co_cotizacion_items(*,co_cotizacion_ofertas(*,co_proveedores(*)))')
+            .eq('id', requestId)
+            .single();
+        assertNoError(error, 'No se pudo consultar el detalle de la cotización.');
+        return quotationRequestFromDb(data);
+    }
+
+    async function createQuotationRequest(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) throw new Error('Selecciona al menos un material para cotizar.');
+        const allowedPriorities = ['critica','urgente','alta','normal','baja','programada'];
+        const priority = allowedPriorities.includes(lower(payload.prioridad)) ? lower(payload.prioridad) : 'normal';
+        const rows = items.map(item => ({
+            material_codigo: text(item.materialCodigo ?? item.codigo),
+            descripcion: text(item.descripcion ?? item.desc),
+            marca: text(item.marca) || null,
+            unidad: text(item.unidad) || null,
+            cantidad: number(item.cantidad),
+            almacen_id: Number(item.almacenId ?? item.warehouseId ?? 0) || null,
+            almacen_nombre: text(item.almacenNombre) || null,
+            existencia_actual: number(item.existenciaActual ?? item.stockAlmacen ?? item.stock),
+            stock_minimo: number(item.stockMinimo ?? item.stockMinimoAlmacen),
+            stock_medio: number(item.stockMedio ?? item.stockMedioAlmacen),
+            stock_maximo: number(item.stockMaximo ?? item.stockMaximoAlmacen)
+        }));
+        if (rows.some(row => !row.material_codigo || !row.descripcion || row.cantidad <= 0)) {
+            throw new Error('Hay materiales incompletos o con cantidad inválida.');
+        }
+
+        const rpcPayload = {
+            p_origen: text(payload.origen) || 'bajo_minimo',
+            p_prioridad: priority,
+            p_fecha_requerida: text(payload.fechaRequerida) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_referencia: text(payload.referencia) || null,
+            p_notas: text(payload.notas) || null,
+            p_items: rows
+        };
+        const { data: rpcData, error: rpcError } = await client.rpc('crm_crear_cotizacion', rpcPayload);
+        if (!rpcError && rpcData?.id) {
+            return {
+                id: text(rpcData.id),
+                folio: text(rpcData.folio),
+                estado: text(rpcData.estado) || 'solicitada',
+                prioridad: text(rpcData.prioridad) || priority,
+                items: rows.map((row, index) => ({
+                    id: index + 1,
+                    materialCodigo: row.material_codigo,
+                    descripcion: row.descripcion,
+                    marca: row.marca,
+                    unidad: row.unidad,
+                    cantidad: row.cantidad,
+                    almacenId: row.almacen_id,
+                    almacenNombre: row.almacen_nombre,
+                    existenciaActual: row.existencia_actual,
+                    stockMinimo: row.stock_minimo,
+                    stockMedio: row.stock_medio,
+                    stockMaximo: row.stock_maximo,
+                    estado: 'pendiente'
+                }))
+            };
+        }
+
+        const rpcMessage = errorMessage(rpcError);
+        if (rpcError && !/crm_crear_cotizacion|function|schema cache|PGRST202/i.test(rpcMessage)) {
+            throw new Error(`No se pudo crear la solicitud de cotización. ${rpcMessage}`);
+        }
+
+        const header = {
+            folio: text(payload.folio) || nextQuotationFolio(),
+            origen: text(payload.origen) || 'bajo_minimo',
+            estado: 'solicitada',
+            prioridad: priority,
+            fecha_requerida: text(payload.fechaRequerida) || null,
+            solicitado_por: text(payload.solicitadoPor) || null,
+            referencia: text(payload.referencia) || null,
+            notas: text(payload.notas) || null,
+            updated_at: new Date().toISOString()
+        };
+        const { data, error } = await client.from('co_cotizaciones').insert(header).select('*').single();
+        assertNoError(error, 'No se pudo crear la solicitud de cotización.');
+
+        const dbRows = rows.map(row => ({ cotizacion_id: data.id, ...row, estado: 'pendiente', updated_at: new Date().toISOString() }));
+        const chunkSize = 200;
+        try {
+            for (let offset = 0; offset < dbRows.length; offset += chunkSize) {
+                const { error: itemError } = await client.from('co_cotizacion_items').insert(dbRows.slice(offset, offset + chunkSize));
+                assertNoError(itemError, 'No se pudieron guardar los materiales de la cotización.');
+            }
+        } catch (cause) {
+            await client.from('co_cotizaciones').delete().eq('id', data.id);
+            throw cause;
+        }
+        return {
+            ...quotationRequestFromDb(data),
+            items: rows.map((row, index) => ({
+                id: index + 1,
+                materialCodigo: row.material_codigo,
+                descripcion: row.descripcion,
+                marca: row.marca,
+                unidad: row.unidad,
+                cantidad: row.cantidad,
+                almacenId: row.almacen_id,
+                almacenNombre: row.almacen_nombre,
+                existenciaActual: row.existencia_actual,
+                stockMinimo: row.stock_minimo,
+                stockMedio: row.stock_medio,
+                stockMaximo: row.stock_maximo,
+                estado: 'pendiente'
+            }))
+        };
+    }
+
+    async function updateQuotationRequest(id, changes = {}) {
+        const row = { updated_at: new Date().toISOString() };
+        if ('estado' in changes) row.estado = text(changes.estado);
+        if ('prioridad' in changes) row.prioridad = text(changes.prioridad);
+        if ('fechaRequerida' in changes) row.fecha_requerida = text(changes.fechaRequerida) || null;
+        if ('solicitadoPor' in changes) row.solicitado_por = text(changes.solicitadoPor) || null;
+        if ('referencia' in changes) row.referencia = text(changes.referencia) || null;
+        if ('notas' in changes) row.notas = text(changes.notas) || null;
+        if ('revisadaAt' in changes) row.revisada_at = text(changes.revisadaAt) || null;
+        const { data, error } = await client.from('co_cotizaciones').update(row).eq('id', text(id)).select('*').single();
+        assertNoError(error, 'No se pudo actualizar la cotización.');
+        return quotationRequestFromDb(data);
+    }
+
+    function providerMaterialFromDb(row) {
+        const provider = row.co_proveedores || {};
+        const material = row.materiales || {};
+        return {
+            id: Number(row.id),
+            proveedorId: Number(row.proveedor_id),
+            proveedorNombre: text(provider.nombre_comercial || provider.razon_social),
+            proveedorContacto: text(provider.contacto),
+            proveedorEmail: text(provider.email),
+            proveedorTelefono: text(provider.telefono),
+            proveedorWhatsapp: text(provider.whatsapp || provider.telefono),
+            proveedorRfc: text(provider.rfc),
+            materialCodigo: text(row.material_codigo),
+            descripcion: text(row.descripcion || material.descripcion),
+            marca: text(row.marca || material.marca),
+            categoria: text(material.categoria),
+            unidad: text(material.unidad),
+            precioUnitario: number(row.precio_unitario),
+            moneda: text(row.moneda) || 'MXN',
+            origenSolicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            origen_solicitud: text(row.origen_solicitud) || 'bajo_minimo',
+            justificacionExcepcion: text(row.justificacion_excepcion),
+            justificacion_excepcion: text(row.justificacion_excepcion),
+            proyectoNumero: text(row.proyecto_numero),
+            proyecto_numero: text(row.proyecto_numero),
+            plazoEntregaDias: number(row.plazo_entrega_dias),
+            cantidadMinima: number(row.cantidad_minima) || 1,
+            vigenciaHasta: text(row.vigencia_hasta),
+            ultimaCotizacion: text(row.ultima_cotizacion),
+            fuente: text(row.fuente),
+            activo: row.activo !== false,
+            notas: text(row.notas),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listProviderMaterials(options = {}) {
+        let query = client.from('co_proveedor_materiales').select('*,co_proveedores(*),materiales(codigo,descripcion,marca,categoria,unidad)').order('updated_at', { ascending: false });
+        const providerId = Number(options.proveedorId || 0);
+        const materialCode = text(options.materialCodigo);
+        if (providerId) query = query.eq('proveedor_id', providerId);
+        if (materialCode) query = query.eq('material_codigo', materialCode);
+        if (options.activeOnly !== false) query = query.eq('activo', true);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudo consultar el catálogo de precios por proveedor.');
+        return (data || []).map(providerMaterialFromDb);
+    }
+
+    async function saveProviderMaterial(payload = {}) {
+        const providerId = Number(payload.proveedorId || 0);
+        const materialCode = text(payload.materialCodigo ?? payload.codigo);
+        if (!providerId || !materialCode) throw new Error('Selecciona proveedor y material.');
+        const row = {
+            proveedor_id: providerId,
+            material_codigo: materialCode,
+            descripcion: text(payload.descripcion) || null,
+            marca: text(payload.marca) || null,
+            precio_unitario: Math.max(0, number(payload.precioUnitario ?? payload.precio)),
+            moneda: ['MXN','USD','EUR'].includes(text(payload.moneda).toUpperCase()) ? text(payload.moneda).toUpperCase() : 'MXN',
+            plazo_entrega_dias: Math.max(0, Math.round(number(payload.plazoEntregaDias ?? payload.plazo))),
+            cantidad_minima: Math.max(0.0001, number(payload.cantidadMinima) || 1),
+            vigencia_hasta: text(payload.vigenciaHasta) || null,
+            ultima_cotizacion: text(payload.ultimaCotizacion) || null,
+            fuente: ['manual','catalogo','cotizacion_aceptada','importacion'].includes(text(payload.fuente)) ? text(payload.fuente) : 'manual',
+            activo: payload.activo !== false,
+            notas: text(payload.notas) || null,
+            updated_at: new Date().toISOString()
+        };
+        const { data, error } = await client.from('co_proveedor_materiales').upsert(row, { onConflict: 'proveedor_id,material_codigo' }).select('*,co_proveedores(*),materiales(codigo,descripcion,marca,categoria,unidad)').single();
+        assertNoError(error, 'No se pudo guardar el material del proveedor.');
+        return providerMaterialFromDb(data);
+    }
+
+    async function saveProviderMaterialsBulk(payloads = []) {
+        const list = Array.isArray(payloads) ? payloads : [];
+        if (!list.length) return { ok: true, count: 0 };
+        const rows = list.map(payload => {
+            const providerId = Number(payload.proveedorId || 0);
+            const materialCode = text(payload.materialCodigo ?? payload.codigo);
+            if (!providerId || !materialCode) throw new Error('Hay filas sin proveedor o material.');
+            return {
+                proveedor_id: providerId,
+                material_codigo: materialCode,
+                descripcion: text(payload.descripcion) || null,
+                marca: text(payload.marca) || null,
+                precio_unitario: Math.max(0, number(payload.precioUnitario ?? payload.precio)),
+                moneda: ['MXN','USD','EUR'].includes(text(payload.moneda).toUpperCase()) ? text(payload.moneda).toUpperCase() : 'MXN',
+                plazo_entrega_dias: Math.max(0, Math.round(number(payload.plazoEntregaDias ?? payload.plazo))),
+                cantidad_minima: Math.max(0.0001, number(payload.cantidadMinima) || 1),
+                vigencia_hasta: text(payload.vigenciaHasta) || null,
+                ultima_cotizacion: text(payload.ultimaCotizacion) || null,
+                fuente: ['manual','catalogo','cotizacion_aceptada','importacion'].includes(text(payload.fuente)) ? text(payload.fuente) : 'importacion',
+                activo: payload.activo !== false,
+                notas: text(payload.notas) || null,
+                updated_at: new Date().toISOString()
+            };
+        });
+        let count = 0;
+        for (let i = 0; i < rows.length; i += 250) {
+            const chunk = rows.slice(i, i + 250);
+            const { error } = await client.from('co_proveedor_materiales').upsert(chunk, { onConflict: 'proveedor_id,material_codigo' });
+            assertNoError(error, `No se pudo importar el bloque ${Math.floor(i / 250) + 1} del catálogo del proveedor.`);
+            count += chunk.length;
+        }
+        return { ok: true, count };
+    }
+
+    async function deleteProviderMaterial(id) {
+        const { error } = await client.from('co_proveedor_materiales').delete().eq('id', Number(id));
+        assertNoError(error, 'No se pudo eliminar la relación proveedor-material.');
+        return true;
+    }
+
+    async function ensureQuotationCatalogOffers(quotationId) {
+        const quote = await getQuotationRequest(quotationId);
+        const allRelations = await listProviderMaterials({ activeOnly: true });
+        const relationByMaterial = new Map();
+        allRelations.forEach(row => {
+            const key = lower(row.materialCodigo);
+            if (!relationByMaterial.has(key)) relationByMaterial.set(key, []);
+            relationByMaterial.get(key).push(row);
+        });
+        for (const item of quote.items) {
+            const existingProviders = new Set(item.ofertas.filter(o => o.proveedorId).map(o => Number(o.proveedorId)));
+            const candidates = relationByMaterial.get(lower(item.materialCodigo)) || [];
+            const inserts = candidates.filter(row => !existingProviders.has(Number(row.proveedorId))).map(row => ({
+                cotizacion_item_id: item.id,
+                proveedor_id: row.proveedorId,
+                precio_unitario: row.precioUnitario,
+                moneda: row.moneda,
+                plazo_entrega_dias: row.plazoEntregaDias,
+                vigencia_hasta: row.vigenciaHasta || null,
+                cantidad_minima: row.cantidadMinima || 1,
+                observaciones: row.notas || null,
+                origen: 'catalogo',
+                estado: row.precioUnitario > 0 ? 'recibida' : 'pendiente',
+                fecha_respuesta: row.precioUnitario > 0 ? new Date().toISOString() : null,
+                updated_at: new Date().toISOString()
+            }));
+            if (inserts.length) {
+                const { error } = await client.from('co_cotizacion_ofertas').insert(inserts);
+                assertNoError(error, `No se pudieron cargar las opciones del material ${item.materialCodigo}.`);
+            }
+        }
+        return getQuotationRequest(quotationId);
+    }
+
+    async function saveQuotationOffer(payload = {}) {
+        const id = Number(payload.id || 0);
+        const row = {
+            cotizacion_item_id: Number(payload.itemId || payload.cotizacionItemId),
+            proveedor_id: Number(payload.proveedorId || 0) || null,
+            proveedor_temporal_nombre: text(payload.proveedorTemporalNombre) || null,
+            proveedor_temporal_contacto: text(payload.proveedorTemporalContacto) || null,
+            proveedor_temporal_email: text(payload.proveedorTemporalEmail) || null,
+            proveedor_temporal_telefono: text(payload.proveedorTemporalTelefono) || null,
+            precio_unitario: Math.max(0, number(payload.precioUnitario)),
+            moneda: ['MXN','USD','EUR'].includes(text(payload.moneda).toUpperCase()) ? text(payload.moneda).toUpperCase() : 'MXN',
+            plazo_entrega_dias: Math.max(0, Math.round(number(payload.plazoEntregaDias))),
+            vigencia_hasta: text(payload.vigenciaHasta) || null,
+            cantidad_minima: Math.max(0.0001, number(payload.cantidadMinima) || 1),
+            observaciones: text(payload.observaciones) || null,
+            origen: ['catalogo','cotizacion','manual'].includes(text(payload.origen)) ? text(payload.origen) : 'cotizacion',
+            estado: text(payload.estado) || ((number(payload.precioUnitario) > 0 || number(payload.plazoEntregaDias) > 0) ? 'recibida' : 'pendiente'),
+            fecha_solicitud: text(payload.fechaSolicitud) || null,
+            fecha_respuesta: text(payload.fechaRespuesta) || ((number(payload.precioUnitario) > 0 || number(payload.plazoEntregaDias) > 0) ? new Date().toISOString() : null),
+            updated_at: new Date().toISOString()
+        };
+        if (!row.cotizacion_item_id) throw new Error('Material de cotización no válido.');
+        const query = id ? client.from('co_cotizacion_ofertas').update(row).eq('id', id) : client.from('co_cotizacion_ofertas').insert(row);
+        const { data, error } = await query.select('*,co_proveedores(*)').single();
+        assertNoError(error, 'No se pudo guardar la oferta del proveedor.');
+        return quotationOfferFromDb(data);
+    }
+
+    async function linkQuotationOfferRequest(offerId, requestId) {
+        const { error } = await client.from('co_cotizacion_ofertas').update({ solicitud_proveedor_id: text(requestId) || null, fecha_solicitud: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', Number(offerId));
+        assertNoError(error, 'La solicitud se creó, pero no pudo vincularse con la oferta.');
+        return true;
+    }
+
+    async function selectQuotationOffer(itemId, offerId) {
+        const { data, error } = await client.from('co_cotizacion_items').update({ oferta_seleccionada_id: Number(offerId) || null, estado: offerId ? 'seleccionado' : 'con_opciones', updated_at: new Date().toISOString() }).eq('id', Number(itemId)).select('*').single();
+        assertNoError(error, 'No se pudo seleccionar la propuesta.');
+        return quotationItemFromDb(data);
+    }
+
+    async function listEmailTemplates() {
+        const { data, error } = await client.from('co_plantillas_correo').select('*').eq('activa', true).order('predeterminada', { ascending: false }).order('nombre', { ascending: true });
+        assertNoError(error, 'No se pudieron consultar las plantillas de correo.');
+        return (data || []).map(row => ({ id:Number(row.id), nombre:text(row.nombre), asunto:text(row.asunto), mensaje:text(row.mensaje), predeterminada:row.predeterminada===true, activa:row.activa!==false }));
+    }
+
+    async function saveEmailTemplate(payload = {}) {
+        const id = Number(payload.id || 0);
+        const row = { nombre:text(payload.nombre), asunto:text(payload.asunto), mensaje:text(payload.mensaje), predeterminada:payload.predeterminada===true, activa:payload.activa!==false, updated_at:new Date().toISOString() };
+        if (!row.nombre || !row.asunto || !row.mensaje) throw new Error('Nombre, asunto y mensaje son obligatorios.');
+        if (row.predeterminada) await client.from('co_plantillas_correo').update({ predeterminada:false, updated_at:new Date().toISOString() }).neq('id', id || -1);
+        const query = id ? client.from('co_plantillas_correo').update(row).eq('id', id) : client.from('co_plantillas_correo').insert(row);
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar la plantilla.');
+        return { id:Number(data.id), nombre:text(data.nombre), asunto:text(data.asunto), mensaje:text(data.mensaje), predeterminada:data.predeterminada===true, activa:data.activa!==false };
+    }
+
+    async function deleteEmailTemplate(id) {
+        const { error } = await client.from('co_plantillas_correo').update({ activa:false, predeterminada:false, updated_at:new Date().toISOString() }).eq('id', Number(id));
+        assertNoError(error, 'No se pudo retirar la plantilla.');
+        return true;
+    }
+
+    async function approveQuotation(id) {
+        const { data, error } = await client.rpc('co_aprobar_cotizacion', { p_cotizacion_id: text(id) });
+        assertNoError(error, 'No se pudo aprobar la cotización.');
+        return data;
+    }
+
+
+    function receptionSupplyFromDb(row) {
+        return {
+            id: Number(row.id || 0),
+            codigo: text(row.codigo),
+            descripcion: text(row.descripcion),
+            desc: text(row.descripcion),
+            modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : text(row.modismos).split(/[,;\n]+/).map(text).filter(Boolean),
+            categoria: text(row.categoria) || 'General',
+            marca: text(row.marca),
+            codigoMarca: text(row.codigo_marca),
+            codigo_marca: text(row.codigo_marca),
+            ubicacion: text(row.ubicacion),
+            unidad: text(row.unidad) || 'PIEZA',
+            stock: number(row.stock),
+            stockMinimo: number(row.stock_minimo),
+            stock_minimo: number(row.stock_minimo),
+            precio: number(row.precio),
+            monedaCosto: normalizeCurrencyCode(row.moneda_costo),
+            moneda_costo: normalizeCurrencyCode(row.moneda_costo),
+            imagen: text(row.imagen_url),
+            imagenUrl: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            activo: row.activo !== false,
+            createdAt: text(row.created_at),
+            updatedAt: text(row.updated_at)
+        };
+    }
+
+    function receptionSupplyInternalCode(payload = {}) {
+        const existing = text(payload.codigo);
+        if (existing) return existing;
+        const seed = [payload.descripcion ?? payload.desc, payload.marca, payload.categoria, payload.unidad].map(value => lower(value)).join('|');
+        let hash = 2166136261;
+        for (let i = 0; i < seed.length; i++) { hash ^= seed.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+        const token = (hash >>> 0).toString(36).toUpperCase().padStart(7, '0').slice(-7);
+        return `SUM-${token}`;
+    }
+
+    function receptionSupplyToDb(payload = {}) {
+        const minimum = Math.max(0, number(payload.stockMinimo ?? payload.stock_minimo));
+        const maximum = minimum > 0 ? minimum * 2 : 0;
+        const medium = maximum > 0 ? (minimum + maximum) / 2 : minimum;
+        return {
+            codigo: receptionSupplyInternalCode(payload),
+            descripcion: text(payload.descripcion ?? payload.desc),
+            modismos: Array.isArray(payload.modismos) ? payload.modismos.map(text).filter(Boolean) : text(payload.modismos ?? payload.modismosTexto).split(/[,;\n]+/).map(text).filter(Boolean),
+            categoria: text(payload.categoria) || 'General',
+            marca: text(payload.marca) || null,
+            codigo_marca: null,
+            ubicacion: text(payload.ubicacion) || null,
+            proveedor: null,
+            contacto_proveedor: null,
+            unidad: text(payload.unidad) || 'PIEZA',
+            stock: Math.max(0, number(payload.stock)),
+            stock_minimo: minimum,
+            stock_medio: medium,
+            stock_maximo: maximum,
+            precio: Math.max(0, number(payload.precio)),
+            moneda_costo: normalizeCurrencyCode(payload.monedaCosto ?? payload.moneda_costo ?? payload.moneda),
+            imagen_url: text(payload.imagen ?? payload.imagenUrl ?? payload.imagen_url) || null,
+            activo: payload.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+    }
+
+    async function listReceptionSupplies(options = {}) {
+        let query = client.from('re_suministros').select('*').order('descripcion', { ascending: true });
+        if (options.includeInactive !== true) query = query.eq('activo', true);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar los suministros de Recepción. Ejecuta SQL_MAESTRO_CRM.sql.');
+        let rows = (data || []).map(receptionSupplyFromDb);
+        const q = text(options.search ?? options.q);
+        if (q) {
+            rows = rows.filter(item => {
+                const values = [item.descripcion,item.categoria,item.marca,item.ubicacion,item.unidad,...item.modismos];
+                return window.SkilledSearch?.matches ? window.SkilledSearch.matches(values, q) : values.some(value => lower(value).includes(lower(q)));
+            });
+        }
+        return rows;
+    }
+
+    async function saveReceptionSupply(payload = {}, originalCode = '') {
+        const original = text(originalCode);
+        const row = receptionSupplyToDb({ ...payload, codigo: text(payload.codigo) || original });
+        if (!row.descripcion || !row.categoria || !row.unidad) throw new Error('Descripción, categoría y unidad son obligatorios.');
+        const query = original && lower(original) !== lower(row.codigo)
+            ? client.from('re_suministros').update(row).eq('codigo', original)
+            : client.from('re_suministros').upsert(row, { onConflict: 'codigo' });
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar el suministro de Recepción. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return receptionSupplyFromDb(data);
+    }
+
+    async function deleteReceptionSupply(code) {
+        const value = text(code);
+        if (!value) throw new Error('Falta el código del suministro.');
+        const { error } = await client.from('re_suministros').update({ activo:false, updated_at:new Date().toISOString() }).eq('codigo', value);
+        assertNoError(error, 'No se pudo retirar el suministro.');
+        return { ok:true, codigo:value };
+    }
+
+    function receptionSupplyCategoryFromDb(row = {}) {
+        return {
+            nombre: text(row.nombre),
+            imagen: text(row.imagen_url),
+            imagen_url: text(row.imagen_url),
+            descripcion: text(row.descripcion),
+            activo: row.activo !== false
+        };
+    }
+
+    async function listReceptionSupplyCategoriesV110(options = {}) {
+        const { data, error } = await client.from('re_suministro_categorias').select('*').order('nombre', { ascending:true });
+        if (error) {
+            const supplies = await listReceptionSupplies({ includeInactive: options.includeInactive === true });
+            const names = [...new Set(supplies.map(item => text(item.categoria) || 'General'))].sort((a,b)=>a.localeCompare(b,'es-MX'));
+            return names.map(nombre => ({ nombre, imagen:'', imagen_url:'', descripcion:'', activo:true }));
+        }
+        const categories = (data || []).map(receptionSupplyCategoryFromDb);
+        return options.includeInactive === true ? categories : categories.filter(item => item.activo !== false);
+    }
+
+    async function saveReceptionSupplyCategoryV110(category = {}, originalName = '') {
+        const row = {
+            nombre: text(category.nombre),
+            imagen_url: text(category.imagen ?? category.imagen_url) || null,
+            descripcion: text(category.descripcion) || null,
+            activo: category.activo !== false,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.nombre) throw new Error('El nombre de la categoría es obligatorio.');
+        const original = text(originalName);
+        if (original && lower(original) !== lower(row.nombre)) {
+            const { error: insertError } = await client.from('re_suministro_categorias').insert(row);
+            assertNoError(insertError, 'No se pudo crear el nuevo nombre de la categoría.');
+            const { error: suppliesError } = await client.from('re_suministros').update({ categoria:row.nombre, updated_at:new Date().toISOString() }).eq('categoria', original);
+            assertNoError(suppliesError, 'La categoría se creó, pero no se pudieron mover sus suministros.');
+            const { error: deleteError } = await client.from('re_suministro_categorias').delete().eq('nombre', original);
+            assertNoError(deleteError, 'La categoría se renombró, pero no se pudo retirar el nombre anterior.');
+        } else {
+            const { error } = await client.from('re_suministro_categorias').upsert(row, { onConflict:'nombre' });
+            assertNoError(error, 'No se pudo guardar la categoría de Suministros. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        }
+        return receptionSupplyCategoryFromDb(row);
+    }
+
+    async function deleteReceptionSupplyCategoryV110(name) {
+        const nombre = text(name);
+        if (!nombre) throw new Error('Falta el nombre de la categoría.');
+        const { count, error: countError } = await client.from('re_suministros').select('id', { count:'exact', head:true }).eq('categoria', nombre).eq('activo', true);
+        assertNoError(countError, 'No se pudo comprobar la categoría.');
+        if ((count || 0) > 0) throw new Error('Esta categoría todavía contiene suministros. Muévelos a otra categoría antes de eliminarla.');
+        const { error } = await client.from('re_suministro_categorias').delete().eq('nombre', nombre);
+        assertNoError(error, 'No se pudo eliminar la categoría.');
+        return { ok:true, nombre };
+    }
+
+    async function importReceptionSupplies(products, onProgress) {
+        const input = Array.isArray(products) ? products : [];
+        const progress = typeof onProgress === 'function' ? onProgress : function(){};
+        const valid = [];
+        const errors = [];
+        const seen = new Set();
+        input.forEach((source, index) => {
+            const row = receptionSupplyToDb(source);
+            const fileRow = Number(source.filaArchivo || 0) || index + 1;
+            if (!row.descripcion || !row.categoria || !row.unidad) {
+                errors.push({ fila:fileRow, codigo:row.codigo, error:'Descripción, categoría y unidad son obligatorios.' });
+                return;
+            }
+            const key = lower(row.codigo);
+            if (seen.has(key)) {
+                errors.push({ fila:fileRow, codigo:row.codigo, error:'Suministro duplicado dentro del archivo.' });
+                return;
+            }
+            seen.add(key);
+            valid.push(row);
+        });
+        if (!valid.length) return { total:input.length, importados:0, omitidos:input.length, errores:errors };
+        progress(12, 'Validando suministros...');
+        const chunkSize = 180;
+        let saved = 0;
+        for (let offset = 0; offset < valid.length; offset += chunkSize) {
+            const chunk = valid.slice(offset, offset + chunkSize);
+            const { error } = await client.from('re_suministros').upsert(chunk, { onConflict:'codigo' });
+            if (error) {
+                chunk.forEach((row, index) => errors.push({ fila:offset + index + 1, codigo:row.codigo, error:errorMessage(error) }));
+            } else {
+                saved += chunk.length;
+            }
+            progress(Math.min(98, 15 + Math.round(((offset + chunk.length) / valid.length) * 80)), `Guardando ${Math.min(offset + chunk.length, valid.length)} de ${valid.length} suministros...`);
+        }
+        progress(100, 'Importación terminada.');
+        return { total:input.length, importados:saved, omitidos:input.length - saved, errores:errors };
+    }
+
+
+    async function listReceptionPantryV107() {
+        const [rackResult, levelResult, assignmentResult, supplyRows] = await Promise.all([
+            client.from('re_bodeguita_racks').select('*').eq('activo', true).order('orden', { ascending:true }).order('id', { ascending:true }),
+            client.from('re_bodeguita_niveles').select('*').order('orden', { ascending:true }).order('id', { ascending:true }),
+            client.from('re_bodeguita_asignaciones').select('*').order('id', { ascending:true }),
+            listReceptionSupplies()
+        ]);
+        assertNoError(rackResult.error, 'No se pudieron consultar los racks de Bodeguita. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(levelResult.error, 'No se pudieron consultar los niveles de Bodeguita. Ejecuta SQL_MAESTRO_CRM.sql.');
+        assertNoError(assignmentResult.error, 'No se pudieron consultar las ubicaciones de Bodeguita. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return {
+            racks:(rackResult.data || []).map(row => ({ id:Number(row.id), nombre:text(row.nombre), orden:number(row.orden)||1, notas:text(row.notas), activo:row.activo !== false })),
+            levels:(levelResult.data || []).map(row => ({ id:Number(row.id), rackId:Number(row.rack_id), nombre:text(row.nombre), orden:number(row.orden)||1, cajones:number(row.cajones)||1 })),
+            assignments:(assignmentResult.data || []).map(row => ({ id:Number(row.id), suministroId:Number(row.suministro_id), nivelId:Number(row.nivel_id), cajon:Number(row.cajon) })),
+            supplies:supplyRows
+        };
+    }
+
+    async function saveReceptionPantryRackV107(payload = {}) {
+        const id = Number(payload.id || 0) || null;
+        const row = { nombre:text(payload.nombre), orden:Math.max(1, Math.round(number(payload.orden)||1)), notas:text(payload.notas)||null, activo:payload.activo !== false, updated_at:new Date().toISOString() };
+        if (!row.nombre) throw new Error('El nombre del rack es obligatorio.');
+        const request = id ? client.from('re_bodeguita_racks').update(row).eq('id', id) : client.from('re_bodeguita_racks').insert(row);
+        const { data, error } = await request.select('*').single();
+        assertNoError(error, 'No se pudo guardar el rack de Bodeguita.');
+        return { id:Number(data.id), nombre:text(data.nombre), orden:number(data.orden)||1, notas:text(data.notas), activo:data.activo !== false };
+    }
+
+    async function saveReceptionPantryLevelV107(payload = {}) {
+        const id = Number(payload.id || 0) || null;
+        const row = { rack_id:Number(payload.rackId || payload.rack_id), nombre:text(payload.nombre), orden:Math.max(1, Math.round(number(payload.orden)||1)), cajones:Math.max(1, Math.min(200, Math.round(number(payload.cajones)||1))), updated_at:new Date().toISOString() };
+        if (!row.rack_id || !row.nombre) throw new Error('Rack y nombre del nivel son obligatorios.');
+        const request = id ? client.from('re_bodeguita_niveles').update(row).eq('id', id) : client.from('re_bodeguita_niveles').insert(row);
+        const { data, error } = await request.select('*').single();
+        assertNoError(error, 'No se pudo guardar el nivel de Bodeguita. Revisa que no existan suministros en cajones que quedarían fuera del nuevo límite.');
+        return { id:Number(data.id), rackId:Number(data.rack_id), nombre:text(data.nombre), orden:number(data.orden)||1, cajones:number(data.cajones)||1 };
+    }
+
+    async function assignReceptionPantrySupplyV107(supplyId, levelId = null, drawer = null) {
+        const sid = Number(supplyId || 0);
+        if (!sid) throw new Error('Suministro no válido.');
+        const { data, error } = await client.rpc('re_bodeguita_asignar_suministro_v107', {
+            p_suministro_id:sid,
+            p_nivel_id:Number(levelId || 0) || null,
+            p_cajon:Number(drawer || 0) || null
+        });
+        assertNoError(error, 'No se pudo acomodar el suministro en Bodeguita.');
+        return data || { ok:true };
+    }
+
+    function storeRequestFromDb(row) {
+        return {
+            id: Number(row.id), folio: text(row.folio), negocio: text(row.negocio), producto: text(row.producto),
+            marcaEspecifica: text(row.marca_especifica), presentacion: text(row.presentacion), cantidad: number(row.cantidad),
+            suministroId: Number(row.suministro_id || 0) || null, cantidadRecibida: number(row.cantidad_recibida),
+            precioUltimo: number(row.precio_ultimo), fechaUltimaRecepcion: text(row.fecha_ultima_recepcion), recibidoPor: text(row.recibido_por),
+            unidad: text(row.unidad), costoEstimado: number(row.costo_estimado), moneda: text(row.moneda),
+            fechaRequerida: text(row.fecha_requerida), prioridad: text(row.prioridad), estado: text(row.estado),
+            solicitadoPor: text(row.solicitado_por), responsableCompra: text(row.responsable_compra),
+            motivoNoViable: text(row.motivo_no_viable), comprobanteUrl: text(row.comprobante_url),
+            notas: text(row.notas), createdAt: text(row.created_at), updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listStoreRequests() {
+        const { data, error } = await client.from('co_tienda_solicitudes').select('*').order('created_at', { ascending: false });
+        assertNoError(error, 'No se pudieron consultar las solicitudes de tienda.');
+        return (data || []).map(storeRequestFromDb);
+    }
+
+    function nextStoreFolio() {
+        const now = new Date();
+        return `ST-${now.toISOString().slice(0,10).replaceAll('-','')}-${String(now.getTime()).slice(-6)}`;
+    }
+
+    async function saveStoreRequest(payload = {}) {
+        const row = {
+            folio: text(payload.folio) || nextStoreFolio(),
+            negocio: text(payload.negocio), producto: text(payload.producto),
+            marca_especifica: text(payload.marcaEspecifica) || null, presentacion: text(payload.presentacion) || null,
+            suministro_id: Number(payload.suministroId || payload.suministro_id || 0) || null,
+            cantidad: number(payload.cantidad) || 1, unidad: text(payload.unidad) || 'pieza',
+            costo_estimado: number(payload.costoEstimado), moneda: text(payload.moneda) || 'MXN',
+            fecha_requerida: text(payload.fechaRequerida) || null, prioridad: text(payload.prioridad) || 'normal',
+            estado: text(payload.estado) || 'no_revisada', solicitado_por: text(payload.solicitadoPor) || null,
+            responsable_compra: text(payload.responsableCompra) || null, motivo_no_viable: text(payload.motivoNoViable) || null,
+            comprobante_url: text(payload.comprobanteUrl) || null, notas: text(payload.notas) || null,
+            updated_at: new Date().toISOString()
+        };
+        if (!row.negocio || !row.producto) throw new Error('El negocio y el producto son obligatorios.');
+        if (row.estado === 'no_viable' && !row.motivo_no_viable) throw new Error('Captura el motivo por el que no se puede realizar la compra.');
+        const id = Number(payload.id || 0);
+        if (id) {
+            const { data: current, error: currentError } = await client.from('co_tienda_solicitudes').select('cantidad_recibida,estado').eq('id', id).maybeSingle();
+            assertNoError(currentError, 'No se pudo validar el estado de la lista de tienda.');
+            if (current && (number(current.cantidad_recibida) > 0 || text(current.estado) === 'comprado')) throw new Error('Esta lista ya tiene recepción registrada y no puede editarse. Consulta la hoja de compra o recibe únicamente lo pendiente.');
+        }
+        const query = id ? client.from('co_tienda_solicitudes').update(row).eq('id', id) : client.from('co_tienda_solicitudes').insert(row);
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar la solicitud de tienda.');
+        return storeRequestFromDb(data);
+    }
+
+    async function deleteStoreRequest(id) {
+        const { error } = await client.from('co_tienda_solicitudes').delete().eq('id', Number(id));
+        assertNoError(error, 'No se pudo eliminar la solicitud de tienda.');
+        return { ok: true };
+    }
+
+    async function receiveReceptionStoreListV108(folio, items = [], receivedBy = '') {
+        const payload = (Array.isArray(items) ? items : []).map(item => ({
+            item_id:Number(item.itemId || item.id || 0),
+            cantidad:Math.max(0, number(item.cantidad)),
+            precio_unitario:Math.max(0, number(item.precioUnitario ?? item.precio ?? 0))
+        })).filter(item => item.item_id && item.cantidad > 0);
+        if (!text(folio) || !payload.length) throw new Error('Selecciona al menos una cantidad para recibir.');
+        const { data, error } = await client.rpc('re_recibir_lista_compra_v108', { p_folio:text(folio), p_items:payload, p_recibido_por:text(receivedBy) || null });
+        assertNoError(error, 'No se pudo registrar la recepción de la lista. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return data || { ok:true };
+    }
+
+    function receptionDeliveryFromDb(row) {
+        return { id:Number(row.id), folio:text(row.folio), fecha:text(row.fecha), entregadoA:text(row.entregado_a), area:text(row.area), notas:text(row.notas), firmaData:text(row.firma_data), createdAt:text(row.created_at), items:(row.re_entrega_suministro_items || []).map(i=>({id:Number(i.id),suministroId:Number(i.suministro_id),descripcion:text(i.descripcion),cantidad:number(i.cantidad),unidad:text(i.unidad)})) };
+    }
+
+    async function listReceptionSupplyDeliveriesV108() {
+        const { data, error } = await client.from('re_entregas_suministros').select('*,re_entrega_suministro_items(*)').order('created_at',{ascending:false}).limit(300);
+        assertNoError(error, 'No se pudieron consultar las entregas de Suministros. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return (data || []).map(receptionDeliveryFromDb);
+    }
+
+    async function createReceptionSupplyDeliveryV108(payload = {}) {
+        const items=(Array.isArray(payload.items)?payload.items:[]).map(item=>({suministro_id:Number(item.suministroId||0),cantidad:Math.max(0,number(item.cantidad))})).filter(item=>item.suministro_id&&item.cantidad>0);
+        if(!text(payload.entregadoA)) throw new Error('Escribe el nombre de quien recibe.');
+        if(!items.length) throw new Error('Agrega al menos un suministro a la entrega.');
+        const { data, error } = await client.rpc('re_registrar_entrega_suministros_v108',{p_entregado_a:text(payload.entregadoA),p_area:text(payload.area)||null,p_notas:text(payload.notas)||null,p_firma_data:text(payload.firmaData)||null,p_items:items});
+        assertNoError(error,'No se pudo registrar la entrega. Revisa existencias y ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return data || {ok:true};
+    }
+
+
+    function receptionSupplyRequestFromDb(row = {}) {
+        return {
+            id:Number(row.id), folio:text(row.folio), solicitante:text(row.solicitante), area:text(row.area), notas:text(row.notas), firmaSolicitudData:text(row.firma_solicitud_data),
+            estado:text(row.estado) || 'pendiente', motivoRechazo:text(row.motivo_rechazo), entregaId:Number(row.entrega_id || 0) || null,
+            fechaAtencion:text(row.fecha_atencion), createdAt:text(row.created_at), updatedAt:text(row.updated_at),
+            items:(row.re_solicitud_suministro_items || []).map(item => ({
+                id:Number(item.id), suministroId:Number(item.suministro_id), descripcion:text(item.descripcion), cantidad:number(item.cantidad), unidad:text(item.unidad)
+            }))
+        };
+    }
+
+    async function getReceptionSupplyRequestPortalV120() {
+        const { data, error } = await client.rpc('re_portal_config_v120');
+        assertNoError(error, 'No se pudo obtener el QR de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return data || {};
+    }
+
+    async function rotateReceptionSupplyRequestPortalV120() {
+        const { data, error } = await client.rpc('re_rotar_portal_solicitudes_v120');
+        assertNoError(error, 'No se pudo renovar el QR de solicitudes.');
+        return data || {};
+    }
+
+    async function listReceptionSupplyRequestsV120(options = {}) {
+        let query = client.from('re_solicitudes_suministros').select('*,re_solicitud_suministro_items(*)').order('created_at',{ascending:false}).limit(Math.min(300,Math.max(1,Math.round(number(options.limit)||100))));
+        const status = text(options.estado ?? options.status);
+        if (status) query = query.eq('estado', status);
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las solicitudes por QR. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return (data || []).map(receptionSupplyRequestFromDb);
+    }
+
+    async function listReceptionPublicSupplyCatalogV120(token) {
+        const { data, error } = await client.rpc('re_portal_catalogo_suministros_v120',{p_token:text(token)});
+        assertNoError(error, 'No se pudo abrir el catálogo de solicitudes.');
+        const items = Array.isArray(data?.items) ? data.items : [];
+        return items.map(item => ({ id:Number(item.id), descripcion:text(item.descripcion), categoria:text(item.categoria), unidad:text(item.unidad), imagen:text(item.imagen) }));
+    }
+
+    async function createReceptionPublicSupplyRequestV120(token, payload = {}) {
+        const items=(Array.isArray(payload.items)?payload.items:[]).map(item=>({suministro_id:Number(item.suministroId || item.suministro_id || 0),cantidad:Math.max(0,number(item.cantidad))})).filter(item=>item.suministro_id&&item.cantidad>0);
+        const { data, error } = await client.rpc('re_crear_solicitud_suministros_v120',{
+            p_token:text(token),
+            p_solicitante:text(payload.solicitante),
+            p_area:text(payload.area),
+            p_notas:text(payload.notas)||null,
+            p_items:items
+        });
+        assertNoError(error, 'No se pudo enviar la solicitud a Recepción.');
+        return data || {ok:true};
+    }
+
+
+    async function listReceptionPublicSupplyCatalogV121(token) {
+        const { data, error } = await client.rpc('re_portal_catalogo_suministros_v121',{p_token:text(token)});
+        assertNoError(error, 'No se pudo abrir el catálogo de solicitudes. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        const items = Array.isArray(data?.items) ? data.items : [];
+        return items.map(item => ({ id:Number(item.id), descripcion:text(item.descripcion), categoria:text(item.categoria), unidad:text(item.unidad), imagen:text(item.imagen) }));
+    }
+
+    async function createReceptionPublicSupplyRequestV121(token, payload = {}) {
+        const items=(Array.isArray(payload.items)?payload.items:[]).map(item=>({suministro_id:Number(item.suministroId || item.suministro_id || 0),cantidad:Math.max(0,number(item.cantidad))})).filter(item=>item.suministro_id&&item.cantidad>0);
+        const { data, error } = await client.rpc('re_crear_solicitud_suministros_v121',{
+            p_token:text(token),
+            p_solicitante:text(payload.solicitante),
+            p_area:text(payload.area),
+            p_notas:text(payload.notas)||null,
+            p_firma_solicitud_data:text(payload.firmaSolicitudData)||null,
+            p_items:items
+        });
+        assertNoError(error, 'No se pudo enviar la solicitud a Recepción. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return data || {ok:true};
+    }
+
+    async function deliverReceptionSupplyRequestV120(id) {
+        const { data, error } = await client.rpc('re_entregar_solicitud_suministros_v120',{p_solicitud_id:Number(id||0)});
+        assertNoError(error, 'No se pudo marcar la solicitud como entregada.');
+        return data || {ok:true};
+    }
+
+    async function rejectReceptionSupplyRequestV120(id, reason = '') {
+        const { data, error } = await client.rpc('re_rechazar_solicitud_suministros_v120',{p_solicitud_id:Number(id||0),p_motivo:text(reason)||null});
+        assertNoError(error, 'No se pudo cerrar la solicitud.');
+        return data || {ok:true};
+    }
+
+    function serviceFromDb(row) {
+        return {
+            id: Number(row.id), codigo: text(row.codigo), nombre: text(row.nombre), tipo: text(row.tipo),
+            proveedor: text(row.proveedor), cuentaContrato: text(row.cuenta_contrato), ubicacion: text(row.ubicacion),
+            periodicidad: text(row.periodicidad), proximaFechaPago: text(row.proxima_fecha_pago),
+            anticipacionDias: number(row.anticipacion_dias), montoEstimado: number(row.monto_estimado),
+            moneda: text(row.moneda), referenciaPago: text(row.referencia_pago), responsable: text(row.responsable),
+            estado: text(row.estado), notas: text(row.notas), createdAt: text(row.created_at), updatedAt: text(row.updated_at)
+        };
+    }
+
+    async function listServices(options = {}) {
+        let query = client.from('co_servicios').select('*').order('proxima_fecha_pago', { ascending: true });
+        if (options.activeOnly) query = query.eq('estado', 'activo');
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar los servicios.');
+        return (data || []).map(serviceFromDb);
+    }
+
+    async function saveService(payload = {}) {
+        const row = {
+            codigo: text(payload.codigo) || null, nombre: text(payload.nombre), tipo: text(payload.tipo),
+            proveedor: text(payload.proveedor) || null, cuenta_contrato: text(payload.cuentaContrato) || null,
+            ubicacion: text(payload.ubicacion) || null, periodicidad: text(payload.periodicidad) || 'mensual',
+            proxima_fecha_pago: text(payload.proximaFechaPago), anticipacion_dias: Math.max(0, Math.trunc(number(payload.anticipacionDias) || 0)),
+            monto_estimado: number(payload.montoEstimado), moneda: text(payload.moneda) || 'MXN',
+            referencia_pago: text(payload.referenciaPago) || null, responsable: text(payload.responsable) || null,
+            estado: text(payload.estado) || 'activo', notas: text(payload.notas) || null, updated_at: new Date().toISOString()
+        };
+        if (!row.nombre || !row.tipo || !row.proxima_fecha_pago) throw new Error('Nombre, tipo y próxima fecha de pago son obligatorios.');
+        const id = Number(payload.id || 0);
+        const query = id ? client.from('co_servicios').update(row).eq('id', id) : client.from('co_servicios').insert(row);
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar el servicio.');
+        return serviceFromDb(data);
+    }
+
+    async function deleteService(id) {
+        const { error } = await client.from('co_servicios').delete().eq('id', Number(id));
+        assertNoError(error, 'No se pudo eliminar el servicio.');
+        return { ok: true };
+    }
+
+    async function generateServiceAlerts() {
+        const { data, error } = await client.rpc('co_generar_alertas_servicios');
+        assertNoError(error, 'No se pudieron generar las alertas de servicios.');
+        return number(data);
+    }
+
+    function servicePaymentFromDb(row) {
+        return {
+            id: Number(row.id), servicioId: Number(row.servicio_id), periodo: text(row.periodo),
+            fechaVencimiento: text(row.fecha_vencimiento), fechaPago: text(row.fecha_pago),
+            importe: number(row.importe), estado: text(row.estado), comprobanteUrl: text(row.comprobante_url),
+            referencia: text(row.referencia), notas: text(row.notas), createdAt: text(row.created_at)
+        };
+    }
+
+    async function listServicePayments(serviceId = 0) {
+        let query = client.from('co_servicio_pagos').select('*').order('fecha_vencimiento', { ascending: false });
+        if (Number(serviceId)) query = query.eq('servicio_id', Number(serviceId));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar los pagos de servicios.');
+        return (data || []).map(servicePaymentFromDb);
+    }
+
+    async function saveServicePayment(payload = {}) {
+        const row = {
+            servicio_id: Number(payload.servicioId), periodo: text(payload.periodo) || null,
+            fecha_vencimiento: text(payload.fechaVencimiento), fecha_pago: text(payload.fechaPago) || null,
+            importe: number(payload.importe), estado: text(payload.estado) || 'pendiente',
+            comprobante_url: text(payload.comprobanteUrl) || null, referencia: text(payload.referencia) || null,
+            notas: text(payload.notas) || null, updated_at: new Date().toISOString()
+        };
+        if (!row.servicio_id || !row.fecha_vencimiento) throw new Error('Servicio y fecha de vencimiento son obligatorios.');
+        const id = Number(payload.id || 0);
+        const query = id ? client.from('co_servicio_pagos').update(row).eq('id', id) : client.from('co_servicio_pagos').insert(row);
+        const { data, error } = await query.select('*').single();
+        assertNoError(error, 'No se pudo guardar el pago del servicio.');
+        if (row.estado === 'pagado') {
+            try {
+                await client.from('notificaciones_sistema').update({ leida: true })
+                    .eq('tipo', 'servicio_proximo_pago').eq('entidad_id', row.servicio_id);
+            } catch (_) {}
+        }
+        return servicePaymentFromDb(data);
+    }
+
+
+    function parseLocationForSort(value) {
+        const match = text(value).toUpperCase().match(/^(\d{2})-([1-9]\d*)-([A-Z])(\d+)$/);
+        if (!match) return { rack: 999, zone: 999, floor: 'Z', consecutive: 999999, raw: text(value) };
+        return { rack: Number(match[1]), zone: Number(match[2]), floor: match[3], consecutive: Number(match[4]), raw: text(value) };
+    }
+
+    function compareWarehouseLocations(a, b) {
+        const x = parseLocationForSort(a?.ubicacion ?? a?.location);
+        const y = parseLocationForSort(b?.ubicacion ?? b?.location);
+        return x.rack - y.rack || x.zone - y.zone || x.floor.localeCompare(y.floor, 'es') || x.consecutive - y.consecutive || x.raw.localeCompare(y.raw, 'es');
+    }
+
+    async function suggestWarehouseMaterialLocation(payload = {}) {
+        const code = text(payload.codigo ?? payload.materialCodigo ?? payload.material_codigo);
+        const warehouseId = Number(payload.almacenId ?? payload.warehouseId ?? payload.almacen_id ?? 0);
+        if (!code) throw new Error('Selecciona el material que deseas acomodar.');
+        if (!warehouseId) throw new Error('Selecciona el almacén donde deseas acomodarlo.');
+
+        const [materials, structures, inventory] = await Promise.all([
+            listMaterials(),
+            listWarehouseLocations({ warehouseId, activeOnly: true }),
+            listWarehouseInventory({ warehouseId, includeInactive: true })
+        ]);
+        const material = materials.find(item => lower(item.codigo) === lower(code));
+        if (!material) throw new Error(`No se encontró el material ${code}.`);
+        const category = lower(material.categoria);
+        const activeStructures = structures.filter(item => /^(\d{2})-([1-9]\d*)-([A-Z])$/.test(text(item.codigo).toUpperCase()));
+        if (!activeStructures.length) throw new Error('El almacén todavía no tiene racks, zonas y pisos configurados.');
+
+        const positionCountsByBase = new Map();
+        const categoryCountsByBase = new Map();
+        const categoryCountsByPosition = new Map();
+        inventory.forEach(item => {
+            const location = text(item.ubicacion).toUpperCase();
+            const match = location.match(/^(\d{2}-[1-9]\d*-[A-Z])(\d+)$/);
+            if (!match) return;
+            const base = match[1];
+            const position = Number(match[2]);
+            if (!positionCountsByBase.has(base)) positionCountsByBase.set(base, new Map());
+            const counts = positionCountsByBase.get(base);
+            counts.set(position, (counts.get(position) || 0) + 1);
+            if (category && lower(item.categoria) === category) {
+                categoryCountsByBase.set(base, (categoryCountsByBase.get(base) || 0) + 1);
+                const key = `${base}:${position}`;
+                categoryCountsByPosition.set(key, (categoryCountsByPosition.get(key) || 0) + 1);
+            }
+        });
+
+        const candidates = [];
+        activeStructures.forEach(structure => {
+            const base = text(structure.codigo).toUpperCase();
+            const capacity = Math.max(1, Math.trunc(number(structure.columnas ?? structure.capacidadConsecutivos) || 20));
+            const counts = positionCountsByBase.get(base) || new Map();
+            let consecutive = 0;
+            let positionCount = 0;
+            let positionCategoryCount = 0;
+            let positionScore = -Infinity;
+            for (let index = 1; index <= capacity; index += 1) {
+                const count = counts.get(index) || 0;
+                if (count >= MAX_MATERIALS_PER_WAREHOUSE_POSITION) continue;
+                const sameCategoryInPosition = categoryCountsByPosition.get(`${base}:${index}`) || 0;
+                const score = sameCategoryInPosition * 1000 + (count > 0 ? 100 : 0) + count;
+                if (score > positionScore) {
+                    consecutive = index;
+                    positionCount = count;
+                    positionCategoryCount = sameCategoryInPosition;
+                    positionScore = score;
+                }
+            }
+            if (!consecutive) return;
+            const sameCategory = categoryCountsByBase.get(base) || 0;
+            const occupiedPositions = [...counts.values()].filter(count => count > 0).length;
+            const freeCapacity = capacity * MAX_MATERIALS_PER_WAREHOUSE_POSITION - [...counts.values()].reduce((sum, count) => sum + count, 0);
+            candidates.push({
+                structure,
+                base,
+                capacity,
+                occupied: occupiedPositions,
+                free: Math.max(0, freeCapacity),
+                consecutive,
+                codigo: `${base}${consecutive}`,
+                sameCategory,
+                positionCount,
+                positionCategoryCount,
+                score: positionCategoryCount * 10000 + sameCategory * 100 + positionCount * 10 - occupiedPositions
+            });
+        });
+        if (!candidates.length) throw new Error('No queda capacidad disponible en las posiciones físicas configuradas para este almacén.');
+        candidates.sort((a, b) => b.score - a.score || compareWarehouseLocations({ ubicacion: `${a.base}1` }, { ubicacion: `${b.base}1` }));
+        const best = candidates[0];
+        return {
+            materialCodigo: material.codigo,
+            materialDescripcion: text(material.descripcion ?? material.desc),
+            categoria: text(material.categoria),
+            almacenId: warehouseId,
+            almacenNombre: text(best.structure.almacenNombre),
+            ubicacion: best.codigo,
+            base: best.base,
+            rack: Number(best.base.slice(0, 2)),
+            zona: Number(best.base.split('-')[1]),
+            piso: best.base.split('-')[2],
+            consecutivo: best.consecutive,
+            capacidad: best.capacity,
+            ocupados: best.occupied,
+            libres: best.free,
+            materialesMismaCategoria: best.sameCategory,
+            razon: best.sameCategory > 0
+                ? `Se priorizó una zona que ya contiene ${best.sameCategory} material${best.sameCategory === 1 ? '' : 'es'} de la misma categoría.`
+                : `Se seleccionó una posición con capacidad disponible. Actualmente contiene ${best.positionCount}/${MAX_MATERIALS_PER_WAREHOUSE_POSITION} tipos de material.`
+        };
+    }
+
+    async function buildProjectPickingRoute(projectNumber, options = {}) {
+        const project = text(projectNumber);
+        const warehouseId = Number(options.almacenId ?? options.warehouseId ?? 0);
+        if (!project) throw new Error('Selecciona un proyecto.');
+        const [plan, materials, warehouses] = await Promise.all([
+            listProjectMovementPlan(project),
+            listMaterials(),
+            listWarehouses({ activeOnly: true })
+        ]);
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        const materialByCode = new Map(materials.map(item => [lower(item.codigo), item]));
+        const picks = [];
+        const shortages = [];
+        const withoutLocation = [];
+
+        plan.filter(line => number(line.pendiente) > 0).forEach(line => {
+            const pending = number(line.pendiente);
+            const material = materialByCode.get(lower(line.codigo)) || line.material || {};
+            let remaining = pending;
+            const sources = (Array.isArray(material.almacenes) ? material.almacenes : [])
+                .filter(item => number(item.stock) > 0 && (!warehouseId || Number(item.id) === warehouseId))
+                .sort((a, b) => {
+                    const aLocated = text(a.ubicacion) ? 0 : 1;
+                    const bLocated = text(b.ubicacion) ? 0 : 1;
+                    return aLocated - bLocated || compareWarehouseLocations({ ubicacion: a.ubicacion }, { ubicacion: b.ubicacion }) || text(a.nombre).localeCompare(text(b.nombre), 'es');
+                });
+            sources.forEach(source => {
+                if (remaining <= 0) return;
+                const take = Math.min(remaining, number(source.stock));
+                if (take <= 0) return;
+                const row = {
+                    proyecto: project,
+                    codigo: text(line.codigo),
+                    descripcion: text(line.descripcion ?? material.descripcion ?? material.desc ?? line.codigo),
+                    categoria: text(line.categoria ?? material.categoria),
+                    unidad: text(line.unidad ?? material.unidad),
+                    cantidad: take,
+                    pendienteProyecto: pending,
+                    almacenId: Number(source.id),
+                    almacenNombre: text(source.nombre || warehouseById.get(Number(source.id))?.nombre),
+                    ubicacion: text(source.ubicacion),
+                    disponible: number(source.stock)
+                };
+                if (row.ubicacion) picks.push(row); else withoutLocation.push(row);
+                remaining -= take;
+            });
+            if (remaining > 0) shortages.push({
+                proyecto: project,
+                codigo: text(line.codigo),
+                descripcion: text(line.descripcion ?? material.descripcion ?? material.desc ?? line.codigo),
+                unidad: text(line.unidad ?? material.unidad),
+                requerido: pending,
+                faltante: remaining
+            });
+        });
+
+        picks.sort((a, b) => text(a.almacenNombre).localeCompare(text(b.almacenNombre), 'es') || compareWarehouseLocations(a, b) || text(a.descripcion).localeCompare(text(b.descripcion), 'es'));
+        withoutLocation.sort((a, b) => text(a.almacenNombre).localeCompare(text(b.almacenNombre), 'es') || text(a.descripcion).localeCompare(text(b.descripcion), 'es'));
+        return {
+            proyecto: project,
+            almacenId: warehouseId || null,
+            rutas: picks,
+            sinUbicacion: withoutLocation,
+            faltantes: shortages,
+            totalParadas: picks.length,
+            totalMateriales: new Set(picks.map(item => lower(item.codigo))).size,
+            totalUnidades: picks.reduce((sum, item) => sum + number(item.cantidad), 0)
+        };
+    }
+
+    async function listOperationalAlerts() {
+        const [low, purchaseRequests, pendingLocations, toolAssignments, vehicles, maintenancePlans] = await Promise.all([
+            listLowStock(),
+            listPurchaseRequests({ activeOnly: true }),
+            listPendingLocations(),
+            listToolAssignments({ status: 'activa' }),
+            listVehicles({ includeInactive: false }),
+            listVehicleMaintenancePlans({ includeInactive: false }).catch(() => [])
+        ]);
+        const today = new Date();
+        const limit = new Date(today.getTime() + 30 * 86400000);
+        const expiringVehicles = vehicles.filter(vehicle => [vehicle.vigenciaSeguro, vehicle.vigenciaTarjeta, vehicle.proximaVerificacion].some(value => {
+            if (!value) return false;
+            const date = new Date(`${value}T12:00:00`);
+            return !Number.isNaN(date.getTime()) && date <= limit;
+        }));
+        const vehicleById = new Map(vehicles.map(item => [Number(item.id), item]));
+        const maintenanceAlerts = maintenancePlans.filter(plan => {
+            const vehicle=vehicleById.get(Number(plan.vehiculoId));if(!vehicle)return false;
+            const kmAlert=plan.proximoKm!=null&&number(vehicle.kilometraje)>=Math.max(0,number(plan.proximoKm)-number(plan.avisoKm));
+            const dateAlert=plan.proximaFecha&&new Date(`${plan.proximaFecha}T12:00:00`)<=new Date(today.getTime()+Math.max(0,number(plan.avisoDias))*86400000);
+            return Boolean(kmAlert||dateAlert||(plan.criterio==='manual'&&['alta','critica'].includes(plan.prioridad)));
+        });
+        const overdueTools = toolAssignments.filter(item => item.estado === 'vencida');
+        const purchasePending = purchaseRequests.filter(item => !['recibida', 'cerrada', 'cancelada', 'rechazada'].includes(lower(item.estado)));
+        return {
+            lowStock: low,
+            purchasePending,
+            pendingLocations,
+            overdueTools,
+            expiringVehicles,
+            maintenanceAlerts,
+            summary: {
+                bajoMinimo: low.length,
+                comprasPendientes: purchasePending.length,
+                ubicacionesPendientes: pendingLocations.length,
+                herramientasVencidas: overdueTools.length,
+                documentosVehiculo: expiringVehicles.length,
+                mantenimientosVehiculo: maintenanceAlerts.length
+            }
+        };
+    }
+
+
+    async function listExecutiveVehicles(options = {}) {
+        let data = null;
+        let error = null;
+        try {
+            ({ data, error } = await withOperationTimeout(
+                client.rpc('crm_sky_direccion_consultar', { p_fuente: 'vehiculos', p_filtro: null }),
+                7000,
+                'La consulta principal de Vehículos tardó demasiado.'
+            ));
+        } catch (timeoutError) {
+            error = { code: 'TIMEOUT', message: timeoutError.message };
+        }
+        if (error && ['PGRST202','42883','TIMEOUT'].includes(String(error.code || ''))) {
+            try {
+                ({ data, error } = await withOperationTimeout(
+                    client.rpc('crm_direccion_vehiculos'),
+                    7000,
+                    'La consulta alternativa de Vehículos tardó demasiado.'
+                ));
+            } catch (timeoutError) {
+                error = { code: 'TIMEOUT', message: timeoutError.message };
+            }
+        }
+        assertNoError(error, 'No se pudo consultar Vehículos para Dirección. Revisa la conexión y las funciones SQL de Dirección.');
+        let vehicles = (Array.isArray(data) ? data : []).map(row => vehicleFromDb(row));
+        if (options.includeInactive !== true) vehicles = vehicles.filter(item => item.activo !== false);
+        const status = lower(options.estado ?? options.status);
+        const project = text(options.proyecto ?? options.project);
+        if (status) vehicles = vehicles.filter(item => lower(item.estado) === status);
+        if (project) vehicles = vehicles.filter(item => lower(item.proyecto) === lower(project));
+        return vehicles;
+    }
+
+    async function listExecutiveSkyMaterials() {
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'materiales', p_filtro: null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_materiales'));
+        assertNoError(error, 'No se pudo consultar Materiales para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        const rows = Array.isArray(data) ? data : [];
+        return rows.map(row => ({
+            codigo: text(row.codigo),
+            descripcion: text(row.descripcion),
+            desc: text(row.descripcion),
+            categoria: text(row.categoria),
+            tipoCable: text(row.tipo_cable),
+            tipo_cable: text(row.tipo_cable),
+            tamano: text(row.tamano_mm2),
+            tamano_mm2: text(row.tamano_mm2),
+            unidad: text(row.unidad),
+            stock: number(row.stock),
+            stockMinimo: number(row.stock_minimo),
+            stock_minimo: number(row.stock_minimo),
+            stockMedio: number(row.stock_medio),
+            stock_medio: number(row.stock_medio),
+            stockMaximo: number(row.stock_maximo),
+            stock_maximo: number(row.stock_maximo),
+            marca: text(row.marca),
+            proveedor: text(row.proveedor),
+            rollosDisponibles: number(row.rollos_disponibles),
+            rollos_disponibles: number(row.rollos_disponibles),
+            metrosRollos: number(row.metros_rollos),
+            metros_rollos: number(row.metros_rollos),
+            modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : [],
+            almacenes: Array.isArray(row.almacenes) ? row.almacenes.map(item => ({
+                id: Number(item.id || 0),
+                nombre: text(item.nombre),
+                stock: number(item.stock),
+                stockMinimo: number(item.stockMinimo ?? item.stock_minimo),
+                stock_minimo: number(item.stockMinimo ?? item.stock_minimo),
+                stockMedio: number(item.stockMedio ?? item.stock_medio),
+                stock_medio: number(item.stockMedio ?? item.stock_medio),
+                stockMaximo: number(item.stockMaximo ?? item.stock_maximo),
+                stock_maximo: number(item.stockMaximo ?? item.stock_maximo),
+                ubicacion: text(item.ubicacion)
+            })) : [],
+            activo: true
+        }));
+    }
+
+    async function listExecutiveSkyCategories() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'categorias', p_filtro: null });
+        assertNoError(error, 'No se pudieron consultar las categorías para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function searchExecutiveSky(query) {
+        const value=text(query).slice(0,180);
+        if (!value) return [];
+        const { data, error } = await client.rpc('crm_sky_direccion_buscar', { p_consulta:value });
+        if (error && ['PGRST202','42883'].includes(String(error.code||''))) return [];
+        assertNoError(error, 'No se pudo realizar la búsqueda transversal de Skill. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function listExecutiveSkyPeople(projectNumber = '') {
+        const project = text(projectNumber);
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'personal', p_filtro: project || null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_personal', { p_proyecto: project || null }));
+        assertNoError(error, 'No se pudo consultar Recursos Humanos para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getExecutiveSkyPurchasing() {
+        let { data, error } = await client.rpc('crm_sky_direccion_compras');
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente: 'compras', p_filtro: null }));
+        assertNoError(error, 'No se pudo consultar Compras para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data && typeof data === 'object' ? data : { proveedores: [], solicitudes: [], cotizaciones: [], solicitudes_proveedor: [], comunicaciones: [], material_proveedores: [] };
+    }
+
+    async function getExecutiveSkyTools() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'herramientas', p_filtro:null });
+        assertNoError(error, 'No se pudieron consultar Herramientas para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getExecutiveSkyWarehouses() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'almacenes', p_filtro:null });
+        assertNoError(error, 'No se pudieron consultar Almacenes para Skill Dirección. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getExecutiveSkyAlerts() {
+        const { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'alertas', p_filtro:null });
+        assertNoError(error, 'No se pudieron consultar las alertas ejecutivas. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data && typeof data === 'object' ? data : {};
+    }
+
+    async function getExecutiveProjectSummary() {
+        let { data, error } = await client.rpc('crm_sky_direccion_consultar', { p_fuente:'proyectos', p_filtro:null });
+        if (error && ['PGRST202','42883'].includes(String(error.code || ''))) ({ data, error } = await client.rpc('crm_resumen_ejecutivo_proyectos'));
+        assertNoError(error, 'No se pudo consultar el resumen ejecutivo de proyectos. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return (Array.isArray(data) ? data : []).map(row => ({
+            proyecto: text(row.proyecto), nombre: text(row.nombre), cliente: text(row.cliente), responsable: text(row.responsable),
+            estado: text(row.estado), fechaInicio: text(row.fecha_inicio), fechaEntrega: text(row.fecha_entrega),
+            material_planeado: number(row.material_planeado), material_real: number(row.material_real),
+            nomina_planeada: number(row.nomina_planeada), nomina_real: number(row.nomina_real),
+            total_planeado: number(row.total_planeado), total_real: number(row.total_real), desviacion_total: number(row.desviacion_total)
+        }));
+    }
+
+    async function getExecutiveProjectDetail(projectNumber) {
+        const project = text(projectNumber);
+        if (!project) throw new Error('Selecciona un proyecto.');
+        const { data, error } = await client.rpc('crm_detalle_ejecutivo_proyecto', { p_proyecto: project });
+        assertNoError(error, 'No se pudo consultar el detalle financiero del proyecto.');
+        if (!data || typeof data !== 'object') throw new Error('El proyecto no devolvió información financiera.');
+        return data;
+    }
+
+    async function listQuotationPurchaseOrders(quotationId = '') {
+        let query = client.from('solicitudes_compra').select('*').order('created_at', { ascending: true });
+        if (text(quotationId)) query = query.eq('cotizacion_id', text(quotationId));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las órdenes vinculadas a la cotización.');
+        const warehouses = await listWarehouses();
+        const warehouseById = new Map(warehouses.map(item => [Number(item.id), item]));
+        return (data || []).map(row => ({
+            ...purchaseRequestFromDb(row, warehouseById),
+            cotizacionId: text(row.cotizacion_id), cotizacionItemId: Number(row.cotizacion_item_id || 0) || null,
+            proveedorId: Number(row.proveedor_id || 0) || null, precioCotizado: number(row.precio_cotizado),
+            moneda: text(row.moneda) || 'MXN', plazoEntregaDias: number(row.plazo_entrega_dias)
+        }));
+    }
+
+    function rhOfficeAssetFromDb(row) {
+        const history = Array.isArray(row.rh_activos_asignaciones) ? row.rh_activos_asignaciones : [];
+        const assigned = history.filter(item => text(item.estado) === 'asignado').reduce((sum,item) => sum + number(item.cantidad), 0);
+        const unavailable = history.filter(item => ['asignado','perdido','danado'].includes(text(item.estado))).reduce((sum,item) => sum + number(item.cantidad), 0);
+        const total = number(row.cantidad_total);
+        return { id:Number(row.id),codigo:text(row.codigo),nombre:text(row.nombre),categoria:text(row.categoria),tipoControl:text(row.tipo_control)||'individual',marca:text(row.marca),modelo:text(row.modelo),numeroSerie:text(row.numero_serie),unidad:text(row.unidad)||'PIEZA',cantidadTotal:total,asignado:assigned,noDisponible:unavailable,disponible:Math.max(0,total-unavailable),ubicacion:text(row.ubicacion),estado:text(row.estado)||'activo',observaciones:text(row.observaciones),createdAt:text(row.created_at),updatedAt:text(row.updated_at) };
+    }
+
+    function rhOfficeAssignmentFromDb(row) {
+        const asset=row.rh_activos_oficina||row.activo||{},person=row.rh_personal||row.personal||{};
+        return { id:Number(row.id),activoId:Number(row.activo_id),personalId:Number(row.personal_id),cantidad:number(row.cantidad),fechaAsignacion:text(row.fecha_asignacion),fechaDevolucion:text(row.fecha_devolucion),estado:text(row.estado)||'asignado',condicionEntrega:text(row.condicion_entrega),condicionDevolucion:text(row.condicion_devolucion),responsableEntrega:text(row.responsable_entrega),responsableRecepcion:text(row.responsable_recepcion),notas:text(row.notas),activoCodigo:text(asset.codigo),activoNombre:text(asset.nombre),categoria:text(asset.categoria),marca:text(asset.marca),modelo:text(asset.modelo),numeroSerie:text(asset.numero_serie),unidad:text(asset.unidad)||'PIEZA',personalNumero:text(person.numero_empleado),personalNombre:text(`${person.nombre||''} ${person.apellidos||''}`),puesto:text(person.puesto),departamento:text(person.departamento),createdAt:text(row.created_at),updatedAt:text(row.updated_at) };
+    }
+
+    async function listRHOfficeAssets(options = {}) {
+        let query=client.from('rh_activos_oficina').select('*,rh_activos_asignaciones(cantidad,estado)').order('nombre',{ascending:true});
+        if(options.includeInactive!==true) query=query.neq('estado','baja');
+        const {data,error}=await query;assertNoError(error,'No se pudieron consultar los equipos y materiales de RH.');
+        return (data||[]).map(rhOfficeAssetFromDb);
+    }
+
+    async function saveRHOfficeAsset(asset = {}) {
+        const id=Number(asset.id)||null;
+        const row={codigo:text(asset.codigo).toUpperCase(),nombre:text(asset.nombre),categoria:text(asset.categoria)||'Otro',tipo_control:['individual','cantidad'].includes(text(asset.tipoControl))?text(asset.tipoControl):'individual',marca:text(asset.marca)||null,modelo:text(asset.modelo)||null,numero_serie:text(asset.numeroSerie)||null,unidad:text(asset.unidad).toUpperCase()||'PIEZA',cantidad_total:number(asset.cantidadTotal)||1,ubicacion:text(asset.ubicacion)||null,estado:['activo','mantenimiento','baja'].includes(text(asset.estado))?text(asset.estado):'activo',observaciones:text(asset.observaciones)||null};
+        if(!row.codigo||!row.nombre) throw new Error('Código y nombre son obligatorios.');
+        if(row.tipo_control==='individual'){row.cantidad_total=1;row.unidad='PIEZA'}
+        const request=id?client.from('rh_activos_oficina').update(row).eq('id',id).select('*,rh_activos_asignaciones(cantidad,estado)').single():client.from('rh_activos_oficina').insert(row).select('*,rh_activos_asignaciones(cantidad,estado)').single();
+        const {data,error}=await request;assertNoError(error,'No se pudo guardar el activo de RH.');return rhOfficeAssetFromDb(data);
+    }
+
+    async function deleteRHOfficeAsset(id) {
+        const assetId=Number(id);if(!assetId)throw new Error('Activo no válido.');
+        const {data,error}=await client.rpc('rh_eliminar_activo_oficina',{p_activo_id:assetId});assertNoError(error,'No se pudo eliminar el activo.');return data===true;
+    }
+
+    async function listRHOfficeAssignments(options = {}) {
+        let query=client.from('rh_activos_asignaciones').select('*,rh_activos_oficina(id,codigo,nombre,categoria,marca,modelo,numero_serie,unidad),rh_personal(id,numero_empleado,nombre,apellidos,puesto,departamento)').order('fecha_asignacion',{ascending:false}).order('id',{ascending:false});
+        if(options.includeClosed!==true) query=query.eq('estado','asignado');
+        if(Number(options.personalId)) query=query.eq('personal_id',Number(options.personalId));
+        if(Number(options.activoId)) query=query.eq('activo_id',Number(options.activoId));
+        const {data,error}=await query;assertNoError(error,'No se pudieron consultar los resguardos de RH.');return (data||[]).map(rhOfficeAssignmentFromDb);
+    }
+
+    async function assignRHOfficeAsset(payload = {}) {
+        const {data,error}=await client.rpc('rh_asignar_activo_oficina',{p_activo_id:Number(payload.activoId),p_personal_id:Number(payload.personalId),p_cantidad:number(payload.cantidad)||1,p_fecha_asignacion:text(payload.fechaAsignacion)||new Date().toISOString().slice(0,10),p_condicion_entrega:text(payload.condicionEntrega)||null,p_responsable_entrega:text(payload.responsableEntrega)||null,p_notas:text(payload.notas)||null});
+        assertNoError(error,'No se pudo registrar el resguardo.');return Number(data)||data;
+    }
+
+    async function closeRHOfficeAssetAssignment(payload = {}) {
+        const result=text(payload.resultado)||'devuelto';
+        const {data,error}=await client.rpc('rh_cerrar_asignacion_activo_oficina',{p_asignacion_id:Number(payload.asignacionId),p_resultado:result,p_fecha_devolucion:text(payload.fechaDevolucion)||new Date().toISOString().slice(0,10),p_condicion_devolucion:text(payload.condicionDevolucion)||null,p_responsable_recepcion:text(payload.responsableRecepcion)||null,p_notas:text(payload.notas)||null});
+        assertNoError(error,'No se pudo cerrar el resguardo.');return Number(data)||data;
+    }
+
+    async function importRHOfficeAssetsAssignmentsV144(assets = [], assignments = []) {
+        const {data,error}=await client.rpc('rh_importar_activos_resguardos_v144',{p_activos:Array.isArray(assets)?assets:[],p_resguardos:Array.isArray(assignments)?assignments:[]});
+        assertNoError(error,'No se pudieron importar los equipos y resguardos de RH. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return data||{ok:true,activos_insertados:0,activos_actualizados:0,resguardos_insertados:0,resguardos_actualizados:0,omitidos:0,errores:[]};
+    }
+
+    async function getExecutiveRHOfficeAssets() {
+        const {data,error}=await client.rpc('crm_sky_direccion_activos_oficina');assertNoError(error,'Skill no pudo consultar los resguardos de RH.');return data||{activos:[],asignaciones:[]};
+    }
+
+    async function getReceptionPresenceV100(filter = '') {
+        const {data,error}=await client.rpc('crm_sky_recepcion_presencia_v100',{p_filtro:text(filter)||null});
+        assertNoError(error,'Skill Recepción no pudo consultar la presencia actual. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data)?data:[];
+    }
+
+
+    async function getReceptionRecognitionDirectoryV102() {
+        const {data,error}=await client.rpc('crm_skill_recepcion_directorio_v102');
+        assertNoError(error,'Skill Recepción no pudo consultar los nombres de perfil. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data)?data:[];
+    }
+
+    async function getSkillProfileDataV136(source, filter = '') {
+        const sourceKey=lower(source);
+        let data,error;
+        if(sourceKey==='vehiculos'){
+            ({data,error}=await client.rpc('crm_skill_vehiculos_v145',{p_filtro:text(filter)||null}));
+            if(error&&['PGRST202','42883'].includes(String(error.code||'')))({data,error}=await client.rpc('crm_skill_perfil_consultar_v136',{p_fuente:sourceKey,p_filtro:text(filter)||null}));
+        }else({data,error}=await client.rpc('crm_skill_perfil_consultar_v136',{p_fuente:sourceKey,p_filtro:text(filter)||null}));
+        assertNoError(error,'Skill no pudo consultar la información autorizada para tu perfil. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        const rows=Array.isArray(data)?data:[];
+        if(['materiales','vehiculos','proyectos','projectdetails','herramientas','compras','purchases','cotizaciones','quotations','suministros'].includes(sourceKey)){
+            if(sourceKey==='materiales')return rows.map(row=>({codigo:text(row.codigo),descripcion:text(row.descripcion),desc:text(row.descripcion),categoria:text(row.categoria),tipoCable:text(row.tipo_cable),tipo_cable:text(row.tipo_cable),tamano:text(row.tamano_mm2),tamano_mm2:text(row.tamano_mm2),unidad:text(row.unidad),precio:number(row.precio),stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),stockMedio:number(row.stock_medio),stock_medio:number(row.stock_medio),stockMaximo:number(row.stock_maximo),stock_maximo:number(row.stock_maximo),marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),proveedor:text(row.proveedor),contactoProveedor:text(row.contacto_proveedor),contacto_proveedor:text(row.contacto_proveedor),rollosDisponibles:number(row.rollos_disponibles),rollos_disponibles:number(row.rollos_disponibles),metrosRollos:number(row.metros_rollos),metros_rollos:number(row.metros_rollos),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],almacenes:Array.isArray(row.almacenes)?row.almacenes:[],activo:row.activo!==false}));
+            if(sourceKey==='vehiculos')return rows.map(row=>vehicleFromDb(row));
+            if(sourceKey==='proyectos'||sourceKey==='projectdetails')return rows.map(row=>({proyecto:text(row.proyecto),idProyecto:text(row.idProyecto??row.proyecto),nombreProyecto:text(row.nombreProyecto??row.nombre),nombre:text(row.nombre??row.nombreProyecto),cliente:text(row.cliente),ordenCompra:text(row.ordenCompra),planta:text(row.planta),nave:text(row.nave),responsableSkilled:text(row.responsableSkilled??row.responsable),responsable:text(row.responsable??row.responsableSkilled),fechaAsignacion:text(row.fechaAsignacion),fechaEntrega:text(row.fechaEntrega),estado:text(row.estado),tipoControl:text(row.tipoControl??row.tipo_control)||'materiales',tipo_control:text(row.tipo_control??row.tipoControl)||'materiales',presupuestoPlaneado:number(row.presupuestoPlaneado??row.presupuesto_planeado),presupuesto_planeado:number(row.presupuesto_planeado??row.presupuestoPlaneado),lineas:number(row.lineas),planeado:number(row.planeado),consumido:number(row.consumido),costoPlaneado:number(row.costoPlaneado),costoConsumido:number(row.costoConsumido),costoRealProyecto:number(row.costoRealProyecto??row.costoConsumido),costoMateriales:number(row.costoMateriales),costoNomina:number(row.costoNomina),costoFueraPlan:number(row.costoFueraPlan),avance:number(row.avance),movimientos:number(row.movimientos),cantidadMovimientos:number(row.cantidadMovimientos??row.movimientos),ultimoMovimiento:text(row.ultimoMovimiento)}));
+            if(sourceKey==='herramientas')return rows.map(row=>({...row,id:Number(row.id||0),sku:text(row.sku),descripcion:text(row.descripcion),desc:text(row.descripcion),clasificacion:text(row.clasificacion),marca:text(row.marca),modelo:text(row.modelo),uso:text(row.uso),unidad:text(row.unidad)||'pieza',total:number(row.total),disponibles:number(row.disponibles),asignadas:number(row.asignadas),otros:number(row.otros),estado:number(row.disponibles)>0?'disponible':number(row.asignadas)>0?'asignada':'sin disponibilidad',activo:row.activo!==false}));
+            if(sourceKey==='compras'||sourceKey==='purchases')return rows.map(row=>({...row,id:Number(row.id||0),folio:text(row.folio),materialCodigo:text(row.materialCodigo??row.material_codigo),descripcion:text(row.descripcion),estado:text(row.estado),estadoCompras:text(row.estadoCompras??row.estado_compras),proveedor:text(row.proveedor),ordenCompra:text(row.ordenCompra??row.orden_compra),prioridad:text(row.prioridad),cantidadSolicitada:number(row.cantidadSolicitada??row.cantidad_solicitada),cantidadRecibida:number(row.cantidadRecibida??row.cantidad_recibida),proyecto:text(row.proyecto??row.proyecto_numero)}));
+            if(sourceKey==='cotizaciones'||sourceKey==='quotations')return rows.map(row=>({...row,id:text(row.id),folio:text(row.folio),origen:text(row.origen),estado:text(row.estado),prioridad:text(row.prioridad),fechaRequerida:text(row.fechaRequerida??row.fecha_requerida),solicitadoPor:text(row.solicitadoPor??row.solicitado_por),referencia:text(row.referencia),notas:text(row.notas),items:Array.isArray(row.items)?row.items:[]}));
+            if(sourceKey==='suministros')return rows.map(row=>({id:Number(row.id||0),codigo:text(row.codigo),descripcion:text(row.descripcion),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],categoria:text(row.categoria),marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),ubicacion:text(row.ubicacion),unidad:text(row.unidad)||'PIEZA',stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),precio:number(row.precio),monedaCosto:text(row.moneda_costo)||'MXN',moneda_costo:text(row.moneda_costo)||'MXN',imagen:text(row.imagen_url),imagen_url:text(row.imagen_url),activo:row.activo!==false}));
+        }
+        if(sourceKey==='herramientas_asignaciones')return rows.map(toolAssignmentFromDb);
+        if(sourceKey==='activos_rh')return rows.map(rhOfficeAssetFromDb);
+        if(sourceKey==='resguardos_rh')return rows.map(rhOfficeAssignmentFromDb);
+        return rows;
+    }
+
+    async function listExecutivePendingPurchaseOrdersV136(){
+        const {data,error}=await client.rpc('co_ordenes_pendientes_firma_ejecutiva_v136');
+        assertNoError(error,'No se pudieron consultar las órdenes pendientes de validación. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return (Array.isArray(data)?data:[]).map(row=>({ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),firmadasCount:Number(row.firmadas_count||0),revisoFirmado:Boolean(row.reviso_firmado),aproboFirmado:Boolean(row.aprobo_firmado),miFirmaEjecutiva:Boolean(row.mi_firma_ejecutiva),pendientesEjecutivas:Array.isArray(row.pendientes_ejecutivas)?row.pendientes_ejecutivas.map(text):[]}));
+    }
+
+    async function listExecutivePurchaseOrdersV137(){
+        const {data,error}=await client.rpc('co_ordenes_validacion_ejecutiva_v137');
+        assertNoError(error,'No se pudieron consultar las órdenes de Dirección. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        return (Array.isArray(data)?data:[]).map(row=>({
+            ordenCompra:text(row.orden_compra),fecha:text(row.fecha),proveedor:text(row.proveedor),referencia:text(row.referencia),solicitadoPor:text(row.solicitado_por),
+            materiales:Number(row.materiales||0),total:number(row.total),moneda:text(row.moneda)||'MXN',pdfUrl:text(row.pdf_url),pdfNombre:text(row.pdf_nombre),
+            firmadasCount:Number(row.firmadas_count||0),revisoFirmado:Boolean(row.reviso_firmado),aproboFirmado:Boolean(row.aprobo_firmado),
+            miFirmaEjecutiva:Boolean(row.mi_firma_ejecutiva),estadoEjecutivo:text(row.estado_ejecutivo)||'pendiente',
+            pendientesEjecutivas:Array.isArray(row.pendientes_ejecutivas)?row.pendientes_ejecutivas.map(text):[],
+            misFirmas:Array.isArray(row.mis_firmas)?row.mis_firmas.map(text):[],
+            firmasResumen:Array.isArray(row.firmas_resumen)?row.firmas_resumen.map(f=>({tipo:text(f.tipo),nombre:text(f.nombre),firmadoAt:text(f.firmado_at),userId:text(f.user_id),firmaSlot:Number(f.firma_slot||0),firmaNombre:text(f.firma_nombre_perfil)})):[]
+        }));
+    }
+
+    async function getSkyProfileData(source, filter = '') {
+        const sourceKey = lower(source);
+        const payload = { p_fuente: sourceKey, p_filtro: text(filter) || null };
+        let { data, error } = await client.rpc('crm_sky_perfil_consultar_v103', payload);
+        if (error && /crm_sky_perfil_consultar_v103|function|schema cache|PGRST202/i.test(errorMessage(error))) {
+            ({ data, error } = await client.rpc('crm_sky_perfil_consultar', payload));
+        }
+        assertNoError(error, 'Skill no pudo consultar la información autorizada para este perfil. Ejecuta SQL_MAESTRO_CRM.sql.');
+        const rows = Array.isArray(data) ? data : [];
+        if (sourceKey === 'materiales') {
+            return rows.map(row => ({
+                codigo: text(row.codigo), descripcion: text(row.descripcion), desc: text(row.descripcion), categoria: text(row.categoria),
+                tipoCable: text(row.tipo_cable), tipo_cable: text(row.tipo_cable), tamano: text(row.tamano_mm2), tamano_mm2: text(row.tamano_mm2),
+                unidad: text(row.unidad), precio: number(row.precio), stock: number(row.stock), stockMinimo: number(row.stock_minimo), stock_minimo: number(row.stock_minimo),
+                stockMedio: number(row.stock_medio), stock_medio: number(row.stock_medio), stockMaximo: number(row.stock_maximo), stock_maximo: number(row.stock_maximo),
+                marca: text(row.marca), codigoMarca: text(row.codigo_marca), codigo_marca: text(row.codigo_marca), proveedor: text(row.proveedor), contactoProveedor: text(row.contacto_proveedor), contacto_proveedor: text(row.contacto_proveedor),
+                rollosDisponibles: number(row.rollos_disponibles), rollos_disponibles: number(row.rollos_disponibles), metrosRollos: number(row.metros_rollos), metros_rollos: number(row.metros_rollos),
+                modismos: Array.isArray(row.modismos) ? row.modismos.map(text).filter(Boolean) : [],
+                almacenes: Array.isArray(row.almacenes) ? row.almacenes.map(item => ({
+                    id: Number(item.id || 0), nombre: text(item.nombre), stock: number(item.stock),
+                    stockMinimo: number(item.stockMinimo ?? item.stock_minimo), stock_minimo: number(item.stockMinimo ?? item.stock_minimo),
+                    stockMedio: number(item.stockMedio ?? item.stock_medio), stock_medio: number(item.stockMedio ?? item.stock_medio),
+                    stockMaximo: number(item.stockMaximo ?? item.stock_maximo), stock_maximo: number(item.stockMaximo ?? item.stock_maximo), ubicacion: text(item.ubicacion)
+                })) : [], activo: row.activo !== false
+            }));
+        }
+        if (sourceKey === 'vehiculos') return rows.map(row => vehicleFromDb(row));
+        if (sourceKey === 'proyectos' || sourceKey === 'projectdetails') {
+            return rows.map(row => ({
+                proyecto: text(row.proyecto), idProyecto: text(row.idProyecto ?? row.proyecto), nombreProyecto: text(row.nombreProyecto ?? row.nombre), nombre: text(row.nombre ?? row.nombreProyecto),
+                cliente: text(row.cliente), ordenCompra: text(row.ordenCompra), planta: text(row.planta), nave: text(row.nave), responsableSkilled: text(row.responsableSkilled ?? row.responsable), responsable: text(row.responsable ?? row.responsableSkilled),
+                fechaAsignacion: text(row.fechaAsignacion), fechaEntrega: text(row.fechaEntrega), estado: text(row.estado), tipoControl: text(row.tipoControl ?? row.tipo_control) || 'materiales', tipo_control: text(row.tipo_control ?? row.tipoControl) || 'materiales',
+                presupuestoPlaneado: number(row.presupuestoPlaneado ?? row.presupuesto_planeado), presupuesto_planeado: number(row.presupuesto_planeado ?? row.presupuestoPlaneado),
+                lineas: number(row.lineas), planeado: number(row.planeado), consumido: number(row.consumido), costoPlaneado: number(row.costoPlaneado), costoConsumido: number(row.costoConsumido),
+                costoRealProyecto: number(row.costoRealProyecto ?? row.costoConsumido), costoMateriales: number(row.costoMateriales), costoNomina: number(row.costoNomina), costoFueraPlan: number(row.costoFueraPlan),
+                avance: number(row.avance), movimientos: number(row.movimientos), cantidadMovimientos: number(row.cantidadMovimientos ?? row.movimientos), ultimoMovimiento: text(row.ultimoMovimiento)
+            }));
+        }
+        if (sourceKey === 'herramientas') {
+            return rows.map(row => ({ ...row, id: Number(row.id || 0), sku: text(row.sku), descripcion: text(row.descripcion), desc: text(row.descripcion), clasificacion: text(row.clasificacion), marca: text(row.marca), modelo: text(row.modelo), uso: text(row.uso), unidad: text(row.unidad) || 'pieza', total: number(row.total), disponibles: number(row.disponibles), asignadas: number(row.asignadas), otros: number(row.otros), estado: number(row.disponibles) > 0 ? 'disponible' : number(row.asignadas) > 0 ? 'asignada' : 'sin disponibilidad', activo: row.activo !== false }));
+        }
+        if (sourceKey === 'compras' || sourceKey === 'purchases') {
+            return rows.map(row => ({ ...row, id: Number(row.id || 0), folio: text(row.folio), materialCodigo: text(row.materialCodigo), descripcion: text(row.descripcion), estado: text(row.estado), estadoCompras: text(row.estadoCompras), proveedor: text(row.proveedor), ordenCompra: text(row.ordenCompra), prioridad: text(row.prioridad), cantidadSolicitada: number(row.cantidadSolicitada), cantidadRecibida: number(row.cantidadRecibida), proyecto: text(row.proyecto) }));
+        }
+        if (sourceKey === 'cotizaciones' || sourceKey === 'quotations') {
+            return rows.map(row => ({ ...row, id: text(row.id), folio: text(row.folio), origen: text(row.origen), estado: text(row.estado), prioridad: text(row.prioridad), fechaRequerida: text(row.fechaRequerida), solicitadoPor: text(row.solicitadoPor), referencia: text(row.referencia), notas: text(row.notas), items: Array.isArray(row.items) ? row.items : [] }));
+        }
+        if (sourceKey === 'suministros') {
+            return rows.map(row => ({
+                id:Number(row.id||0),codigo:text(row.codigo),descripcion:text(row.descripcion),modismos:Array.isArray(row.modismos)?row.modismos.map(text).filter(Boolean):[],categoria:text(row.categoria),
+                marca:text(row.marca),codigoMarca:text(row.codigo_marca),codigo_marca:text(row.codigo_marca),ubicacion:text(row.ubicacion),
+                unidad:text(row.unidad)||'PIEZA',stock:number(row.stock),stockMinimo:number(row.stock_minimo),stock_minimo:number(row.stock_minimo),
+                precio:number(row.precio),monedaCosto:text(row.moneda_costo)||'MXN',moneda_costo:text(row.moneda_costo)||'MXN',imagen:text(row.imagen_url),imagen_url:text(row.imagen_url),activo:row.activo!==false
+            }));
+        }
+        if (sourceKey === 'tienda') {
+            return rows.map(row => ({...row,id:Number(row.id||0),folio:text(row.folio),negocio:text(row.negocio),producto:text(row.producto),marcaEspecifica:text(row.marcaEspecifica),presentacion:text(row.presentacion),cantidad:number(row.cantidad),unidad:text(row.unidad)||'pieza',costoEstimado:number(row.costoEstimado),moneda:text(row.moneda)||'MXN',fechaRequerida:text(row.fechaRequerida),prioridad:text(row.prioridad),estado:text(row.estado),solicitadoPor:text(row.solicitadoPor),responsableCompra:text(row.responsableCompra),motivoNoViable:text(row.motivoNoViable),notas:text(row.notas),createdAt:text(row.createdAt)}));
+        }
+        return rows;
+    }
+
+    async function listMaterialPackages(options = {}) {
+        const includeInactive = options.includeInactive === true;
+        const { data, error } = await client.rpc('crm_listar_paquetes_materiales', { p_incluir_inactivos: includeInactive });
+        if (error) {
+            const code = text(error.code);
+            if (['PGRST202','42883','PGRST204','42P01'].includes(code)) throw new Error('Falta ejecutar SQL_MAESTRO_CRM.sql para habilitar Paquetes de materiales predeterminados.');
+            assertNoError(error, 'No se pudieron consultar los paquetes de materiales.');
+        }
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function saveMaterialPackage(payload = {}) {
+        const id = Number(payload.id || payload.paqueteId || 0) || null;
+        const items = (Array.isArray(payload.items) ? payload.items : []).map(item => ({
+            codigo: text(item.codigo ?? item.materialCodigo),
+            cantidad: Math.max(0, number(item.cantidad)),
+            notas: text(item.notas)
+        })).filter(item => item.codigo && item.cantidad > 0);
+        const datos = {
+            nombre: text(payload.nombre),
+            descripcion: text(payload.descripcion),
+            categoria: text(payload.categoria) || 'General',
+            activo: payload.activo !== false,
+            orden: Number(payload.orden || 0) || 0
+        };
+        if (!datos.nombre) throw new Error('Captura el nombre del paquete.');
+        const { data, error } = await client.rpc('crm_guardar_paquete_materiales', { p_paquete_id: id, p_datos: datos, p_items: items });
+        assertNoError(error, 'No se pudo guardar el paquete de materiales. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Number(data) || data;
+    }
+
+    async function deleteMaterialPackage(id) {
+        const packageId = Number(id || 0);
+        if (!packageId) throw new Error('Paquete no válido.');
+        const { data, error } = await client.rpc('crm_eliminar_paquete_materiales', { p_paquete_id: packageId });
+        assertNoError(error, 'No se pudo eliminar el paquete de materiales.');
+        return data === true;
+    }
+
+    async function listMaterialPackageProjects() {
+        const { data, error } = await client.rpc('crm_listar_proyectos_paquetes');
+        assertNoError(error, 'No se pudieron consultar los proyectos disponibles para la solicitud.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function createMaterialPackageRequest(payload = {}) {
+        const packageId = Number(payload.paqueteId ?? payload.packageId ?? payload.id);
+        if (!packageId) throw new Error('Selecciona el paquete que deseas solicitar.');
+        const { data, error } = await client.rpc('crm_solicitar_paquete_materiales', {
+            p_paquete_id: packageId,
+            p_cantidad: Math.max(1, Math.min(100, Math.round(number(payload.cantidadPaquetes ?? payload.cantidad ?? 1) || 1))),
+            p_proyecto: text(payload.proyecto) || null,
+            p_destinatario: text(payload.destinatario) || null,
+            p_prioridad: text(payload.prioridad) || 'normal',
+            p_notas: text(payload.notas) || null
+        });
+        assertNoError(error, 'No se pudo enviar la solicitud del paquete. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data || {};
+    }
+
+    async function listMaterialPackageRequests(options = {}) {
+        const { data, error } = await client.rpc('crm_listar_solicitudes_paquetes', { p_mias: options.mineOnly === true });
+        assertNoError(error, 'No se pudieron consultar las solicitudes de paquetes.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function updateMaterialPackageRequest(id, estado, notas = '') {
+        const requestId = Number(id || 0);
+        if (!requestId) throw new Error('Solicitud no válida.');
+        const { data, error } = await client.rpc('crm_actualizar_solicitud_paquete', {
+            p_solicitud_id: requestId,
+            p_estado: text(estado),
+            p_notas: text(notas) || null
+        });
+        assertNoError(error, 'No se pudo actualizar la solicitud del paquete.');
+        return data === true;
+    }
+
+    async function fulfillMaterialPackageRequest(id, warehouseId, notas = '') {
+        const requestId = Number(id || 0);
+        const almacenId = Number(warehouseId || 0);
+        if (!requestId) throw new Error('Solicitud no válida.');
+        if (!almacenId) throw new Error('Selecciona el almacén que surtirá el paquete.');
+        const { data, error } = await client.rpc('crm_entregar_solicitud_paquete', {
+            p_solicitud_id: requestId,
+            p_almacen_id: almacenId,
+            p_notas: text(notas) || null
+        });
+        assertNoError(error, 'No se pudo entregar el paquete. Revisa la existencia de todos sus materiales.');
+        invalidateMaterialSnapshot();
+        return data || {};
+    }
+
+    async function countMaterialPackageRequests() {
+        const { data, error } = await client.rpc('crm_contar_solicitudes_paquetes');
+        if (error) {
+            if (['PGRST202','42883','PGRST204','42P01'].includes(text(error.code))) return 0;
+            assertNoError(error, 'No se pudo consultar el indicador de paquetes.');
+        }
+        return Number(data) || 0;
+    }
+
+    async function createManualPurchaseOrderV73(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) throw new Error('Agrega al menos una partida a la orden extraordinaria.');
+        const rows = items.map(item => ({
+            material_codigo: text(item.materialCodigo ?? item.codigo),
+            descripcion: text(item.descripcion ?? item.desc),
+            categoria: text(item.categoria) || null,
+            unidad: text(item.unidad) || null,
+            cantidad: number(item.cantidad),
+            precio_unitario: number(item.precioUnitario ?? item.precio),
+            moneda: normalizeCurrencyCode(item.moneda ?? item.monedaCosto ?? item.moneda_costo)
+        }));
+        if (rows.some(row => !row.material_codigo || !row.descripcion || row.cantidad <= 0)) throw new Error('Hay partidas incompletas o con cantidad inválida.');
+        const { data, error } = await client.rpc('co_crear_orden_manual_v73', {
+            p_orden: text(payload.ordenCompra ?? payload.orden) || null,
+            p_proveedor_id: Number(payload.proveedorId || 0) || null,
+            p_almacen_id: Number(payload.almacenId || 0) || null,
+            p_proyecto: text(payload.proyecto) || null,
+            p_prioridad: text(payload.prioridad) || 'normal',
+            p_fecha_requerida: text(payload.fechaRequerida) || null,
+            p_referencia: text(payload.referencia) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_justificacion: text(payload.justificacion) || null,
+            p_items: rows
+        });
+        assertNoError(error, 'No se pudo crear la orden extraordinaria. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data || {};
+    }
+
+    async function createFreePurchaseOrderV107(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) throw new Error('Agrega al menos una partida a la orden libre.');
+        const rows = items.map(item => ({
+            material_codigo: text(item.materialCodigo ?? item.codigo) || null,
+            descripcion: text(item.descripcion ?? item.desc),
+            categoria: text(item.categoria) || null,
+            unidad: text(item.unidad) || 'PIEZA',
+            cantidad: number(item.cantidad),
+            precio_unitario: Math.max(number(item.precioUnitario ?? item.precio), 0),
+            moneda: normalizeCurrencyCode(item.moneda ?? item.monedaCosto ?? item.moneda_costo)
+        }));
+        if (rows.some(row => !row.descripcion || row.cantidad <= 0)) throw new Error('Hay partidas incompletas o con cantidad inválida.');
+        const { data, error } = await client.rpc('co_crear_orden_libre_v107', {
+            p_orden: text(payload.ordenCompra ?? payload.orden) || null,
+            p_proveedor_id: Number(payload.proveedorId || 0) || null,
+            p_almacen_id: Number(payload.almacenId || 0) || null,
+            p_proyecto: text(payload.proyecto) || null,
+            p_prioridad: text(payload.prioridad) || 'normal',
+            p_fecha_requerida: text(payload.fechaRequerida) || null,
+            p_referencia: text(payload.referencia) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_justificacion: text(payload.justificacion) || null,
+            p_items: rows
+        });
+        assertNoError(error, 'No se pudo crear la orden libre. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        const created = data || {};
+        const createdOrder = text(created.orden || created.orden_compra || payload.ordenCompra || payload.orden);
+        if (createdOrder && text(payload.metodoPago)) {
+            const paymentRow = { metodo_pago:text(payload.metodoPago), condiciones_pago:text(payload.condicionesPago)||null, updated_at:new Date().toISOString() };
+            const firstUpdate = await client.from('solicitudes_compra').update(paymentRow).eq('orden_compra', createdOrder);
+            if (firstUpdate.error) assertNoError(firstUpdate.error, 'La orden se creó, pero no se pudo guardar el método de pago. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+            await client.from('solicitudes_compra').update(paymentRow).eq('grupo_orden', createdOrder);
+        }
+        return created;
+    }
+
+    async function createDirectPurchaseOrderFromQuotationV96(payload = {}) {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        const cotizacionId = text(payload.cotizacionId);
+        const proveedorId = Number(payload.proveedorId || 0);
+        if (!cotizacionId) throw new Error('Falta la solicitud de cotización.');
+        if (!proveedorId) throw new Error('Selecciona el proveedor.');
+        if (!items.length) throw new Error('La orden directa no contiene partidas.');
+        const rows = items.map(item => ({
+            cotizacion_item_id: Number(item.cotizacionItemId || item.id || 0),
+            precio_unitario: number(item.precioUnitario ?? item.precio),
+            moneda: normalizeCurrencyCode(item.moneda),
+            plazo_entrega_dias: Math.max(0, Math.round(number(item.plazoEntregaDias)))
+        }));
+        if (rows.some(row => !row.cotizacion_item_id)) throw new Error('Hay partidas de la cotización sin identificador.');
+
+        const rpcPayload = {
+            p_cotizacion_id: cotizacionId,
+            p_orden: text(payload.ordenCompra) || null,
+            p_proveedor_id: proveedorId,
+            p_referencia: text(payload.referencia) || null,
+            p_solicitado_por: text(payload.solicitadoPor) || null,
+            p_notas: text(payload.notas) || null,
+            p_items: rows
+        };
+        const missingRpc = error => {
+            const code = text(error?.code);
+            const message = errorMessage(error);
+            return ['PGRST202','42883'].includes(code) || /could not find the function|schema cache|does not exist/i.test(message);
+        };
+
+        let result = await client.rpc('co_crear_orden_directa_cotizacion_v103', rpcPayload);
+        if (!result.error) return result.data || {};
+        if (!missingRpc(result.error)) assertNoError(result.error, 'No se pudo crear la orden directa desde la solicitud.');
+
+        result = await client.rpc('co_crear_orden_directa_cotizacion_v96', rpcPayload);
+        if (!result.error) return result.data || {};
+        if (!missingRpc(result.error)) assertNoError(result.error, 'No se pudo crear la orden directa desde la solicitud.');
+
+        const quotation = await getQuotationRequest(cotizacionId);
+        const selectedIds = new Set(rows.map(row => Number(row.cotizacion_item_id)));
+        const selectedItems = (quotation.items || []).filter(item => selectedIds.has(Number(item.id)));
+        if (selectedItems.length !== selectedIds.size) throw new Error('Una o más partidas de la cotización ya no están disponibles.');
+
+        const { data: provider, error: providerError } = await client.from('co_proveedores').select('id,razon_social,nombre_comercial,contacto').eq('id', proveedorId).maybeSingle();
+        assertNoError(providerError, 'No se pudo consultar el proveedor seleccionado.');
+        if (!provider) throw new Error('El proveedor seleccionado ya no está disponible.');
+        const providerName = text(provider.nombre_comercial || provider.razon_social);
+        const order = text(payload.ordenCompra) || `OC-DIR-${new Date().toISOString().replace(/\D/g,'').slice(0,14)}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
+        const selectedIdList = [...selectedIds];
+        const { data: alreadyLinked, error: linkedError } = await client.from('solicitudes_compra').select('cotizacion_item_id,estado').eq('cotizacion_id', cotizacionId).in('cotizacion_item_id', selectedIdList);
+        assertNoError(linkedError, 'No se pudo comprobar si las partidas ya tenían una orden.');
+        const activeLinked = new Set((alreadyLinked || []).filter(row => !['cancelada','recibida'].includes(lower(row.estado))).map(row => Number(row.cotizacion_item_id)));
+        if (activeLinked.size) throw new Error('Una o más partidas seleccionadas ya tienen una orden de compra activa.');
+
+        const quoteById = new Map(selectedItems.map(item => [Number(item.id), item]));
+        const priceById = new Map(rows.map(row => [Number(row.cotizacion_item_id), row]));
+        const priority = ['critica','urgente','alta'].includes(lower(quotation.prioridad)) ? 'urgente' : 'normal';
+        const now = new Date().toISOString();
+        const requestRows = selectedIdList.map((id, index) => {
+            const item = quoteById.get(id);
+            const price = priceById.get(id);
+            return {
+                folio: `SC-DIR-${Date.now()}-${String(index + 1).padStart(3,'0')}-${Math.random().toString(36).slice(2,4).toUpperCase()}`,
+                material_codigo: item.materialCodigo,
+                descripcion: item.descripcion,
+                categoria: null,
+                unidad: item.unidad || null,
+                almacen_id: item.almacenId || null,
+                almacen_nombre: item.almacenNombre || null,
+                existencia_actual: number(item.existenciaActual),
+                stock_minimo: number(item.stockMinimo),
+                stock_medio: number(item.stockMedio),
+                stock_maximo: number(item.stockMaximo),
+                cantidad_solicitada: number(item.cantidad),
+                cantidad_recibida: 0,
+                prioridad: priority,
+                estado: 'pendiente',
+                proveedor: providerName,
+                contacto_proveedor: text(provider.contacto) || null,
+                orden_compra: order,
+                grupo_orden: order,
+                motivo: `Orden directa desde solicitud de cotización ${quotation.folio}${text(payload.notas) ? `: ${text(payload.notas)}` : ''}`,
+                solicitado_por: text(payload.solicitadoPor) || quotation.solicitadoPor || null,
+                fecha_requerida: quotation.fechaRequerida || null,
+                fecha_orden_compra: new Date().toISOString().slice(0,10),
+                referencia: text(payload.referencia) || quotation.referencia || null,
+                estado_compras: 'en_revision',
+                cotizacion_id: cotizacionId,
+                cotizacion_item_id: id,
+                proveedor_id: proveedorId,
+                precio_cotizado: Math.max(0, number(price.precio_unitario)),
+                moneda: normalizeCurrencyCode(price.moneda),
+                plazo_entrega_dias: Math.max(0, Math.round(number(price.plazo_entrega_dias))),
+                origen_solicitud: 'cotizacion_directa',
+                justificacion_excepcion: 'Orden directa desde cotización',
+                created_at: now,
+                updated_at: now
+            };
+        });
+        const { error: insertError } = await client.from('solicitudes_compra').insert(requestRows);
+        assertNoError(insertError, 'No se pudieron crear las partidas de la orden directa.');
+
+        const { error: itemUpdateError } = await client.from('co_cotizacion_items').update({ estado:'cerrado', proveedor_seleccionado_id:proveedorId, updated_at:now }).in('id', selectedIdList).eq('cotizacion_id', cotizacionId);
+        assertNoError(itemUpdateError, 'La orden se creó, pero no se pudo cerrar la selección de cotización.');
+
+        try {
+            await client.from('co_cotizacion_ofertas').update({ estado:'descartada', updated_at:now }).in('cotizacion_item_id', selectedIdList);
+            await client.from('co_cotizacion_ofertas').update({ estado:'seleccionada', updated_at:now }).in('cotizacion_item_id', selectedIdList).eq('proveedor_id', proveedorId);
+        } catch (_) {}
+
+        const { data: remainingRows, error: remainingError } = await client.from('co_cotizacion_items').select('id,estado').eq('cotizacion_id', cotizacionId).neq('estado','cerrado');
+        assertNoError(remainingError, 'No se pudo actualizar el estado final de la cotización.');
+        const complete = !(remainingRows || []).length;
+        const headerChanges = complete
+            ? { estado:'aprobada', aprobada_at:now, revisada_at:quotation.revisadaAt || now, updated_at:now }
+            : { estado:'comparada', revisada_at:quotation.revisadaAt || now, updated_at:now };
+        const user = (await client.auth.getUser()).data?.user;
+        if (user?.id) {
+            if (complete) headerChanges.aprobada_por = user.id;
+            headerChanges.revisada_por = user.id;
+        }
+        const { error: headerError } = await client.from('co_cotizaciones').update(headerChanges).eq('id', cotizacionId);
+        assertNoError(headerError, 'La orden se creó, pero no se pudo actualizar la cotización.');
+
+        return { ok:true, orden:order, materiales:requestRows.length, cotizacion_id:cotizacionId, pendientes:(remainingRows || []).length, origen:'cotizacion_directa_compatibilidad' };
+    }
+
+    async function getPurchaseOrderDispatchInfoV138(order = '') {
+        const value = text(order);
+        if (!value) throw new Error('La orden no tiene número.');
+        const { data, error } = await client.rpc('co_datos_envio_orden_v138', { p_orden: value });
+        assertNoError(error, 'No se pudieron preparar los datos de envío de la orden. Ejecuta SQL_MAESTRO_CRM.sql o SQL_MAESTRO_2_ACTUALIZACION_V150.sql.');
+        const row = data || {};
+        return {
+            ok: Boolean(row.ok), lista: Boolean(row.lista), ordenCompra: text(row.orden_compra || value), firmas: Number(row.firmas || 0), metodoPago: text(row.metodo_pago), condicionesPago: text(row.condiciones_pago),
+            proveedorId: Number(row.proveedor_id || 0) || null, proveedor: text(row.proveedor), contacto: text(row.contacto), email: text(row.email), telefono: text(row.telefono), whatsapp: text(row.whatsapp),
+            pdfUrl: text(row.pdf_url), pdfPath: text(row.pdf_path), pdfNombre: text(row.pdf_nombre), enviadaAt: text(row.orden_enviada_at), envioCanal: text(row.orden_envio_canal), envioDestinatario: text(row.orden_envio_destinatario),
+            faltantes: Array.isArray(row.faltantes) ? row.faltantes.map(text) : []
+        };
+    }
+
+    async function sendPurchaseOrderV138(payload = {}) {
+        const order = text(payload.ordenCompra);
+        const channel = lower(payload.canal || payload.channel);
+        if (!order) throw new Error('La orden no tiene número.');
+        if (!['email','whatsapp'].includes(channel)) throw new Error('Selecciona correo o WhatsApp.');
+        const data = await invokeEdgeFunction('contactar-proveedor', {
+            ordenCompra: order, canal: channel, adjuntarOrden: true, asunto: text(payload.asunto), mensaje: text(payload.mensaje)
+        }, { timeoutMs: 30000 });
+        if (data?.error) throw new Error(text(data.error));
+        return data || {};
+    }
+
+    async function markPurchaseOrderSentV138(payload = {}) {
+        const order = text(payload.ordenCompra), channel = lower(payload.canal || payload.channel), recipient = text(payload.destinatario);
+        if (!order) throw new Error('La orden no tiene número.');
+        const { data, error } = await client.rpc('co_marcar_orden_enviada_v138', { p_orden: order, p_canal: channel || 'manual', p_destinatario: recipient || null, p_message_id: text(payload.messageId) || null });
+        assertNoError(error, 'No se pudo marcar la orden como enviada.');
+        return data || {};
+    }
+
+    async function listPurchaseOrderSignatures(order = '') {
+        const value = text(order);
+        if (!value) return [];
+        const { data, error } = await client.from('co_orden_firmas').select('*').eq('orden_compra', value).order('id');
+        if (error && ['42P01','PGRST205'].includes(text(error.code))) return [];
+        assertNoError(error, 'No se pudieron consultar las firmas de la orden. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return (data || []).map(row => ({ id:Number(row.id),ordenCompra:text(row.orden_compra),tipo:text(row.tipo),nombre:text(row.nombre),firmaDataUrl:text(row.firma_data_url),firmaSlot:Number(row.firma_slot||0),firmaNombrePerfil:text(row.firma_nombre_perfil),userId:text(row.user_id),firmadoAt:text(row.firmado_at),updatedAt:text(row.updated_at) }));
+    }
+
+    async function savePurchaseOrderSignature(payload = {}) {
+        const order = text(payload.ordenCompra), type = text(payload.tipo).toLowerCase();
+        if (!order) throw new Error('La orden necesita número antes de firmar.');
+        if (!['solicito','elaboro','reviso','aprobo'].includes(type)) throw new Error('El tipo de firma no es válido.');
+        const rawSlot = Number(payload.firmaSlot ?? payload.signatureSlot ?? 0);
+        return approvePurchaseOrderWithMySignature(order, type, rawSlot >= 1 && rawSlot <= 3 ? rawSlot : null);
+    }
+
+    async function deletePurchaseOrderSignature(order, type) {
+        return removeMyPurchaseOrderSignature(order, type);
+    }
+
+    async function listTimeClockPunches(options = {}) {
+        let query = client.from('rh_checadas').select('*,rh_personal(id,numero_empleado,nombre,apellidos,puesto,departamento)').order('fecha_hora', { ascending: false });
+        const day = text(options.fecha ?? options.date);
+        const personalId = Number(options.personalId || 0);
+        if (day) query = query.eq('fecha_local', day);
+        if (personalId) query = query.eq('personal_id', personalId);
+        if (Number(options.limit || 0) > 0) query = query.limit(Number(options.limit));
+        const { data, error } = await query;
+        assertNoError(error, 'No se pudieron consultar las checadas. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function registerTimeClockPunch(payload = {}) {
+        const { data, error } = await client.rpc('rh_registrar_checada_v73', {
+            p_numero_empleado: text(payload.numeroEmpleado ?? payload.numero_empleado),
+            p_tipo: text(payload.tipo) || 'auto',
+            p_dispositivo: text(payload.dispositivo) || null,
+            p_notas: text(payload.notas) || null
+        });
+        assertNoError(error, 'No se pudo registrar la checada. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data || {};
+    }
+
+    async function getAttendanceSummaryV73(start, end) {
+        const { data, error } = await client.rpc('rh_resumen_asistencia_periodo_v73', { p_inicio: text(start), p_fin: text(end) });
+        assertNoError(error, 'No se pudo calcular el resumen de asistencia.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function getSkyAttendanceV81(filter = '') {
+        const { data, error } = await client.rpc('crm_sky_asistencia_v81', { p_filtro: text(filter) || null });
+        assertNoError(error, 'Skill no pudo consultar las horas del checador. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function recalculatePayrollV73(periodId) {
+        const { data, error } = await client.rpc('rh_recalcular_nomina_v73', { p_periodo_id: Number(periodId || 0) });
+        assertNoError(error, 'No se pudo recalcular la nómina desde el checador.');
+        return data || {};
+    }
+
+    async function saveSkillMeetingV105(meeting = {}, interventions = []) {
+        const payload = meeting && typeof meeting === 'object' ? meeting : {};
+        const rows = Array.isArray(interventions) ? interventions : [];
+        const { data, error } = await client.rpc('crm_skill_reunion_guardar_v105', {
+            p_reunion: payload,
+            p_intervenciones: rows
+        });
+        assertNoError(error, 'No se pudo guardar la minuta de SKILL. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return data || {};
+    }
+
+    async function listSkillMeetingsV105(limit = 20) {
+        const safeLimit = Math.min(100, Math.max(1, Math.round(number(limit) || 20)));
+        const { data, error } = await client.rpc('crm_skill_reuniones_listar_v105', { p_limite: safeLimit });
+        assertNoError(error, 'No se pudieron consultar las minutas de SKILL. Ejecuta SQL_MAESTRO_CRM.sql.');
+        return Array.isArray(data) ? data : [];
+    }
+
+    async function healthCheck() {
+        const { error } = await client.from('materiales').select('codigo').limit(1);
+        assertNoError(error, 'No se pudo conectar con Supabase.');
+        return true;
+    }
+
+    window.SkilledDB = Object.freeze({
+        client,
+        withOperationTimeout,
+        saveSkillMeetingV105,
+        listSkillMeetingsV105,
+        healthCheck,
+        listWarehouses,
+        listWarehouseInventory,
+        suggestWarehouseMaterialLocation,
+        buildProjectPickingRoute,
+        listOperationalAlerts,
+        listExecutiveVehicles,
+        listCableRolls,
+        saveCableRoll,
+        deleteCableRoll,
+        listExecutiveSkyMaterials,
+        listExecutiveSkyCategories,
+        searchExecutiveSky,
+        listExecutiveSkyPeople,
+        getExecutiveSkyPurchasing,
+        getExecutiveSkyTools,
+        getExecutiveSkyWarehouses,
+        getExecutiveSkyAlerts,
+        listRHOfficeAssets,
+        saveRHOfficeAsset,
+        deleteRHOfficeAsset,
+        listRHOfficeAssignments,
+        assignRHOfficeAsset,
+        closeRHOfficeAssetAssignment,
+        importRHOfficeAssetsAssignmentsV144,
+        getExecutiveRHOfficeAssets,
+        getReceptionPresenceV100,
+        getReceptionRecognitionDirectoryV102,
+        getSkillProfileDataV136,
+        listExecutivePendingPurchaseOrdersV136,
+        listExecutivePurchaseOrdersV137,
+        getSkyProfileData,
+        listMaterialPackages,
+        saveMaterialPackage,
+        deleteMaterialPackage,
+        listMaterialPackageProjects,
+        createMaterialPackageRequest,
+        listMaterialPackageRequests,
+        updateMaterialPackageRequest,
+        fulfillMaterialPackageRequest,
+        countMaterialPackageRequests,
+        createManualPurchaseOrderV73,
+        createFreePurchaseOrderV107,
+        createDirectPurchaseOrderFromQuotationV96,
+        getPurchaseOrderDispatchInfoV138,
+        sendPurchaseOrderV138,
+        markPurchaseOrderSentV138,
+        listPurchaseOrderSignatures,
+        savePurchaseOrderSignature,
+        deletePurchaseOrderSignature,
+        listTimeClockPunches,
+        registerTimeClockPunch,
+        getAttendanceSummaryV73,
+        getSkyAttendanceV81,
+        recalculatePayrollV73,
+        getExecutiveProjectSummary,
+        getExecutiveProjectDetail,
+        assignWarehouseMaterialLocation,
+        assignWarehouseMaterialsLocation,
+        updateWarehouseInventoryLevels,
+        saveWarehouse,
+        deleteWarehouse,
+        listWarehouseLocations,
+        saveWarehouseLocation,
+        saveWarehouseLocationsBulk,
+        deleteWarehouseRack,
+        deleteWarehouseLocation,
+        listCategories,
+        saveCategory,
+        deleteCategory,
+        listMaterials,
+        listLowStock,
+        listPurchaseRequests,
+        countActivePurchaseRequests,
+        listPurchaseOrderItems,
+        createPurchaseRequest,
+        createPurchaseRequests,
+        uploadPurchaseOrderPdf,
+        getPurchaseOrderPdfUrl,
+        updatePurchaseRequest,
+        updatePurchaseRequests,
+        deletePurchaseRequests,
+        deletePurchaseRequestsTest,
+        deleteAllPurchaseOrdersTest,
+        deleteMovementTest,
+        deleteMovementHistoryTest,
+        deleteToolUnitsTest,
+        deleteMaterialRequestTest,
+        deleteMaterialAdjustmentTest,
+        deleteToolHistoryTest,
+        deleteToolTest,
+        deleteToolUnitTest,
+        deleteToolAssignmentTest,
+        deleteProjectTest,
+        deleteVehicleTest,
+        saveMaterial,
+        matchesMaterial,
+        deleteMaterial,
+        importMaterials,
+        parseWarehouseLocationCode,
+        normalizeWarehouseLocationCode,
+        validateWarehouseLocationAgainstStructure,
+        listMovements,
+        listRecentMovements,
+        listMovementGroups,
+        registerMovement,
+        transferProjectMaterials,
+        loanProjectMaterials,
+        listVehicles,
+        saveVehicle,
+        listVehicleBaseStates,
+        saveVehicleBaseState,
+        listVehicleBaseStateHistory,
+        listVehicleAuthorizedDrivers,
+        saveVehicleAuthorizedDrivers,
+        saveVehicleTripResponsiva,
+        closeVehicleTripResponsiva,
+        signVehicleTripResponsible,
+        createVehicleResponsibleSignatureLink,
+        getVehicleSignaturePortal,
+        signVehicleSignaturePortal,
+        setVehicleActive,
+        deleteVehicle,
+        listVehicleBaseLocations,
+        saveVehicleBaseLocation,
+        listVehicleMaintenancePlans,
+        saveVehicleMaintenancePlan,
+        completeVehicleMaintenance,
+        setVehicleMaintenanceActive,
+        listVehicleMaintenanceHistory,
+        syncVehicleAlerts,
+        listVehicleTrips,
+        saveVehicleTrip,
+        closeVehicleTrip,
+        deleteVehicleTrip,
+        listVehicleExpenses,
+        saveVehicleExpense,
+        deleteVehicleExpense,
+        listProjectToolPlan,
+        saveProjectToolPlan,
+        listToolAssignments,
+        assignToolUnits,
+        returnToolAssignment,
+        cancelToolAssignment,
+        listToolHistory,
+        getToolAssignmentGroup,
+        getToolFinanceSummary,
+        toolRentalMonths,
+        toolRentalCharge,
+        getMyProfile,
+        saveMyProfile,
+        saveUiPreferences,
+        getMySignature,
+        getMySignatures,
+        getMySigningSignature,
+        saveMySignature,
+        saveMySignatureSlot,
+        setMyDefaultSignature,
+        getPurchaseOrderAuthorship,
+        getPurchaseOrderSignatureState,
+        claimLegacyPurchaseOrderAuthorship,
+        approvePurchaseOrderWithMySignature,
+        removeMyPurchaseOrderSignature,
+        reopenPurchaseOrderForChanges,
+        listTools,
+        saveTool,
+        createIncompleteTool,
+        setToolActive,
+        deleteTool,
+        importTools,
+        listToolUnits,
+        nextToolUnitCode,
+        saveToolUnit,
+        setToolUnitStatus,
+        deleteToolUnit,
+        listPendingLocations,
+        listProjectOptions,
+        listProjects,
+        listProjectLines,
+        listProjectPlan: listProjectPlanV12,
+        listProjectDeliveryPlan: listProjectMovementPlan,
+        listProjectMovementPlan,
+        saveProjectPlan: saveProjectPlanV12,
+        createIncompleteMaterial,
+        syncProjectUnlistedMaterials,
+        listMaterialRequests,
+        setMaterialRequestStatus,
+        approveMaterialProjectRequests,
+        createMaterialAdjustment,
+        listMaterialAdjustments,
+        resolveMaterialAdjustment,
+        listUnreadNotifications,
+        listDeliveryInfos,
+        saveDeliveryInfo,
+        deleteDeliveryInfo,
+        listSupplierRequests,
+        createSupplierRequest,
+        updateSupplierRequest,
+        sendSupplierRequest,
+        sendSupplierWhatsApp,
+        contactSupplier,
+        supplierCommunicationStatus,
+        listSupplierCommunications,
+        invokeEdgeFunction,
+        skyTranscriptionStatus,
+        transcribeSkyAudio,
+        synthesizeSkillSpeech,
+        interpretSkyQuery,
+        askSkyGeneral,
+        parseSupplierQuotationDocumentV102,
+        listQuotationRequests,
+        getQuotationRequest,
+        createQuotationRequest,
+        updateQuotationRequest,
+        listProviderMaterials,
+        saveProviderMaterial,
+        saveProviderMaterialsBulk,
+        deleteProviderMaterial,
+        ensureQuotationCatalogOffers,
+        saveQuotationOffer,
+        linkQuotationOfferRequest,
+        selectQuotationOffer,
+        listEmailTemplates,
+        saveEmailTemplate,
+        deleteEmailTemplate,
+        approveQuotation,
+        listQuotationPurchaseOrders,
+        listReceptionSupplies,
+        listReceptionSupplyCategoriesV110,
+        saveReceptionSupplyCategoryV110,
+        deleteReceptionSupplyCategoryV110,
+        saveReceptionSupply,
+        deleteReceptionSupply,
+        importReceptionSupplies,
+        listReceptionPantryV107,
+        saveReceptionPantryRackV107,
+        saveReceptionPantryLevelV107,
+        assignReceptionPantrySupplyV107,
+        listStoreRequests,
+        saveStoreRequest,
+        deleteStoreRequest,
+        receiveReceptionStoreListV108,
+        listReceptionSupplyDeliveriesV108,
+        createReceptionSupplyDeliveryV108,
+        getReceptionSupplyRequestPortalV120,
+        rotateReceptionSupplyRequestPortalV120,
+        listReceptionSupplyRequestsV120,
+        listReceptionPublicSupplyCatalogV120,
+        createReceptionPublicSupplyRequestV120,
+        listReceptionPublicSupplyCatalogV121,
+        createReceptionPublicSupplyRequestV121,
+        deliverReceptionSupplyRequestV120,
+        rejectReceptionSupplyRequestV120,
+        listServices,
+        saveService,
+        deleteService,
+        generateServiceAlerts,
+        listServicePayments,
+        saveServicePayment,
+        saveProject,
+        deleteProject
+    });
+})();

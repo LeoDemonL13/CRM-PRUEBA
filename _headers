@@ -1,0 +1,34 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=(), usb=(self)
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.png
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
+/*.webp
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
+/*.gif
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
+/*.ico
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+
+/*.xlsx
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/crm-sw.js
+  Cache-Control: no-store, max-age=0
+  Service-Worker-Allowed: /
